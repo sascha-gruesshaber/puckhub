@@ -50,7 +50,7 @@ export const setupRouter = router({
       // Security guard: only allow when no users exist
       const [result] = await ctx.db.select({ count: sql<number>`count(*)::int` }).from(schema.user)
 
-      if (result?.count > 0) {
+      if ((result?.count ?? 0) > 0) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Setup wurde bereits abgeschlossen",

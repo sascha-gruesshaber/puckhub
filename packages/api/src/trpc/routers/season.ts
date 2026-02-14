@@ -167,7 +167,7 @@ export const seasonRouter = router({
           .returning()
 
         await ctx.db.insert(schema.rounds).values({
-          divisionId: division?.id,
+          divisionId: division!.id,
           name: "Hauptrunde",
           roundType: "regular",
           sortOrder: 0,
@@ -182,7 +182,7 @@ export const seasonRouter = router({
           await ctx.db.insert(schema.teamDivisions).values(
             allTeams.map((t) => ({
               teamId: t.id,
-              divisionId: division?.id,
+              divisionId: division!.id,
             })),
           )
         }
@@ -220,7 +220,7 @@ export const seasonRouter = router({
 
           for (const srcRound of srcRounds) {
             await ctx.db.insert(schema.rounds).values({
-              divisionId: newDiv?.id,
+              divisionId: newDiv!.id,
               name: srcRound.name,
               roundType: srcRound.roundType,
               sortOrder: srcRound.sortOrder,
@@ -241,7 +241,7 @@ export const seasonRouter = router({
             await ctx.db.insert(schema.teamDivisions).values(
               srcAssignments.map((a) => ({
                 teamId: a.teamId,
-                divisionId: newDiv?.id,
+                divisionId: newDiv!.id,
               })),
             )
             teamsAssigned += srcAssignments.length
