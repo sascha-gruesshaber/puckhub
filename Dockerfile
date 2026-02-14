@@ -68,12 +68,12 @@ RUN mkdir -p /app/uploads && \
 # Copy built artifacts
 COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-COPY --from=builder --chown=puckhub:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=puckhub:nodejs /app/packages/api/dist ./packages/api/dist
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
 
 # Copy package.json files for runtime
 COPY --chown=puckhub:nodejs package.json ./
-COPY --chown=puckhub:nodejs apps/api/package.json ./apps/api/
+COPY --chown=puckhub:nodejs packages/api/package.json ./packages/api/
 COPY --chown=puckhub:nodejs apps/admin/package.json ./apps/admin/
 
 # Switch to non-root user
@@ -88,7 +88,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Default command - starts the API server
 # Note: For production, you may want to run both API and admin in separate containers
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "packages/api/dist/index.js"]
 
 # Build metadata (for container labels)
 ARG BUILD_DATE
