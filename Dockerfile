@@ -65,14 +65,14 @@ RUN addgroup --system --gid 1001 nodejs && \
 RUN mkdir -p /app/uploads && \
     chown -R puckhub:nodejs /app
 
-# Copy built artifacts
+# Copy built artifacts — only runtime-needed packages (api + its dependency db)
 COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
+COPY --from=builder --chown=puckhub:nodejs /app/packages/api ./packages/api
+COPY --from=builder --chown=puckhub:nodejs /app/packages/db ./packages/db
+COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
 
-# Copy package.json files for runtime
+# Copy root package.json and admin package.json for runtime
 COPY --chown=puckhub:nodejs package.json ./
-COPY --chown=puckhub:nodejs packages/api/package.json ./packages/api/
 COPY --chown=puckhub:nodejs apps/admin/package.json ./apps/admin/
 
 # Switch to non-root user
