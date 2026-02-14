@@ -68,8 +68,7 @@ RUN mkdir -p /app/uploads && \
 # Copy built artifacts
 COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-COPY --from=builder --chown=puckhub:nodejs /app/packages/api/dist ./packages/api/dist
-COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
+COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
 
 # Copy package.json files for runtime
 COPY --chown=puckhub:nodejs package.json ./
@@ -86,9 +85,10 @@ EXPOSE 3000 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Default command - starts the API server
+# Start API server from its package directory (tsx needed for workspace .ts imports)
 # Note: For production, you may want to run both API and admin in separate containers
-CMD ["node", "packages/api/dist/index.js"]
+WORKDIR /app/packages/api
+CMD ["node", "--import", "tsx", "src/index.ts"]
 
 # Build metadata (for container labels)
 ARG BUILD_DATE
