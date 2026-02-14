@@ -7,7 +7,7 @@
     "dev": "vite dev",
     "dev:force": "vite dev --force",
     "build": "vite build",
-    "start": "node .output/server/index.mjs",
+    "start": "node dist/server/server.js",
     "lint": "biome check . && tsc --noEmit",
     "format": "biome format --write .",
     "test": "playwright test"

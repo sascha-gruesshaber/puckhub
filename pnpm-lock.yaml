@@ -227,6 +227,9 @@ importers:
       better-auth:
         specifier: ^1.2.0
         version: 1.4.18(@tanstack/react-start@1.159.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)))(drizzle-kit@0.30.6)(drizzle-orm@0.44.7(gel@2.2.0)(kysely@0.28.11)(postgres@3.4.8))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vitest@4.0.18(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.6.1
       drizzle-orm:
         specifier: ^0.44.0
         version: 0.44.7(gel@2.2.0)(kysely@0.28.11)(postgres@3.4.8)
@@ -239,6 +242,9 @@ importers:
       superjson:
         specifier: ^2.2.0
         version: 2.2.6
+      tsx:
+        specifier: ^4.19.0
+        version: 4.21.0
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -249,18 +255,12 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.9
-      dotenv:
-        specifier: ^16.5.0
-        version: 16.6.1
       postgres:
         specifier: ^3.4.8
         version: 3.4.8
       testcontainers:
         specifier: ^11.11.0
         version: 11.11.0
-      tsx:
-        specifier: ^4.19.0
-        version: 4.21.0
       typescript:
         specifier: ^5.8.0
         version: 5.9.3

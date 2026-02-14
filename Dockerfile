@@ -17,11 +17,12 @@ RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 
 # ============================================================================
-# Dependencies stage - install all dependencies
+# Builder stage - install all dependencies and build apps
+# Dependencies are installed in the same stage to preserve pnpm symlinks
 # ============================================================================
-FROM base AS deps
+FROM base AS builder
 
-# Copy package manifests
+# Copy package manifests first (Docker layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
 COPY apps/web/package.json ./apps/web/
@@ -30,24 +31,18 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/config/package.json ./packages/config/
 COPY packages/ui/package.json ./packages/ui/
 
-# Install dependencies
+# Install all dependencies (dev + prod)
 RUN pnpm install --frozen-lockfile
 
-# ============================================================================
-# Builder stage - build all packages and apps
-# ============================================================================
-FROM base AS builder
-
-# Copy node_modules from deps
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps ./apps
-COPY --from=deps /app/packages ./packages
-
-# Copy source code
+# Copy source code (.dockerignore excludes node_modules, dist, .output at all depths)
 COPY . .
 
-# Build all packages and apps
-RUN pnpm build
+# Build the admin app (Vite resolves workspace TS sources directly)
+# Package type-checking is handled by CI lint step, not Docker build
+RUN pnpm --filter @puckhub/admin run build
+
+# Remove turbo cache (not needed at runtime)
+RUN rm -rf .turbo node_modules/.cache
 
 # ============================================================================
 # Production runner stage
@@ -65,16 +60,22 @@ RUN addgroup --system --gid 1001 nodejs && \
 RUN mkdir -p /app/uploads && \
     chown -R puckhub:nodejs /app
 
-# Copy built artifacts
+# Copy pruned node_modules and root manifests from builder
 COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-COPY --from=builder --chown=puckhub:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
+COPY --from=builder --chown=puckhub:nodejs /app/package.json ./
+COPY --from=builder --chown=puckhub:nodejs /app/pnpm-lock.yaml ./
+COPY --from=builder --chown=puckhub:nodejs /app/pnpm-workspace.yaml ./
+COPY --from=builder --chown=puckhub:nodejs /app/tsconfig.base.json ./
 
-# Copy package.json files for runtime
-COPY --chown=puckhub:nodejs package.json ./
-COPY --chown=puckhub:nodejs apps/api/package.json ./apps/api/
-COPY --chown=puckhub:nodejs apps/admin/package.json ./apps/admin/
+# Copy all workspace packages (source, tsconfig, node_modules, migrations)
+COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
+
+# Copy app package.json files (pnpm workspace needs these)
+COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/package.json ./apps/admin/
+COPY --from=builder --chown=puckhub:nodejs /app/apps/web/package.json ./apps/web/
+
+# Copy built admin app (Vite/TanStack Start output)
+COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
 
 # Switch to non-root user
 USER puckhub
@@ -86,9 +87,10 @@ EXPOSE 3000 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Default command - starts the API server
-# Note: For production, you may want to run both API and admin in separate containers
-CMD ["node", "apps/api/dist/index.js"]
+# Start the API server using tsx (runs TypeScript directly)
+# WORKDIR must be the API package for pnpm's strict node_modules to resolve tsx
+WORKDIR /app/packages/api
+CMD ["node", "--import", "tsx", "src/index.ts"]
 
 # Build metadata (for container labels)
 ARG BUILD_DATE

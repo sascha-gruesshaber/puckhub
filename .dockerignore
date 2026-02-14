@@ -1,12 +1,12 @@
-# Dependencies
-node_modules
+# Dependencies (** matches at any depth)
+**/node_modules
 .pnpm-store
 
-# Build outputs
-dist
-.output
-.next
-build
+# Build outputs (** matches at any depth)
+**/dist
+**/.output
+**/.next
+**/build
 
 # Development files
 .env
