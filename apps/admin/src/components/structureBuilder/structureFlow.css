@@ -1,0 +1,413 @@
+/* ── React Flow light canvas theme ── */
+.structure-flow {
+  --xy-background-color: #fafafa;
+  --xy-background-pattern-color: rgba(0, 0, 0, 0.05);
+  --xy-minimap-background: #f5f5f5;
+  --xy-minimap-mask-background: rgba(250, 250, 250, 0.7);
+  --xy-controls-button-background: #ffffff;
+  --xy-controls-button-background-hover: #f5f5f5;
+  --xy-controls-button-color: #64748b;
+  --xy-controls-button-color-hover: #1e293b;
+  --xy-controls-button-border-color: #e2e8f0;
+}
+
+.structure-flow .react-flow__background {
+  background: #fafafa;
+}
+
+.structure-flow .react-flow__edge-path {
+  stroke: #cbd5e1;
+}
+
+.structure-flow .react-flow__controls {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.structure-flow .react-flow__controls button {
+  width: 32px;
+  height: 32px;
+}
+
+.structure-flow .react-flow__controls button svg {
+  max-width: 14px;
+  max-height: 14px;
+}
+
+/* ── Shared node base ── */
+.structure-node {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  transition:
+    border-color 200ms,
+    box-shadow 200ms;
+  color: #1e293b;
+}
+
+.structure-node:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.structure-node.selected {
+  border-color: hsl(var(--primary));
+  box-shadow:
+    0 0 0 2px hsl(var(--primary) / 0.15),
+    0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Season node ── */
+.season-node {
+  width: 280px;
+  height: 80px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #ffffff;
+}
+
+.season-node .season-badge {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f4d35e, #d4a843);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0c1929;
+}
+
+.season-node .season-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.season-node .season-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #1e293b;
+}
+
+.season-node .season-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ── Division node ── */
+.division-node {
+  width: 260px;
+  min-height: 110px;
+  padding: 16px 18px;
+  transition:
+    border-color 200ms,
+    box-shadow 200ms,
+    background 200ms;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.division-node.drop-active {
+  border-color: #d4a843;
+  border-style: dashed;
+  background: rgba(244, 211, 94, 0.06);
+  box-shadow:
+    0 0 0 3px rgba(244, 211, 94, 0.2),
+    0 4px 16px rgba(244, 211, 94, 0.15);
+  animation: drop-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes drop-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(244, 211, 94, 0.2),
+      0 4px 16px rgba(244, 211, 94, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(244, 211, 94, 0.3),
+      0 4px 20px rgba(244, 211, 94, 0.25);
+  }
+}
+
+.division-node .div-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.division-node .div-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: rgba(244, 211, 94, 0.12);
+  color: #d4a843;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.division-node .div-name {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+  color: #1e293b;
+}
+
+.division-node .div-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.division-node .div-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.division-node .div-stat svg {
+  opacity: 0.6;
+}
+
+.division-node .div-stat-num {
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* ── Round node ── */
+.round-node {
+  width: 220px;
+  height: 88px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 3px solid #e2e8f0;
+  border-radius: 2px 12px 12px 2px;
+  background: #ffffff;
+}
+
+.round-node .round-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.round-node .round-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.round-node .round-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  color: #1e293b;
+}
+
+.round-node .round-type-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.round-node .round-points {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  color: #94a3b8;
+  padding-left: 32px;
+}
+
+.round-node .round-point-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.round-node .round-point-label {
+  font-weight: 500;
+  opacity: 0.7;
+}
+
+.round-node .round-points .point-val {
+  font-weight: 700;
+  color: #64748b;
+}
+
+/* ── Team node ── */
+.team-node {
+  width: 160px;
+  height: 52px;
+  border-radius: 10px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.team-node:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.team-node.selected {
+  border-color: hsl(var(--primary));
+  box-shadow:
+    0 0 0 2px hsl(var(--primary) / 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.team-node .team-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+.team-node .team-logo-wrap {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+}
+
+.team-node .team-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.team-node .team-logo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+}
+
+.team-node .team-shield-icon {
+  opacity: 0.6;
+}
+
+.team-node .team-name {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #475569;
+}
+
+/* ── Handle visibility ── */
+.structure-flow .react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #cbd5e1;
+  border: 2px solid #ffffff;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.structure-node:hover .react-flow__handle,
+.structure-node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+/* ── Drop zone indicators (shown as soon as dragging starts) ── */
+
+/* When dragging a round or team → highlight all division nodes as valid targets */
+.dragging-round .division-node,
+.dragging-team .division-node {
+  border-color: #d4a843;
+  border-style: dashed;
+  background: rgba(244, 211, 94, 0.04);
+  box-shadow: 0 0 0 2px rgba(244, 211, 94, 0.12);
+  animation: drop-hint 1.8s ease-in-out infinite;
+}
+
+/* When actually hovering over the division, intensify the effect */
+.dragging-round .division-node.drop-active,
+.dragging-team .division-node.drop-active {
+  border-color: #d4a843;
+  background: rgba(244, 211, 94, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(244, 211, 94, 0.25),
+    0 4px 16px rgba(244, 211, 94, 0.2);
+  animation: drop-pulse 1.2s ease-in-out infinite;
+}
+
+/* Subtle pulse for hint state (not yet hovered) */
+@keyframes drop-hint {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(244, 211, 94, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(244, 211, 94, 0.2);
+  }
+}
+
+/* Dim non-target nodes while dragging rounds/teams */
+.dragging-round .season-node,
+.dragging-round .round-node,
+.dragging-round .team-node,
+.dragging-team .season-node,
+.dragging-team .round-node,
+.dragging-team .team-node {
+  opacity: 0.4;
+  transition: opacity 200ms;
+}
+
+/* When dragging a division → dim everything (division drops go on canvas) */
+.dragging-division .division-node,
+.dragging-division .round-node,
+.dragging-division .team-node {
+  opacity: 0.4;
+  transition: opacity 200ms;
+}

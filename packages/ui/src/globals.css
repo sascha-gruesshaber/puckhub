@@ -1,0 +1,497 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 215 55% 23%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 354 85% 42%;
+    --secondary-foreground: 210 40% 98%;
+    --accent: 44 87% 65%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 215 55% 23%;
+    --radius: 0.5rem;
+
+    --sidebar-width: 260px;
+    --sidebar-bg: #0c1929;
+    --sidebar-text: #a8b8cc;
+    --sidebar-text-hover: #e2e8f0;
+    --sidebar-text-muted: #5a7394;
+    --sidebar-accent: #f4d35e;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+    --sidebar-active-bg: rgba(244, 211, 94, 0.08);
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --content-bg: #f5f6fa;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.06) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sidebar-text);
+  text-decoration: none;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+  position: relative;
+}
+
+.sidebar-link:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-hover);
+}
+
+.sidebar-link-active,
+.sidebar-link-active:hover {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-accent);
+}
+
+.sidebar-link-active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--sidebar-accent);
+  border-radius: 0 2px 2px 0;
+}
+
+.sidebar-disabled {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--sidebar-text-muted);
+  cursor: default;
+}
+
+.sidebar-group-label {
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sidebar-text-muted);
+  padding: 0 10px 6px;
+  user-select: none;
+}
+
+.season-selector {
+  background: rgba(244, 211, 94, 0.06);
+  border: 1px solid rgba(244, 211, 94, 0.12);
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.season-selector:hover {
+  background: rgba(244, 211, 94, 0.1);
+  border-color: rgba(244, 211, 94, 0.18);
+}
+
+/* Content enter animation */
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-enter {
+  animation: content-enter 0.2s ease-out;
+}
+
+/* Loading pulse */
+@keyframes pulse-brand {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+.pulse-brand {
+  animation: pulse-brand 1.8s ease-in-out infinite;
+}
+
+/* Dialog */
+dialog.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: transparent;
+  border: none;
+  max-width: 100vw;
+  max-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+}
+
+dialog.dialog-overlay[open] {
+  display: flex;
+}
+
+dialog.dialog-overlay::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  animation: dialog-backdrop-in 150ms ease-out;
+}
+
+dialog.dialog-overlay .dialog-content {
+  animation: dialog-content-in 200ms ease-out;
+}
+
+@keyframes dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes dialog-content-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.skeleton {
+  animation: skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: hsl(var(--muted));
+  border-radius: var(--radius);
+}
+
+/* ================================================================
+   Tiptap / ProseMirror Editor
+   ================================================================ */
+
+/* Base editor area */
+.prose-editor .ProseMirror {
+  min-height: 280px;
+  padding: 16px 20px;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.65;
+  color: hsl(var(--foreground));
+}
+
+.prose-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+  height: 0;
+}
+
+/* Typography */
+.prose-editor .ProseMirror p {
+  margin: 0.4em 0;
+}
+
+.prose-editor .ProseMirror h2 {
+  font-size: 1.35em;
+  font-weight: 700;
+  margin: 1.2em 0 0.5em;
+  line-height: 1.3;
+}
+
+.prose-editor .ProseMirror h3 {
+  font-size: 1.15em;
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+  line-height: 1.3;
+}
+
+/* Lists */
+.prose-editor .ProseMirror ul {
+  list-style: disc;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.prose-editor .ProseMirror ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.prose-editor .ProseMirror li {
+  margin: 0.2em 0;
+}
+
+/* Task lists */
+.prose-editor .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5em 0;
+}
+
+.prose-editor .ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.prose-editor .ProseMirror ul[data-type="taskList"] li > label {
+  flex-shrink: 0;
+  margin-top: 3px;
+  user-select: none;
+}
+
+.prose-editor .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border: 2px solid hsl(var(--border));
+  border-radius: 3px;
+  cursor: pointer;
+  accent-color: hsl(var(--accent));
+}
+
+.prose-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p {
+  text-decoration: line-through;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Blockquote */
+.prose-editor .ProseMirror blockquote {
+  border-left: 3px solid hsl(var(--accent) / 0.5);
+  padding-left: 1em;
+  margin: 0.8em 0;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+/* Links */
+.prose-editor .ProseMirror a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Images */
+.prose-editor .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  margin: 0.8em 0;
+  cursor: default;
+  transition: outline 150ms ease;
+}
+
+.prose-editor .ProseMirror img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}
+
+/* Horizontal rule */
+.prose-editor .ProseMirror hr {
+  border: none;
+  border-top: 2px solid hsl(var(--border));
+  margin: 1.5em 0;
+}
+
+/* Highlight marks */
+.prose-editor .ProseMirror mark {
+  border-radius: 2px;
+  padding: 1px 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Superscript / Subscript */
+.prose-editor .ProseMirror sup {
+  font-size: 0.75em;
+}
+
+.prose-editor .ProseMirror sub {
+  font-size: 0.75em;
+}
+
+/* ---- Code ---- */
+.prose-editor .ProseMirror code {
+  background: hsl(var(--muted));
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 0.85em;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+}
+
+.prose-editor .ProseMirror pre {
+  background: hsl(222 47% 6%);
+  color: #e2e8f0;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin: 0.8em 0;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 0.85em;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.prose-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ---- Tables ---- */
+.prose-editor .ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  overflow: hidden;
+  table-layout: fixed;
+}
+
+.prose-editor .ProseMirror th,
+.prose-editor .ProseMirror td {
+  border: 1px solid hsl(var(--border));
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+  position: relative;
+}
+
+.prose-editor .ProseMirror th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.prose-editor .ProseMirror th p,
+.prose-editor .ProseMirror td p {
+  margin: 0;
+}
+
+.prose-editor .ProseMirror .selectedCell {
+  background: hsl(var(--accent) / 0.1);
+}
+
+.prose-editor .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: hsl(var(--accent));
+  pointer-events: none;
+}
+
+.prose-editor .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* ---- YouTube embeds ---- */
+.prose-editor .ProseMirror .editor-youtube {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: var(--radius);
+  margin: 1em 0;
+}
+
+.prose-editor .ProseMirror div[data-youtube-video] {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  margin: 1em 0;
+  border-radius: var(--radius);
+  background: hsl(var(--muted));
+}
+
+.prose-editor .ProseMirror div[data-youtube-video] iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+.prose-editor .ProseMirror div[data-youtube-video].ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--accent));
+  outline-offset: 2px;
+}

@@ -1,0 +1,1327 @@
+{
+  "appName": "PuckHub Admin",
+  "loading": "Laden...",
+  "save": "Speichern",
+  "saving": "Speichern...",
+  "create": "Erstellen",
+  "cancel": "Abbrechen",
+  "draft": "Entwurf",
+  "published": "Veröffentlicht",
+  "logout": "Abmelden",
+  "sidebar": {
+    "leagueAdmin": "Liga-Verwaltung",
+    "groups": {
+      "gameOperations": "Spielbetrieb",
+      "leagueManagement": "Ligaverwaltung",
+      "content": "Inhalte",
+      "system": "System"
+    },
+    "items": {
+      "games": "Spiele",
+      "venues": "Spielorte",
+      "standings": "Tabelle",
+      "stats": "Statistiken",
+      "seasonStructure": "Saisonstruktur",
+      "roster": "Kader",
+      "teams": "Teams",
+      "players": "Spieler",
+      "trikots": "Trikots",
+      "news": "News",
+      "pages": "Seiten",
+      "sponsors": "Sponsoren",
+      "users": "Benutzer",
+      "settings": "Einstellungen"
+    }
+  },
+  "login": {
+    "title": "PuckHub Admin",
+    "subtitle": "Anmelden um fortzufahren",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "emailPlaceholder": "admin@puckhub.de",
+    "submit": "Anmelden",
+    "submitting": "Anmelden..."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "description": "Liga-Konfiguration verwalten",
+    "saved": "Einstellungen gespeichert",
+    "noSettings": "Noch keine Einstellungen vorhanden. Bitte führe zuerst das Setup durch.",
+    "leagueInfo": "Liga-Informationen",
+    "leagueName": "Liga-Name",
+    "leagueShortName": "Kurzname",
+    "region": "Region",
+    "language": "Sprache",
+    "localeOptions": {
+      "de-DE": "Deutsch (Deutschland)",
+      "de-AT": "Deutsch (Österreich)",
+      "de-CH": "Deutsch (Schweiz)",
+      "en-US": "Englisch (US)"
+    },
+    "timezone": "Zeitzone",
+    "points": "Punktevergabe",
+    "win": "Sieg",
+    "draw": "Unentschieden",
+    "loss": "Niederlage"
+  },
+  "language": {
+    "label": "Anzeigesprache",
+    "description": "Diese Einstellung gilt nur für dein Konto.",
+    "de-DE": "Deutsch",
+    "en-US": "English"
+  },
+  "noResults": {
+    "title": "Keine Ergebnisse für \"{{query}}\"",
+    "subtitle": "Versuche einen anderen Suchbegriff"
+  },
+  "seasonPicker": {
+    "title": "Saison auswählen",
+    "descriptionPrefix": "Wähle eine Arbeitssaison, um",
+    "descriptionSuffix": "aufzurufen.",
+    "noSeasons": "Keine Saisons vorhanden.",
+    "active": "Aktiv"
+  },
+  "seasonIndicator": {
+    "createFirst": "Erste Saison erstellen",
+    "noSeason": "Noch keine Saison vorhanden",
+    "workingSeason": "Arbeitssaison",
+    "manageSeasons": "Saisons verwalten",
+    "switchSeason": "Saison wechseln"
+  },
+  "seasonStructure": {
+    "title": "Saisonstruktur",
+    "description": "Divisionen, Runden und Teamzuordnungen konfigurieren",
+    "loading": "Struktur wird geladen...",
+    "notFound": "Saison nicht gefunden",
+    "defaults": {
+      "newDivision": "Neue Spielgruppe",
+      "newRound": "Neue Runde"
+    },
+    "toast": {
+      "error": "Fehler",
+      "teamAssigned": "Team zugewiesen",
+      "teamRemoved": "Team entfernt",
+      "divisionCreated": "Spielgruppe erstellt",
+      "divisionUpdated": "Spielgruppe aktualisiert",
+      "divisionDeleted": "Spielgruppe gelöscht",
+      "roundCreated": "Runde erstellt",
+      "roundUpdated": "Runde aktualisiert",
+      "roundDeleted": "Runde gelöscht"
+    },
+    "setup": {
+      "title": "Saisonstruktur einrichten",
+      "descriptionPrefix": "{{season}} hat noch keine Struktur.",
+      "descriptionSuffix": "Wie soll es losgehen?",
+      "hint": "Du kannst die Struktur jederzeit anpassen",
+      "actions": {
+        "creating": "Wird erstellt...",
+        "startEditor": "Editor starten",
+        "createAndStart": "Erstellen & starten"
+      },
+      "toast": {
+        "created": "Struktur erstellt",
+        "createdDescription": "{{divisions}} Spielgruppe(n), {{rounds}} Runde(n), {{teams}} Team(s)"
+      },
+      "templates": {
+        "standard": {
+          "title": "Standard-Vorlage",
+          "description": "Eine Spielgruppe mit Hauptrunde",
+          "descriptionTeams": "+ alle {{count}} Teams zugewiesen",
+          "badge": "Empfohlen"
+        },
+        "copy": {
+          "title": "Von Saison kopieren",
+          "description": "Spielgruppen, Runden und Teamzuweisungen einer bestehenden Saison übernehmen",
+          "disabled": "Keine anderen Saisons vorhanden",
+          "selectSource": "Quellsaison auswählen"
+        },
+        "empty": {
+          "title": "Leere Struktur",
+          "description": "Manuell aufbauen mit dem visuellen Editor"
+        }
+      }
+    },
+    "panel": {
+      "structureElements": "Struktur-Elemente",
+      "structureElementsDescription": "Ziehe Elemente auf die Arbeitsfläche, um sie zu erstellen.",
+      "division": "Spielgruppe",
+      "round": "Runde",
+      "roundTypes": "Rundentypen",
+      "dragToCanvas": "Auf Arbeitsfläche ziehen",
+      "dragToDivision": "Auf Spielgruppe ziehen",
+      "dragToDivisionShort": "Ziehen",
+      "season": "Saison",
+      "range": "{{start}}/{{end}}",
+      "addDivision": "Spielgruppe hinzufügen"
+    },
+    "fields": {
+      "name": "Name",
+      "sortOrder": "Sortierung",
+      "roundType": "Rundentyp",
+      "points": "Punkte"
+    },
+    "labels": {
+      "rounds": "Runden",
+      "teams": "Teams",
+      "seasonRange": "Saison {{start}}/{{end}}"
+    },
+    "points": {
+      "win": "Sieg (S)",
+      "draw": "Unentschieden (U)",
+      "loss": "Niederlage (N)",
+      "shortWin": "S",
+      "shortDraw": "U",
+      "shortLoss": "N"
+    },
+    "roundTypes": {
+      "regular": "Hauptrunde",
+      "preround": "Vorrunde",
+      "playoffs": "Playoffs",
+      "playdowns": "Playdowns",
+      "relegation": "Abstieg",
+      "placement": "Platzierung",
+      "final": "Finale"
+    },
+    "divisionPanel": {
+      "title": "Spielgruppe bearbeiten",
+      "addRound": "Runde hinzufügen",
+      "deleteDivision": "Spielgruppe löschen"
+    },
+    "roundPanel": {
+      "title": "Runde bearbeiten",
+      "deleteRound": "Runde löschen"
+    },
+    "teamAssignment": {
+      "title": "Teamzuweisung",
+      "removeFromDivision": "Von Spielgruppe entfernen"
+    },
+    "teamPalette": {
+      "title": "Teams zuweisen",
+      "description": "Ziehe Teams auf eine Spielgruppe, um sie zuzuweisen.",
+      "searchPlaceholder": "Teams suchen...",
+      "noTeams": "Keine Teams gefunden"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "cards": {
+      "seasons": "Saisons",
+      "teams": "Teams",
+      "players": "Spieler",
+      "games": "Spiele"
+    }
+  },
+  "statsPage": {
+    "title": "Statistiken",
+    "placeholder": "Die Statistikansicht wird hier implementiert."
+  },
+  "standingsPage": {
+    "title": "Tabelle",
+    "placeholder": "Die Tabellenansicht wird hier implementiert."
+  },
+  "newsCreate": {
+    "title": "Neue News",
+    "description": "Einen neuen News-Beitrag erstellen",
+    "toast": {
+      "created": "News erstellt",
+      "createError": "Fehler beim Erstellen"
+    }
+  },
+  "newsEdit": {
+    "title": "News bearbeiten",
+    "toast": {
+      "updated": "News aktualisiert",
+      "saveError": "Fehler beim Speichern"
+    }
+  },
+  "newsForm": {
+    "fields": {
+      "title": "Titel",
+      "titlePlaceholder": "Titel eingeben...",
+      "shortText": "Kurztext",
+      "shortTextPlaceholder": "Optionaler Teaser-Text für Vorschauen...",
+      "content": "Inhalt",
+      "contentPlaceholder": "News schreiben...",
+      "scheduledPublishAt": "Geplante Veröffentlichung"
+    },
+    "publish": {
+      "title": "Veröffentlichung",
+      "options": {
+        "draft": {
+          "label": "Entwurf",
+          "description": "Nicht sichtbar für den Besucher"
+        },
+        "scheduled": {
+          "label": "Geplant",
+          "description": "Wird zum gewählten Zeitpunkt veröffentlicht"
+        },
+        "published": {
+          "label": "Veröffentlicht",
+          "description": "Ist sichtbar für den Besucher"
+        }
+      }
+    },
+    "validation": {
+      "titleRequired": "Titel ist erforderlich",
+      "contentRequired": "Inhalt ist erforderlich",
+      "scheduledRequired": "Datum ist erforderlich",
+      "scheduledFuture": "Datum muss in der Zukunft liegen"
+    }
+  },
+  "pageForm": {
+    "fields": {
+      "title": "Titel",
+      "titlePlaceholder": "Seitentitel eingeben...",
+      "url": "URL",
+      "content": "Inhalt",
+      "contentPlaceholder": "Seiteninhalt schreiben...",
+      "status": "Status",
+      "parentPage": "Übergeordnete Seite",
+      "parentPageRootOption": "Keine (Hauptseite)",
+      "menuLocations": "Menüpositionen",
+      "mainNavigation": "Hauptnavigation",
+      "footer": "Footer",
+      "sortOrder": "Sortierung"
+    },
+    "statusDescriptions": {
+      "draft": "Nicht sichtbar für Besucher",
+      "published": "Sichtbar für Besucher"
+    },
+    "validation": {
+      "titleRequired": "Titel ist erforderlich"
+    }
+  },
+  "pagesCreate": {
+    "title": "Neue Seite",
+    "description": "Eine neue Seite erstellen",
+    "subpageDescription": "Eine neue Unterseite erstellen",
+    "toast": {
+      "created": "Seite erstellt",
+      "createError": "Fehler beim Erstellen"
+    }
+  },
+  "pagesEdit": {
+    "title": "Seite bearbeiten",
+    "toast": {
+      "updated": "Seite aktualisiert",
+      "saveError": "Fehler beim Speichern"
+    }
+  },
+  "newsPage": {
+    "title": "News",
+    "description": "News-Beiträge verwalten",
+    "searchPlaceholder": "News durchsuchen...",
+    "filters": {
+      "all": "Alle",
+      "fallback": "Filter"
+    },
+    "count": {
+      "total": "News",
+      "published": "Veröffentlicht",
+      "drafts": "Entwürfe",
+      "scheduled": "Geplant"
+    },
+    "status": {
+      "scheduled": "Geplant",
+      "draft": "Entwurf",
+      "published": "Veröffentlicht"
+    },
+    "meta": {
+      "createdAt": "Erstellt am {{date}}",
+      "publishedAt": "Veröffentlicht am {{date}}",
+      "scheduledFor": "Geplant für {{date}}"
+    },
+    "actions": {
+      "new": "Neue News",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "empty": {
+      "title": "Noch keine News",
+      "description": "Erstelle deinen ersten News-Beitrag.",
+      "action": "Erste News erstellen"
+    },
+    "deleteDialog": {
+      "title": "News löschen",
+      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "toast": {
+      "deleted": "News gelöscht",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "pagesPage": {
+    "title": "Seiten",
+    "description": "Statische und dynamische Seiten verwalten",
+    "searchPlaceholder": "Seiten durchsuchen...",
+    "filters": {
+      "all": "Alle",
+      "published": "Veröffentlicht",
+      "draft": "Entwurf",
+      "fallback": "Filter"
+    },
+    "count": {
+      "total": "Seiten",
+      "published": "Veröffentlicht",
+      "drafts": "Entwürfe"
+    },
+    "status": {
+      "draft": "Entwurf",
+      "published": "Veröffentlicht",
+      "static": "Statisch"
+    },
+    "menu": {
+      "nav": "Nav",
+      "footer": "Footer"
+    },
+    "meta": {
+      "sortOrder": "Sortierung: {{value}}"
+    },
+    "actions": {
+      "new": "Neue Seite",
+      "subpage": "Unterseite",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "empty": {
+      "title": "Noch keine Seiten",
+      "description": "Erstelle deine erste Seite.",
+      "action": "Erste Seite erstellen"
+    },
+    "aliases": {
+      "sectionTitle": "Weiterleitungen (Aliases)",
+      "new": "Neuer Alias",
+      "create": "Alias erstellen",
+      "dialog": {
+        "title": "Neuen Alias erstellen",
+        "aliasTitle": "Alias-Titel (wird zum Slug)",
+        "aliasTitlePlaceholder": "z.B. Alte URL...",
+        "targetPage": "Zielseite",
+        "targetPagePlaceholder": "Seite auswählen..."
+      }
+    },
+    "deletePageDialog": {
+      "title": "Seite löschen",
+      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Unterseiten werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "deleteAliasDialog": {
+      "title": "Alias löschen",
+      "description": "Bist du sicher, dass du den Alias \"/{{slug}}\" löschen möchtest?"
+    },
+    "fallback": {
+      "parent": "..."
+    },
+    "toast": {
+      "pageDeleted": "Seite gelöscht",
+      "aliasCreated": "Alias erstellt",
+      "aliasDeleted": "Alias gelöscht",
+      "createError": "Fehler beim Erstellen",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "playersPage": {
+    "title": "Spieler",
+    "description": "Spielerkader der Liga verwalten",
+    "searchPlaceholder": "Spieler durchsuchen...",
+    "filters": {
+      "all": "Alle",
+      "allTeams": "Alle Teams",
+      "fallback": "Filter",
+      "withoutTeam": "Ohne Team",
+      "withoutTeamCount": "Ohne Team ({{count}})"
+    },
+    "count": {
+      "players": "Spieler"
+    },
+    "actions": {
+      "new": "Neuer Spieler",
+      "history": "Historie",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "positions": {
+      "forward": "Stürmer",
+      "defense": "Verteidiger",
+      "goalie": "Torwart"
+    },
+    "labels": {
+      "withoutTeam": "Ohne Team",
+      "withoutTeamShort": "Ohne"
+    },
+    "empty": {
+      "noPlayersTitle": "Noch keine Spieler",
+      "noPlayersDescription": "Erstelle deinen ersten Spieler, um mit der Kaderverwaltung zu beginnen.",
+      "createFirst": "Ersten Spieler erstellen",
+      "allAssignedTitle": "Alle Spieler zugewiesen",
+      "allAssignedDescription": "Alle Spieler sind einem Team zugeordnet.",
+      "allAssignedDescriptionWithSeason": "Für die Saison {{season}} sind alle Spieler einem Team zugeordnet."
+    },
+    "fields": {
+      "photo": "Spielerfoto",
+      "uploadPhoto": "Foto hochladen",
+      "firstName": "Vorname",
+      "firstNamePlaceholder": "z.B. Max",
+      "lastName": "Nachname",
+      "lastNamePlaceholder": "z.B. Mustermann",
+      "dateOfBirth": "Geburtsdatum",
+      "nationality": "Nationalität",
+      "nationalityPlaceholder": "z.B. DE"
+    },
+    "dialogs": {
+      "newTitle": "Neuen Spieler erstellen",
+      "editTitle": "Spieler bearbeiten",
+      "newDescription": "Füge einen neuen Spieler zum Kader hinzu.",
+      "editDescription": "Ändere die Informationen des Spielers."
+    },
+    "validation": {
+      "firstNameRequired": "Vorname ist erforderlich",
+      "lastNameRequired": "Nachname ist erforderlich",
+      "dateInvalid": "Ungültiges Datum"
+    },
+    "deleteDialog": {
+      "title": "Spieler löschen",
+      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Alle zugehörigen Statistiken werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "hoverCard": {
+      "withoutTeam": "Ohne Team",
+      "nationality": "Nationalität: {{value}}",
+      "ageYears": "{{age}} Jahre"
+    },
+    "timeline": {
+      "sinceSeason": "Seit {{season}}",
+      "eventLabels": {
+        "signed": "Verpflichtet",
+        "transfer": "Transfer",
+        "position-change": "Positionswechsel",
+        "active": "Aktiver Vertrag"
+      }
+    },
+    "history": {
+      "backToPlayers": "Zurück zu Spielern",
+      "notFoundTitle": "Spieler nicht gefunden",
+      "notFoundDescription": "Dieser Spieler existiert nicht oder wurde gelöscht.",
+      "ageYears": "{{age}} Jahre",
+      "contractCount": "Verträge: {{count}}",
+      "teamCount": "Teams: {{count}}",
+      "sinceYear": "Seit {{year}}",
+      "noContractsTitle": "Keine Vertragshistorie",
+      "noContractsDescription": "Für diesen Spieler wurden noch keine Verträge erfasst."
+    },
+    "toast": {
+      "created": "Spieler erstellt",
+      "updated": "Spieler aktualisiert",
+      "deleted": "Spieler gelöscht",
+      "createError": "Fehler beim Erstellen",
+      "saveError": "Fehler beim Speichern",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "usersPage": {
+    "title": "Benutzerverwaltung",
+    "description": "Benutzer und Zugriffsrechte verwalten",
+    "searchPlaceholder": "Benutzer durchsuchen...",
+    "count": {
+      "users": "Benutzer"
+    },
+    "filters": {
+      "all": "Alle",
+      "fallback": "Filter",
+      "noRoleCount": "Ohne Rolle ({{count}})"
+    },
+    "actions": {
+      "rolesOverview": "Rollen-Übersicht",
+      "newUser": "Neuer Benutzer",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "manageRoles": "Rollen verwalten",
+      "resetPassword": "Passwort zurücksetzen",
+      "assignRole": "Rolle zuweisen",
+      "removeRole": "Rolle entfernen",
+      "setPassword": "Passwort setzen"
+    },
+    "empty": {
+      "title": "Noch keine Benutzer",
+      "description": "Erstelle den ersten Benutzer, um das Team aufzubauen.",
+      "action": "Ersten Benutzer erstellen"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Max Mustermann",
+      "email": "E-Mail-Adresse",
+      "emailPlaceholder": "benutzer@example.de",
+      "password": "Passwort",
+      "passwordPlaceholder": "Mindestens 6 Zeichen",
+      "newPassword": "Neues Passwort",
+      "role": "Rolle",
+      "teamOptional": "Team (optional)",
+      "noSpecificTeam": "Kein bestimmtes Team"
+    },
+    "dialogs": {
+      "newUserTitle": "Neuen Benutzer erstellen",
+      "editUserTitle": "Benutzer bearbeiten",
+      "newUserDescription": "Erstelle einen neuen Benutzer mit E-Mail und Passwort.",
+      "editUserDescription": "Ändere die Grunddaten des Benutzers.",
+      "rolesTitle": "Rollen: {{name}}",
+      "rolesDescription": "Verwalte die Zugriffsrechte dieses Benutzers.",
+      "resetPasswordTitle": "Passwort zurücksetzen",
+      "resetPasswordDescription": "Neues Passwort für {{name}} festlegen.",
+      "rolesInfoTitle": "Rollen und Berechtigungen",
+      "rolesInfoDescription": "Übersicht aller verfügbaren Benutzerrollen und ihrer Berechtigungen."
+    },
+    "roles": {
+      "current": "Aktuelle Rollen",
+      "noneAssigned": "Keine Rollen zugewiesen. Dieser Benutzer hat keinen Zugriff.",
+      "assignNew": "Neue Rolle zuweisen",
+      "teamPrefix": "Team: {{name}}",
+      "noneShort": "Keine Rollen",
+      "permissionsTitle": "Berechtigungen",
+      "super_admin": {
+        "label": "Super-Admin",
+        "shortLabel": "Vollzugriff auf das System",
+        "description": "Vollzugriff auf das gesamte System. Kann Benutzer verwalten, Rollen zuweisen und alle Einstellungen ändern.",
+        "permissions": {
+          "manageUsers": "Benutzer erstellen, bearbeiten und löschen",
+          "assignRoles": "Rollen zuweisen und entziehen",
+          "manageLeagueData": "Alle Saisons, Teams und Spieler verwalten",
+          "manageGames": "Spiele anlegen und Ergebnisse eintragen",
+          "manageSettings": "Systemeinstellungen ändern"
+        }
+      },
+      "league_admin": {
+        "label": "Liga-Admin",
+        "shortLabel": "Verwaltung des Spielbetriebs",
+        "description": "Verwaltung des Spielbetriebs. Kann Saisons, Spielpläne und Ergebnisse verwalten, aber keine Benutzer.",
+        "permissions": {
+          "manageSeasons": "Saisons und Saisonstrukturen verwalten",
+          "manageSchedules": "Spielpläne erstellen und bearbeiten",
+          "recordResults": "Spielergebnisse und Statistiken eintragen",
+          "manageTeamsPlayers": "Teams und Spieler verwalten",
+          "manageStandingsPenalties": "Tabellen und Strafenkatalog pflegen"
+        }
+      },
+      "team_manager": {
+        "label": "Team-Manager",
+        "shortLabel": "Verwaltung eines Teams",
+        "description": "Verwaltung eines bestimmten Teams. Kann den Kader des zugewiesenen Teams pflegen.",
+        "permissions": {
+          "editTeamProfile": "Eigenes Team-Profil bearbeiten",
+          "manageTeamRoster": "Spielerkader des Teams verwalten",
+          "manageContractsTransfers": "Verträge und Transfers pflegen",
+          "updateTeamInfo": "Team-Informationen aktualisieren"
+        }
+      },
+      "scorekeeper": {
+        "label": "Schreiber",
+        "shortLabel": "Eingabe von Ergebnissen",
+        "description": "Eingabe von Spielergebnissen. Kann Tore, Strafen und Spielstatistiken erfassen.",
+        "permissions": {
+          "recordResults": "Spielergebnisse eintragen",
+          "recordGoalsAssists": "Tore und Vorlagen erfassen",
+          "recordPenalties": "Strafen dokumentieren",
+          "recordGoalieStats": "Torhüterstatistiken eingeben"
+        }
+      },
+      "viewer": {
+        "label": "Betrachter",
+        "shortLabel": "Nur Lesezugriff",
+        "description": "Nur Lesezugriff auf das Admin-Panel. Kann alle Daten einsehen, aber nichts ändern.",
+        "permissions": {
+          "viewSeasonsSchedules": "Alle Saisons und Spielpläne einsehen",
+          "viewStandingsStats": "Tabellen und Statistiken ansehen",
+          "viewTeamsPlayers": "Team- und Spielerprofile betrachten",
+          "viewResultsHistory": "Ergebnisse und Historie durchsuchen"
+        }
+      }
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "emailRequired": "E-Mail ist erforderlich",
+      "emailInvalid": "Ungültige E-Mail-Adresse",
+      "passwordRequired": "Passwort ist erforderlich",
+      "passwordMin": "Mindestens 6 Zeichen"
+    },
+    "deleteDialog": {
+      "title": "Benutzer löschen",
+      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Alle zugehörigen Rollen und Sitzungen werden ebenfalls entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "toast": {
+      "created": "Benutzer erstellt",
+      "updated": "Benutzer aktualisiert",
+      "deleted": "Benutzer gelöscht",
+      "roleAssigned": "Rolle zugewiesen",
+      "roleRemoved": "Rolle entfernt",
+      "passwordReset": "Passwort zurückgesetzt",
+      "error": "Fehler",
+      "createError": "Fehler beim Erstellen",
+      "saveError": "Fehler beim Speichern",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "sponsorsPage": {
+    "title": "Sponsoren",
+    "description": "Sponsoren verwalten",
+    "searchPlaceholder": "Sponsoren durchsuchen...",
+    "filters": {
+      "all": "Alle",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "fallback": "Filter"
+    },
+    "count": {
+      "total": "Sponsoren",
+      "active": "Aktiv"
+    },
+    "actions": {
+      "new": "Neuen Sponsor hinzufügen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "empty": {
+      "title": "Noch keine Sponsoren",
+      "description": "Füge deinen ersten Sponsor hinzu.",
+      "action": "Ersten Sponsor hinzufügen"
+    },
+    "fields": {
+      "logo": "Logo",
+      "uploadLogo": "Logo hochladen",
+      "name": "Name",
+      "namePlaceholder": "z.B. Stadtwerke Karlsruhe",
+      "websiteUrl": "Website-URL",
+      "websitePlaceholder": "https://...",
+      "hoverText": "Hover-Text",
+      "hoverTextPlaceholder": "z.B. Offizieller Hauptsponsor",
+      "teamAssignment": "Team-Zuordnung",
+      "leagueWide": "Liga-weit",
+      "sortOrder": "Sortierung",
+      "active": "Aktiv"
+    },
+    "dialogs": {
+      "newTitle": "Neuen Sponsor erstellen",
+      "editTitle": "Sponsor bearbeiten",
+      "newDescription": "Füge einen neuen Sponsor hinzu.",
+      "editDescription": "Ändere die Informationen des Sponsors."
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "websiteInvalid": "URL muss mit http:// oder https:// beginnen"
+    },
+    "deleteDialog": {
+      "title": "Sponsor löschen",
+      "description": "Bist du sicher, dass du \"{{name}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "toast": {
+      "created": "Sponsor erstellt",
+      "updated": "Sponsor aktualisiert",
+      "deleted": "Sponsor gelöscht",
+      "createError": "Fehler beim Erstellen",
+      "saveError": "Fehler beim Speichern",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "teamsPage": {
+    "title": "Teams",
+    "description": "Mannschaften der Liga verwalten",
+    "searchPlaceholder": "Teams durchsuchen...",
+    "filters": {
+      "all": "Alle",
+      "fallback": "Filter"
+    },
+    "count": {
+      "teams": "Teams",
+      "cities": "Städte"
+    },
+    "actions": {
+      "new": "Neues Team",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "trikots": "Trikots",
+      "saving": "Speichern...",
+      "copyCalendarUrl": "Kalender-URL kopieren"
+    },
+    "calendarUrlCopied": "Kalender-URL in Zwischenablage kopiert",
+    "empty": {
+      "title": "Noch keine Teams",
+      "description": "Erstelle dein erstes Team, um mit der Ligaverwaltung zu beginnen.",
+      "action": "Erstes Team erstellen"
+    },
+    "fields": {
+      "logo": "Team-Logo",
+      "uploadLogo": "Logo hochladen",
+      "teamPhoto": "Mannschaftsfoto",
+      "uploadPhoto": "Foto hochladen",
+      "name": "Teamname",
+      "namePlaceholder": "z.B. EV Füssen",
+      "shortName": "Kürzel",
+      "shortNamePlaceholder": "z.B. EVF",
+      "city": "Stadt",
+      "cityPlaceholder": "z.B. Füssen",
+      "contactSection": "Kontaktdaten",
+      "contactName": "Ansprechpartner",
+      "contactNamePlaceholder": "Max Mustermann",
+      "contactEmail": "E-Mail",
+      "contactEmailPlaceholder": "team@example.de",
+      "contactPhone": "Telefon",
+      "contactPhonePlaceholder": "+49 ...",
+      "website": "Website",
+      "websitePlaceholder": "https://..."
+    },
+    "hoverCard": {
+      "noContactData": "Keine Kontaktdaten hinterlegt",
+      "roster": "Kader",
+      "edit": "Bearbeiten"
+    },
+    "dialogs": {
+      "newTitle": "Neues Team erstellen",
+      "editTitle": "Team bearbeiten",
+      "newDescription": "Füge ein neues Team zur Liga hinzu.",
+      "editDescription": "Ändere die Informationen des Teams."
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "shortNameRequired": "Kürzel ist erforderlich",
+      "emailInvalid": "Ungültige E-Mail-Adresse",
+      "websiteInvalid": "URL muss mit http:// oder https:// beginnen"
+    },
+    "deleteDialog": {
+      "title": "Team löschen",
+      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "trikots": {
+      "title": "Trikots: {{team}}",
+      "description": "Trikots diesem Team zuordnen und benennen.",
+      "empty": "Noch keine Trikots zugeordnet.",
+      "newAssignment": "Neues Trikot zuordnen",
+      "fields": {
+        "trikot": "Trikot",
+        "trikotPlaceholder": "Trikot wählen...",
+        "assignmentName": "Bezeichnung",
+        "assignmentNamePlaceholder": "z.B. Heimtrikot"
+      },
+      "actions": {
+        "assign": "Zuordnen",
+        "saveAssignment": "Speichern",
+        "cancelEdit": "Bearbeitung abbrechen"
+      },
+      "toast": {
+        "assigned": "Trikot zugeordnet",
+        "assignmentUpdated": "Zuordnung aktualisiert",
+        "assignmentRemoved": "Zuordnung entfernt"
+      }
+    },
+    "toast": {
+      "created": "Team erstellt",
+      "updated": "Team aktualisiert",
+      "deleted": "Team gelöscht",
+      "error": "Fehler",
+      "createError": "Fehler beim Erstellen",
+      "saveError": "Fehler beim Speichern",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "trikotsPage": {
+    "title": "Trikots",
+    "description": "Trikots definieren und Teams zuordnen",
+    "searchPlaceholder": "Trikots durchsuchen...",
+    "filters": {
+      "all": "Alle",
+      "fallback": "Filter"
+    },
+    "count": {
+      "trikots": "Trikots",
+      "templates": "Vorlagen"
+    },
+    "actions": {
+      "new": "Neues Trikot",
+      "assignments": "Zuordnungen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "empty": {
+      "title": "Noch keine Trikots",
+      "description": "Erstelle dein erstes Trikot, um es Teams zuordnen zu können.",
+      "action": "Erstes Trikot erstellen"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "z.B. Rot-Weiß Heim",
+      "template": "Vorlage",
+      "primaryColor": "Primärfarbe (Brust)",
+      "secondaryColor": "Sekundärfarbe (Schulter)",
+      "preview": "Vorschau"
+    },
+    "templateNames": {
+      "oneColor": "Einfarbig",
+      "twoColor": "Zweifarbig"
+    },
+    "colors": {
+      "primaryTitle": "Brust: {{color}}",
+      "secondaryTitle": "Schulter: {{color}}",
+      "oneColor": "1 Farbe",
+      "twoColors": "2 Farben"
+    },
+    "dialogs": {
+      "newTitle": "Neues Trikot erstellen",
+      "editTitle": "Trikot bearbeiten",
+      "newDescription": "Definiere ein neues Trikot mit Vorlage und Farben.",
+      "editDescription": "Ändere die Eigenschaften des Trikots."
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "templateRequired": "Vorlage ist erforderlich",
+      "primaryColorRequired": "Primärfarbe ist erforderlich"
+    },
+    "deleteDialog": {
+      "title": "Trikot löschen",
+      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Bestehende Teamzuordnungen werden ebenfalls entfernt."
+    },
+    "assignments": {
+      "title": "Zuordnungen: {{name}}",
+      "description": "Ordne dieses Trikot Teams zu und vergib beschreibende Namen.",
+      "empty": "Noch keine Zuordnungen vorhanden.",
+      "newTitle": "Neue Zuordnung",
+      "fields": {
+        "team": "Team",
+        "teamPlaceholder": "Team wählen...",
+        "label": "Bezeichnung",
+        "labelPlaceholder": "z.B. Heimtrikot"
+      },
+      "actions": {
+        "assign": "Zuordnen",
+        "save": "Speichern",
+        "cancelEdit": "Bearbeitung abbrechen"
+      },
+      "toast": {
+        "created": "Zuordnung erstellt",
+        "updated": "Zuordnung aktualisiert",
+        "removed": "Zuordnung entfernt"
+      }
+    },
+    "toast": {
+      "created": "Trikot erstellt",
+      "updated": "Trikot aktualisiert",
+      "deleted": "Trikot gelöscht",
+      "error": "Fehler",
+      "createError": "Fehler beim Erstellen",
+      "saveError": "Fehler beim Speichern",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "rosterPage": {
+    "title": "Kader",
+    "description": "Spieler und Verträge der Teams verwalten",
+    "searchPlaceholder": "Spieler suchen...",
+    "positions": {
+      "goalie": "Torhüter",
+      "defense": "Verteidiger",
+      "forward": "Stürmer"
+    },
+    "count": {
+      "players": "Spieler"
+    },
+    "actions": {
+      "signPlayer": "Spieler verpflichten"
+    },
+    "table": {
+      "actions": {
+        "editContract": "Vertrag bearbeiten",
+        "transfer": "Transfer",
+        "releasePlayer": "Spieler freigeben"
+      }
+    },
+    "noTeams": {
+      "title": "Keine Teams zugewiesen",
+      "description": "Erstelle zuerst eine Saisonstruktur und weise Teams zu, um den Kader zu verwalten.",
+      "action": "Zur Saisonstruktur"
+    },
+    "empty": {
+      "noResultsTitle": "Keine Treffer",
+      "teamEmptyTitle": "Kader ist leer",
+      "noSearchResults": "Keine Spieler gefunden für \"{{query}}\".",
+      "teamEmpty": "{{team}} hat noch keine Spieler in dieser Saison.",
+      "signFirst": "Ersten Spieler verpflichten"
+    },
+    "fallback": {
+      "team": "Dieses Team"
+    },
+    "signDialog": {
+      "title": "Spieler verpflichten",
+      "description": "Füge einen Spieler zum Kader hinzu.",
+      "fields": {
+        "player": "Spieler",
+        "playerSearchPlaceholder": "Spieler suchen...",
+        "position": "Position",
+        "jerseyNumber": "Trikotnummer",
+        "jerseyNumberPlaceholder": "z.B. 17"
+      },
+      "actions": {
+        "change": "Ändern",
+        "sign": "Verpflichten",
+        "signing": "Verpflichten..."
+      },
+      "empty": {
+        "noPlayersFound": "Keine Spieler gefunden",
+        "noAvailablePlayers": "Keine verfügbaren Spieler"
+      },
+      "validation": {
+        "playerRequired": "Bitte einen Spieler auswählen"
+      },
+      "toast": {
+        "signed": "Spieler verpflichtet",
+        "signError": "Fehler beim Verpflichten"
+      }
+    },
+    "editDialog": {
+      "title": "Vertrag bearbeiten",
+      "fields": {
+        "position": "Position",
+        "jerseyNumber": "Trikotnummer",
+        "jerseyNumberPlaceholder": "z.B. 17"
+      },
+      "actions": {
+        "save": "Speichern",
+        "saving": "Speichern..."
+      },
+      "toast": {
+        "updated": "Vertrag aktualisiert",
+        "saveError": "Fehler beim Speichern"
+      }
+    },
+    "transferDialog": {
+      "title": "Transfer",
+      "description": "{{player}} zu einem anderen Team transferieren.",
+      "fields": {
+        "newTeam": "Neues Team",
+        "newTeamPlaceholder": "Team auswählen...",
+        "position": "Position",
+        "newJerseyNumber": "Neue Trikotnummer",
+        "jerseyNumberPlaceholder": "z.B. 17"
+      },
+      "actions": {
+        "transfer": "Transferieren",
+        "transferring": "Transferieren..."
+      },
+      "validation": {
+        "teamRequired": "Bitte ein Team auswählen"
+      },
+      "toast": {
+        "transferred": "Transfer erfolgreich",
+        "transferError": "Fehler beim Transfer"
+      }
+    },
+    "releaseDialog": {
+      "title": "Spieler freigeben",
+      "description": "Bist du sicher, dass du {{player}} freigeben möchtest? Der Vertrag wird zum Ende dieser Saison beendet.",
+      "confirm": "Freigeben"
+    },
+    "toast": {
+      "released": "Spieler freigegeben",
+      "releaseError": "Fehler beim Freigeben"
+    }
+  },
+  "gamesPage": {
+    "title": "Spiele",
+    "description": "Verwaltung für {{season}}",
+    "searchPlaceholder": "Spiele suchen...",
+    "count": "{{total}} gesamt | {{completed}} abgeschlossen | {{unscheduled}} ohne Termin",
+    "noDate": "Kein Termin",
+    "noScheduledGames": "Keine terminierten Spiele.",
+    "noSeason": {
+      "title": "Keine Saison ausgewählt",
+      "description": "Wähle zuerst eine Arbeitssaison."
+    },
+    "views": {
+      "list": "Liste",
+      "calendar": "Kalender",
+      "venues": "Spielorte"
+    },
+    "unscheduledSidebar": {
+      "title": "Nicht terminiert",
+      "description": "Ziehe Spiele in den Kalender, um sie anzusetzen"
+    },
+    "calendar": {
+      "today": "Heute",
+      "month": "Monat",
+      "week": "Woche",
+      "day": "Tag",
+      "list": "Liste"
+    },
+    "filters": {
+      "allDivisions": "Alle Divisionen",
+      "allRounds": "Alle Runden",
+      "allTeams": "Alle Teams",
+      "allStatus": "Alle Status",
+      "unscheduledOnly": "Nur ohne Termin"
+    },
+    "status": {
+      "scheduled": "Geplant",
+      "in_progress": "Laufend",
+      "completed": "Abgeschlossen",
+      "postponed": "Verschoben",
+      "cancelled": "Abgesagt"
+    },
+    "actions": {
+      "generate": "Spielplan erzeugen",
+      "newGame": "Neues Spiel",
+      "newVenue": "Neuer Spielort",
+      "edit": "Bearbeiten",
+      "report": "Spielbericht",
+      "delete": "Löschen",
+      "calendarExport": "Kalender-Export"
+    },
+    "calendarExport": {
+      "title": "Kalender-Abonnement",
+      "description": "Abonniere den Spielplan in deiner Kalender-App",
+      "urlLabel": "Abonnement-URL",
+      "copyButton": "URL kopieren",
+      "copied": "URL in Zwischenablage kopiert",
+      "eventCount_one": "{{count}} Spiel wird exportiert",
+      "eventCount_other": "{{count}} Spiele werden exportiert",
+      "instructions": "Füge diese URL als Kalender-Abonnement in deiner Kalender-App hinzu."
+    },
+    "venuesCount": "{{count}} Spielorte",
+    "dialogs": {
+      "gameEditTitle": "Spiel bearbeiten",
+      "gameNewTitle": "Neues Spiel",
+      "gameDescription": "Spieldetails verwalten.",
+      "generateTitle": "Spielplan erzeugen",
+      "generateDescription": "Erstellt Hin- und Rückspiele pro Team-Paar.",
+      "newVenueTitle": "Neuer Spielort",
+      "newVenueDescription": "Einen Spielort für die Spielauswahl anlegen.",
+      "deleteGameTitle": "Spiel löschen",
+      "deleteGameDescription": "Dieses Spiel löschen?",
+      "deleteVenueTitle": "Spielort löschen",
+      "deleteVenueDescription": "Diesen Spielort löschen?",
+      "midnightConfirmTitle": "Spiel um 00:00 Uhr?",
+      "midnightConfirmDescription": "Die Startzeit ist auf 00:00 Uhr (Mitternacht) gesetzt. Möchtest du das Spiel wirklich zu dieser Zeit ansetzen?",
+      "midnightConfirmButton": "Ja, um 00:00 Uhr",
+      "midnightCancelButton": "Nein, Zeit ändern"
+    },
+    "form": {
+      "sections": {
+        "matchup": "Spielpaarung",
+        "schedule": "Ansetzung",
+        "result": "Ergebnis"
+      },
+      "fields": {
+        "round": "Runde",
+        "venue": "Spielort",
+        "homeTeam": "Heimteam",
+        "awayTeam": "Auswärtsteam",
+        "scheduledAt": "Datum und Uhrzeit",
+        "status": "Status",
+        "homeGoals": "Heimtore",
+        "awayGoals": "Auswärtstore"
+      }
+    },
+    "placeholders": {
+      "round": "Runde...",
+      "division": "Division...",
+      "noVenue": "Kein Spielort",
+      "homeTeam": "Heimteam...",
+      "awayTeam": "Auswärtsteam...",
+      "homeGoals": "Heimtore",
+      "awayGoals": "Auswärtstore",
+      "name": "Name",
+      "city": "Stadt",
+      "address": "Adresse"
+    },
+    "toast": {
+      "error": "Fehler",
+      "gameCreated": "Spiel erstellt",
+      "gameUpdated": "Spiel aktualisiert",
+      "gameDeleted": "Spiel gelöscht",
+      "scheduleGenerated": "Spielplan erzeugt",
+      "scheduleGeneratedDescription": "{{created}} erstellt, {{skipped}} übersprungen.",
+      "venueCreated": "Spielort erstellt",
+      "venueDeleted": "Spielort gelöscht"
+    }
+  },
+  "venuesPage": {
+    "title": "Spielorte",
+    "description": "Spielorte und Standard-Heimspielorte verwalten",
+    "searchPlaceholder": "Spielorte suchen...",
+    "filters": {
+      "all": "Alle",
+      "allTeams": "Alle Teams",
+      "fallback": "Filter"
+    },
+    "count": "Spielorte",
+    "labels": {
+      "defaultTeam": "Standard-Heimteam: {{team}}",
+      "noDefaultTeam": "Kein Standard-Team"
+    },
+    "actions": {
+      "new": "Neuer Spielort",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "form": {
+      "sections": {
+        "details": "Spielort-Details",
+        "assignment": "Heimzuordnung"
+      },
+      "fields": {
+        "name": "Spielort-Name",
+        "city": "Stadt",
+        "address": "Adresse",
+        "defaultTeam": "Standard-Heimteam"
+      }
+    },
+    "fields": {
+      "name": "Name des Spielorts",
+      "city": "Stadt",
+      "address": "Adresse",
+      "noDefaultTeam": "Kein Standard-Heimteam"
+    },
+    "dialogs": {
+      "newTitle": "Spielort erstellen",
+      "editTitle": "Spielort bearbeiten",
+      "description": "Details des Spielorts und optionales Standard-Team pflegen.",
+      "deleteTitle": "Spielort löschen",
+      "deleteDescription": "Diesen Spielort löschen?"
+    },
+    "empty": {
+      "title": "Noch keine Spielorte",
+      "description": "Erstelle den ersten Spielort für die Spielplanung.",
+      "action": "Ersten Spielort erstellen"
+    },
+    "toast": {
+      "error": "Fehler",
+      "created": "Spielort erstellt",
+      "updated": "Spielort aktualisiert",
+      "deleted": "Spielort gelöscht"
+    }
+  },
+  "seasonsPage": {
+    "title": "Saisons",
+    "description": "Saisons und Datumsbereiche der Liga verwalten",
+    "searchPlaceholder": "Saisons durchsuchen...",
+    "filterFallback": "Filter",
+    "count": {
+      "total": "Saisons"
+    },
+    "actions": {
+      "new": "Neue Saison",
+      "structure": "Struktur",
+      "roster": "Kader",
+      "edit": "Bearbeiten",
+      "delete": "Löschen"
+    },
+    "badges": {
+      "active": "Aktiv",
+      "noStructure": "Keine Struktur"
+    },
+    "meta": {
+      "range": "{{start}}/{{end}}",
+      "createdAt": "Erstellt am {{date}}"
+    },
+    "empty": {
+      "title": "Noch keine Saisons",
+      "description": "Erstelle deine erste Saison, um mit der Ligaverwaltung zu beginnen.",
+      "action": "Erste Saison erstellen"
+    },
+    "fields": {
+      "name": "Saisonname",
+      "namePlaceholder": "z.B. Saison 24/25",
+      "seasonStart": "Saisonstart",
+      "seasonEnd": "Saisonende"
+    },
+    "validation": {
+      "nameRequired": "Name ist erforderlich",
+      "seasonStartRequired": "Saisonstart ist erforderlich",
+      "seasonEndRequired": "Saisonende ist erforderlich",
+      "invalidDateRange": "Das Saisonende muss am oder nach dem Saisonstart liegen"
+    },
+    "dialogs": {
+      "newTitle": "Neue Saison erstellen",
+      "editTitle": "Saison bearbeiten",
+      "newDescription": "Füge eine neue Saison zur Liga hinzu.",
+      "editDescription": "Ändere die Informationen der Saison."
+    },
+    "deleteDialog": {
+      "title": "Saison löschen",
+      "description": "Bist du sicher, dass du \"{{name}}\" löschen möchtest? Beim Löschen einer Saison werden auch alle zugehörigen Ligen, Runden und Spiele gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+    },
+    "toast": {
+      "created": "Saison erstellt",
+      "updated": "Saison aktualisiert",
+      "deleted": "Saison gelöscht",
+      "createError": "Fehler beim Erstellen",
+      "saveError": "Fehler beim Speichern",
+      "deleteError": "Fehler beim Löschen"
+    }
+  },
+  "gameReport": {
+    "home": "Heim",
+    "away": "Auswärts",
+    "notFound": "Spiel nicht gefunden",
+    "backToGames": "Zurück zu Spiele",
+    "tabs": {
+      "lineup": "Aufstellung",
+      "report": "Spielbericht"
+    },
+    "period": "Drittel",
+    "overtime": "Verlängerung",
+    "goal": "Tor",
+    "penalty": "Strafe",
+    "assists": "Vorlagen",
+    "score": "Stand",
+    "suspended": "Gesperrt",
+    "noEvents": "Keine Ereignisse",
+    "selectPlayer": "Spieler auswählen...",
+    "selectFullRoster": "Kader übernehmen",
+    "saveLineup": "Aufstellung speichern",
+    "savingLineup": "Speichern...",
+    "addGoal": "Tor hinzufügen",
+    "editGoal": "Tor bearbeiten",
+    "goalDescription": "Torschütze, Vorlagen und Zeitpunkt erfassen.",
+    "addPenalty": "Strafe hinzufügen",
+    "editPenalty": "Strafe bearbeiten",
+    "penaltyDescription": "Strafzeit und betroffenen Spieler erfassen.",
+    "addSuspension": "Spielsperre hinzufügen",
+    "suspensionDescription": "Spielsperre unabhängig von einer Strafe erfassen.",
+    "addGoalBtn": "+ Tor",
+    "addPenaltyBtn": "+ Strafe",
+    "addSuspensionBtn": "+ Spielsperre",
+    "deleteEventTitle": "Ereignis löschen",
+    "deleteEventDescription": "Bist du sicher, dass du dieses Ereignis löschen möchtest?",
+    "deleteEventConfirm": "Löschen",
+    "suspensionBadge": "Sperre: {{games}} Spiel(e)",
+    "fields": {
+      "period": "Drittel",
+      "minutes": "Min",
+      "seconds": "Sek",
+      "team": "Team",
+      "scorer": "Torschütze",
+      "assist": "Vorlage",
+      "goalie": "Torwart",
+      "player": "Spieler",
+      "penaltyType": "Strafart",
+      "duration": "Dauer (Min)",
+      "reason": "Grund",
+      "reasonPlaceholder": "z.B. Beinstellen",
+      "addSuspension": "Spielsperre hinzufügen",
+      "suspensionType": "Sperrentyp",
+      "suspendedGames": "Gesperrte Spiele",
+      "suspensionComment": "Kommentar"
+    },
+    "suspensionTypes": {
+      "matchPenalty": "Matchstrafe",
+      "gameMisconduct": "Spieldauer-Disziplinarstrafe"
+    },
+    "suspensionWarnings": {
+      "title": "Aktive Spielsperren"
+    },
+    "toast": {
+      "lineupSaved": "Aufstellung gespeichert",
+      "lineupError": "Fehler beim Speichern der Aufstellung",
+      "goalAdded": "Tor hinzugefügt",
+      "goalUpdated": "Tor aktualisiert",
+      "penaltyAdded": "Strafe hinzugefügt",
+      "penaltyUpdated": "Strafe aktualisiert",
+      "suspensionAdded": "Spielsperre hinzugefügt",
+      "eventDeleted": "Ereignis gelöscht",
+      "error": "Fehler"
+    }
+  }
+}

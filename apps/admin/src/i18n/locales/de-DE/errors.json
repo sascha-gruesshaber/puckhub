@@ -1,0 +1,21 @@
+{
+  "AUTH_NOT_AUTHENTICATED": "Nicht angemeldet",
+  "AUTH_NOT_ADMIN": "Keine Administratorrechte",
+  "USER_NOT_FOUND": "Benutzer nicht gefunden",
+  "USER_EMAIL_CONFLICT": "Ein Benutzer mit dieser E-Mail-Adresse existiert bereits",
+  "ACCOUNT_NOT_FOUND": "Account nicht gefunden",
+  "USER_ROLE_ALREADY_ASSIGNED": "Diese Rolle ist bereits zugewiesen",
+  "USER_CANNOT_DELETE_SELF": "Du kannst deinen eigenen Account nicht löschen",
+  "SEASON_NOT_FOUND": "Saison nicht gefunden",
+  "CONTRACT_NOT_FOUND": "Vertrag nicht gefunden",
+  "CONTRACT_ALREADY_ACTIVE": "Spieler hat bereits einen aktiven Vertrag in dieser Saison",
+  "ROUND_NOT_FOUND": "Runde nicht gefunden",
+  "GAME_NOT_FOUND": "Spiel nicht gefunden",
+  "NEWS_NOT_FOUND": "News nicht gefunden",
+  "PAGE_NOT_FOUND": "Seite nicht gefunden",
+  "PAGE_SLUG_CONFLICT": "Slug ist bereits vergeben",
+  "PAGE_ALIAS_CONFLICT": "Alias ist bereits vergeben",
+  "SETUP_ALREADY_COMPLETED": "Setup wurde bereits abgeschlossen",
+  "VALIDATION_REQUIRED": "Bitte alle Pflichtfelder ausfüllen",
+  "UNKNOWN": "Ein unerwarteter Fehler ist aufgetreten"
+}

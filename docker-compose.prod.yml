@@ -1,0 +1,79 @@
+# PuckHub Production Docker Compose
+# Copyright (c) 2025 Sascha Grüßhaber
+
+version: '3.9'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: puckhub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-puckhub}
+      POSTGRES_USER: ${POSTGRES_USER:-puckhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-puckhub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - puckhub
+
+  # PuckHub API Server
+  api:
+    image: ghcr.io/sascha-gruesshaber/puckhub:latest
+    container_name: puckhub-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-puckhub}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-puckhub}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3001}
+      API_PORT: 3001
+      AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
+      UPLOAD_DIR: /app/uploads
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000}
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "${API_PORT:-3001}:3001"
+    networks:
+      - puckhub
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PuckHub Admin UI (optional - for production you might use a separate deployment)
+  # admin:
+  #   image: ghcr.io/sascha-gruesshaber/puckhub:latest
+  #   container_name: puckhub-admin
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - api
+  #   environment:
+  #     NODE_ENV: production
+  #     VITE_API_URL: http://api:3001
+  #   ports:
+  #     - "${ADMIN_PORT:-3000}:3000"
+  #   networks:
+  #     - puckhub
+
+volumes:
+  postgres_data:
+    driver: local
+  uploads:
+    driver: local
+
+networks:
+  puckhub:
+    driver: bridge

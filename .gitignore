@@ -1,0 +1,51 @@
+# Claude local files
+.claude/settings.local.json
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.output/
+.vinxi/
+.turbo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Playwright
+**/test-results/
+**/playwright-report/
+**/.e2e-state.json
+
+# Generated
+*.gen.ts
+
+# Uploads (keep .gitkeep)
+uploads/*
+!uploads/.gitkeep
+
+# Intlayer
+.intlayer
+
+# Legacy files
+_legacy

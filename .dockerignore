@@ -1,0 +1,71 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build outputs
+dist
+.output
+.next
+build
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Version control
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+.nyc_output
+test-results
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Documentation
+*.md
+!README.md
+!LICENSE.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Legacy
+_legacy
+
+# Uploads (handled by volumes in production)
+uploads/*
+
+# Database
+*.db
+*.sqlite
+
+# Cache
+.cache
+.turbo

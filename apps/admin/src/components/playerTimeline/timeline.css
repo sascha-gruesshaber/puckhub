@@ -1,0 +1,162 @@
+/* ── Player Timeline ── */
+
+/* Vertical timeline list */
+.player-timeline {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Single timeline entry — 3-column grid */
+.timeline-entry {
+  display: grid;
+  grid-template-columns: 72px 36px 1fr;
+  align-items: start;
+  position: relative;
+  padding-bottom: 24px;
+}
+
+.timeline-entry:last-child {
+  padding-bottom: 0;
+}
+
+/* ── Year label column ── */
+.timeline-year {
+  font-size: 13px;
+  font-weight: 700;
+  color: #94a3b8;
+  padding-top: 14px;
+  text-align: right;
+  padding-right: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Vertical spine ── */
+.timeline-spine {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-height: 100%;
+}
+
+/* The continuous vertical line */
+.timeline-spine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: -24px;
+  width: 3px;
+  background: linear-gradient(180deg, hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.2));
+  border-radius: 2px;
+}
+
+.timeline-entry:first-child .timeline-spine::before {
+  top: 18px;
+}
+
+.timeline-entry:last-child .timeline-spine::before {
+  bottom: 0;
+  height: 22px;
+}
+
+/* ── Timeline node (dot) ── */
+.timeline-node {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: hsl(var(--background));
+  margin-top: 16px;
+}
+
+.timeline-node--signed {
+  border-color: hsl(var(--primary));
+}
+
+.timeline-node--transfer {
+  border-color: hsl(var(--destructive));
+  background: hsl(var(--destructive) / 0.1);
+}
+
+.timeline-node--position-change {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.timeline-node--active {
+  border-color: hsl(var(--accent));
+  box-shadow:
+    0 0 0 4px hsl(var(--accent) / 0.15),
+    0 0 12px hsl(var(--accent) / 0.2);
+}
+
+/* ── Timeline card ── */
+.timeline-card {
+  padding-top: 4px;
+}
+
+/* ── Staggered fade-in animation ── */
+@keyframes timeline-fade-in {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.timeline-entry {
+  opacity: 0;
+  animation: timeline-fade-in 400ms ease-out forwards;
+  animation-delay: calc(var(--entry-index) * 80ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-entry {
+    opacity: 1;
+    animation: none;
+  }
+}
+
+/* ── Skeleton entries ── */
+.timeline-skeleton-entry {
+  display: grid;
+  grid-template-columns: 72px 36px 1fr;
+  align-items: start;
+  padding-bottom: 24px;
+}
+
+.timeline-skeleton-spine {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  min-height: 100%;
+}
+
+.timeline-skeleton-spine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: -24px;
+  width: 3px;
+  background: hsl(var(--muted));
+  border-radius: 2px;
+}
+
+/* ── Position accent bar colors ── */
+.timeline-accent-bar--goalie {
+  background: #3b82f6;
+}
+
+.timeline-accent-bar--defense {
+  background: #10b981;
+}
+
+.timeline-accent-bar--forward {
+  background: #ef4444;
+}

@@ -1,0 +1,21 @@
+{
+  "AUTH_NOT_AUTHENTICATED": "Not authenticated",
+  "AUTH_NOT_ADMIN": "You do not have admin permissions",
+  "USER_NOT_FOUND": "User not found",
+  "USER_EMAIL_CONFLICT": "A user with this email already exists",
+  "ACCOUNT_NOT_FOUND": "Account not found",
+  "USER_ROLE_ALREADY_ASSIGNED": "This role is already assigned",
+  "USER_CANNOT_DELETE_SELF": "You cannot delete your own account",
+  "SEASON_NOT_FOUND": "Season not found",
+  "CONTRACT_NOT_FOUND": "Contract not found",
+  "CONTRACT_ALREADY_ACTIVE": "Player already has an active contract in this season",
+  "ROUND_NOT_FOUND": "Round not found",
+  "GAME_NOT_FOUND": "Game not found",
+  "NEWS_NOT_FOUND": "News entry not found",
+  "PAGE_NOT_FOUND": "Page not found",
+  "PAGE_SLUG_CONFLICT": "Slug is already in use",
+  "PAGE_ALIAS_CONFLICT": "Alias is already in use",
+  "SETUP_ALREADY_COMPLETED": "Setup is already completed",
+  "VALIDATION_REQUIRED": "Please fill all required fields",
+  "UNKNOWN": "An unexpected error occurred"
+}

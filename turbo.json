@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["DATABASE_URL", "AUTH_SECRET", "AUTH_URL", "API_PORT", "ADMIN_PORT"],
+  "tasks": {
+    "dev": {
+      "dependsOn": ["^build"],
+      "persistent": true,
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".output/**", "dist/**"]
+    },
+    "db:generate": {
+      "cache": false
+    },
+    "lint": {},
+    "test": {
+      "cache": false,
+      "dependsOn": ["^build"]
+    }
+  }
+}

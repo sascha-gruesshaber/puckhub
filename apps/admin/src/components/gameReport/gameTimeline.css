@@ -1,0 +1,292 @@
+/* ── Game Timeline — Center-spine layout ── */
+
+.game-timeline {
+  position: relative;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── Team header (Home | Away labels) ── */
+.game-timeline-teams {
+  display: grid;
+  grid-template-columns: 1fr 60px 44px 60px 1fr;
+  align-items: center;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.game-timeline-teams-home {
+  grid-column: 1;
+  text-align: right;
+  padding-right: 8px;
+}
+
+.game-timeline-teams-away {
+  grid-column: 5;
+  text-align: left;
+  padding-left: 8px;
+}
+
+.game-timeline-teams-divider {
+  grid-column: 2 / 5;
+  height: 1px;
+  background: hsl(var(--border));
+}
+
+/* ── 5-column grid per entry ── */
+.game-timeline-entry {
+  display: grid;
+  grid-template-columns: 1fr 60px 44px 60px 1fr;
+  align-items: start;
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.game-timeline-entry:last-child {
+  padding-bottom: 0;
+}
+
+/* ── Time label ── */
+.game-timeline-time {
+  font-size: 13px;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+  padding-top: 10px;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+/* Home time: column 2, right-aligned */
+.game-timeline-entry--home .game-timeline-time {
+  grid-column: 2;
+  text-align: right;
+  padding-right: 10px;
+}
+
+/* Away time: column 4, left-aligned */
+.game-timeline-entry--away .game-timeline-time {
+  grid-column: 4;
+  text-align: left;
+  padding-left: 10px;
+}
+
+/* ── Vertical spine (always column 3) ── */
+.game-timeline-spine {
+  grid-column: 3;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-height: 100%;
+}
+
+.game-timeline-spine::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: -12px;
+  width: 2px;
+  background: hsl(var(--border) / 0.6);
+  border-radius: 2px;
+}
+
+.game-timeline-entry:first-child .game-timeline-spine::before {
+  top: 12px;
+}
+
+.game-timeline-entry:last-child .game-timeline-spine::before {
+  bottom: 0;
+  height: 20px;
+}
+
+/* ── Timeline node (icon circle) ── */
+.game-timeline-node {
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px hsl(var(--background));
+}
+
+.game-timeline-node svg {
+  width: 14px;
+  height: 14px;
+}
+
+.game-timeline-node--goal {
+  background: #22c55e;
+  color: white;
+}
+
+.game-timeline-node--penalty {
+  background: #f59e0b;
+  color: white;
+}
+
+.game-timeline-node--suspension {
+  background: #ef4444;
+  color: white;
+  animation: suspension-pulse 2s ease-in-out infinite;
+}
+
+@keyframes suspension-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px hsl(var(--background)),
+      0 0 0 3px transparent;
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px hsl(var(--background)),
+      0 0 0 6px rgba(239, 68, 68, 0.2);
+  }
+}
+
+/* ── Card placement ── */
+.game-timeline-card {
+  padding-top: 0;
+}
+
+/* Home card: column 1, right-aligned */
+.game-timeline-entry--home .game-timeline-card {
+  grid-column: 1;
+  grid-row: 1;
+  padding-right: 4px;
+}
+
+/* Away card: column 5, left-aligned */
+.game-timeline-entry--away .game-timeline-card {
+  grid-column: 5;
+  padding-left: 4px;
+}
+
+/* ── Period header ── */
+.game-timeline-period {
+  display: grid;
+  grid-template-columns: 1fr 60px 44px 60px 1fr;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.game-timeline-period-label {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 4px;
+  justify-content: center;
+}
+
+.game-timeline-period-label::before,
+.game-timeline-period-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--border)));
+}
+
+.game-timeline-period-label::after {
+  background: linear-gradient(90deg, hsl(var(--border)), transparent);
+}
+
+.game-timeline-period-label span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
+
+/* ── "No events" message ── */
+.game-timeline-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+/* ── Staggered fade-in ── */
+@keyframes game-timeline-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.game-timeline-entry {
+  opacity: 0;
+  animation: game-timeline-fade-in 300ms ease-out forwards;
+  animation-delay: calc(var(--entry-index, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-timeline-entry {
+    opacity: 1;
+    animation: none;
+  }
+  .game-timeline-node--suspension {
+    animation: none;
+  }
+}
+
+/* ── Mobile: collapse to single-column ── */
+@media (max-width: 768px) {
+  .game-timeline-teams {
+    grid-template-columns: 60px 36px 1fr;
+  }
+  .game-timeline-teams-home,
+  .game-timeline-teams-away {
+    display: none;
+  }
+  .game-timeline-teams-divider {
+    grid-column: 1 / -1;
+  }
+
+  .game-timeline-entry {
+    grid-template-columns: 60px 36px 1fr;
+  }
+
+  .game-timeline-entry--home .game-timeline-time,
+  .game-timeline-entry--away .game-timeline-time {
+    grid-column: 1;
+    text-align: right;
+    padding-right: 8px;
+    padding-left: 0;
+  }
+
+  .game-timeline-spine {
+    grid-column: 2;
+  }
+
+  .game-timeline-entry--home .game-timeline-card,
+  .game-timeline-entry--away .game-timeline-card {
+    grid-column: 3;
+    grid-row: auto;
+    padding-left: 4px;
+    padding-right: 0;
+  }
+
+  .game-timeline-period {
+    grid-template-columns: 60px 36px 1fr;
+  }
+
+  .game-timeline-node {
+    width: 24px;
+    height: 24px;
+  }
+
+  .game-timeline-node svg {
+    width: 12px;
+    height: 12px;
+  }
+}

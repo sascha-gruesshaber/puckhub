@@ -1,0 +1,209 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.15/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/.output",
+      "!**/.vinxi",
+      "!**/drizzle",
+      "!**/uploads",
+      "!**/*.gen.ts",
+      "!**/routeTree.gen.ts",
+      "!**/pnpm-lock.yaml"
+    ],
+    "maxSize": 10485760
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120,
+    "lineEnding": "lf",
+    "attributePosition": "auto"
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "recommended": true,
+        "noLabelWithoutControl": "warn",
+        "useButtonType": "warn",
+        "noNoninteractiveElementInteractions": "warn",
+        "noStaticElementInteractions": "warn",
+        "useSemanticElements": "warn",
+        "noSvgWithoutTitle": "warn",
+        "useKeyWithClickEvents": "warn"
+      },
+      "complexity": {
+        "recommended": true,
+        "noExcessiveCognitiveComplexity": "off",
+        "noForEach": "warn",
+        "useArrowFunction": "off"
+      },
+      "correctness": {
+        "recommended": true,
+        "noNodejsModules": "off",
+        "noUnusedFunctionParameters": "warn",
+        "useExhaustiveDependencies": "warn"
+      },
+      "performance": {
+        "recommended": true,
+        "noBarrelFile": "off",
+        "noReExportAll": "off"
+      },
+      "security": {
+        "recommended": true,
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "style": {
+        "recommended": true,
+        "noDefaultExport": "off",
+        "noImplicitBoolean": "off",
+        "noNegationElse": "off",
+        "noParameterProperties": "off",
+        "noNonNullAssertion": "off",
+        "useBlockStatements": "off",
+        "useFilenamingConvention": "off",
+        "useNamingConvention": "off",
+        "useTemplate": "error"
+      },
+      "suspicious": {
+        "recommended": true,
+        "noArrayIndexKey": "warn",
+        "noConsole": {
+          "level": "off",
+          "options": {
+            "allow": ["log", "warn", "error"]
+          }
+        },
+        "noConstEnum": "warn",
+        "noDebugger": "warn",
+        "noExplicitAny": "off",
+        "noSkippedTests": "warn"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "all",
+      "semicolons": "asNeeded",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false
+    },
+    "linter": {
+      "enabled": true
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "trailingCommas": "none"
+    },
+    "linter": {
+      "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": false
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true,
+      "quoteStyle": "double"
+    },
+    "linter": {
+      "enabled": true
+    },
+    "parser": {
+      "cssModules": true,
+      "allowWrongLineComments": true,
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noUnknownAtRules": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/e2e/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noConsole": "off"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.config.ts", "**/*.config.js", "**/*.config.mjs", "**/vite.config.ts", "**/tailwind.config.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/seed/**/*.ts", "**/migrations/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"
+          },
+          "style": {
+            "noParameterAssign": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.d.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off",
+            "useExportType": "off"
+          }
+        }
+      }
+    }
+  ]
+}
