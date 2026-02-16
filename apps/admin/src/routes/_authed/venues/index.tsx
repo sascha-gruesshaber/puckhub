@@ -22,7 +22,8 @@ import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
-import { FILTER_ALL, TeamFilterPills } from "~/components/teamFilterPills"
+import { TeamFilterPills } from "~/components/teamFilterPills"
+import { useVenuesFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/venues/")({
@@ -46,14 +47,13 @@ const emptyForm: VenueForm = {
 function VenuesPage() {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
-  const [search, setSearch] = useState("")
-  const [teamFilter, setTeamFilter] = useState(FILTER_ALL)
+  const { search, setSearch, teamFilter, setTeamFilter } = useVenuesFilters()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteVenueId, setDeleteVenueId] = useState<string | null>(null)
   const [editingVenueId, setEditingVenueId] = useState<string | null>(null)
   const [form, setForm] = useState<VenueForm>(emptyForm)
 
-  const { data: venues, isLoading } = trpc.venue.list.useQuery()
+  const [venues] = trpc.venue.list.useSuspenseQuery()
   const { data: teams } = trpc.team.list.useQuery()
 
   const teamsInUse = useMemo(() => {
@@ -189,22 +189,13 @@ function VenuesPage() {
           />
         }
         count={
-          !isLoading ? (
-            <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
               {teamFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-              {venues?.length ?? 0} {t("venuesPage.count")}
+              {venues.length} {t("venuesPage.count")}
             </div>
-          ) : undefined
         }
       >
-        {isLoading ? (
-          <div
-            className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden px-4 py-6 text-sm text-muted-foreground"
-            suppressHydrationWarning
-          >
-            {t("loading")}
-          </div>
-        ) : (venues?.length ?? 0) === 0 ? (
+        {venues.length === 0 ? (
           <EmptyState
             icon={<MapPin className="h-8 w-8" />}
             title={t("venuesPage.empty.title")}

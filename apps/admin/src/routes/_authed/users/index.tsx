@@ -11,7 +11,6 @@ import {
   FormField,
   Input,
   Label,
-  Skeleton,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
@@ -37,6 +36,7 @@ import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
+import { useUsersFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/users/")({
@@ -98,8 +98,6 @@ const ROLE_META: Record<RoleKey, RoleMeta> = {
 
 const ROLE_KEYS = Object.keys(ROLE_META) as RoleKey[]
 
-const FILTER_ALL = "__all__"
-
 // ---------------------------------------------------------------------------
 // Form types
 // ---------------------------------------------------------------------------
@@ -116,8 +114,7 @@ const emptyForm: UserForm = { name: "", email: "", password: "" }
 // ---------------------------------------------------------------------------
 function UsersPage() {
   const { t } = useTranslation("common")
-  const [search, setSearch] = useState("")
-  const [roleFilter, setRoleFilter] = useState(FILTER_ALL)
+  const { search, setSearch, roleFilter, setRoleFilter } = useUsersFilters()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<{ id: string } | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -143,7 +140,7 @@ function UsersPage() {
   const [infoDialogOpen, setInfoDialogOpen] = useState(false)
 
   const utils = trpc.useUtils()
-  const { data: users, isLoading } = trpc.users.list.useQuery()
+  const [users] = trpc.users.list.useSuspenseQuery()
   const { data: teams } = trpc.users.listTeams.useQuery()
 
   const createMutation = trpc.users.create.useMutation({
@@ -418,7 +415,7 @@ function UsersPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("usersPage.searchPlaceholder") }}
         count={
-          !isLoading && users && users.length > 0 ? (
+          users.length > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -432,23 +429,7 @@ function UsersPage() {
         }
       >
         {/* Content */}
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < 3 ? "border-b border-border/40" : ""}`}
-              >
-                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-4 w-32 rounded" />
-                  <Skeleton className="h-3 w-48 rounded" />
-                </div>
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 && !search && roleFilter === FILTER_ALL ? (
+        {filtered.length === 0 && !search && roleFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("usersPage.empty.title")}

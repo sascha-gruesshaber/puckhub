@@ -23,6 +23,7 @@ interface LineupEditorProps {
     isStartingGoalie: boolean
   }>
   activeSuspensions: ActiveSuspension[]
+  readOnly?: boolean
 }
 
 function LineupEditor({
@@ -35,6 +36,7 @@ function LineupEditor({
   awayRoster,
   existingLineup,
   activeSuspensions,
+  readOnly,
 }: LineupEditorProps) {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
@@ -66,39 +68,73 @@ function LineupEditor({
     },
   })
 
-  const handleToggle = useCallback((player: RosterPlayer, checked: boolean) => {
-    setSelected((prev) => {
-      if (checked) {
-        return [
-          ...prev,
-          {
-            playerId: player.playerId,
-            teamId: player.teamId,
-            position: player.position,
-            jerseyNumber: player.jerseyNumber,
-            isStartingGoalie: false,
-          },
-        ]
-      }
-      return prev.filter((s) => s.playerId !== player.playerId)
-    })
-  }, [])
+  const handleToggle = useCallback(
+    (player: RosterPlayer, checked: boolean) => {
+      setSelected((prev) => {
+        if (checked) {
+          return [
+            ...prev,
+            {
+              playerId: player.playerId,
+              teamId: player.teamId,
+              position: player.position,
+              jerseyNumber: player.jerseyNumber,
+              isStartingGoalie: false,
+            },
+          ]
+        }
+        return prev.filter((s) => s.playerId !== player.playerId)
+      })
 
-  const handleSelectAll = useCallback((roster: RosterPlayer[]) => {
-    setSelected((prev) => {
-      const existingIds = new Set(prev.map((s) => s.playerId))
-      const newPlayers = roster
-        .filter((p) => !existingIds.has(p.playerId))
-        .map((p) => ({
-          playerId: p.playerId,
-          teamId: p.teamId,
-          position: p.position,
-          jerseyNumber: p.jerseyNumber,
-          isStartingGoalie: false,
-        }))
-      return [...prev, ...newPlayers]
-    })
-  }, [])
+      if (player.position === "goalie") {
+        if (checked) {
+          // Auto-set first goalie as starting goalie
+          if (player.teamId === homeTeamId && !startingGoalieHome) {
+            setStartingGoalieHome(player.playerId)
+          } else if (player.teamId === awayTeamId && !startingGoalieAway) {
+            setStartingGoalieAway(player.playerId)
+          }
+        } else {
+          // Clear starting goalie when unchecking them
+          if (player.playerId === startingGoalieHome) {
+            setStartingGoalieHome(null)
+          } else if (player.playerId === startingGoalieAway) {
+            setStartingGoalieAway(null)
+          }
+        }
+      }
+    },
+    [homeTeamId, awayTeamId, startingGoalieHome, startingGoalieAway],
+  )
+
+  const handleSelectAll = useCallback(
+    (roster: RosterPlayer[]) => {
+      setSelected((prev) => {
+        const existingIds = new Set(prev.map((s) => s.playerId))
+        const newPlayers = roster
+          .filter((p) => !existingIds.has(p.playerId))
+          .map((p) => ({
+            playerId: p.playerId,
+            teamId: p.teamId,
+            position: p.position,
+            jerseyNumber: p.jerseyNumber,
+            isStartingGoalie: false,
+          }))
+        return [...prev, ...newPlayers]
+      })
+
+      // Auto-set first goalie as starter if none set
+      const firstGoalie = roster.find((p) => p.position === "goalie")
+      if (firstGoalie) {
+        if (firstGoalie.teamId === homeTeamId && !startingGoalieHome) {
+          setStartingGoalieHome(firstGoalie.playerId)
+        } else if (firstGoalie.teamId === awayTeamId && !startingGoalieAway) {
+          setStartingGoalieAway(firstGoalie.playerId)
+        }
+      }
+    },
+    [homeTeamId, awayTeamId, startingGoalieHome, startingGoalieAway],
+  )
 
   const handleSave = () => {
     const players = selected.map((s) => ({
@@ -126,11 +162,14 @@ function LineupEditor({
             onToggle={handleToggle}
             onSetStartingGoalie={setStartingGoalieHome}
             startingGoalieId={startingGoalieHome}
+            readOnly={readOnly}
           />
-          <Button variant="outline" size="sm" onClick={() => handleSelectAll(homeRoster)} className="w-full">
-            <Users className="w-3.5 h-3.5 mr-1.5" />
-            {t("gameReport.selectFullRoster")}
-          </Button>
+          {!readOnly && (
+            <Button variant="outline" size="sm" onClick={() => handleSelectAll(homeRoster)} className="w-full">
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              {t("gameReport.selectFullRoster")}
+            </Button>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -143,20 +182,25 @@ function LineupEditor({
             onToggle={handleToggle}
             onSetStartingGoalie={setStartingGoalieAway}
             startingGoalieId={startingGoalieAway}
+            readOnly={readOnly}
           />
-          <Button variant="outline" size="sm" onClick={() => handleSelectAll(awayRoster)} className="w-full">
-            <Users className="w-3.5 h-3.5 mr-1.5" />
-            {t("gameReport.selectFullRoster")}
-          </Button>
+          {!readOnly && (
+            <Button variant="outline" size="sm" onClick={() => handleSelectAll(awayRoster)} className="w-full">
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              {t("gameReport.selectFullRoster")}
+            </Button>
+          )}
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={setLineup.isPending}>
-          <Save className="w-4 h-4 mr-2" />
-          {setLineup.isPending ? t("gameReport.savingLineup") : t("gameReport.saveLineup")}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="flex justify-end">
+          <Button onClick={handleSave} disabled={setLineup.isPending}>
+            <Save className="w-4 h-4 mr-2" />
+            {setLineup.isPending ? t("gameReport.savingLineup") : t("gameReport.saveLineup")}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

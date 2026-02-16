@@ -8,6 +8,7 @@ interface DivisionEditPanelProps {
   divisionId: string
   name: string
   sortOrder: number
+  goalieMinGames: number
   seasonId: string
   onInvalidate: () => void
 }
@@ -16,17 +17,20 @@ export function DivisionEditPanel({
   divisionId,
   name,
   sortOrder,
+  goalieMinGames,
   seasonId: _seasonId,
   onInvalidate,
 }: DivisionEditPanelProps) {
   const { t } = useTranslation("common")
   const [editName, setEditName] = useState(name)
   const [editOrder, setEditOrder] = useState(String(sortOrder))
+  const [editGoalieMinGames, setEditGoalieMinGames] = useState(String(goalieMinGames))
 
   useEffect(() => {
     setEditName(name)
     setEditOrder(String(sortOrder))
-  }, [name, sortOrder])
+    setEditGoalieMinGames(String(goalieMinGames))
+  }, [name, sortOrder, goalieMinGames])
 
   const updateMutation = trpc.division.update.useMutation({
     onSuccess: () => {
@@ -58,6 +62,7 @@ export function DivisionEditPanel({
       id: divisionId,
       name: editName.trim(),
       sortOrder: Number(editOrder) || 0,
+      goalieMinGames: Number(editGoalieMinGames) || 7,
     })
   }
 
@@ -93,6 +98,18 @@ export function DivisionEditPanel({
           onChange={(e) => setEditOrder(e.target.value)}
           className="h-8 text-xs bg-white border-gray-200 text-gray-900"
         />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.goalieMinGames")}</label>
+        <Input
+          type="number"
+          min={0}
+          value={editGoalieMinGames}
+          onChange={(e) => setEditGoalieMinGames(e.target.value)}
+          className="h-8 text-xs bg-white border-gray-200 text-gray-900 w-20"
+        />
+        <span className="text-[10px] text-gray-400">{t("seasonStructure.fields.goalieMinGamesHint")}</span>
       </div>
 
       <Button

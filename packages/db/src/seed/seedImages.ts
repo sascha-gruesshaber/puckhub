@@ -233,7 +233,7 @@ export async function generateSeedImages(params: {
 
   const sponsorLogoUrls: string[] = []
   for (let i = 0; i < params.sponsors.length; i++) {
-    const svg = generateSponsorLogoSvg(params.sponsors[i]?.name, i)
+    const svg = generateSponsorLogoSvg(params.sponsors[i]!.name, i)
     sponsorLogoUrls.push(await writePng("logos", svg, 600, 200))
   }
 

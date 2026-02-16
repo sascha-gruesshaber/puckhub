@@ -155,6 +155,45 @@
   animation: content-enter 0.2s ease-out;
 }
 
+/* Navigation progress bar */
+@keyframes nav-progress-fill {
+  0% {
+    width: 0;
+    opacity: 1;
+  }
+  80% {
+    width: 100%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes nav-progress-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.nav-progress-fill {
+  animation:
+    nav-progress-fill 400ms ease-out forwards,
+    nav-progress-shimmer 800ms linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress-fill {
+    animation: none;
+    width: 100%;
+    opacity: 0;
+  }
+}
+
 /* Loading pulse */
 @keyframes pulse-brand {
   0%,

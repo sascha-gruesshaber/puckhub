@@ -5,6 +5,7 @@ export const roundTypeEnum = pgEnum("round_type", [
   "preround",
   "playoffs",
   "playdowns",
+  "playups",
   "relegation",
   "placement",
   "final",

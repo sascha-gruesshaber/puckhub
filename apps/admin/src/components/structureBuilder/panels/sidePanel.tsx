@@ -214,6 +214,7 @@ export function SidePanel({
           divisionId={d.dbId as string}
           name={d.name as string}
           sortOrder={d.sortOrder as number}
+          goalieMinGames={(d.goalieMinGames as number) ?? 7}
           seasonId={d.seasonId as string}
           onInvalidate={onInvalidate}
         />
@@ -229,6 +230,8 @@ export function SidePanel({
           pointsWin={d.pointsWin as number}
           pointsDraw={d.pointsDraw as number}
           pointsLoss={d.pointsLoss as number}
+          countsForPlayerStats={(d.countsForPlayerStats as boolean) ?? true}
+          countsForGoalieStats={(d.countsForGoalieStats as boolean) ?? true}
           onInvalidate={onInvalidate}
         />
       )

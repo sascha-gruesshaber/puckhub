@@ -3,7 +3,16 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { adminProcedure, publicProcedure, router } from "../init"
 
-const roundTypeValues = ["regular", "preround", "playoffs", "playdowns", "relegation", "placement", "final"] as const
+const roundTypeValues = [
+  "regular",
+  "preround",
+  "playoffs",
+  "playdowns",
+  "playups",
+  "relegation",
+  "placement",
+  "final",
+] as const
 
 export const roundRouter = router({
   listByDivision: publicProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -29,6 +38,8 @@ export const roundRouter = router({
         pointsWin: z.number().int().default(2),
         pointsDraw: z.number().int().default(1),
         pointsLoss: z.number().int().default(0),
+        countsForPlayerStats: z.boolean().default(true),
+        countsForGoalieStats: z.boolean().default(true),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -46,6 +57,8 @@ export const roundRouter = router({
         pointsWin: z.number().int().optional(),
         pointsDraw: z.number().int().optional(),
         pointsLoss: z.number().int().optional(),
+        countsForPlayerStats: z.boolean().optional(),
+        countsForGoalieStats: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

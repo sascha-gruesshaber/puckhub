@@ -12,6 +12,7 @@ interface Division {
   seasonId: string
   name: string
   sortOrder: number
+  goalieMinGames: number
 }
 
 interface Round {
@@ -23,6 +24,8 @@ interface Round {
   pointsWin: number
   pointsDraw: number
   pointsLoss: number
+  countsForPlayerStats: boolean
+  countsForGoalieStats: boolean
 }
 
 interface TeamAssignment {
@@ -78,6 +81,7 @@ export function buildNodesAndEdges(data: FullStructure): {
       data: {
         name: div.name,
         sortOrder: div.sortOrder,
+        goalieMinGames: div.goalieMinGames,
         seasonId: div.seasonId,
         dbId: div.id,
         teamCount: divTeams.length,
@@ -108,6 +112,8 @@ export function buildNodesAndEdges(data: FullStructure): {
           pointsWin: round.pointsWin,
           pointsDraw: round.pointsDraw,
           pointsLoss: round.pointsLoss,
+          countsForPlayerStats: round.countsForPlayerStats,
+          countsForGoalieStats: round.countsForGoalieStats,
           divisionId: round.divisionId,
           dbId: round.id,
         },

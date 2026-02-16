@@ -23,11 +23,12 @@ interface TimelineEventProps {
   runningScore: string
   isHome: boolean
   index: number
+  readOnly?: boolean
   onEdit: () => void
   onDelete: () => void
 }
 
-function TimelineEvent({ event, runningScore, isHome, index, onEdit, onDelete }: TimelineEventProps) {
+function TimelineEvent({ event, runningScore, isHome, index, readOnly, onEdit, onDelete }: TimelineEventProps) {
   const { t } = useTranslation("common")
 
   const time = `${String(event.timeMinutes).padStart(2, "0")}:${String(event.timeSeconds).padStart(2, "0")}`
@@ -65,29 +66,9 @@ function TimelineEvent({ event, runningScore, isHome, index, onEdit, onDelete }:
       <div className="game-timeline-card">
         {isGoal ? (
           /* ── Goal card ── */
-          <div className="group relative rounded-lg border bg-card overflow-hidden hover:shadow-md transition-shadow">
+          <div className="rounded-lg border bg-card overflow-hidden">
             <div className="h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-400" />
             <div className="p-3">
-              {/* Action buttons */}
-              <div
-                className={`absolute top-2 ${isHome ? "left-2" : "right-2"} flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}
-              >
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-600 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
               <div className={`flex items-start gap-3 ${isHome ? "flex-row-reverse text-right" : ""}`}>
                 <div className="flex-1 min-w-0">
                   <div className={`flex items-center gap-2 mb-1 ${isHome ? "justify-end" : ""}`}>
@@ -120,35 +101,35 @@ function TimelineEvent({ event, runningScore, isHome, index, onEdit, onDelete }:
                   </div>
                 )}
               </div>
+
+              {/* Action buttons — always visible, bottom */}
+              {!readOnly && (
+                <div className={`flex gap-1 mt-2 ${isHome ? "justify-start" : "justify-end"}`}>
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground/50 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : (
           /* ── Penalty card ── */
-          <div className="group relative rounded-lg border bg-card overflow-hidden hover:shadow-md transition-shadow">
+          <div className="rounded-lg border bg-card overflow-hidden">
             <div
               className={`h-0.5 ${hasSuspension ? "bg-gradient-to-r from-red-500 to-red-400" : "bg-gradient-to-r from-amber-500 to-amber-400"}`}
             />
             <div className="p-3">
-              {/* Action buttons */}
-              <div
-                className={`absolute top-2 ${isHome ? "left-2" : "right-2"} flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}
-              >
-                <button
-                  type="button"
-                  onClick={onEdit}
-                  className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground hover:text-red-600 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
               <div className={`flex items-start gap-3 ${isHome ? "flex-row-reverse text-right" : ""}`}>
                 <div className="flex-1 min-w-0">
                   <div className={`flex items-center gap-2 mb-1 flex-wrap ${isHome ? "justify-end" : ""}`}>
@@ -204,6 +185,26 @@ function TimelineEvent({ event, runningScore, isHome, index, onEdit, onDelete }:
                   </div>
                 )}
               </div>
+
+              {/* Action buttons — always visible, bottom */}
+              {!readOnly && (
+                <div className={`flex gap-1 mt-2 ${isHome ? "justify-start" : "justify-end"}`}>
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground/50 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

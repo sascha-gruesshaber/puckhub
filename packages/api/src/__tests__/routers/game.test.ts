@@ -13,7 +13,44 @@ describe("game router", () => {
     await admin.teamDivision.assign({ teamId: homeTeam.id, divisionId: division.id })
     await admin.teamDivision.assign({ teamId: awayTeam.id, divisionId: division.id })
 
-    return { season, division, round, homeTeam, awayTeam }
+    return { admin, season, division, round, homeTeam, awayTeam }
+  }
+
+  async function createGameWithLineups() {
+    const fixtures = await createGameFixtures()
+    const { admin, round, homeTeam, awayTeam } = fixtures
+
+    const homePlayer = (await admin.player.create({ firstName: "Home", lastName: "Player" }))!
+    const awayPlayer = (await admin.player.create({ firstName: "Away", lastName: "Player" }))!
+    await admin.contract.signPlayer({
+      playerId: homePlayer.id,
+      teamId: homeTeam.id,
+      seasonId: fixtures.season.id,
+      position: "forward",
+    })
+    await admin.contract.signPlayer({
+      playerId: awayPlayer.id,
+      teamId: awayTeam.id,
+      seasonId: fixtures.season.id,
+      position: "forward",
+    })
+
+    const game = (await admin.game.create({
+      roundId: round.id,
+      homeTeamId: homeTeam.id,
+      awayTeamId: awayTeam.id,
+      scheduledAt: "2025-10-15T19:30:00.000Z",
+    }))!
+
+    await admin.gameReport.setLineup({
+      gameId: game.id,
+      players: [
+        { playerId: homePlayer.id, teamId: homeTeam.id, position: "forward" },
+        { playerId: awayPlayer.id, teamId: awayTeam.id, position: "forward" },
+      ],
+    })
+
+    return { ...fixtures, game, homePlayer, awayPlayer }
   }
 
   describe("listByRound", () => {
@@ -64,26 +101,15 @@ describe("game router", () => {
     })
 
     it("supports team and status filters", async () => {
-      const { season, round, homeTeam, awayTeam } = await createGameFixtures()
-      const admin = createTestCaller({ asAdmin: true })
+      const { admin, season, round, homeTeam, awayTeam, game } = await createGameWithLineups()
 
-      const g1 = await admin.game.create({
-        roundId: round.id,
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
-      })
       await admin.game.create({
         roundId: round.id,
         homeTeamId: awayTeam.id,
         awayTeamId: homeTeam.id,
       })
 
-      await admin.game.update({
-        id: g1?.id,
-        homeScore: 2,
-        awayScore: 1,
-        status: "completed",
-      })
+      await admin.game.complete({ id: game.id })
 
       const filtered = await admin.game.listForSeason({
         seasonId: season.id,
@@ -191,7 +217,7 @@ describe("game router", () => {
       expect(updated?.gameNumber).toBe(8)
     })
 
-    it("requires scores when status is completed", async () => {
+    it("does not accept status or score fields", async () => {
       const { round, homeTeam, awayTeam } = await createGameFixtures()
       const admin = createTestCaller({ asAdmin: true })
 
@@ -201,12 +227,120 @@ describe("game router", () => {
         awayTeamId: awayTeam.id,
       })
 
-      await expect(
-        admin.game.update({
-          id: game?.id,
-          status: "completed",
-        }),
-      ).rejects.toThrow("Both scores are required")
+      // status, homeScore, awayScore should be stripped by Zod (passthrough is off)
+      const updated = await admin.game.update({
+        id: game?.id,
+        notes: "test",
+        // @ts-expect-error - these fields are no longer in the schema
+        status: "completed",
+        homeScore: 3,
+        awayScore: 1,
+      } as any)
+
+      // Status should still be scheduled since update no longer accepts status
+      expect(updated?.status).toBe("scheduled")
+    })
+  })
+
+  describe("complete", () => {
+    it("completes a game with lineups", async () => {
+      const { admin, game } = await createGameWithLineups()
+
+      const completed = await admin.game.complete({ id: game.id })
+
+      expect(completed?.status).toBe("completed")
+      expect(completed?.finalizedAt).toBeDefined()
+    })
+
+    it("rejects completion without lineups", async () => {
+      const { round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      const game = await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+      })
+
+      await expect(admin.game.complete({ id: game!.id })).rejects.toThrow("Aufstellung")
+    })
+
+    it("rejects completing an already completed game", async () => {
+      const { admin, game } = await createGameWithLineups()
+
+      await admin.game.complete({ id: game.id })
+      await expect(admin.game.complete({ id: game.id })).rejects.toThrow("bereits")
+    })
+
+    it("rejects completing a cancelled game", async () => {
+      const { admin, game } = await createGameWithLineups()
+
+      await admin.game.cancel({ id: game.id })
+      await expect(admin.game.complete({ id: game.id })).rejects.toThrow("bereits")
+    })
+  })
+
+  describe("cancel", () => {
+    it("cancels a scheduled game", async () => {
+      const { round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      const game = await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+      })
+
+      const cancelled = await admin.game.cancel({ id: game!.id })
+      expect(cancelled?.status).toBe("cancelled")
+    })
+
+    it("rejects cancelling a completed game", async () => {
+      const { admin, game } = await createGameWithLineups()
+
+      await admin.game.complete({ id: game.id })
+      await expect(admin.game.cancel({ id: game.id })).rejects.toThrow("geplante")
+    })
+  })
+
+  describe("reopen", () => {
+    it("reopens a completed game", async () => {
+      const { admin, game } = await createGameWithLineups()
+
+      await admin.game.complete({ id: game.id })
+      const reopened = await admin.game.reopen({ id: game.id })
+
+      expect(reopened?.status).toBe("scheduled")
+      expect(reopened?.finalizedAt).toBeNull()
+    })
+
+    it("reopens a cancelled game", async () => {
+      const { round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      const game = await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+      })
+
+      await admin.game.cancel({ id: game!.id })
+      const reopened = await admin.game.reopen({ id: game!.id })
+
+      expect(reopened?.status).toBe("scheduled")
+    })
+
+    it("rejects reopening a scheduled game", async () => {
+      const { round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      const game = await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+      })
+
+      await expect(admin.game.reopen({ id: game!.id })).rejects.toThrow("abgeschlossene")
     })
   })
 
@@ -247,31 +381,6 @@ describe("game router", () => {
       expect(result.totalFixtures).toBe(2)
       expect(result.createdCount).toBe(1)
       expect(result.skippedExisting).toBe(1)
-    })
-  })
-
-  describe("updateScore", () => {
-    it("updates game score", async () => {
-      const { round, homeTeam, awayTeam } = await createGameFixtures()
-      const admin = createTestCaller({ asAdmin: true })
-
-      const game = await admin.game.create({
-        roundId: round.id,
-        homeTeamId: homeTeam.id,
-        awayTeamId: awayTeam.id,
-      })
-
-      const updated = await admin.game.updateScore({
-        id: game?.id,
-        homeScore: 4,
-        awayScore: 2,
-        status: "completed",
-      })
-
-      expect(updated?.homeScore).toBe(4)
-      expect(updated?.awayScore).toBe(2)
-      expect(updated?.status).toBe("completed")
-      expect(updated?.finalizedAt).toBeDefined()
     })
   })
 

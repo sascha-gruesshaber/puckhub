@@ -1,4 +1,4 @@
-import { Badge, Button, Skeleton, toast } from "@puckhub/ui"
+import { Badge, Button, toast } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { Clock, Newspaper, Pencil, Plus, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -8,23 +8,21 @@ import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
+import { useNewsFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/news/")({
   component: NewsPage,
 })
 
-const FILTER_ALL = "__all__"
-
 function NewsPage() {
   const { t, i18n } = useTranslation("common")
-  const [search, setSearch] = useState("")
-  const [yearFilter, setYearFilter] = useState(FILTER_ALL)
+  const { search, setSearch, yearFilter, setYearFilter } = useNewsFilters()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingArticle, setDeletingArticle] = useState<{ id: string; title: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const { data: articles, isLoading } = trpc.news.list.useQuery()
+  const [articles] = trpc.news.list.useSuspenseQuery()
 
   const deleteMutation = trpc.news.delete.useMutation({
     onSuccess: () => {
@@ -132,7 +130,7 @@ function NewsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("newsPage.searchPlaceholder") }}
         count={
-          !isLoading && articles && articles.length > 0 ? (
+          articles.length > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -163,23 +161,7 @@ function NewsPage() {
         }
       >
         {/* Content */}
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < 3 ? "border-b border-border/40" : ""}`}
-              >
-                <Skeleton className="h-2.5 w-2.5 rounded-full shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-2/3 rounded" />
-                  <Skeleton className="h-4 w-1/3 rounded" />
-                </div>
-                <Skeleton className="h-8 w-24 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 && !search && yearFilter === FILTER_ALL ? (
+        {filtered.length === 0 && !search && yearFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Newspaper className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("newsPage.empty.title")}

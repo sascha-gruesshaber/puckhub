@@ -1,4 +1,4 @@
-import { integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core"
 import { positionEnum } from "./enums"
 import { players } from "./players"
 import { seasons } from "./seasons"
@@ -25,5 +25,10 @@ export const contracts = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique().on(t.playerId, t.teamId, t.startSeasonId)],
+  (t) => [
+    unique().on(t.playerId, t.teamId, t.startSeasonId),
+    index("contracts_player_id_idx").on(t.playerId),
+    index("contracts_team_id_idx").on(t.teamId),
+    index("contracts_start_season_id_idx").on(t.startSeasonId),
+  ],
 )

@@ -11,7 +11,6 @@ import {
   FormField,
   Input,
   Label,
-  Skeleton,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
@@ -25,6 +24,7 @@ import { FilterPill } from "~/components/filterPill"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
+import { useSponsorsFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/sponsors/")({
@@ -54,7 +54,6 @@ const emptyForm: SponsorForm = {
   isActive: true,
 }
 
-const FILTER_ALL = "__all__"
 const FILTER_ACTIVE = "__active__"
 const FILTER_INACTIVE = "__inactive__"
 
@@ -63,8 +62,7 @@ const FILTER_INACTIVE = "__inactive__"
 // ---------------------------------------------------------------------------
 function SponsorsPage() {
   const { t } = useTranslation("common")
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState(FILTER_ALL)
+  const { search, setSearch, statusFilter, setStatusFilter } = useSponsorsFilters()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingSponsor, setEditingSponsor] = useState<{ id: string } | null>(null)
@@ -73,7 +71,7 @@ function SponsorsPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof SponsorForm, string>>>({})
 
   const utils = trpc.useUtils()
-  const { data: sponsors, isLoading } = trpc.sponsor.list.useQuery()
+  const [sponsors] = trpc.sponsor.list.useSuspenseQuery()
   const { data: teams } = trpc.team.list.useQuery()
 
   const createMutation = trpc.sponsor.create.useMutation({
@@ -256,7 +254,7 @@ function SponsorsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("sponsorsPage.searchPlaceholder") }}
         count={
-          !isLoading && sponsors && sponsors.length > 0 ? (
+          sponsors.length > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -274,22 +272,7 @@ function SponsorsPage() {
         }
       >
         {/* Content */}
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < 3 ? "border-b border-border/40" : ""}`}
-              >
-                <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-1/3 rounded" />
-                  <Skeleton className="h-3 w-1/4 rounded" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
+        {filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Handshake className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("sponsorsPage.empty.title")}

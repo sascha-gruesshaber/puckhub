@@ -11,7 +11,6 @@ import {
   FormField,
   Input,
   Label,
-  Skeleton,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
@@ -24,7 +23,8 @@ import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { PlayerHoverCard } from "~/components/playerHoverCard"
-import { FILTER_ALL, TeamFilterPills } from "~/components/teamFilterPills"
+import { TeamFilterPills } from "~/components/teamFilterPills"
+import { usePlayersFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
@@ -59,8 +59,7 @@ const FILTER_UNASSIGNED = "__unassigned__"
 // ---------------------------------------------------------------------------
 function PlayersPage() {
   const { t } = useTranslation("common")
-  const [search, setSearch] = useState("")
-  const [teamFilter, setTeamFilter] = useState(FILTER_ALL)
+  const { search, setSearch, teamFilter, setTeamFilter } = usePlayersFilters()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<{ id: string } | null>(null)
@@ -70,7 +69,7 @@ function PlayersPage() {
 
   const { season: workingSeason } = useWorkingSeason()
   const utils = trpc.useUtils()
-  const { data, isLoading } = trpc.player.listWithCurrentTeam.useQuery()
+  const [data] = trpc.player.listWithCurrentTeam.useSuspenseQuery()
   const { data: teams } = trpc.team.list.useQuery()
 
   const players = data?.players
@@ -446,7 +445,7 @@ function PlayersPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
         count={
-          !isLoading && players && players.length > 0 ? (
+          players.length > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -460,22 +459,7 @@ function PlayersPage() {
         }
       >
         {/* Content */}
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < 4 ? "border-b border-border/40" : ""}`}
-              >
-                <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-1/3 rounded" />
-                </div>
-                <Skeleton className="h-5 w-16 rounded hidden sm:block" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 && !search && teamFilter === FILTER_ALL ? (
+        {filtered.length === 0 && !search && teamFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("playersPage.empty.noPlayersTitle")}

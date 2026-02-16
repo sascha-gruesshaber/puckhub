@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core"
+import { boolean, index, integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core"
 import { positionEnum } from "./enums"
 import { games } from "./games"
 import { players } from "./players"
@@ -22,5 +22,5 @@ export const gameLineups = pgTable(
     isStartingGoalie: boolean("is_starting_goalie").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique().on(t.gameId, t.playerId)],
+  (t) => [unique().on(t.gameId, t.playerId), index("game_lineups_game_id_idx").on(t.gameId)],
 )

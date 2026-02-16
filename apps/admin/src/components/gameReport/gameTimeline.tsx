@@ -10,15 +10,22 @@ import { SuspensionDialog } from "./suspensionDialog"
 import { TimelineEvent } from "./timelineEvent"
 import "./gameTimeline.css"
 
+export interface TeamInfo {
+  id: string
+  name: string
+  shortName: string
+  logoUrl: string | null
+  primaryColor: string | null
+}
+
 interface GameTimelineProps {
   gameId: string
-  homeTeamId: string
-  awayTeamId: string
-  homeTeamName: string
-  awayTeamName: string
+  homeTeam: TeamInfo
+  awayTeam: TeamInfo
   events: any[]
   lineups: any[]
   penaltyTypes: any[]
+  readOnly?: boolean
 }
 
 const periodNames: Record<number, string> = {
@@ -31,13 +38,12 @@ const periodNames: Record<number, string> = {
 
 function GameTimeline({
   gameId,
-  homeTeamId,
-  awayTeamId,
-  homeTeamName,
-  awayTeamName,
+  homeTeam,
+  awayTeam,
   events,
   lineups,
   penaltyTypes,
+  readOnly,
 }: GameTimelineProps) {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
@@ -71,7 +77,7 @@ function GameTimeline({
       grouped[p].push(event)
 
       if (event.eventType === "goal") {
-        if (event.teamId === homeTeamId) homeGoals++
+        if (event.teamId === homeTeam.id) homeGoals++
         else awayGoals++
         scores[event.id] = `${homeGoals}:${awayGoals}`
       }
@@ -83,7 +89,7 @@ function GameTimeline({
     }
 
     return { periods: grouped, runningScores: scores }
-  }, [events, homeTeamId])
+  }, [events, homeTeam.id])
 
   const sortedPeriods = Object.keys(periods)
     .map(Number)
@@ -98,80 +104,86 @@ function GameTimeline({
   }))
 
   return (
-    <div className="space-y-1">
-      {sortedPeriods.map((period) => (
-        <div key={period}>
-          {/* Period header */}
-          <div className="game-timeline-period">
-            <div className="game-timeline-period-label">
-              <span>{periodNames[period] ?? `${period}. ${t("gameReport.period")}`}</span>
-            </div>
-          </div>
-
-          {/* Events */}
-          {periods[period]?.length > 0 ? (
-            <ol className="game-timeline">
-              {periods[period]?.map((event: any, idx: number) => (
-                <TimelineEvent
-                  key={event.id}
-                  event={event}
-                  runningScore={runningScores[event.id] ?? ""}
-                  isHome={event.teamId === homeTeamId}
-                  index={idx}
-                  onEdit={() => {
-                    if (event.eventType === "goal") {
-                      setEditingGoal(event)
-                      setGoalDialogOpen(true)
-                    } else {
-                      setEditingPenalty(event)
-                      setPenaltyDialogOpen(true)
-                    }
-                  }}
-                  onDelete={() => setDeleteTarget({ id: event.id })}
-                />
-              ))}
-            </ol>
-          ) : (
-            <p className="text-xs text-muted-foreground/60 py-2 text-center">{t("gameReport.noEvents")}</p>
-          )}
+    <div>
+      {/* Action buttons — top right */}
+      {!readOnly && (
+        <div className="flex justify-end gap-2 mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+            onClick={() => {
+              setEditingGoal(null)
+              setGoalDialogOpen(true)
+            }}
+          >
+            <CircleDot className="w-3.5 h-3.5" />
+            {t("gameReport.addGoalBtn")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
+            onClick={() => {
+              setEditingPenalty(null)
+              setPenaltyDialogOpen(true)
+            }}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            {t("gameReport.addPenaltyBtn")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+            onClick={() => setSuspensionDialogOpen(true)}
+          >
+            <ShieldBan className="w-3.5 h-3.5" />
+            {t("gameReport.addSuspensionBtn")}
+          </Button>
         </div>
-      ))}
+      )}
 
-      {/* Add event buttons — centered */}
-      <div className="flex gap-2 pt-5 justify-center">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
-          onClick={() => {
-            setEditingGoal(null)
-            setGoalDialogOpen(true)
-          }}
-        >
-          <CircleDot className="w-3.5 h-3.5" />
-          {t("gameReport.addGoalBtn")}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
-          onClick={() => {
-            setEditingPenalty(null)
-            setPenaltyDialogOpen(true)
-          }}
-        >
-          <Clock className="w-3.5 h-3.5" />
-          {t("gameReport.addPenaltyBtn")}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
-          onClick={() => setSuspensionDialogOpen(true)}
-        >
-          <ShieldBan className="w-3.5 h-3.5" />
-          {t("gameReport.addSuspensionBtn")}
-        </Button>
+      {/* Timeline */}
+      <div className="space-y-1">
+        {sortedPeriods.map((period) => (
+          <div key={period}>
+            {/* Period header */}
+            <div className="game-timeline-period">
+              <div className="game-timeline-period-label">
+                <span>{periodNames[period] ?? `${period}. ${t("gameReport.period")}`}</span>
+              </div>
+            </div>
+
+            {/* Events */}
+            {(periods[period] ?? []).length > 0 ? (
+              <ol className="game-timeline">
+                {(periods[period] ?? []).map((event: any, idx: number) => (
+                  <TimelineEvent
+                    key={event.id}
+                    event={event}
+                    runningScore={runningScores[event.id] ?? ""}
+                    isHome={event.teamId === homeTeam.id}
+                    index={idx}
+                    readOnly={readOnly}
+                    onEdit={() => {
+                      if (event.eventType === "goal") {
+                        setEditingGoal(event)
+                        setGoalDialogOpen(true)
+                      } else {
+                        setEditingPenalty(event)
+                        setPenaltyDialogOpen(true)
+                      }
+                    }}
+                    onDelete={() => setDeleteTarget({ id: event.id })}
+                  />
+                ))}
+              </ol>
+            ) : (
+              <p className="text-xs text-muted-foreground/60 py-2 text-center">{t("gameReport.noEvents")}</p>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Dialogs */}
@@ -182,10 +194,8 @@ function GameTimeline({
           if (!o) setEditingGoal(null)
         }}
         gameId={gameId}
-        homeTeamId={homeTeamId}
-        awayTeamId={awayTeamId}
-        homeTeamName={homeTeamName}
-        awayTeamName={awayTeamName}
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
         lineups={lineupPlayers}
         editingEvent={editingGoal}
       />
@@ -197,10 +207,8 @@ function GameTimeline({
           if (!o) setEditingPenalty(null)
         }}
         gameId={gameId}
-        homeTeamId={homeTeamId}
-        awayTeamId={awayTeamId}
-        homeTeamName={homeTeamName}
-        awayTeamName={awayTeamName}
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
         lineups={lineupPlayers}
         penaltyTypes={penaltyTypes}
         editingEvent={editingPenalty}
@@ -210,10 +218,8 @@ function GameTimeline({
         open={suspensionDialogOpen}
         onOpenChange={setSuspensionDialogOpen}
         gameId={gameId}
-        homeTeamId={homeTeamId}
-        awayTeamId={awayTeamId}
-        homeTeamName={homeTeamName}
-        awayTeamName={awayTeamName}
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
         lineups={lineupPlayers}
       />
 

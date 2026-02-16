@@ -162,10 +162,16 @@ describe("authorization", () => {
         ).rejects.toThrow("Not authenticated")
       })
 
-      it("updateScore requires auth", async () => {
-        await expect(caller.game.updateScore({ id: FAKE_ID, homeScore: 0, awayScore: 0 })).rejects.toThrow(
-          "Not authenticated",
-        )
+      it("complete requires auth", async () => {
+        await expect(caller.game.complete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("cancel requires auth", async () => {
+        await expect(caller.game.cancel({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("reopen requires auth", async () => {
+        await expect(caller.game.reopen({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
       })
 
       it("delete requires auth", async () => {

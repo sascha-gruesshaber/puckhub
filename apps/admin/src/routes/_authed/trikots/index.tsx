@@ -12,7 +12,6 @@ import {
   FormField,
   Input,
   Label,
-  Skeleton,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
@@ -26,6 +25,7 @@ import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TrikotPreview } from "~/components/trikotPreview"
+import { useTrikotsFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/trikots/")({
@@ -49,15 +49,12 @@ const emptyForm: TrikotForm = {
   secondaryColor: "#C8102E",
 }
 
-const FILTER_ALL = "__all__"
-
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 function TrikotsPage() {
   const { t } = useTranslation("common")
-  const [search, setSearch] = useState("")
-  const [templateFilter, setTemplateFilter] = useState(FILTER_ALL)
+  const { search, setSearch, templateFilter, setTemplateFilter } = useTrikotsFilters()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
@@ -73,7 +70,7 @@ function TrikotsPage() {
   const [editingAssignment, setEditingAssignment] = useState<{ id: string; name: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const { data: trikots, isLoading } = trpc.trikot.list.useQuery()
+  const [trikots] = trpc.trikot.list.useSuspenseQuery()
   const { data: templates } = trpc.trikotTemplate.list.useQuery()
   const { data: teams } = trpc.team.list.useQuery()
   const { data: assignments } = trpc.teamTrikot.listByTrikot.useQuery(
@@ -339,7 +336,7 @@ function TrikotsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("trikotsPage.searchPlaceholder") }}
         count={
-          !isLoading && trikots && trikots.length > 0 ? (
+          trikots.length > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -358,24 +355,7 @@ function TrikotsPage() {
         }
       >
         {/* Content */}
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < 3 ? "border-b border-border/40" : ""}`}
-              >
-                <Skeleton className="h-10 w-12 shrink-0 rounded" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-2/3 rounded" />
-                  <Skeleton className="h-4 w-1/3 rounded" />
-                </div>
-                <Skeleton className="h-4 w-4 rounded-full hidden sm:block" />
-                <Skeleton className="h-8 w-24 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 && !search && templateFilter === FILTER_ALL ? (
+        {filtered.length === 0 && !search && templateFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Shirt className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("trikotsPage.empty.title")}

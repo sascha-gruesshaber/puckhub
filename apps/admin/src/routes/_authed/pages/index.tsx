@@ -1,4 +1,4 @@
-import { Badge, Button, FormField, Input, Label, Skeleton, toast } from "@puckhub/ui"
+import { Badge, Button, FormField, Input, Label, toast } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ChevronRight, FileText, Link2, Lock, Pencil, Plus, Trash2, X } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -8,20 +8,19 @@ import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
+import { usePagesFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/pages/")({
   component: PagesPage,
 })
 
-const FILTER_ALL = "__all__"
 const FILTER_PUBLISHED = "__published__"
 const FILTER_DRAFT = "__draft__"
 
 function PagesPage() {
   const { t } = useTranslation("common")
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState(FILTER_ALL)
+  const { search, setSearch, statusFilter, setStatusFilter } = usePagesFilters()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingPage, setDeletingPage] = useState<{ id: string; title: string } | null>(null)
   const [aliasDialogOpen, setAliasDialogOpen] = useState(false)
@@ -31,7 +30,7 @@ function PagesPage() {
   const [deletingAlias, setDeletingAlias] = useState<{ id: string; slug: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const { data: pages, isLoading } = trpc.page.list.useQuery()
+  const [pages] = trpc.page.list.useSuspenseQuery()
   const { data: aliases } = trpc.page.listAliases.useQuery()
 
   const deleteMutation = trpc.page.delete.useMutation({
@@ -163,7 +162,7 @@ function PagesPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("pagesPage.searchPlaceholder") }}
         count={
-          !isLoading && pages && pages.length > 0 ? (
+          pages.length > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -186,23 +185,7 @@ function PagesPage() {
         }
       >
         {/* Pages list */}
-        {isLoading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className={`flex items-center gap-4 px-4 py-3.5 ${i < 3 ? "border-b border-border/40" : ""}`}
-              >
-                <Skeleton className="h-2.5 w-2.5 rounded-full shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-2/3 rounded" />
-                  <Skeleton className="h-4 w-1/3 rounded" />
-                </div>
-                <Skeleton className="h-8 w-24 rounded" />
-              </div>
-            ))}
-          </div>
-        ) : filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
+        {filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
           <EmptyState
             icon={<FileText className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("pagesPage.empty.title")}

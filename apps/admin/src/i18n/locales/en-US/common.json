@@ -158,7 +158,10 @@
       "name": "Name",
       "sortOrder": "Sort order",
       "roundType": "Round type",
-      "points": "Points"
+      "points": "Points",
+      "statistics": "Statistics",
+      "goalieMinGames": "Min. goalie games",
+      "goalieMinGamesHint": "Minimum games for goalie ranking"
     },
     "labels": {
       "rounds": "Rounds",
@@ -178,9 +181,14 @@
       "preround": "Pre-round",
       "playoffs": "Playoffs",
       "playdowns": "Playdowns",
+      "playups": "Promotion round",
       "relegation": "Relegation",
       "placement": "Placement",
       "final": "Final"
+    },
+    "stats": {
+      "playerStats": "Counts for player statistics",
+      "goalieStats": "Counts for goalie statistics"
     },
     "divisionPanel": {
       "title": "Edit division",
@@ -1057,7 +1065,9 @@
       "in_progress": "In progress",
       "completed": "Completed",
       "postponed": "Postponed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "incomplete": "Incomplete",
+      "report_pending": "Report pending"
     },
     "actions": {
       "generate": "Generate schedule",
@@ -1066,6 +1076,8 @@
       "edit": "Edit",
       "report": "Game report",
       "delete": "Delete",
+      "cancelGame": "Cancel",
+      "reopenGame": "Reopen",
       "calendarExport": "Calendar Export"
     },
     "calendarExport": {
@@ -1091,6 +1103,10 @@
       "deleteGameDescription": "Delete this game?",
       "deleteVenueTitle": "Delete venue",
       "deleteVenueDescription": "Delete this venue?",
+      "cancelGameTitle": "Cancel game",
+      "cancelGameDescription": "Really cancel this game? All game report data (lineup, events, suspensions) will be deleted.",
+      "reopenGameTitle": "Reopen game",
+      "reopenGameDescription": "The game will be set back to «Scheduled».",
       "midnightConfirmTitle": "Game at 00:00?",
       "midnightConfirmDescription": "The start time is set to 00:00 (midnight). Do you really want to schedule the game at this time?",
       "midnightConfirmButton": "Yes, at 00:00",
@@ -1130,6 +1146,8 @@
       "gameCreated": "Game created",
       "gameUpdated": "Game updated",
       "gameDeleted": "Game deleted",
+      "gameCancelled": "Game cancelled",
+      "gameReopened": "Game reopened",
       "scheduleGenerated": "Schedule generated",
       "scheduleGeneratedDescription": "{{created}} created, {{skipped}} skipped.",
       "venueCreated": "Venue created",
@@ -1310,7 +1328,37 @@
       "gameMisconduct": "Game misconduct"
     },
     "suspensionWarnings": {
-      "title": "Active suspensions"
+      "title": "Active suspensions",
+      "originGame": "Originating game",
+      "reason": "Reason",
+      "progressLabel": "Progress",
+      "progress": "{{served}} of {{total}} games served",
+      "type": "Type",
+      "on": "On",
+      "vs": "vs"
+    },
+    "gameSuspensions": {
+      "title": "Suspensions in this game",
+      "empty": "No suspensions in this game.",
+      "linkedTo": "Linked to penalty",
+      "standalone": "Standalone",
+      "editTitle": "Edit suspension",
+      "deleteTitle": "Delete suspension",
+      "deleteDescription": "Are you sure you want to delete this suspension?",
+      "games": "{{count}} game(s)"
+    },
+    "completeSection": {
+      "score": "Final score",
+      "button": "Complete game",
+      "lineupsRequired": "Both teams must have a lineup.",
+      "confirmTitle": "Complete game?",
+      "confirmDescription": "The game will be completed with a final score of {{homeScore}} : {{awayScore}}."
+    },
+    "reopenSection": {
+      "finalized": "Completed on {{date}}",
+      "button": "Reopen",
+      "confirmTitle": "Reopen game?",
+      "confirmDescription": "The game will be set back to «Scheduled». Suspensions will be reversed."
     },
     "toast": {
       "lineupSaved": "Lineup saved",
@@ -1320,8 +1368,12 @@
       "penaltyAdded": "Penalty added",
       "penaltyUpdated": "Penalty updated",
       "suspensionAdded": "Suspension added",
+      "suspensionUpdated": "Suspension updated",
+      "suspensionDeleted": "Suspension deleted",
       "eventDeleted": "Event deleted",
-      "error": "Error"
+      "error": "Error",
+      "gameCompleted": "Game completed",
+      "gameReopened": "Game reopened"
     }
   }
 }

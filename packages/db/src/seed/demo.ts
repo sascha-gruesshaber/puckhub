@@ -189,7 +189,12 @@ const PLAYERS_PER_TEAM: PlayerDef[][] = [
 // ---------------------------------------------------------------------------
 // Season structure
 // ---------------------------------------------------------------------------
-type RoundDef = { name: string; roundType: "regular" | "playoffs" | "playdowns" }
+type RoundDef = {
+  name: string
+  roundType: "regular" | "playoffs" | "playdowns"
+  countsForPlayerStats?: boolean
+  countsForGoalieStats?: boolean
+}
 type DivisionDef = { name: string; rounds: RoundDef[]; teamIndices: number[] }
 type SeasonDef = { name: string; year: number; divisions: DivisionDef[] }
 type DemoLang = "en" | "de"
@@ -571,8 +576,8 @@ async function seedDemo() {
   const seedImages = await generateSeedImages({
     teams: TEAMS.map((t, i) => ({
       shortName: t.shortName,
-      primaryColor: TEAM_COLORS[i]?.[0],
-      secondaryColor: TEAM_COLORS[i]?.[1],
+      primaryColor: TEAM_COLORS[i]?.[0] ?? "#333333",
+      secondaryColor: TEAM_COLORS[i]?.[1] ?? "#FFFFFF",
     })),
     players: PLAYERS_PER_TEAM.flatMap((teamPlayers, teamIdx) =>
       teamPlayers.map((p) => ({
@@ -703,6 +708,8 @@ async function seedDemo() {
           name: round.name,
           roundType: round.roundType,
           sortOrder: i,
+          countsForPlayerStats: round.countsForPlayerStats ?? true,
+          countsForGoalieStats: round.countsForGoalieStats ?? round.roundType === "regular",
         })
       }
     }
@@ -738,7 +745,9 @@ async function seedDemo() {
     for (const divDef of seasonDef.divisions) {
       const division = divisionLookup.get(`${season.id}:${divDef.name}`)!
       for (const teamIdx of divDef.teamIndices) {
-        tdValues.push({ teamId: insertedTeams[teamIdx]?.id, divisionId: division.id })
+        const team = insertedTeams[teamIdx]
+        if (!team) continue
+        tdValues.push({ teamId: team.id, divisionId: division.id })
       }
     }
   }
@@ -755,7 +764,7 @@ async function seedDemo() {
     const seasonYear = seasonDef.year
     for (const divDef of seasonDef.divisions) {
       const division = divisionLookup.get(`${season.id}:${divDef.name}`)!
-      const teamIds = divDef.teamIndices.map((idx) => insertedTeams[idx]?.id)
+      const teamIds = divDef.teamIndices.map((idx) => insertedTeams[idx]!.id)
       if (teamIds.length < 2) continue
 
       for (let roundIdx = 0; roundIdx < divDef.rounds.length; roundIdx++) {
@@ -1059,7 +1068,7 @@ async function seedDemo() {
       if (seededFraction(gameSeed + g * 13) < 0.7 && skaters.length > 1) {
         let a1Idx = seededInt(gameSeed + g * 17, 0, skaters.length - 1)
         if (a1Idx === scorerIdx) a1Idx = (a1Idx + 1) % skaters.length
-        assist1Id = skaters[a1Idx]?.playerId
+        assist1Id = skaters[a1Idx]?.playerId ?? null
       }
 
       // Assist 2 (40% chance, only if assist 1 exists)
@@ -1069,7 +1078,7 @@ async function seedDemo() {
         while (skaters[a2Idx]?.playerId === scorer.playerId || skaters[a2Idx]?.playerId === assist1Id) {
           a2Idx = (a2Idx + 1) % skaters.length
         }
-        assist2Id = skaters[a2Idx]?.playerId
+        assist2Id = skaters[a2Idx]?.playerId ?? null
       }
 
       // Goalie scored on
@@ -1126,9 +1135,11 @@ async function seedDemo() {
       const roster = isHome ? homeRoster : awayRoster
       if (roster.length > 0) {
         const playerIdx = seededInt(gameSeed + 2002, 0, roster.length - 1)
+        const suspendedPlayer = roster[playerIdx]
+        if (!suspendedPlayer) continue
         suspensionValues.push({
           gameId: game.id,
-          playerId: roster[playerIdx]?.playerId,
+          playerId: suspendedPlayer.playerId,
           teamId,
           suspensionType: seededFraction(gameSeed + 2003) < 0.6 ? "match_penalty" : "game_misconduct",
           suspendedGames: seededInt(gameSeed + 2004, 1, 3),
@@ -1609,7 +1620,7 @@ async function seedDemo() {
   console.log("Seeding page aliases...")
   const aliasValues: (typeof schema.pageAliases.$inferInsert)[] = [
     { slug: "kontakt", targetPageId: contactPage.id },
-    { slug: "impressum", targetPageId: insertedPages.find((p) => p.slug === "legal-notice")?.id },
+    { slug: "impressum", targetPageId: insertedPages.find((p) => p.slug === "legal-notice")!.id },
     { slug: "privacy", targetPageId: privacyPage.id },
     { slug: "datenschutz", targetPageId: privacyPage.id },
   ]

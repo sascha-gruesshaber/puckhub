@@ -158,7 +158,10 @@
       "name": "Name",
       "sortOrder": "Sortierung",
       "roundType": "Rundentyp",
-      "points": "Punkte"
+      "points": "Punkte",
+      "statistics": "Statistik",
+      "goalieMinGames": "Min. Spiele Torwart",
+      "goalieMinGamesHint": "Mindestanzahl Spiele für Torwart-Rangliste"
     },
     "labels": {
       "rounds": "Runden",
@@ -178,6 +181,7 @@
       "preround": "Vorrunde",
       "playoffs": "Playoffs",
       "playdowns": "Playdowns",
+      "playups": "Aufstiegsrunde",
       "relegation": "Abstieg",
       "placement": "Platzierung",
       "final": "Finale"
@@ -190,6 +194,10 @@
     "roundPanel": {
       "title": "Runde bearbeiten",
       "deleteRound": "Runde löschen"
+    },
+    "stats": {
+      "playerStats": "Zählt für Spielerstatistik",
+      "goalieStats": "Zählt für Torwartstatistik"
     },
     "teamAssignment": {
       "title": "Teamzuweisung",
@@ -1057,7 +1065,9 @@
       "in_progress": "Laufend",
       "completed": "Abgeschlossen",
       "postponed": "Verschoben",
-      "cancelled": "Abgesagt"
+      "cancelled": "Abgesagt",
+      "incomplete": "Unvollständig",
+      "report_pending": "Bericht ausstehend"
     },
     "actions": {
       "generate": "Spielplan erzeugen",
@@ -1066,6 +1076,8 @@
       "edit": "Bearbeiten",
       "report": "Spielbericht",
       "delete": "Löschen",
+      "cancelGame": "Absagen",
+      "reopenGame": "Wieder öffnen",
       "calendarExport": "Kalender-Export"
     },
     "calendarExport": {
@@ -1091,6 +1103,10 @@
       "deleteGameDescription": "Dieses Spiel löschen?",
       "deleteVenueTitle": "Spielort löschen",
       "deleteVenueDescription": "Diesen Spielort löschen?",
+      "cancelGameTitle": "Spiel absagen",
+      "cancelGameDescription": "Dieses Spiel wirklich absagen? Alle Spielbericht-Daten (Aufstellung, Ereignisse, Sperren) werden gelöscht.",
+      "reopenGameTitle": "Spiel wieder öffnen",
+      "reopenGameDescription": "Das Spiel wird zurück auf «Geplant» gesetzt.",
       "midnightConfirmTitle": "Spiel um 00:00 Uhr?",
       "midnightConfirmDescription": "Die Startzeit ist auf 00:00 Uhr (Mitternacht) gesetzt. Möchtest du das Spiel wirklich zu dieser Zeit ansetzen?",
       "midnightConfirmButton": "Ja, um 00:00 Uhr",
@@ -1130,6 +1146,8 @@
       "gameCreated": "Spiel erstellt",
       "gameUpdated": "Spiel aktualisiert",
       "gameDeleted": "Spiel gelöscht",
+      "gameCancelled": "Spiel wurde abgesagt",
+      "gameReopened": "Spiel wieder geöffnet",
       "scheduleGenerated": "Spielplan erzeugt",
       "scheduleGeneratedDescription": "{{created}} erstellt, {{skipped}} übersprungen.",
       "venueCreated": "Spielort erstellt",
@@ -1310,7 +1328,37 @@
       "gameMisconduct": "Spieldauer-Disziplinarstrafe"
     },
     "suspensionWarnings": {
-      "title": "Aktive Spielsperren"
+      "title": "Aktive Spielsperren",
+      "originGame": "Verursachendes Spiel",
+      "reason": "Grund",
+      "progressLabel": "Fortschritt",
+      "progress": "{{served}} von {{total}} Spielen abgesessen",
+      "type": "Typ",
+      "on": "Am",
+      "vs": "vs"
+    },
+    "gameSuspensions": {
+      "title": "Spielsperren in diesem Spiel",
+      "empty": "Keine Spielsperren in diesem Spiel.",
+      "linkedTo": "Verknüpft mit Strafe",
+      "standalone": "Eigenständig",
+      "editTitle": "Spielsperre bearbeiten",
+      "deleteTitle": "Spielsperre löschen",
+      "deleteDescription": "Bist du sicher, dass du diese Spielsperre löschen möchtest?",
+      "games": "{{count}} Spiel(e)"
+    },
+    "completeSection": {
+      "score": "Endstand",
+      "button": "Spiel abschliessen",
+      "lineupsRequired": "Beide Teams müssen eine Aufstellung haben.",
+      "confirmTitle": "Spiel abschliessen?",
+      "confirmDescription": "Das Spiel wird mit dem Endstand {{homeScore}} : {{awayScore}} abgeschlossen."
+    },
+    "reopenSection": {
+      "finalized": "Abgeschlossen am {{date}}",
+      "button": "Wieder öffnen",
+      "confirmTitle": "Spiel wieder öffnen?",
+      "confirmDescription": "Das Spiel wird zurück auf «Geplant» gesetzt. Allfällige Spielsperren werden zurückgesetzt."
     },
     "toast": {
       "lineupSaved": "Aufstellung gespeichert",
@@ -1320,8 +1368,12 @@
       "penaltyAdded": "Strafe hinzugefügt",
       "penaltyUpdated": "Strafe aktualisiert",
       "suspensionAdded": "Spielsperre hinzugefügt",
+      "suspensionUpdated": "Spielsperre aktualisiert",
+      "suspensionDeleted": "Spielsperre gelöscht",
       "eventDeleted": "Ereignis gelöscht",
-      "error": "Fehler"
+      "error": "Fehler",
+      "gameCompleted": "Spiel abgeschlossen",
+      "gameReopened": "Spiel wieder geöffnet"
     }
   }
 }

@@ -3,7 +3,6 @@ import { trpcServer } from "@hono/trpc-server"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { auth } from "./lib/auth"
-import { handleCalendarExport } from "./routes/calendar"
 import { handleUpload } from "./routes/upload"
 import { appRouter } from "./trpc"
 import { createContext } from "./trpc/context"
@@ -39,9 +38,6 @@ app.use(
 
 // File upload
 app.post("/api/upload", handleUpload)
-
-// Calendar export
-app.get("/api/calendar/export.ics", handleCalendarExport)
 
 // Serve uploaded files
 app.use(

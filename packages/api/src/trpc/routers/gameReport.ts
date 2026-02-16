@@ -1,8 +1,26 @@
 import * as schema from "@puckhub/db/schema"
 import { TRPCError } from "@trpc/server"
 import { and, eq, or, sql } from "drizzle-orm"
+import { aliasedTable } from "drizzle-orm/alias"
 import { z } from "zod"
 import { adminProcedure, publicProcedure, router } from "../init"
+
+/** Verify the game is not completed or cancelled before allowing report modifications */
+async function assertGameEditable(db: any, gameId: string) {
+  const game = await db.query.games.findFirst({
+    where: eq(schema.games.id, gameId),
+    columns: { status: true },
+  })
+  if (!game) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+  }
+  if (game.status === "completed" || game.status === "cancelled") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Abgeschlossene oder abgesagte Spiele können nicht bearbeitet werden.",
+    })
+  }
+}
 
 /** Recalculate homeScore/awayScore from goal events */
 async function recalculateScore(db: any, gameId: string) {
@@ -68,27 +86,76 @@ export const gameReportRouter = router({
       throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
     }
 
-    // Active suspensions for both teams (from OTHER games)
-    const activeSuspensions = await ctx.db
+    // Active suspensions for both teams (from OTHER games, same season only)
+    const currentSeasonId = game.round.division.seasonId
+    const originHomeTeam = aliasedTable(schema.teams, "origin_home_team")
+    const originAwayTeam = aliasedTable(schema.teams, "origin_away_team")
+
+    const rawSuspensions = await ctx.db
       .select({
         id: schema.gameSuspensions.id,
         playerId: schema.gameSuspensions.playerId,
         teamId: schema.gameSuspensions.teamId,
         suspensionType: schema.gameSuspensions.suspensionType,
         suspendedGames: schema.gameSuspensions.suspendedGames,
-        servedGames: schema.gameSuspensions.servedGames,
         reason: schema.gameSuspensions.reason,
+        gameId: schema.gameSuspensions.gameId,
         playerFirstName: schema.players.firstName,
         playerLastName: schema.players.lastName,
+        gameScheduledAt: schema.games.scheduledAt,
+        gameHomeTeamName: originHomeTeam.name,
+        gameAwayTeamName: originAwayTeam.name,
       })
       .from(schema.gameSuspensions)
       .innerJoin(schema.players, eq(schema.gameSuspensions.playerId, schema.players.id))
+      .innerJoin(schema.games, eq(schema.gameSuspensions.gameId, schema.games.id))
+      .innerJoin(schema.rounds, eq(schema.games.roundId, schema.rounds.id))
+      .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
+      .innerJoin(originHomeTeam, eq(schema.games.homeTeamId, originHomeTeam.id))
+      .innerJoin(originAwayTeam, eq(schema.games.awayTeamId, originAwayTeam.id))
       .where(
         and(
-          sql`${schema.gameSuspensions.servedGames} < ${schema.gameSuspensions.suspendedGames}`,
           sql`${schema.gameSuspensions.gameId} != ${input.gameId}`,
+          eq(schema.divisions.seasonId, currentSeasonId),
+          or(eq(schema.gameSuspensions.teamId, game.homeTeamId), eq(schema.gameSuspensions.teamId, game.awayTeamId)),
         ),
       )
+
+    // Compute served games: count completed games between suspension origin and current game
+    const activeSuspensions: Array<(typeof rawSuspensions)[number] & { servedGames: number }> = []
+    for (const suspension of rawSuspensions) {
+      const originDate = suspension.gameScheduledAt
+      const currentDate = game.scheduledAt
+      if (!originDate || !currentDate) {
+        // Can't compute without dates — assume 0 served
+        if (suspension.suspendedGames > 0) {
+          activeSuspensions.push({ ...suspension, servedGames: 0 })
+        }
+        continue
+      }
+
+      const [result] = await ctx.db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.games)
+        .innerJoin(schema.rounds, eq(schema.games.roundId, schema.rounds.id))
+        .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
+        .where(
+          and(
+            eq(schema.divisions.seasonId, currentSeasonId),
+            or(eq(schema.games.homeTeamId, suspension.teamId), eq(schema.games.awayTeamId, suspension.teamId)),
+            sql`${schema.games.scheduledAt} > ${originDate.toISOString()}::timestamptz`,
+            sql`${schema.games.scheduledAt} < ${currentDate.toISOString()}::timestamptz`,
+            sql`${schema.games.homeScore} IS NOT NULL`,
+            sql`${schema.games.id} != ${suspension.gameId}`,
+            sql`${schema.games.id} != ${input.gameId}`,
+          ),
+        )
+
+      const servedGames = result?.count ?? 0
+      if (servedGames < suspension.suspendedGames) {
+        activeSuspensions.push({ ...suspension, servedGames })
+      }
+    }
 
     return { ...game, activeSuspensions }
   }),
@@ -146,6 +213,7 @@ export const gameReportRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertGameEditable(ctx.db, input.gameId)
       await ctx.db.transaction(async (tx: any) => {
         await tx.delete(schema.gameLineups).where(eq(schema.gameLineups.gameId, input.gameId))
 
@@ -196,6 +264,7 @@ export const gameReportRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertGameEditable(ctx.db, input.gameId)
       const { suspension, ...eventData } = input
 
       const [event] = await ctx.db
@@ -266,6 +335,7 @@ export const gameReportRouter = router({
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Ereignis nicht gefunden." })
       }
+      await assertGameEditable(ctx.db, existing.gameId)
 
       const [updated] = await ctx.db.update(schema.gameEvents).set(data).where(eq(schema.gameEvents.id, id)).returning()
 
@@ -283,6 +353,7 @@ export const gameReportRouter = router({
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Ereignis nicht gefunden." })
     }
+    await assertGameEditable(ctx.db, existing.gameId)
 
     // Cascade: delete linked suspension first
     await ctx.db.delete(schema.gameSuspensions).where(eq(schema.gameSuspensions.gameEventId, input.id))
@@ -308,6 +379,7 @@ export const gameReportRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertGameEditable(ctx.db, input.gameId)
       const [suspension] = await ctx.db
         .insert(schema.gameSuspensions)
         .values({
@@ -334,20 +406,34 @@ export const gameReportRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+
+      const existing = await ctx.db.query.gameSuspensions.findFirst({
+        where: eq(schema.gameSuspensions.id, id),
+        columns: { gameId: true },
+      })
+      if (!existing) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Sperre nicht gefunden." })
+      }
+      await assertGameEditable(ctx.db, existing.gameId)
+
       const [updated] = await ctx.db
         .update(schema.gameSuspensions)
         .set(data)
         .where(eq(schema.gameSuspensions.id, id))
         .returning()
 
-      if (!updated) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Sperre nicht gefunden." })
-      }
-
       return updated
     }),
 
   deleteSuspension: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const existing = await ctx.db.query.gameSuspensions.findFirst({
+      where: eq(schema.gameSuspensions.id, input.id),
+      columns: { gameId: true },
+    })
+    if (existing) {
+      await assertGameEditable(ctx.db, existing.gameId)
+    }
+
     await ctx.db.delete(schema.gameSuspensions).where(eq(schema.gameSuspensions.id, input.id))
 
     return { success: true }

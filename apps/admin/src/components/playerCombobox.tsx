@@ -10,6 +10,7 @@ interface Player {
   dateOfBirth?: string | null
   nationality?: string | null
   photoUrl?: string | null
+  jerseyNumber?: number | null
 }
 
 interface PlayerComboboxProps {
@@ -263,6 +264,10 @@ export function PlayerCombobox({
               <div className="player-avatar h-9 w-9 shrink-0 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 to-primary/20 border-2 border-primary/20">
                 {selectedPlayer.photoUrl ? (
                   <img src={selectedPlayer.photoUrl} alt="" className="h-full w-full object-cover" />
+                ) : selectedPlayer.jerseyNumber != null ? (
+                  <span className="text-xs font-bold font-mono text-primary/60">
+                    {selectedPlayer.jerseyNumber}
+                  </span>
                 ) : (
                   <User className="h-5 w-5 text-primary/60" />
                 )}
@@ -271,6 +276,11 @@ export function PlayerCombobox({
               {/* Player Info */}
               <div className="min-w-0 flex-1">
                 <div className="font-semibold text-sm text-foreground truncate">
+                  {selectedPlayer.jerseyNumber != null && (
+                    <span className="font-mono text-xs text-muted-foreground mr-1">
+                      #{selectedPlayer.jerseyNumber}
+                    </span>
+                  )}
                   {selectedPlayer.firstName} {selectedPlayer.lastName}
                 </div>
                 {(selectedPlayer.nationality || selectedAge !== null) && (
@@ -378,6 +388,10 @@ export function PlayerCombobox({
                         <div className="player-avatar h-11 w-11 shrink-0 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 to-primary/20 border-2 border-primary/20">
                           {player.photoUrl ? (
                             <img src={player.photoUrl} alt="" className="h-full w-full object-cover" />
+                          ) : player.jerseyNumber != null ? (
+                            <span className="text-sm font-bold font-mono text-primary/70">
+                              {player.jerseyNumber}
+                            </span>
                           ) : (
                             <div className="flex items-center justify-center">
                               <span className="text-xs font-bold text-primary/70">
@@ -391,6 +405,11 @@ export function PlayerCombobox({
                         {/* Player Info */}
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-[15px] text-foreground truncate">
+                            {player.jerseyNumber != null && (
+                              <span className="font-mono text-xs text-muted-foreground mr-1.5">
+                                #{player.jerseyNumber}
+                              </span>
+                            )}
                             {player.firstName} {player.lastName}
                           </div>
                           {(player.nationality || age !== null) && (

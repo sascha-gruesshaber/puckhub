@@ -1,4 +1,5 @@
-import { Badge } from "@puckhub/ui"
+import { Trophy } from "lucide-react"
+import { GameStatusBadge } from "~/components/gameStatusBadge"
 import { useTranslation } from "~/i18n/use-translation"
 
 interface GameReportHeaderProps {
@@ -9,17 +10,10 @@ interface GameReportHeaderProps {
     awayScore: number | null
     status: string
     scheduledAt: string | Date | null
+    venueId: string | null
     venue: { name: string } | null
     round: { name: string; division: { name: string } }
   }
-}
-
-const statusColors: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  in_progress: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-  completed: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300",
-  postponed: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 }
 
 function GameReportHeader({ game }: GameReportHeaderProps) {
@@ -36,18 +30,29 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
       })
     : null
 
+  const isCompleted = game.status === "completed"
+  const homeWins = isCompleted && game.homeScore != null && game.awayScore != null && game.homeScore > game.awayScore
+  const awayWins = isCompleted && game.homeScore != null && game.awayScore != null && game.awayScore > game.homeScore
+
   return (
     <div className="sticky top-0 z-10 rounded-xl border bg-card/95 backdrop-blur-sm p-6 shadow-sm">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Home team */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          {game.homeTeam.logoUrl ? (
-            <img src={game.homeTeam.logoUrl} alt={game.homeTeam.name} className="w-12 h-12 object-contain rounded" />
-          ) : (
-            <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
-              {game.homeTeam.shortName.slice(0, 2)}
-            </div>
-          )}
+          <div className="relative shrink-0">
+            {game.homeTeam.logoUrl ? (
+              <img src={game.homeTeam.logoUrl} alt={game.homeTeam.name} className="w-12 h-12 object-contain rounded" />
+            ) : (
+              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
+                {game.homeTeam.shortName.slice(0, 2)}
+              </div>
+            )}
+            {homeWins && (
+              <span className="absolute -top-1 -right-1 inline-flex items-center p-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 ring-2 ring-white dark:ring-gray-900">
+                <Trophy className="w-3 h-3" />
+              </span>
+            )}
+          </div>
           <div className="min-w-0">
             <p className="font-semibold text-lg truncate">{game.homeTeam.name}</p>
             <p className="text-xs text-muted-foreground">{t("gameReport.home")}</p>
@@ -59,7 +64,12 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
           <div className="text-4xl font-black tabular-nums tracking-tight">
             {game.homeScore ?? "-"} : {game.awayScore ?? "-"}
           </div>
-          <Badge className={`mt-2 ${statusColors[game.status] ?? ""}`}>{t(`gamesPage.status.${game.status}`)}</Badge>
+          <GameStatusBadge
+            status={game.status}
+            scheduledAt={game.scheduledAt}
+            venueId={game.venueId}
+            className="mt-2"
+          />
         </div>
 
         {/* Away team */}
@@ -68,13 +78,20 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
             <p className="font-semibold text-lg truncate">{game.awayTeam.name}</p>
             <p className="text-xs text-muted-foreground">{t("gameReport.away")}</p>
           </div>
-          {game.awayTeam.logoUrl ? (
-            <img src={game.awayTeam.logoUrl} alt={game.awayTeam.name} className="w-12 h-12 object-contain rounded" />
-          ) : (
-            <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
-              {game.awayTeam.shortName.slice(0, 2)}
-            </div>
-          )}
+          <div className="relative shrink-0">
+            {game.awayTeam.logoUrl ? (
+              <img src={game.awayTeam.logoUrl} alt={game.awayTeam.name} className="w-12 h-12 object-contain rounded" />
+            ) : (
+              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
+                {game.awayTeam.shortName.slice(0, 2)}
+              </div>
+            )}
+            {awayWins && (
+              <span className="absolute -top-1 -right-1 inline-flex items-center p-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 ring-2 ring-white dark:ring-gray-900">
+                <Trophy className="w-3 h-3" />
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

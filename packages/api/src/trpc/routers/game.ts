@@ -3,9 +3,10 @@ import { TRPCError } from "@trpc/server"
 import { and, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm"
 import { z } from "zod"
 import { generateRoundRobin } from "../../services/schedulerService"
+import { recalculateStandings } from "../../services/standingsService"
 import { adminProcedure, publicProcedure, router } from "../init"
 
-const gameStatusValues = ["scheduled", "in_progress", "completed", "postponed", "cancelled"] as const
+const gameStatusValues = ["scheduled", "completed", "cancelled"] as const
 
 async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, homeTeamId: string, awayTeamId: string) {
   if (homeTeamId === awayTeamId) {
@@ -96,13 +97,14 @@ export const gameRouter = router({
         ),
         with: {
           round: {
+            columns: { id: true, name: true, roundType: true, sortOrder: true, divisionId: true },
             with: {
-              division: true,
+              division: { columns: { id: true, name: true, sortOrder: true } },
             },
           },
-          homeTeam: true,
-          awayTeam: true,
-          venue: true,
+          homeTeam: { columns: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } },
+          awayTeam: { columns: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } },
+          venue: { columns: { id: true, name: true, city: true } },
         },
         orderBy: (game, { asc }) => [asc(game.scheduledAt), asc(game.gameNumber), asc(game.createdAt)],
       })
@@ -172,9 +174,6 @@ export const gameRouter = router({
         scheduledAt: z.string().datetime().nullable().optional(),
         gameNumber: z.number().int().nullable().optional(),
         notes: z.string().nullable().optional(),
-        status: z.enum(gameStatusValues).optional(),
-        homeScore: z.number().int().min(0).nullable().optional(),
-        awayScore: z.number().int().min(0).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -186,24 +185,17 @@ export const gameRouter = router({
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
       }
+      if (existing.status === "completed" || existing.status === "cancelled") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Abgeschlossene oder abgesagte Spiele können nicht bearbeitet werden.",
+        })
+      }
 
       const nextRoundId = data.roundId ?? existing.roundId
       const nextHomeTeamId = data.homeTeamId ?? existing.homeTeamId
       const nextAwayTeamId = data.awayTeamId ?? existing.awayTeamId
       await assertTeamsAllowedForRound(ctx, nextRoundId, nextHomeTeamId, nextAwayTeamId)
-
-      const nextStatus = data.status ?? existing.status
-      const nextHomeScore = data.homeScore === undefined ? existing.homeScore : data.homeScore
-      const nextAwayScore = data.awayScore === undefined ? existing.awayScore : data.awayScore
-
-      if (nextStatus === "completed" && (nextHomeScore == null || nextAwayScore == null)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Both scores are required when setting status to completed.",
-        })
-      }
-
-      const wasCompleted = existing.status === "completed"
 
       const [game] = await ctx.db
         .update(schema.games)
@@ -211,57 +203,155 @@ export const gameRouter = router({
           ...data,
           scheduledAt:
             data.scheduledAt === undefined ? undefined : data.scheduledAt ? new Date(data.scheduledAt) : null,
-          finalizedAt: data.status === undefined ? undefined : data.status === "completed" ? new Date() : null,
           updatedAt: new Date(),
         })
         .where(eq(schema.games.id, id))
         .returning()
 
-      // When transitioning to completed: increment servedGames for active suspensions
-      // Exclude suspensions from THIS game (they count starting from the next game)
-      if (data.status === "completed" && !wasCompleted) {
-        await ctx.db
-          .update(schema.gameSuspensions)
-          .set({
-            servedGames: sql`${schema.gameSuspensions.servedGames} + 1`,
-          })
-          .where(
-            and(
-              ne(schema.gameSuspensions.gameId, id),
-              sql`${schema.gameSuspensions.servedGames} < ${schema.gameSuspensions.suspendedGames}`,
-              or(
-                eq(schema.gameSuspensions.teamId, existing.homeTeamId),
-                eq(schema.gameSuspensions.teamId, existing.awayTeamId),
-              ),
-            ),
-          )
-      }
-
       return game
     }),
 
-  updateScore: adminProcedure
-    .input(
-      z.object({
-        id: z.string().uuid(),
-        homeScore: z.number().int().min(0),
-        awayScore: z.number().int().min(0),
-        status: z.enum(gameStatusValues).optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input
-      const [game] = await ctx.db
-        .update(schema.games)
+  complete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const game = await ctx.db.query.games.findFirst({
+      where: eq(schema.games.id, input.id),
+    })
+    if (!game) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+    }
+    if (game.status === "completed" || game.status === "cancelled") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Spiel ist bereits abgeschlossen oder abgesagt.",
+      })
+    }
+
+    // Validate both teams have at least 1 player in lineups
+    const lineups = await ctx.db.query.gameLineups.findMany({
+      where: eq(schema.gameLineups.gameId, input.id),
+    })
+    const homeLineup = lineups.filter((l) => l.teamId === game.homeTeamId)
+    const awayLineup = lineups.filter((l) => l.teamId === game.awayTeamId)
+    if (homeLineup.length === 0 || awayLineup.length === 0) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Beide Teams müssen eine Aufstellung haben.",
+      })
+    }
+
+    const [updated] = await ctx.db
+      .update(schema.games)
+      .set({
+        status: "completed",
+        finalizedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.games.id, input.id))
+      .returning()
+
+    // Increment servedGames for active suspensions
+    // Exclude suspensions from THIS game (they count starting from the next game)
+    await ctx.db
+      .update(schema.gameSuspensions)
+      .set({
+        servedGames: sql`${schema.gameSuspensions.servedGames} + 1`,
+      })
+      .where(
+        and(
+          ne(schema.gameSuspensions.gameId, input.id),
+          sql`${schema.gameSuspensions.servedGames} < ${schema.gameSuspensions.suspendedGames}`,
+          or(eq(schema.gameSuspensions.teamId, game.homeTeamId), eq(schema.gameSuspensions.teamId, game.awayTeamId)),
+        ),
+      )
+
+    // Recalculate standings for the round
+    await recalculateStandings(ctx.db, game.roundId)
+
+    return updated
+  }),
+
+  cancel: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const game = await ctx.db.query.games.findFirst({
+      where: eq(schema.games.id, input.id),
+    })
+    if (!game) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+    }
+    if (game.status !== "scheduled") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Nur geplante Spiele können abgesagt werden.",
+      })
+    }
+
+    // Remove all game report data (lineups, events, suspensions) and reset scores
+    await ctx.db.delete(schema.gameSuspensions).where(eq(schema.gameSuspensions.gameId, input.id))
+    await ctx.db.delete(schema.gameEvents).where(eq(schema.gameEvents.gameId, input.id))
+    await ctx.db.delete(schema.gameLineups).where(eq(schema.gameLineups.gameId, input.id))
+
+    const [updated] = await ctx.db
+      .update(schema.games)
+      .set({
+        status: "cancelled",
+        homeScore: null,
+        awayScore: null,
+        finalizedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.games.id, input.id))
+      .returning()
+
+    return updated
+  }),
+
+  reopen: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const game = await ctx.db.query.games.findFirst({
+      where: eq(schema.games.id, input.id),
+    })
+    if (!game) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+    }
+    if (game.status !== "completed" && game.status !== "cancelled") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Nur abgeschlossene oder abgesagte Spiele können wieder geöffnet werden.",
+      })
+    }
+
+    const wasCompleted = game.status === "completed"
+
+    // Only decrement suspensions if we're reopening a completed game
+    if (wasCompleted) {
+      await ctx.db
+        .update(schema.gameSuspensions)
         .set({
-          ...data,
-          updatedAt: new Date(),
-          ...(data.status === "completed" ? { finalizedAt: new Date() } : {}),
+          servedGames: sql`GREATEST(${schema.gameSuspensions.servedGames} - 1, 0)`,
         })
-        .where(eq(schema.games.id, id))
-        .returning()
-      return game
-    }),
+        .where(
+          and(
+            ne(schema.gameSuspensions.gameId, input.id),
+            sql`${schema.gameSuspensions.servedGames} > 0`,
+            or(eq(schema.gameSuspensions.teamId, game.homeTeamId), eq(schema.gameSuspensions.teamId, game.awayTeamId)),
+          ),
+        )
+    }
+
+    const [updated] = await ctx.db
+      .update(schema.games)
+      .set({
+        status: "scheduled",
+        finalizedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.games.id, input.id))
+      .returning()
+
+    // Recalculate standings if reopening from completed
+    if (wasCompleted) {
+      await recalculateStandings(ctx.db, game.roundId)
+    }
+
+    return updated
+  }),
 
   generateDoubleRoundRobin: adminProcedure
     .input(

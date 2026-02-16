@@ -1,6 +1,6 @@
 import * as schema from "@puckhub/db/schema"
 import { TRPCError } from "@trpc/server"
-import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm"
 import { z } from "zod"
 import { adminProcedure, publicProcedure, router } from "../init"
 
@@ -167,7 +167,7 @@ export const seasonRouter = router({
           .returning()
 
         await ctx.db.insert(schema.rounds).values({
-          divisionId: division?.id,
+          divisionId: division!.id,
           name: "Hauptrunde",
           roundType: "regular",
           sortOrder: 0,
@@ -182,7 +182,7 @@ export const seasonRouter = router({
           await ctx.db.insert(schema.teamDivisions).values(
             allTeams.map((t) => ({
               teamId: t.id,
-              divisionId: division?.id,
+              divisionId: division!.id,
             })),
           )
         }
@@ -220,7 +220,7 @@ export const seasonRouter = router({
 
           for (const srcRound of srcRounds) {
             await ctx.db.insert(schema.rounds).values({
-              divisionId: newDiv?.id,
+              divisionId: newDiv!.id,
               name: srcRound.name,
               roundType: srcRound.roundType,
               sortOrder: srcRound.sortOrder,
@@ -241,7 +241,7 @@ export const seasonRouter = router({
             await ctx.db.insert(schema.teamDivisions).values(
               srcAssignments.map((a) => ({
                 teamId: a.teamId,
-                divisionId: newDiv?.id,
+                divisionId: newDiv!.id,
               })),
             )
             teamsAssigned += srcAssignments.length
@@ -287,42 +287,32 @@ export const seasonRouter = router({
     }[] = []
 
     if (divisionIds.length > 0) {
-      const allRounds = await Promise.all(
-        divisionIds.map((divId) =>
-          ctx.db.query.rounds.findMany({
-            where: eq(schema.rounds.divisionId, divId),
-            orderBy: [asc(schema.rounds.sortOrder)],
-          }),
-        ),
-      )
-      rounds = allRounds.flat()
+      rounds = await ctx.db.query.rounds.findMany({
+        where: inArray(schema.rounds.divisionId, divisionIds),
+        orderBy: [asc(schema.rounds.sortOrder)],
+      })
 
-      const allAssignments = await Promise.all(
-        divisionIds.map((divId) =>
-          ctx.db
-            .select({
-              id: schema.teamDivisions.id,
-              teamId: schema.teamDivisions.teamId,
-              divisionId: schema.teamDivisions.divisionId,
-              createdAt: schema.teamDivisions.createdAt,
-              team: {
-                id: schema.teams.id,
-                name: schema.teams.name,
-                shortName: schema.teams.shortName,
-                city: schema.teams.city,
-                logoUrl: schema.teams.logoUrl,
-                primaryColor: schema.teams.primaryColor,
-                contactName: schema.teams.contactName,
-                website: schema.teams.website,
-                defaultVenueId: schema.teams.defaultVenueId,
-              },
-            })
-            .from(schema.teamDivisions)
-            .innerJoin(schema.teams, eq(schema.teamDivisions.teamId, schema.teams.id))
-            .where(eq(schema.teamDivisions.divisionId, divId)),
-        ),
-      )
-      teamAssignments = allAssignments.flat()
+      teamAssignments = await ctx.db
+        .select({
+          id: schema.teamDivisions.id,
+          teamId: schema.teamDivisions.teamId,
+          divisionId: schema.teamDivisions.divisionId,
+          createdAt: schema.teamDivisions.createdAt,
+          team: {
+            id: schema.teams.id,
+            name: schema.teams.name,
+            shortName: schema.teams.shortName,
+            city: schema.teams.city,
+            logoUrl: schema.teams.logoUrl,
+            primaryColor: schema.teams.primaryColor,
+            contactName: schema.teams.contactName,
+            website: schema.teams.website,
+            defaultVenueId: schema.teams.defaultVenueId,
+          },
+        })
+        .from(schema.teamDivisions)
+        .innerJoin(schema.teams, eq(schema.teamDivisions.teamId, schema.teams.id))
+        .where(inArray(schema.teamDivisions.divisionId, divisionIds))
     }
 
     return { season, divisions, rounds, teamAssignments }
