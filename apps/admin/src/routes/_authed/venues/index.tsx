@@ -13,20 +13,30 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { MapPin, Pencil, Plus, Trash2 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
-import { useVenuesFilters, FILTER_ALL } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/venues/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.venue.list.ensureData()
+  },
   component: VenuesPage,
 })
 
@@ -47,13 +57,24 @@ const emptyForm: VenueForm = {
 function VenuesPage() {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
-  const { search, setSearch, teamFilter, setTeamFilter } = useVenuesFilters()
+  const { search: searchParam, team } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const teamFilter = team ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setTeamFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteVenueId, setDeleteVenueId] = useState<string | null>(null)
   const [editingVenueId, setEditingVenueId] = useState<string | null>(null)
   const [form, setForm] = useState<VenueForm>(emptyForm)
 
-  const [venues] = trpc.venue.list.useSuspenseQuery()
+  const { data: venues, isLoading } = trpc.venue.list.useQuery()
   const { data: teams } = trpc.team.list.useQuery()
 
   const teamsInUse = useMemo(() => {
@@ -179,23 +200,33 @@ function VenuesPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("venuesPage.searchPlaceholder") }}
         filters={
-          <TeamFilterPills
-            teams={teamsInUse}
-            activeFilter={teamFilter}
-            onFilterChange={setTeamFilter}
-            showAll
-            translationPrefix="venuesPage.filters"
-            seasonId={null}
-          />
+          isLoading ? (
+            <FilterPillsSkeleton />
+          ) : (
+            <TeamFilterPills
+              teams={teamsInUse}
+              activeFilter={teamFilter}
+              onFilterChange={setTeamFilter}
+              showAll
+              translationPrefix="venuesPage.filters"
+              seasonId={null}
+            />
+          )
         }
         count={
-          <div className="text-sm text-muted-foreground">
+          isLoading ? (
+            <CountSkeleton />
+          ) : (
+            <div className="text-sm text-muted-foreground">
               {teamFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-              {venues.length} {t("venuesPage.count")}
+              {venues?.length ?? 0} {t("venuesPage.count")}
             </div>
+          )
         }
       >
-        {venues.length === 0 ? (
+        {isLoading ? (
+          <DataListSkeleton rows={5} showIcon={false} />
+        ) : (venues?.length ?? 0) === 0 ? (
           <EmptyState
             icon={<MapPin className="h-8 w-8" />}
             title={t("venuesPage.empty.title")}

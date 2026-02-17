@@ -8,6 +8,9 @@ import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/settings")({
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.settings.get.ensureData()
+  },
   component: SettingsPage,
 })
 

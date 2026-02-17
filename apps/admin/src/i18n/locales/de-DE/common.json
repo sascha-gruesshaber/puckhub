@@ -670,10 +670,13 @@
     "description": "Sponsoren verwalten",
     "searchPlaceholder": "Sponsoren durchsuchen...",
     "filters": {
-      "all": "Alle",
-      "active": "Aktiv",
-      "inactive": "Inaktiv",
+      "allTeams": "Alle",
+      "siteWide": "Seitenweit",
       "fallback": "Filter"
+    },
+    "groups": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
     },
     "count": {
       "total": "Sponsoren",
@@ -699,7 +702,7 @@
       "hoverText": "Hover-Text",
       "hoverTextPlaceholder": "z.B. Offizieller Hauptsponsor",
       "teamAssignment": "Team-Zuordnung",
-      "leagueWide": "Liga-weit",
+      "siteWidePlaceholder": "Seitenweit (kein Team)",
       "sortOrder": "Sortierung",
       "active": "Aktiv"
     },
@@ -743,10 +746,8 @@
       "edit": "Bearbeiten",
       "delete": "Löschen",
       "trikots": "Trikots",
-      "saving": "Speichern...",
-      "copyCalendarUrl": "Kalender-URL kopieren"
+      "saving": "Speichern..."
     },
-    "calendarUrlCopied": "Kalender-URL in Zwischenablage kopiert",
     "empty": {
       "title": "Noch keine Teams",
       "description": "Erstelle dein erstes Team, um mit der Ligaverwaltung zu beginnen.",
@@ -1111,6 +1112,19 @@
       "midnightConfirmDescription": "Die Startzeit ist auf 00:00 Uhr (Mitternacht) gesetzt. Möchtest du das Spiel wirklich zu dieser Zeit ansetzen?",
       "midnightConfirmButton": "Ja, um 00:00 Uhr",
       "midnightCancelButton": "Nein, Zeit ändern"
+    },
+    "generate": {
+      "sections": {
+        "target": "Zielbereich",
+        "scheduling": "Terminierung (optional)"
+      },
+      "fields": {
+        "division": "Division",
+        "startDate": "Erster Spieltag",
+        "cadenceDays": "Abstand (Tage)",
+        "cadenceDaysHint": "Tage zwischen den Spieltagen"
+      },
+      "schedulingHint": "Ohne Angaben werden die Spiele ohne Datum erstellt."
     },
     "form": {
       "sections": {

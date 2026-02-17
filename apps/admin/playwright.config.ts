@@ -27,6 +27,7 @@ export default defineConfig({
     timeout: 30_000,
     env: {
       VITE_API_URL: `http://localhost:${API_PORT}`,
+      VITE_LOCALE: "raw",
     },
   },
 })

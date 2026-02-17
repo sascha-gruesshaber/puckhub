@@ -14,21 +14,31 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Link2, Pencil, Plus, Shirt, Trash2, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TrikotPreview } from "~/components/trikotPreview"
-import { useTrikotsFilters, FILTER_ALL } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/trikots/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; template?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.template === "string" && s.template ? { template: s.template } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.trikot.list.ensureData()
+  },
   component: TrikotsPage,
 })
 
@@ -54,7 +64,18 @@ const emptyForm: TrikotForm = {
 // ---------------------------------------------------------------------------
 function TrikotsPage() {
   const { t } = useTranslation("common")
-  const { search, setSearch, templateFilter, setTemplateFilter } = useTrikotsFilters()
+  const { search: searchParam, template } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const templateFilter = template ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setTemplateFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, template: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
@@ -70,7 +91,7 @@ function TrikotsPage() {
   const [editingAssignment, setEditingAssignment] = useState<{ id: string; name: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const [trikots] = trpc.trikot.list.useSuspenseQuery()
+  const { data: trikots, isLoading } = trpc.trikot.list.useQuery()
   const { data: templates } = trpc.trikotTemplate.list.useQuery()
   const { data: teams } = trpc.team.list.useQuery()
   const { data: assignments } = trpc.teamTrikot.listByTrikot.useQuery(
@@ -316,7 +337,9 @@ function TrikotsPage() {
           </Button>
         }
         filters={
-          usedTemplates.length > 1 ? (
+          isLoading ? (
+            <FilterPillsSkeleton count={3} />
+          ) : usedTemplates.length > 1 ? (
             <>
               <FilterPill
                 label={t("trikotsPage.filters.all")}
@@ -336,12 +359,14 @@ function TrikotsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("trikotsPage.searchPlaceholder") }}
         count={
-          trikots.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (trikots?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
                   {templateFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-                  {trikots.length}
+                  {trikots?.length ?? 0}
                 </span>{" "}
                 {t("trikotsPage.count.trikots")}
               </span>
@@ -355,7 +380,9 @@ function TrikotsPage() {
         }
       >
         {/* Content */}
-        {filtered.length === 0 && !search && templateFilter === FILTER_ALL ? (
+        {isLoading ? (
+          <DataListSkeleton rows={5} />
+        ) : filtered.length === 0 && !search && templateFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Shirt className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("trikotsPage.empty.title")}

@@ -12,6 +12,9 @@ import { SuspensionWarnings } from "~/components/gameReport/suspensionWarnings"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/games/$gameId/report")({
+  loader: async ({ context, params }) => {
+    await context.trpcQueryUtils?.gameReport.getReport.ensureData({ gameId: params.gameId })
+  },
   component: GameReportPage,
 })
 

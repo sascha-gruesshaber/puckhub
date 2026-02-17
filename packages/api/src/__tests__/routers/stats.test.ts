@@ -113,7 +113,157 @@ describe("stats router", () => {
 
       const caller = createTestCaller()
       const result = await caller.stats.goalieStats({ seasonId: season.id })
+      expect(result.qualified).toEqual([])
+      expect(result.belowThreshold).toEqual([])
+    })
+  })
+
+  describe("penaltyStats", () => {
+    it("returns empty list when no completed games exist", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const season = (await admin.season.create({
+        name: "2025/26",
+        seasonStart: "2025-09-01",
+        seasonEnd: "2026-04-30",
+      }))!
+
+      const caller = createTestCaller()
+      const result = await caller.stats.penaltyStats({ seasonId: season.id })
       expect(result).toEqual([])
+    })
+
+    it("aggregates penalty minutes per player from completed games", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const season = (await admin.season.create({
+        name: "2025/26",
+        seasonStart: "2025-09-01",
+        seasonEnd: "2026-04-30",
+      }))!
+      const division = (await admin.division.create({ seasonId: season.id, name: "Liga" }))!
+      const round = (await admin.round.create({ divisionId: division.id, name: "Hauptrunde" }))!
+      const teamA = (await admin.team.create({ name: "Eagles", shortName: "EAG" }))!
+      const teamB = (await admin.team.create({ name: "Wolves", shortName: "WOL" }))!
+      await admin.teamDivision.assign({ teamId: teamA.id, divisionId: division.id })
+      await admin.teamDivision.assign({ teamId: teamB.id, divisionId: division.id })
+
+      const player = (await admin.player.create({ firstName: "Tough", lastName: "Guy" }))!
+      const playerB = (await admin.player.create({ firstName: "Other", lastName: "Guy" }))!
+      await admin.contract.signPlayer({ playerId: player.id, teamId: teamA.id, seasonId: season.id, position: "forward" })
+      await admin.contract.signPlayer({ playerId: playerB.id, teamId: teamB.id, seasonId: season.id, position: "forward" })
+
+      const game = (await admin.game.create({
+        roundId: round.id,
+        homeTeamId: teamA.id,
+        awayTeamId: teamB.id,
+      }))!
+
+      await admin.gameReport.setLineup({
+        gameId: game.id,
+        players: [
+          { playerId: player.id, teamId: teamA.id, position: "forward" },
+          { playerId: playerB.id, teamId: teamB.id, position: "forward" },
+        ],
+      })
+
+      await admin.gameReport.addEvent({
+        gameId: game.id,
+        eventType: "penalty",
+        teamId: teamA.id,
+        period: 1,
+        timeMinutes: 5,
+        timeSeconds: 0,
+        penaltyPlayerId: player.id,
+        penaltyMinutes: 2,
+      })
+
+      await admin.game.complete({ id: game.id })
+
+      const caller = createTestCaller()
+      const result = await caller.stats.penaltyStats({ seasonId: season.id })
+      expect(result.length).toBeGreaterThan(0)
+      expect(result[0]?.totalMinutes).toBe(2)
+      expect(result[0]?.totalCount).toBe(1)
+    })
+  })
+
+  describe("teamPenaltyStats", () => {
+    it("returns empty list when no completed games exist", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const season = (await admin.season.create({
+        name: "2025/26",
+        seasonStart: "2025-09-01",
+        seasonEnd: "2026-04-30",
+      }))!
+
+      const caller = createTestCaller()
+      const result = await caller.stats.teamPenaltyStats({ seasonId: season.id })
+      expect(result).toEqual([])
+    })
+
+    it("aggregates penalty minutes per team from completed games", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const season = (await admin.season.create({
+        name: "2025/26",
+        seasonStart: "2025-09-01",
+        seasonEnd: "2026-04-30",
+      }))!
+      const division = (await admin.division.create({ seasonId: season.id, name: "Liga" }))!
+      const round = (await admin.round.create({ divisionId: division.id, name: "Hauptrunde" }))!
+      const teamA = (await admin.team.create({ name: "Eagles", shortName: "EAG" }))!
+      const teamB = (await admin.team.create({ name: "Wolves", shortName: "WOL" }))!
+      await admin.teamDivision.assign({ teamId: teamA.id, divisionId: division.id })
+      await admin.teamDivision.assign({ teamId: teamB.id, divisionId: division.id })
+
+      const playerA = (await admin.player.create({ firstName: "Player", lastName: "A" }))!
+      const playerB = (await admin.player.create({ firstName: "Player", lastName: "B" }))!
+      await admin.contract.signPlayer({ playerId: playerA.id, teamId: teamA.id, seasonId: season.id, position: "forward" })
+      await admin.contract.signPlayer({ playerId: playerB.id, teamId: teamB.id, seasonId: season.id, position: "forward" })
+
+      const game = (await admin.game.create({
+        roundId: round.id,
+        homeTeamId: teamA.id,
+        awayTeamId: teamB.id,
+      }))!
+
+      await admin.gameReport.setLineup({
+        gameId: game.id,
+        players: [
+          { playerId: playerA.id, teamId: teamA.id, position: "forward" },
+          { playerId: playerB.id, teamId: teamB.id, position: "forward" },
+        ],
+      })
+
+      await admin.gameReport.addEvent({
+        gameId: game.id,
+        eventType: "penalty",
+        teamId: teamA.id,
+        period: 1,
+        timeMinutes: 3,
+        timeSeconds: 0,
+        penaltyPlayerId: playerA.id,
+        penaltyMinutes: 2,
+      })
+
+      await admin.gameReport.addEvent({
+        gameId: game.id,
+        eventType: "penalty",
+        teamId: teamA.id,
+        period: 2,
+        timeMinutes: 10,
+        timeSeconds: 0,
+        penaltyPlayerId: playerA.id,
+        penaltyMinutes: 5,
+      })
+
+      await admin.game.complete({ id: game.id })
+
+      const caller = createTestCaller()
+      const result = await caller.stats.teamPenaltyStats({ seasonId: season.id })
+      expect(result.length).toBeGreaterThan(0)
+
+      const teamAStats = result.find((r) => r.team?.id === teamA.id)
+      expect(teamAStats?.totalMinutes).toBe(7)
+      expect(teamAStats?.totalCount).toBe(2)
     })
   })
 })

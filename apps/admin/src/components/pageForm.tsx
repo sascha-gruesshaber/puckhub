@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { useTranslation } from "~/i18n/use-translation"
-import { RichTextEditor } from "./richTextEditor"
+import { RichTextEditorLazy as RichTextEditor } from "./richTextEditorLazy"
 
 export interface PageFormData {
   title: string

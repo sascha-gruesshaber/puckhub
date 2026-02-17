@@ -2,7 +2,8 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
 interface HoverCardProps {
-  content: ReactNode
+  /** Pre-built content (eager) OR render function (lazy — only called when card opens) */
+  content: ReactNode | (() => ReactNode)
   children: ReactNode
   /** Delay in ms before showing (default 300) */
   showDelay?: number
@@ -110,7 +111,7 @@ function HoverCard({
               transformOrigin: placement === "bottom" ? "top center" : "bottom center",
             }}
           >
-            {content}
+            {typeof content === "function" ? content() : content}
           </div>,
           document.body,
         )}

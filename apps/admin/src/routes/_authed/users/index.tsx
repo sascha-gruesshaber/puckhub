@@ -13,7 +13,7 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import {
   ClipboardCheck,
   Eye,
@@ -28,18 +28,28 @@ import {
   Users,
   X,
 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
 import { TeamCombobox } from "~/components/teamCombobox"
-import { useUsersFilters, FILTER_ALL } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/users/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; role?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.role === "string" && s.role ? { role: s.role } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.users.list.ensureData()
+  },
   component: UsersPage,
 })
 
@@ -114,7 +124,18 @@ const emptyForm: UserForm = { name: "", email: "", password: "" }
 // ---------------------------------------------------------------------------
 function UsersPage() {
   const { t } = useTranslation("common")
-  const { search, setSearch, roleFilter, setRoleFilter } = useUsersFilters()
+  const { search: searchParam, role } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const roleFilter = role ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setRoleFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, role: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<{ id: string } | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -140,7 +161,7 @@ function UsersPage() {
   const [infoDialogOpen, setInfoDialogOpen] = useState(false)
 
   const utils = trpc.useUtils()
-  const [users] = trpc.users.list.useSuspenseQuery()
+  const { data: users, isLoading } = trpc.users.list.useQuery()
   const { data: teams } = trpc.users.listTeams.useQuery()
 
   const createMutation = trpc.users.create.useMutation({
@@ -382,45 +403,51 @@ function UsersPage() {
           </div>
         }
         filters={
-          <>
-            <FilterPill
-              label={t("usersPage.filters.all")}
-              active={roleFilter === FILTER_ALL}
-              onClick={() => setRoleFilter(FILTER_ALL)}
-            />
-            {rolesInUse.map((r) => (
+          isLoading ? (
+            <FilterPillsSkeleton count={4} />
+          ) : (
+            <>
               <FilterPill
-                key={r.key}
-                label={`${r.label} (${r.count})`}
-                active={roleFilter === r.key}
-                onClick={() => setRoleFilter(r.key)}
-                icon={
-                  <span
-                    className="flex h-5 w-5 items-center justify-center rounded-full shrink-0"
-                    style={{ background: r.bgColor, color: r.color }}
-                  >
-                    {r.icon}
-                  </span>
-                }
+                label={t("usersPage.filters.all")}
+                active={roleFilter === FILTER_ALL}
+                onClick={() => setRoleFilter(FILTER_ALL)}
               />
-            ))}
-            {noRolesCount > 0 && (
-              <FilterPill
-                label={t("usersPage.filters.noRoleCount", { count: noRolesCount })}
-                active={roleFilter === "__no_roles__"}
-                onClick={() => setRoleFilter("__no_roles__")}
-              />
-            )}
-          </>
+              {rolesInUse.map((r) => (
+                <FilterPill
+                  key={r.key}
+                  label={`${r.label} (${r.count})`}
+                  active={roleFilter === r.key}
+                  onClick={() => setRoleFilter(r.key)}
+                  icon={
+                    <span
+                      className="flex h-5 w-5 items-center justify-center rounded-full shrink-0"
+                      style={{ background: r.bgColor, color: r.color }}
+                    >
+                      {r.icon}
+                    </span>
+                  }
+                />
+              ))}
+              {noRolesCount > 0 && (
+                <FilterPill
+                  label={t("usersPage.filters.noRoleCount", { count: noRolesCount })}
+                  active={roleFilter === "__no_roles__"}
+                  onClick={() => setRoleFilter("__no_roles__")}
+                />
+              )}
+            </>
+          )
         }
         search={{ value: search, onChange: setSearch, placeholder: t("usersPage.searchPlaceholder") }}
         count={
-          users.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (users?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
                   {roleFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-                  {users.length}
+                  {users?.length ?? 0}
                 </span>{" "}
                 {t("usersPage.count.users")}
               </span>
@@ -429,7 +456,9 @@ function UsersPage() {
         }
       >
         {/* Content */}
-        {filtered.length === 0 && !search && roleFilter === FILTER_ALL ? (
+        {isLoading ? (
+          <DataListSkeleton rows={5} />
+        ) : filtered.length === 0 && !search && roleFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("usersPage.empty.title")}

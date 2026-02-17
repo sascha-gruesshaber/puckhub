@@ -12,18 +12,26 @@ import {
   Input,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute, useNavigate, useRouterState } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { AlertTriangle, Calendar, Pencil, Plus, Star, Trash2 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { NoResults } from "~/components/noResults"
-import { useSeasonsFilters } from "~/stores/usePageFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/seasons/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; create?: boolean } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(s.create === true || s.create === "true" ? { create: true } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.season.list.ensureData()
+  },
   component: SeasonsPage,
 })
 
@@ -63,9 +71,13 @@ function createEmptyForm(): SeasonForm {
 // ---------------------------------------------------------------------------
 function SeasonsPage() {
   const { t, i18n } = useTranslation("common")
-  const navigate = useNavigate()
-  const searchStr = useRouterState({ select: (s) => s.location.searchStr })
-  const { search, setSearch } = useSeasonsFilters()
+  const { search: searchParam, create } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingSeason, setEditingSeason] = useState<{ id: string } | null>(null)
@@ -75,20 +87,15 @@ function SeasonsPage() {
 
   // Auto-open create dialog when navigated with ?create=true
   useEffect(() => {
-    const params = new URLSearchParams(searchStr)
-    if (params.get("create") === "true") {
+    if (create) {
       openCreate()
       // Clear the search param so refreshing doesn't re-open
-      navigate({ to: "/seasons", replace: true })
+      navigate({ search: (prev) => ({ ...prev, create: undefined }), replace: true })
     }
-  }, [
-    searchStr, // Clear the search param so refreshing doesn't re-open
-    navigate,
-    openCreate,
-  ])
+  }, [create, navigate, openCreate])
 
   const utils = trpc.useUtils()
-  const [seasons] = trpc.season.list.useSuspenseQuery()
+  const { data: seasons, isLoading } = trpc.season.list.useQuery()
   const { data: currentSeason } = trpc.season.getCurrent.useQuery()
   const { data: structureCounts } = trpc.season.structureCounts.useQuery()
 
@@ -238,7 +245,9 @@ function SeasonsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("seasonsPage.searchPlaceholder") }}
         count={
-          seasons.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (seasons?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">{stats.total}</span> {t("seasonsPage.count.total")}
@@ -257,7 +266,9 @@ function SeasonsPage() {
         }
       >
         {/* Content */}
-        {filtered.length === 0 && !search ? (
+        {isLoading ? (
+          <DataListSkeleton rows={3} />
+        ) : filtered.length === 0 && !search ? (
           <EmptyState
             icon={<Calendar className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("seasonsPage.empty.title")}

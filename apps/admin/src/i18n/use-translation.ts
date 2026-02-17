@@ -1,33 +1,58 @@
-import { useIntlayer, useLocale } from "react-intlayer"
+import { useCallback, useMemo } from "react"
+import { useLocale } from "./locale-context"
+import deCommon from "./locales/de-DE/common.json"
+import deErrors from "./locales/de-DE/errors.json"
+import enCommon from "./locales/en-US/common.json"
+import enErrors from "./locales/en-US/errors.json"
 
 type Options = {
   defaultValue?: string
   [key: string]: string | number | undefined
 }
 
-function getNestedValue(obj: unknown, key: string): unknown {
-  return key.split(".").reduce<unknown>((acc, segment) => {
-    if (!acc || typeof acc !== "object") {
-      return undefined
-    }
-    return (acc as Record<string, unknown>)[segment]
-  }, obj)
-}
+// ---------------------------------------------------------------------------
+// Singleton translation cache — built once at module load, keyed by locale
+// ---------------------------------------------------------------------------
 
-function resolveNodeToString(value: unknown): string | null {
-  if (typeof value === "string") {
-    return value
-  }
-
-  if (value && (typeof value === "object" || typeof value === "function")) {
-    const nested = Reflect.get(value as object, "value")
-    if (typeof nested === "string") {
-      return nested
+function flattenObject(obj: Record<string, unknown>, prefix: string, map: Map<string, string>) {
+  for (const [key, value] of Object.entries(obj)) {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (typeof value === "string") {
+      map.set(path, value)
+    } else if (value && typeof value === "object" && !Array.isArray(value)) {
+      flattenObject(value as Record<string, unknown>, path, map)
     }
   }
-
-  return null
 }
+
+function buildMap(json: Record<string, unknown>): Map<string, string> {
+  const map = new Map<string, string>()
+  flattenObject(json, "", map)
+  return map
+}
+
+type Locale = "de" | "en" | "raw"
+type Namespace = "common" | "errors"
+
+const cache: Record<"de" | "en", Record<Namespace, Map<string, string>>> = {
+  de: {
+    common: buildMap(deCommon as Record<string, unknown>),
+    errors: buildMap(deErrors as Record<string, unknown>),
+  },
+  en: {
+    common: buildMap(enCommon as Record<string, unknown>),
+    errors: buildMap(enErrors as Record<string, unknown>),
+  },
+}
+
+function getMap(locale: string, namespace: Namespace): Map<string, string> {
+  const loc: "de" | "en" = locale === "en" ? "en" : "de"
+  return cache[loc][namespace]
+}
+
+// ---------------------------------------------------------------------------
+// Interpolation
+// ---------------------------------------------------------------------------
 
 function interpolate(value: string, options?: Options): string {
   if (!options) return value
@@ -37,30 +62,42 @@ function interpolate(value: string, options?: Options): string {
   })
 }
 
-function normalizeToIntlayerLocale(locale: string): "de" | "en" {
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
+
+function normalizeLocaleForApp(locale: string): "de" | "en" | "raw" {
+  if (locale === "raw") return "raw"
   return locale.toLowerCase().startsWith("en") ? "en" : "de"
 }
 
 export function useTranslation(namespace: "common" | "errors" = "common") {
-  const content = useIntlayer(namespace)
   const { locale, setLocale } = useLocale()
 
-  function t(key: string, options?: Options): string {
-    const value = getNestedValue(content, key)
-    const resolved = resolveNodeToString(value)
-    if (resolved !== null) {
-      return interpolate(resolved, options)
-    }
-    return options?.defaultValue ?? key
-  }
+  const isRaw = locale === "raw"
+  const map = getMap(locale, namespace)
 
-  return {
-    t,
-    i18n: {
+  const t = useCallback(
+    (key: string, options?: Options): string => {
+      if (isRaw) return key
+      const value = map.get(key)
+      if (value !== undefined) {
+        return interpolate(value, options)
+      }
+      return options?.defaultValue ?? key
+    },
+    [map, isRaw],
+  )
+
+  const i18n = useMemo(
+    () => ({
       language: locale,
       changeLanguage: async (nextLocale: string) => {
-        setLocale(normalizeToIntlayerLocale(nextLocale))
+        setLocale(normalizeLocaleForApp(nextLocale))
       },
-    },
-  }
+    }),
+    [locale, setLocale],
+  )
+
+  return { t, i18n }
 }

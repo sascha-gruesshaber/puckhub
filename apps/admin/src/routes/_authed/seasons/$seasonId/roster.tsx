@@ -1,7 +1,7 @@
 import { Button, Skeleton, toast } from "@puckhub/ui"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Plus, Users } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
@@ -15,6 +15,13 @@ import { TeamFilterPills } from "~/components/teamFilterPills"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/seasons/$seasonId/roster")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+  }),
+  loader: async ({ context, params }) => {
+    await context.trpcQueryUtils?.season.getFullStructure.ensureData({ id: params.seasonId })
+  },
   component: RosterPage,
 })
 
@@ -23,8 +30,17 @@ function RosterPage() {
   const { seasonId } = Route.useParams()
 
   // State
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
-  const [search, setSearch] = useState("")
+  const { search: searchParam, team: selectedTeamId } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setSelectedTeamId = useCallback(
+    (v: string | null) => navigate({ search: (prev) => ({ ...prev, team: v || undefined }), replace: true }),
+    [navigate],
+  )
   const [signDialogOpen, setSignDialogOpen] = useState(false)
   const [editContract, setEditContract] = useState<ContractRow | null>(null)
   const [transferContract, setTransferContract] = useState<ContractRow | null>(null)

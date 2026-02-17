@@ -12,7 +12,7 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 |-----------|---------|-------------|
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (port 3000), i18n (DE/EN) |
 | `apps/web` | — | Public website (placeholder) |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (22 routers) + Better Auth + iCal export (port 3001) |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (22 routers) + Better Auth (port 3001) |
 | `packages/db` | `@puckhub/db` | Drizzle schema (32 files, 10 enums), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
@@ -55,7 +55,7 @@ Copy `.env.example` to `.env`. Key variables:
 - **Coding rules**: See [`.claude/rules.md`](.claude/rules.md) for comprehensive coding standards
 - **No `.js` extensions** in imports — use extensionless paths everywhere
 - **Language**: UI text and error messages are in **German** (with English translations available)
-- **i18n**: Two locales (`de-DE`, `en-US`), two namespaces (`common`, `errors`). Uses TanStack Router content-based approach with `useTranslation()` hook
+- **i18n**: Two locales (`de-DE`, `en-US`), two namespaces (`common`, `errors`). JSON locale files with React Context and `useTranslation()` hook
 - **Package manager**: pnpm 10.28.2 — always use `pnpm`, never npm/yarn
 - **TypeScript**: Strict mode, `noUncheckedIndexedAccess`, ES2022 target
 - **Path aliases**: `~/` = `src/`, `@/` = `lib/` (admin app only)

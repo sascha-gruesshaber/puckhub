@@ -1,22 +1,20 @@
 # @puckhub/api
 
-Hono HTTP server with tRPC routers, Better Auth, and iCal calendar export. Runs on port 3001.
+Hono HTTP server with tRPC routers and Better Auth. Runs on port 3001.
 
 ## Architecture
 
 ```
 src/
 ├── index.ts           # Entry point — loads env, auto-migrates, starts server
-├── app.ts             # Hono app — CORS, auth routes, tRPC mount, uploads, calendar, health
+├── app.ts             # Hono app — CORS, auth routes, tRPC mount, uploads, health
 ├── lib/auth.ts        # Better Auth config (email/password, 7-day sessions)
 ├── routes/
-│   ├── upload.ts      # File upload handler (POST /api/upload)
-│   └── calendar.ts    # iCal export handler (GET /api/calendar/export.ics)
+│   └── upload.ts      # File upload handler (POST /api/upload)
 ├── services/
-│   ├── standings.service.ts   # Standings calculation logic
-│   ├── scheduler.service.ts   # Game scheduling logic
-│   ├── stats.service.ts       # Statistics aggregation
-│   └── calendar.service.ts    # iCal generation (RFC 5545)
+│   ├── standingsService.ts    # Standings calculation logic
+│   ├── schedulerService.ts    # Game scheduling logic
+│   └── statsService.ts        # Statistics aggregation
 └── trpc/
     ├── init.ts        # tRPC init, middleware, procedure types
     ├── context.ts     # Request context (db, session, user)
@@ -31,7 +29,6 @@ src/
 | `*` | `/api/auth/**` | Better Auth (login, signup, session) |
 | `*` | `/api/trpc/*` | tRPC handler |
 | `POST` | `/api/upload` | File upload (logo/photo, max 5MB, images only) |
-| `GET` | `/api/calendar/export.ics` | iCal calendar export (team/season filtering) |
 | `GET` | `/api/uploads/*` | Static file serving |
 | `GET` | `/api/health` | Health check |
 
@@ -53,10 +50,9 @@ Most mutations use `adminProcedure`. Public queries for standings/stats use `pub
 
 | Service | Purpose |
 |---------|---------|
-| `standings.service.ts` | Calculate standings from game results, bonus points |
-| `scheduler.service.ts` | Generate round-robin game schedules |
-| `stats.service.ts` | Aggregate player/goalie statistics |
-| `calendar.service.ts` | Generate iCal (ICS) feeds for game schedules (RFC 5545 compliant, 1-hour TTL) |
+| `standingsService.ts` | Calculate standings from game results, bonus points |
+| `schedulerService.ts` | Generate round-robin game schedules |
+| `statsService.ts` | Aggregate player/goalie statistics |
 
 ## Adding a New Router
 

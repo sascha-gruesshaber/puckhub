@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { trpc } from "@/trpc"
+import { useLocale } from "~/i18n/locale-context"
 import { normalizeLocale } from "~/i18n/resources"
-import { useTranslation } from "~/i18n/use-translation"
 
 function localeToHtmlLang(locale: string): string {
   if (locale.startsWith("de")) return "de"
@@ -9,26 +9,33 @@ function localeToHtmlLang(locale: string): string {
   return "de"
 }
 
+function normalizeToAppLocale(locale: string): "de" | "en" {
+  return locale.toLowerCase().startsWith("en") ? "en" : "de"
+}
+
 export function LocaleSync() {
-  const { i18n } = useTranslation("common")
+  const { locale, setLocale } = useLocale()
   const { data: settings } = trpc.settings.get.useQuery()
   const { data: preference } = trpc.userPreferences.getMyLocale.useQuery(undefined, {
     retry: false,
   })
 
   useEffect(() => {
+    // In raw mode (E2E tests), never override the locale
+    if (locale === "raw") return
+
     const resolved = normalizeLocale(preference?.locale) ?? normalizeLocale(settings?.locale) ?? "de-DE"
 
-    const resolvedAppLocale = resolved.startsWith("en") ? "en" : "de"
+    const resolvedAppLocale = normalizeToAppLocale(resolved)
 
-    if (i18n.language !== resolvedAppLocale) {
-      void i18n.changeLanguage(resolved)
+    if (locale !== resolvedAppLocale) {
+      setLocale(resolvedAppLocale)
     }
 
     if (typeof document !== "undefined") {
       document.documentElement.lang = localeToHtmlLang(resolvedAppLocale)
     }
-  }, [i18n, preference?.locale, settings?.locale])
+  }, [locale, setLocale, preference?.locale, settings?.locale])
 
   return null
 }

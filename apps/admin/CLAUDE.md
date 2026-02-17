@@ -66,62 +66,73 @@ src/i18n/
 │   ├── en-US/common.json   # English translations (~1300 lines)
 │   └── en-US/errors.json   # English error messages
 ├── resources.ts             # Resource imports & locale normalization
-├── common.content.ts        # Common content type definitions
-├── errors.content.ts        # Error content type definitions
-├── content-utils.ts         # Content utility functions
-└── use-translation.ts       # useTranslation() hook
+├── locale-context.tsx       # LocaleProvider context, useLocale() hook
+└── use-translation.ts       # useTranslation() hook → t() function
 ```
 
+- **Approach**: JSON locale files imported statically, flattened into a `Map` cache for fast dot-notation lookups
+- **Context**: `LocaleProvider` in root layout provides current locale; `useLocale()` hook to read/change it
 - **Locales**: `de-DE` (primary), `en-US`
 - **Namespaces**: `common` (all UI text), `errors` (error messages)
-- User locale preference stored in DB and synced via `locale-sync.tsx` component
+- User locale preference stored in DB and synced via `localeSync.tsx` component
 
-## Component Organization (~60 files)
+## Component Organization (~65 files)
 
 ```
 src/components/
-├── getting-started/       # Setup wizard (WelcomeStep → CompleteStep)
-├── game-report/           # Game report editing (10 components)
-│   ├── GameReportHeader.tsx
-│   ├── GameTimeline.tsx   # Chronological event timeline
-│   ├── GoalDialog.tsx     # Add/edit goals
-│   ├── PenaltyDialog.tsx  # Add/edit penalties
-│   ├── SuspensionDialog.tsx  # Add/edit suspensions
-│   ├── SuspensionWarnings.tsx  # Active suspension alerts
-│   ├── LineupEditor.tsx   # Manage game lineups
-│   ├── TeamRosterChecklist.tsx  # Player checklist for lineup
-│   └── TimelineEvent.tsx  # Single event in timeline
-├── structure-builder/     # React Flow canvas for season structure
-│   ├── StructureCanvas.tsx
-│   ├── nodes/             # Custom node types (Season, Division, Round, Team)
-│   ├── panels/            # Side panel, DivisionEdit, RoundEdit, TeamAssignment, TeamPalette
-│   └── utils/             # Layout, node factory, color mapping, round-type-icons
-├── player-timeline/       # Player history timeline
-├── roster/                # Roster management (RosterTable, Sign/Edit/Transfer dialogs)
-├── calendar-export-dialog.tsx  # iCal export dialog
-├── player-combobox.tsx    # Player search/select combobox
-├── team-combobox.tsx      # Team search/select combobox
-├── team-filter-pills.tsx  # Team filter pill badges
-├── unscheduled-games-sidebar.tsx  # Sidebar listing unscheduled games
-├── data-page-layout.tsx   # Standard data page layout wrapper
-├── page-header.tsx        # Reusable page header
-├── empty-state.tsx        # Empty state placeholder
-├── no-results.tsx         # No search results state
-├── confirm-dialog.tsx     # Confirmation modal
-├── search-input.tsx       # Search input
-├── filter-pill.tsx        # Filter pill component
-├── image-upload.tsx       # Image upload (logo/photo)
-├── rich-text-editor.tsx   # Rich text editor (Tiptap)
-├── trikot-preview.tsx     # Jersey preview
-├── team-hover-card.tsx    # Team hover card
-├── player-hover-card.tsx  # Player hover card
-├── hover-card.tsx         # Generic hover card
-├── season-indicator.tsx   # Season indicator badge
-├── season-picker-modal.tsx # Season selection modal
-├── locale-sync.tsx        # Locale synchronization
-├── language-picker.tsx    # Language picker (DE/EN)
-├── news-form.tsx          # News article form
-└── page-form.tsx          # Page content form
+├── gettingStarted/        # Setup wizard
+│   ├── gettingStartedWizard.tsx
+│   ├── wizardLayout.tsx
+│   ├── stepIndicator.tsx
+│   └── steps/             # welcomeStep, leagueOverviewStep, adminAccountStep, firstSeasonStep, completeStep
+├── gameReport/            # Game report editing (10 components)
+│   ├── gameReportHeader.tsx
+│   ├── gameTimeline.tsx   # Chronological event timeline
+│   ├── goalDialog.tsx     # Add/edit goals
+│   ├── penaltyDialog.tsx  # Add/edit penalties
+│   ├── suspensionDialog.tsx  # Add/edit suspensions
+│   ├── suspensionWarnings.tsx  # Active suspension alerts
+│   ├── gameSuspensionList.tsx  # Multi-game suspension list
+│   ├── lineupEditor.tsx   # Manage game lineups
+│   ├── teamRosterChecklist.tsx  # Player checklist for lineup
+│   └── timelineEvent.tsx  # Single event in timeline
+├── structureBuilder/      # React Flow canvas for season structure
+│   ├── structureCanvas.tsx
+│   ├── setupWizardDialog.tsx
+│   ├── nodes/             # Custom node types (seasonNode, divisionNode, roundNode, teamNode)
+│   ├── panels/            # sidePanel, divisionEditPanel, roundEditPanel, teamAssignmentPanel, teamPalette
+│   └── utils/             # layout, nodeFactory, roundTypeColors, roundTypeIcons
+├── playerTimeline/        # Player history timeline (playerTimeline.tsx)
+├── roster/                # Roster management (rosterTable, signPlayerDialog, editContractDialog, transferDialog)
+├── skeletons/             # Loading skeleton components
+│   ├── countSkeleton.tsx
+│   ├── dataListSkeleton.tsx
+│   └── filterPillsSkeleton.tsx
+├── playerCombobox.tsx     # Player search/select combobox
+├── teamCombobox.tsx       # Team search/select combobox
+├── teamFilterPills.tsx    # Team filter pill badges
+├── dataPageLayout.tsx     # Standard data page layout wrapper
+├── pageHeader.tsx         # Reusable page header
+├── emptyState.tsx         # Empty state placeholder
+├── noResults.tsx          # No search results state
+├── confirmDialog.tsx      # Confirmation modal
+├── searchInput.tsx        # Search input
+├── filterPill.tsx         # Filter pill component
+├── imageUpload.tsx        # Image upload (logo/photo)
+├── richTextEditor.tsx     # Rich text editor (Tiptap)
+├── richTextEditorLazy.tsx # Lazy-loaded rich text editor
+├── pageSkeleton.tsx       # Full-page loading skeleton
+├── trikotPreview.tsx      # Jersey preview
+├── teamHoverCard.tsx      # Team hover card
+├── playerHoverCard.tsx    # Player hover card
+├── hoverCard.tsx          # Generic hover card
+├── gameStatusBadge.tsx    # Game status badge
+├── seasonIndicator.tsx    # Season indicator badge
+├── seasonPickerModal.tsx  # Season selection modal
+├── localeSync.tsx         # Locale synchronization
+├── languagePicker.tsx     # Language picker (DE/EN)
+├── newsForm.tsx           # News article form
+└── pageForm.tsx           # Page content form
 ```
 
 ## Contexts
@@ -131,12 +142,21 @@ src/contexts/
 └── season-context.tsx     # Current season selection (used in _authed.tsx layout)
 ```
 
+## Lib
+
+```
+src/lib/
+├── errorI18n.ts        # Error code to i18n key mapping
+└── search-params.ts    # FILTER_ALL constant for URL-based filtering
+```
+
 ## State Management
 
 - **Server state**: tRPC queries via React Query (`trpc.season.list.useQuery()`)
 - **Season context**: React context in `_authed.tsx` for current season selection
+- **Page filters**: URL search params via TanStack Router (replaced Zustand stores)
 - **Local storage**: Season picker preference persisted across sessions
-- **No global state library** — compose tRPC + context + local state
+- **No global state library** — compose tRPC + context + URL search params
 
 ## E2E Testing
 

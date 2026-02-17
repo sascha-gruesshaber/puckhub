@@ -1,17 +1,12 @@
 import { useMemo } from "react"
 import { useTranslation } from "~/i18n/use-translation"
 import { FilterPill } from "./filterPill"
-import { TeamHoverCard } from "./teamHoverCard"
 
 interface Team {
   id: string
   name: string
   shortName: string
   logoUrl?: string | null
-  city?: string | null
-  contactName?: string | null
-  website?: string | null
-  primaryColor?: string | null
 }
 
 interface TeamFilterPillsProps {
@@ -75,31 +70,30 @@ function TeamFilterPills({
         />
       ))}
 
-      {/* Team filters with logos and hover cards */}
+      {/* Team filters with logos */}
       {sortedTeams.map((team) => (
-        <TeamHoverCard key={team.id} team={team} seasonId={seasonId}>
-          <FilterPill
-            label={team.shortName}
-            tooltip={team.name}
-            active={activeFilter === team.id}
-            onClick={() => onFilterChange(team.id)}
-            icon={
-              team.logoUrl ? (
-                <img src={team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain shrink-0" />
-              ) : (
-                <div
-                  className={`h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold shrink-0 ${
-                    activeFilter === team.id
-                      ? "bg-primary-foreground/20 text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  {team.shortName.slice(0, 2).toUpperCase()}
-                </div>
-              )
-            }
-          />
-        </TeamHoverCard>
+        <FilterPill
+          key={team.id}
+          label={team.shortName}
+          tooltip={team.name}
+          active={activeFilter === team.id}
+          onClick={() => onFilterChange(team.id)}
+          icon={
+            team.logoUrl ? (
+              <img src={team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain shrink-0" />
+            ) : (
+              <div
+                className={`h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold shrink-0 ${
+                  activeFilter === team.id
+                    ? "bg-primary-foreground/20 text-primary-foreground"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {team.shortName.slice(0, 2).toUpperCase()}
+              </div>
+            )
+          }
+        />
       ))}
     </>
   )

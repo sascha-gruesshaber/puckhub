@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm"
 import type { Database } from "../index"
 import * as schema from "../schema"
 
@@ -46,9 +47,14 @@ export async function runSeed(db: Database) {
     .onConflictDoNothing()
 
   console.log("Seeding static pages...")
-  await db
-    .insert(schema.pages)
-    .values([
+  const existingStaticPages = await db
+    .select({ id: schema.pages.id })
+    .from(schema.pages)
+    .where(eq(schema.pages.isStatic, true))
+    .limit(1)
+
+  if (existingStaticPages.length === 0) {
+    await db.insert(schema.pages).values([
       {
         title: "Impressum",
         slug: "impressum",
@@ -77,7 +83,9 @@ export async function runSeed(db: Database) {
         sortOrder: 102,
       },
     ])
-    .onConflictDoNothing()
+  } else {
+    console.log("  Static pages already exist, skipping.")
+  }
 
   console.log("Seed complete.")
 }

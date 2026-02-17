@@ -670,10 +670,13 @@
     "description": "Manage sponsors",
     "searchPlaceholder": "Search sponsors...",
     "filters": {
-      "all": "All",
-      "active": "Active",
-      "inactive": "Inactive",
+      "allTeams": "All",
+      "siteWide": "Site-wide",
       "fallback": "Filter"
+    },
+    "groups": {
+      "active": "Active",
+      "inactive": "Inactive"
     },
     "count": {
       "total": "Sponsors",
@@ -699,7 +702,7 @@
       "hoverText": "Hover text",
       "hoverTextPlaceholder": "e.g. Official main sponsor",
       "teamAssignment": "Team assignment",
-      "leagueWide": "League-wide",
+      "siteWidePlaceholder": "Site-wide (no team)",
       "sortOrder": "Sort order",
       "active": "Active"
     },
@@ -743,10 +746,8 @@
       "edit": "Edit",
       "delete": "Delete",
       "trikots": "Jerseys",
-      "saving": "Saving...",
-      "copyCalendarUrl": "Copy calendar URL"
+      "saving": "Saving..."
     },
-    "calendarUrlCopied": "Calendar URL copied to clipboard",
     "empty": {
       "title": "No teams yet",
       "description": "Create your first team to start league management.",
@@ -1111,6 +1112,19 @@
       "midnightConfirmDescription": "The start time is set to 00:00 (midnight). Do you really want to schedule the game at this time?",
       "midnightConfirmButton": "Yes, at 00:00",
       "midnightCancelButton": "No, change time"
+    },
+    "generate": {
+      "sections": {
+        "target": "Target",
+        "scheduling": "Scheduling (optional)"
+      },
+      "fields": {
+        "division": "Division",
+        "startDate": "First game day",
+        "cadenceDays": "Interval (days)",
+        "cadenceDaysHint": "Days between game days"
+      },
+      "schedulingHint": "Leave empty to create games without dates."
     },
     "form": {
       "sections": {

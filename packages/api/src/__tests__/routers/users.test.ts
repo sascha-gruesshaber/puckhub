@@ -4,14 +4,15 @@ import { createTestCaller, getTestDb } from "../testUtils"
 
 describe("users router", () => {
   describe("list", () => {
-    it("returns the seeded admin user", async () => {
+    it("returns the seeded users", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const users = await admin.users.list()
 
-      expect(users).toHaveLength(1)
-      expect(users[0]?.email).toBe("admin@test.local")
-      expect(users[0]?.roles).toHaveLength(1)
-      expect(users[0]?.roles[0]?.role).toBe("super_admin")
+      expect(users).toHaveLength(2) // admin + regular test user
+      const adminUser = users.find((u) => u.email === "admin@test.local")
+      expect(adminUser).toBeDefined()
+      expect(adminUser?.roles).toHaveLength(1)
+      expect(adminUser?.roles[0]?.role).toBe("super_admin")
     })
 
     it("returns users with their roles and team info", async () => {
@@ -34,7 +35,7 @@ describe("users router", () => {
       })
 
       const users = await admin.users.list()
-      expect(users).toHaveLength(2)
+      expect(users).toHaveLength(3) // admin + regular test user + manager
 
       const manager = users.find((u) => u.id === "user-2")
       expect(manager).toBeDefined()
@@ -77,7 +78,7 @@ describe("users router", () => {
 
       // Verify the user appears in the list
       const users = await admin.users.list()
-      expect(users).toHaveLength(2)
+      expect(users).toHaveLength(3) // admin + regular test user + new user
     })
 
     it("rejects duplicate email", async () => {

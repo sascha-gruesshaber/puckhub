@@ -1,17 +1,27 @@
 import { Badge, Button, FormField, Input, Label, toast } from "@puckhub/ui"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { ChevronRight, FileText, Link2, Lock, Pencil, Plus, Trash2, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
-import { usePagesFilters, FILTER_ALL } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/pages/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; status?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.page.list.ensureData()
+  },
   component: PagesPage,
 })
 
@@ -20,7 +30,18 @@ const FILTER_DRAFT = "__draft__"
 
 function PagesPage() {
   const { t } = useTranslation("common")
-  const { search, setSearch, statusFilter, setStatusFilter } = usePagesFilters()
+  const { search: searchParam, status } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const statusFilter = status ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setStatusFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, status: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingPage, setDeletingPage] = useState<{ id: string; title: string } | null>(null)
   const [aliasDialogOpen, setAliasDialogOpen] = useState(false)
@@ -30,7 +51,7 @@ function PagesPage() {
   const [deletingAlias, setDeletingAlias] = useState<{ id: string; slug: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const [pages] = trpc.page.list.useSuspenseQuery()
+  const { data: pages, isLoading } = trpc.page.list.useQuery()
   const { data: aliases } = trpc.page.listAliases.useQuery()
 
   const deleteMutation = trpc.page.delete.useMutation({
@@ -142,27 +163,33 @@ function PagesPage() {
           </Link>
         }
         filters={
-          <>
-            <FilterPill
-              label={t("pagesPage.filters.all")}
-              active={statusFilter === FILTER_ALL}
-              onClick={() => setStatusFilter(FILTER_ALL)}
-            />
-            <FilterPill
-              label={t("pagesPage.filters.published")}
-              active={statusFilter === FILTER_PUBLISHED}
-              onClick={() => setStatusFilter(FILTER_PUBLISHED)}
-            />
-            <FilterPill
-              label={t("pagesPage.filters.draft")}
-              active={statusFilter === FILTER_DRAFT}
-              onClick={() => setStatusFilter(FILTER_DRAFT)}
-            />
-          </>
+          isLoading ? (
+            <FilterPillsSkeleton count={3} />
+          ) : (
+            <>
+              <FilterPill
+                label={t("pagesPage.filters.all")}
+                active={statusFilter === FILTER_ALL}
+                onClick={() => setStatusFilter(FILTER_ALL)}
+              />
+              <FilterPill
+                label={t("pagesPage.filters.published")}
+                active={statusFilter === FILTER_PUBLISHED}
+                onClick={() => setStatusFilter(FILTER_PUBLISHED)}
+              />
+              <FilterPill
+                label={t("pagesPage.filters.draft")}
+                active={statusFilter === FILTER_DRAFT}
+                onClick={() => setStatusFilter(FILTER_DRAFT)}
+              />
+            </>
+          )
         }
         search={{ value: search, onChange: setSearch, placeholder: t("pagesPage.searchPlaceholder") }}
         count={
-          pages.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (pages?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -185,7 +212,9 @@ function PagesPage() {
         }
       >
         {/* Pages list */}
-        {filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
+        {isLoading ? (
+          <DataListSkeleton rows={5} showIcon={false} />
+        ) : filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
           <EmptyState
             icon={<FileText className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("pagesPage.empty.title")}
@@ -361,7 +390,7 @@ function PagesPage() {
         )}
 
         {/* Alias create button (when no aliases exist) */}
-        {aliases && aliases.length === 0 && pages && pages.length > 0 && (
+        {aliases && aliases.length === 0 && pages && (pages?.length ?? 0) > 0 && (
           <div className="flex justify-end">
             <Button variant="outline" size="sm" onClick={() => setAliasDialogOpen(true)}>
               <Link2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />

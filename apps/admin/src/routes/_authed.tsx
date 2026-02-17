@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router"
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router"
 import {
   FileText,
   GitBranch,
@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { Suspense, useState } from "react"
 import { LanguagePicker } from "~/components/languagePicker"
-import { NavigationProgress } from "~/components/navigationProgress"
+
 import { PageSkeleton } from "~/components/pageSkeleton"
 import { SeasonIndicator } from "~/components/seasonIndicator"
 import { SeasonPickerModal } from "~/components/seasonPickerModal"
@@ -157,7 +157,6 @@ function AuthedLayout() {
 function SidebarLayout({ session }: { session: { user: { email: string } } }) {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { season } = useWorkingSeason()
   const { data: settings } = trpc.settings.get.useQuery()
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -236,7 +235,6 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
 
   return (
     <div className="flex min-h-screen">
-      <NavigationProgress />
       {/* ─── Sidebar ─── */}
       <aside
         className="fixed inset-y-0 left-0 z-40 flex flex-col"
@@ -460,7 +458,7 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
           background: "var(--content-bg)",
         }}
       >
-        <div key={pathname} className="content-enter" style={{ padding: "36px 44px" }}>
+        <div className="content-enter" style={{ padding: "36px 44px" }}>
           <Suspense fallback={<PageSkeleton />}>
             <Outlet />
           </Suspense>

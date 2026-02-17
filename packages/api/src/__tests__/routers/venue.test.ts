@@ -56,6 +56,26 @@ describe("venue router", () => {
     await expect(admin.venue.delete({ id: venue.id })).rejects.toThrow("cannot be deleted")
   })
 
+  it("manages defaultTeamId on create and update", async () => {
+    const admin = createTestCaller({ asAdmin: true })
+    const team = (await admin.team.create({ name: "Eagles", shortName: "EAG" }))!
+
+    // Create venue with defaultTeamId
+    const venue = (await admin.venue.create({ name: "Home Arena", defaultTeamId: team.id }))!
+
+    const caller = createTestCaller()
+    let venues = await caller.venue.list()
+    let found = venues.find((v) => v.id === venue.id)
+    expect(found?.defaultTeam?.id).toBe(team.id)
+
+    // Remove default team via update
+    await admin.venue.update({ id: venue.id, defaultTeamId: null })
+
+    venues = await caller.venue.list()
+    found = venues.find((v) => v.id === venue.id)
+    expect(found?.defaultTeam).toBeNull()
+  })
+
   it("rejects unauthenticated mutations", async () => {
     const caller = createTestCaller()
     await expect(caller.venue.create({ name: "Arena Sued" })).rejects.toThrow("Not authenticated")

@@ -11,7 +11,7 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 | **Auth** | [Better Auth](https://www.better-auth.com) (self-hosted, email/password) |
 | **Frontend** | [TanStack Start](https://tanstack.com/start) (SSR + Router + Query, React 19) |
 | **UI** | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) style components |
-| **i18n** | German (primary) + English, content-based translation system |
+| **i18n** | German (primary) + English, JSON locale files with React Context |
 | **Monorepo** | [Turborepo](https://turbo.build) + [pnpm](https://pnpm.io) workspaces |
 | **Database** | PostgreSQL 16 (Docker for local dev) |
 
@@ -20,7 +20,7 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 - **Season Management** — Create seasons with date ranges, divisions, rounds (regular, playoffs, playdowns, relegation, etc.)
 - **Structure Builder** — Visual React Flow canvas to design season structure (divisions, rounds, team assignments)
 - **Team & Player Management** — Teams with logos/colors/venues, player profiles with photos, contract/roster management
-- **Game Scheduling** — Round-robin scheduler, calendar view, unscheduled game sidebar, iCal export (RFC 5545)
+- **Game Scheduling** — Round-robin scheduler, calendar view, unscheduled game sidebar
 - **Game Reports** — Full game report editor with lineup management, goal/penalty tracking, timeline view, multi-game suspensions
 - **Standings & Statistics** — Auto-calculated standings, player/goalie stats with season/team filters
 - **Content Management** — News articles (draft/published), CMS pages with menu locations, sponsor management
@@ -35,11 +35,11 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 ```
 puckhub.cms/
 ├── apps/
-│   ├── admin/          # TanStack Start admin CMS (26 routes, ~60 components)
+│   ├── admin/          # TanStack Start admin CMS (26 routes, ~65 components)
 │   └── web/            # Future public-facing site
 ├── packages/
-│   ├── api/            # Hono + tRPC server, 22 routers, 4 services (@puckhub/api)
-│   ├── db/             # Drizzle schema (32 files) + migrations (12) + seeds (@puckhub/db)
+│   ├── api/            # Hono + tRPC server, 22 routers, 3 services (@puckhub/api)
+│   ├── db/             # Drizzle schema (32 files) + migrations (4) + seeds (@puckhub/db)
 │   ├── config/         # Minimal — runtime config in DB (@puckhub/config)
 │   └── ui/             # Shared UI components — 11 files, 13+ exports (@puckhub/ui)
 ├── docker/             # Docker Compose + pgAdmin config
@@ -151,5 +151,5 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 ---
 
 **PuckHub** — Professional ice hockey league management system
-Copyright © 2025 Sascha Grüßhaber. All rights reserved.
+Copyright © 2025-2026 Sascha Grüßhaber. All rights reserved.
 Licensed under [Custom Source-Available License](LICENSE.md)

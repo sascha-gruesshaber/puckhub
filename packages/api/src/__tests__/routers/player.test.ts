@@ -24,6 +24,45 @@ describe("player router", () => {
     })
   })
 
+  describe("listWithCurrentTeam", () => {
+    it("returns players with null currentTeam when no season exists", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      await admin.player.create({ firstName: "Solo", lastName: "Player" })
+
+      const caller = createTestCaller()
+      const result = await caller.player.listWithCurrentTeam()
+      expect(result.currentSeason).toBeNull()
+      expect(result.players).toHaveLength(1)
+      expect(result.players[0]?.currentTeam).toBeNull()
+    })
+
+    it("returns player with current team when contracted", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const season = (await admin.season.create({
+        name: "2025/26",
+        seasonStart: "2025-09-01",
+        seasonEnd: "2026-04-30",
+      }))!
+      const team = (await admin.team.create({ name: "Eagles", shortName: "EAG" }))!
+      const player = (await admin.player.create({ firstName: "Star", lastName: "Forward" }))!
+      await admin.contract.signPlayer({
+        playerId: player.id,
+        teamId: team.id,
+        seasonId: season.id,
+        position: "forward",
+        jerseyNumber: 99,
+      })
+
+      const caller = createTestCaller()
+      const result = await caller.player.listWithCurrentTeam()
+      expect(result.currentSeason?.id).toBe(season.id)
+      const found = result.players.find((p) => p.id === player.id)
+      expect(found?.currentTeam).not.toBeNull()
+      expect(found?.currentTeam?.name).toBe("Eagles")
+      expect(found?.currentTeam?.position).toBe("forward")
+    })
+  })
+
   describe("create", () => {
     it("creates a player with all fields", async () => {
       const admin = createTestCaller({ asAdmin: true })

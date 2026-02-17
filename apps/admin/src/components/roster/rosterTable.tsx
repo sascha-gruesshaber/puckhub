@@ -112,7 +112,7 @@ function RosterTable({ contracts, onEdit, onRelease, onTransfer }: RosterTablePr
 
                     {/* Avatar + Name */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <PlayerHoverCard player={c.player} position={c.position} jerseyNumber={c.jerseyNumber}>
+                      <PlayerHoverCard playerId={c.player.id} name={`${c.player.firstName} ${c.player.lastName}`} position={c.position} jerseyNumber={c.jerseyNumber}>
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted overflow-hidden">
                             {c.player.photoUrl ? (

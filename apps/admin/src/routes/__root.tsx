@@ -1,13 +1,18 @@
 import { Toaster } from "@puckhub/ui"
 import appCss from "@puckhub/ui/globals.css?url"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
-import { useState } from "react"
-import { IntlayerProvider } from "react-intlayer"
+import { createRootRouteWithContext, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router"
+import { useEffect, useState } from "react"
+import { LocaleProvider } from "~/i18n/locale-context"
 import { LocaleSync } from "~/components/localeSync"
 import { createTRPCClient, trpc } from "../../lib/trpc"
 
-export const Route = createRootRoute({
+export interface RouterContext {
+  queryClient: QueryClient
+  trpcQueryUtils?: ReturnType<typeof trpc.useUtils>
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -26,21 +31,43 @@ export const Route = createRootRoute({
 })
 
 function RootComponent() {
-  const [queryClient] = useState(() => new QueryClient())
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            refetchOnWindowFocus: false,
+          },
+        },
+      }),
+  )
   const [trpcClient] = useState(() => createTRPCClient())
 
   return (
     <RootDocument>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <IntlayerProvider>
+          <InjectRouterContext />
+          <LocaleProvider>
             <LocaleSync />
             <Outlet />
-          </IntlayerProvider>
+          </LocaleProvider>
         </QueryClientProvider>
       </trpc.Provider>
     </RootDocument>
   )
+}
+
+function InjectRouterContext() {
+  const router = useRouter()
+  const trpcQueryUtils = trpc.useUtils()
+
+  useEffect(() => {
+    Object.assign(router.options.context, { trpcQueryUtils })
+  }, [router, trpcQueryUtils])
+
+  return null
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {

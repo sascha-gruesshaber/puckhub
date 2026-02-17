@@ -16,5 +16,5 @@ export const pages = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [unique("pages_slug_parent_unique").on(t.slug, t.parentId)],
+  (t) => [unique("pages_slug_parent_unique").on(t.slug, t.parentId).nullsNotDistinct()],
 )

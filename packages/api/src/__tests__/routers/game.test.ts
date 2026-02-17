@@ -86,7 +86,7 @@ describe("game router", () => {
 
   describe("listForSeason", () => {
     it("returns games scoped to a season", async () => {
-      const { season, round, homeTeam, awayTeam } = await createGameFixtures()
+      const { season, division, round, homeTeam, awayTeam } = await createGameFixtures()
       const admin = createTestCaller({ asAdmin: true })
 
       await admin.game.create({
@@ -97,7 +97,7 @@ describe("game router", () => {
 
       const result = await admin.game.listForSeason({ seasonId: season.id })
       expect(result).toHaveLength(1)
-      expect(result[0]?.round.division.seasonId).toBe(season.id)
+      expect(result[0]?.round.division.id).toBe(division.id)
     })
 
     it("supports team and status filters", async () => {
@@ -119,6 +119,88 @@ describe("game router", () => {
 
       expect(filtered).toHaveLength(1)
       expect(filtered[0]?.status).toBe("completed")
+    })
+
+    it("filters by divisionId", async () => {
+      const { season, division, round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+      })
+
+      // Create another division with a game
+      const division2 = (await admin.division.create({ seasonId: season.id, name: "Playoffs" }))!
+      const round2 = (await admin.round.create({ divisionId: division2.id, name: "Runde 1" }))!
+      await admin.teamDivision.assign({ teamId: homeTeam.id, divisionId: division2.id })
+      await admin.teamDivision.assign({ teamId: awayTeam.id, divisionId: division2.id })
+      await admin.game.create({
+        roundId: round2.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+      })
+
+      const caller = createTestCaller()
+      const filtered = await caller.game.listForSeason({
+        seasonId: season.id,
+        divisionId: division.id,
+      })
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0]?.round.division.id).toBe(division.id)
+    })
+
+    it("filters by date range", async () => {
+      const { season, round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+        scheduledAt: "2025-10-01T19:00:00.000Z",
+      })
+      await admin.game.create({
+        roundId: round.id,
+        homeTeamId: awayTeam.id,
+        awayTeamId: homeTeam.id,
+        scheduledAt: "2025-12-01T19:00:00.000Z",
+      })
+
+      const caller = createTestCaller()
+      const filtered = await caller.game.listForSeason({
+        seasonId: season.id,
+        from: "2025-09-15T00:00:00.000Z",
+        to: "2025-11-01T00:00:00.000Z",
+      })
+      expect(filtered).toHaveLength(1)
+    })
+
+    it("filters by unscheduledOnly", async () => {
+      const { season, round, homeTeam, awayTeam } = await createGameFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      await admin.game.create({
+        roundId: round.id,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+        scheduledAt: "2025-10-01T19:00:00.000Z",
+      })
+      await admin.game.create({
+        roundId: round.id,
+        homeTeamId: awayTeam.id,
+        awayTeamId: homeTeam.id,
+        // No scheduledAt — unscheduled
+      })
+
+      const caller = createTestCaller()
+      const filtered = await caller.game.listForSeason({
+        seasonId: season.id,
+        unscheduledOnly: true,
+      })
+      expect(filtered).toHaveLength(1)
+      expect(filtered[0]?.scheduledAt).toBeNull()
     })
   })
 

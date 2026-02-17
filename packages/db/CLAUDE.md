@@ -44,7 +44,7 @@ pnpm db:migrate           # Push to dev DB (drizzle-kit push)
 pnpm db:migrate:prod      # Run migrations (drizzle-kit migrate)
 ```
 
-Migrations are in `drizzle/` (12 migration files) with journal tracking. Auto-migrate on API startup when `AUTO_MIGRATE=true`.
+Migrations are in `drizzle/` (4 migration files) with journal tracking. Auto-migrate on API startup when `AUTO_MIGRATE=true`.
 
 ## Seed System
 

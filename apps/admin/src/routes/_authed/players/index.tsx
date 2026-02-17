@@ -13,23 +13,33 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { History, Pencil, Plus, Trash2, Users } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { PlayerHoverCard } from "~/components/playerHoverCard"
 import { TeamFilterPills } from "~/components/teamFilterPills"
-import { usePlayersFilters, FILTER_ALL } from "~/stores/usePageFilters"
 import { TeamHoverCard } from "~/components/teamHoverCard"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/players/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.player.listWithCurrentTeam.ensureData()
+  },
   component: PlayersPage,
 })
 
@@ -59,7 +69,18 @@ const FILTER_UNASSIGNED = "__unassigned__"
 // ---------------------------------------------------------------------------
 function PlayersPage() {
   const { t } = useTranslation("common")
-  const { search, setSearch, teamFilter, setTeamFilter } = usePlayersFilters()
+  const { search: searchParam, team } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const teamFilter = team ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setTeamFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<{ id: string } | null>(null)
@@ -69,29 +90,28 @@ function PlayersPage() {
 
   const { season: workingSeason } = useWorkingSeason()
   const utils = trpc.useUtils()
-  const [data] = trpc.player.listWithCurrentTeam.useSuspenseQuery()
-  const { data: teams } = trpc.team.list.useQuery()
+  const { data, isLoading } = trpc.player.listWithCurrentTeam.useQuery()
 
   const players = data?.players
   const currentSeason = data?.currentSeason
 
   // Build list of teams that actually have assigned players (for the filter)
+  // Derived directly from currentTeam in the player list — no extra query needed
   const teamsInUse = useMemo(() => {
-    if (!players || !teams) return []
-    const assignedTeamIds = new Set(players.filter((p) => p.currentTeam).map((p) => p.currentTeam?.id))
-    return teams
-      .filter((t) => assignedTeamIds.has(t.id))
-      .map((t) => ({
-        id: t.id,
-        name: t.name,
-        shortName: t.shortName,
-        logoUrl: t.logoUrl,
-        city: t.city,
-        contactName: t.contactName,
-        website: t.website,
-        primaryColor: t.primaryColor,
-      }))
-  }, [players, teams])
+    if (!players) return []
+    const seen = new Map<string, { id: string; name: string; shortName: string; logoUrl?: string | null }>()
+    for (const p of players) {
+      if (p.currentTeam && !seen.has(p.currentTeam.id)) {
+        seen.set(p.currentTeam.id, {
+          id: p.currentTeam.id,
+          name: p.currentTeam.name,
+          shortName: p.currentTeam.shortName,
+          logoUrl: p.currentTeam.logoUrl,
+        })
+      }
+    }
+    return [...seen.values()]
+  }, [players])
 
   const createMutation = trpc.player.create.useMutation({
     onSuccess: () => {
@@ -289,9 +309,10 @@ function PlayersPage() {
         }`}
         style={{ "--row-index": rowIndex } as React.CSSProperties}
       >
-        {/* Photo + Name with hover card */}
+        {/* Photo + Name with async hover card */}
         <PlayerHoverCard
-          player={player}
+          playerId={player.id}
+          name={`${player.firstName} ${player.lastName}`}
           team={
             player.currentTeam
               ? {
@@ -351,12 +372,10 @@ function PlayersPage() {
           <div className="w-20 shrink-0 hidden md:block">
             {player.currentTeam ? (
               <TeamHoverCard
-                team={{
-                  id: player.currentTeam.id,
-                  name: player.currentTeam.name,
-                  shortName: player.currentTeam.shortName,
-                  logoUrl: player.currentTeam.logoUrl ?? null,
-                }}
+                teamId={player.currentTeam.id}
+                name={player.currentTeam.name}
+                shortName={player.currentTeam.shortName}
+                logoUrl={player.currentTeam.logoUrl ?? null}
                 seasonId={workingSeason?.id}
               >
                 <Badge variant="outline" className="text-xs font-normal cursor-default">
@@ -427,30 +446,36 @@ function PlayersPage() {
           </Button>
         }
         filters={
-          <TeamFilterPills
-            teams={teamsInUse}
-            activeFilter={teamFilter}
-            onFilterChange={setTeamFilter}
-            showAll
-            customFilters={[
-              {
-                id: FILTER_UNASSIGNED,
-                label: t("playersPage.filters.withoutTeam"),
-                count: unassignedCount,
-              },
-            ]}
-            translationPrefix="playersPage.filters"
-            seasonId={workingSeason?.id}
-          />
+          isLoading ? (
+            <FilterPillsSkeleton count={5} />
+          ) : (
+            <TeamFilterPills
+              teams={teamsInUse}
+              activeFilter={teamFilter}
+              onFilterChange={setTeamFilter}
+              showAll
+              customFilters={[
+                {
+                  id: FILTER_UNASSIGNED,
+                  label: t("playersPage.filters.withoutTeam"),
+                  count: unassignedCount,
+                },
+              ]}
+              translationPrefix="playersPage.filters"
+              seasonId={workingSeason?.id}
+            />
+          )
         }
         search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
         count={
-          players.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (players?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
                   {teamFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-                  {players.length}
+                  {players?.length ?? 0}
                 </span>{" "}
                 {t("playersPage.count.players")}
               </span>
@@ -459,7 +484,9 @@ function PlayersPage() {
         }
       >
         {/* Content */}
-        {filtered.length === 0 && !search && teamFilter === FILTER_ALL ? (
+        {isLoading ? (
+          <DataListSkeleton rows={8} />
+        ) : filtered.length === 0 && !search && teamFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("playersPage.empty.noPlayersTitle")}

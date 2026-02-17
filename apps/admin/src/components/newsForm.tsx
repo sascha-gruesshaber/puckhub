@@ -2,7 +2,7 @@ import { Button, Card, CardContent, FormField, Input, Label, Textarea } from "@p
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { useTranslation } from "~/i18n/use-translation"
-import { RichTextEditor } from "./richTextEditor"
+import { RichTextEditorLazy as RichTextEditor } from "./richTextEditorLazy"
 
 export interface NewsFormData {
   title: string

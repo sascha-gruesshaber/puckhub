@@ -81,6 +81,14 @@ export default async function globalSetup() {
       role: "super_admin",
     })
 
+    // Seed a regular (non-admin) user for protectedProcedure tests
+    await db.insert(schemaModule.user).values({
+      id: "test-user-id",
+      name: "Test User",
+      email: "user@test.local",
+      emailVerified: true,
+    })
+
     await templateSql.end()
   } finally {
     await maintenanceSql.end()

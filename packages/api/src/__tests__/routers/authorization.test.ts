@@ -233,6 +233,122 @@ describe("authorization", () => {
       })
     })
 
+    describe("gameReport", () => {
+      it("setLineup requires auth", async () => {
+        await expect(
+          caller.gameReport.setLineup({ gameId: FAKE_ID, players: [] }),
+        ).rejects.toThrow("Not authenticated")
+      })
+
+      it("addEvent requires auth", async () => {
+        await expect(
+          caller.gameReport.addEvent({
+            gameId: FAKE_ID,
+            eventType: "goal",
+            teamId: FAKE_ID,
+            period: 1,
+            timeMinutes: 5,
+            timeSeconds: 0,
+          }),
+        ).rejects.toThrow("Not authenticated")
+      })
+
+      it("updateEvent requires auth", async () => {
+        await expect(caller.gameReport.updateEvent({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("deleteEvent requires auth", async () => {
+        await expect(caller.gameReport.deleteEvent({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("addSuspension requires auth", async () => {
+        await expect(
+          caller.gameReport.addSuspension({
+            gameId: FAKE_ID,
+            playerId: FAKE_ID,
+            teamId: FAKE_ID,
+            suspensionType: "match_penalty",
+          }),
+        ).rejects.toThrow("Not authenticated")
+      })
+
+      it("updateSuspension requires auth", async () => {
+        await expect(caller.gameReport.updateSuspension({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("deleteSuspension requires auth", async () => {
+        await expect(caller.gameReport.deleteSuspension({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("settings", () => {
+      it("update requires auth", async () => {
+        await expect(
+          caller.settings.update({
+            leagueName: "Test",
+            leagueShortName: "T",
+            locale: "de-DE",
+            timezone: "Europe/Berlin",
+            pointsWin: 2,
+            pointsDraw: 1,
+            pointsLoss: 0,
+          }),
+        ).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("venue", () => {
+      it("create requires auth", async () => {
+        await expect(caller.venue.create({ name: "Test Arena" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("update requires auth", async () => {
+        await expect(caller.venue.update({ id: FAKE_ID, name: "Updated" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("delete requires auth", async () => {
+        await expect(caller.venue.delete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("news", () => {
+      it("create requires auth", async () => {
+        await expect(caller.news.create({ title: "Test", content: "Body" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("update requires auth", async () => {
+        await expect(caller.news.update({ id: FAKE_ID, title: "Updated" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("delete requires auth", async () => {
+        await expect(caller.news.delete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("page", () => {
+      it("create requires auth", async () => {
+        await expect(caller.page.create({ title: "Test Page" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("update requires auth", async () => {
+        await expect(caller.page.update({ id: FAKE_ID, title: "Updated" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("delete requires auth", async () => {
+        await expect(caller.page.delete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("createAlias requires auth", async () => {
+        await expect(caller.page.createAlias({ title: "Alias", targetPageId: FAKE_ID })).rejects.toThrow(
+          "Not authenticated",
+        )
+      })
+
+      it("deleteAlias requires auth", async () => {
+        await expect(caller.page.deleteAlias({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
     describe("users", () => {
       it("list requires auth", async () => {
         await expect(caller.users.list()).rejects.toThrow("Not authenticated")
@@ -429,6 +545,66 @@ describe("authorization", () => {
 
       it("getById is public", async () => {
         await expectNotUnauthorized(() => caller.sponsor.getById({ id: FAKE_ID }))
+      })
+    })
+
+    describe("gameReport", () => {
+      it("getPenaltyTypes is public", async () => {
+        await expectNotUnauthorized(() => caller.gameReport.getPenaltyTypes())
+      })
+
+      it("getReport is public", async () => {
+        await expectNotUnauthorized(() => caller.gameReport.getReport({ gameId: FAKE_ID }))
+      })
+
+      it("getRosters is public", async () => {
+        await expectNotUnauthorized(() =>
+          caller.gameReport.getRosters({ homeTeamId: FAKE_ID, awayTeamId: FAKE_ID, seasonId: FAKE_ID }),
+        )
+      })
+    })
+
+    describe("settings", () => {
+      it("get is public", async () => {
+        await expectNotUnauthorized(() => caller.settings.get())
+      })
+    })
+
+    describe("setup", () => {
+      it("status is public", async () => {
+        await expectNotUnauthorized(() => caller.setup.status())
+      })
+    })
+
+    describe("page", () => {
+      it("getBySlug is public", async () => {
+        await expectNotUnauthorized(() => caller.page.getBySlug({ slug: "test" }))
+      })
+
+      it("listByMenuLocation is public", async () => {
+        await expectNotUnauthorized(() => caller.page.listByMenuLocation({ location: "main_nav" }))
+      })
+    })
+
+    describe("venue", () => {
+      it("list is public", async () => {
+        await expectNotUnauthorized(() => caller.venue.list())
+      })
+    })
+
+    describe("stats (extended)", () => {
+      it("penaltyStats is public", async () => {
+        await expectNotUnauthorized(() => caller.stats.penaltyStats({ seasonId: FAKE_ID }))
+      })
+
+      it("teamPenaltyStats is public", async () => {
+        await expectNotUnauthorized(() => caller.stats.teamPenaltyStats({ seasonId: FAKE_ID }))
+      })
+    })
+
+    describe("game (extended)", () => {
+      it("listForSeason is public", async () => {
+        await expectNotUnauthorized(() => caller.game.listForSeason({ seasonId: FAKE_ID }))
       })
     })
   })

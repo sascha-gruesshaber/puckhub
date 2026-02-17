@@ -1,21 +1,15 @@
-import { Badge } from "@puckhub/ui"
+import { Badge, Skeleton } from "@puckhub/ui"
 import { Link } from "@tanstack/react-router"
 import { History, Pencil } from "lucide-react"
 import type { ReactNode } from "react"
+import { trpc } from "@/trpc"
 import { HoverCard } from "~/components/hoverCard"
 import { useTranslation } from "~/i18n/use-translation"
 
-interface PlayerData {
-  id: string
-  firstName: string
-  lastName: string
-  photoUrl?: string | null
-  dateOfBirth?: Date | string | null
-  nationality?: string | null
-}
-
 interface PlayerHoverCardProps {
-  player: PlayerData
+  playerId: string
+  /** Minimal data shown inline — used as fallback while loading */
+  name: string
   team?: {
     id: string
     name: string
@@ -29,9 +23,41 @@ interface PlayerHoverCardProps {
   disabled?: boolean
 }
 
-function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, children, disabled }: PlayerHoverCardProps) {
+function PlayerHoverCard({ playerId, name, team, position, jerseyNumber, onEdit, children, disabled }: PlayerHoverCardProps) {
+  return (
+    <HoverCard
+      content={() => (
+        <PlayerHoverCardContent
+          playerId={playerId}
+          name={name}
+          team={team}
+          position={position}
+          jerseyNumber={jerseyNumber}
+          onEdit={onEdit}
+        />
+      )}
+      disabled={disabled}
+    >
+      {children}
+    </HoverCard>
+  )
+}
+
+/** Inner component — only mounts when the card opens, so the query only fires on hover */
+function PlayerHoverCardContent({
+  playerId,
+  name,
+  team,
+  position,
+  jerseyNumber,
+  onEdit,
+}: Omit<PlayerHoverCardProps, "children" | "disabled">) {
   const { t } = useTranslation("common")
-  const initials = `${player.firstName[0] || ""}${player.lastName[0] || ""}`.toUpperCase()
+  const { data: player, isLoading } = trpc.player.getById.useQuery({ id: playerId })
+
+  const firstName = player?.firstName ?? name.split(" ")[0] ?? ""
+  const lastName = player?.lastName ?? name.split(" ").slice(1).join(" ") ?? ""
+  const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase()
 
   function calcAge(dob: Date | string | null | undefined): number | null {
     if (!dob) return null
@@ -49,9 +75,9 @@ function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, childre
     return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
   }
 
-  const age = calcAge(player.dateOfBirth)
+  const age = calcAge(player?.dateOfBirth)
 
-  const content = (
+  return (
     <div className="overflow-hidden rounded-xl">
       {/* Accent top strip */}
       <div className="h-1" style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))" }} />
@@ -60,10 +86,10 @@ function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, childre
         {/* Header: photo + name */}
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
-            {player.photoUrl ? (
+            {player?.photoUrl ? (
               <img
                 src={player.photoUrl}
-                alt={`${player.firstName} ${player.lastName}`}
+                alt={`${firstName} ${lastName}`}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -72,7 +98,7 @@ function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, childre
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[15px] font-semibold leading-tight truncate">
-              {player.firstName} <span className="text-foreground">{player.lastName}</span>
+              {firstName} <span className="text-foreground">{lastName}</span>
             </p>
             <div className="flex items-center gap-2 mt-1">
               {jerseyNumber != null && (
@@ -107,22 +133,31 @@ function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, childre
               <span>{t("playersPage.hoverCard.withoutTeam")}</span>
             </div>
           )}
-          {player.nationality && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-block w-4 text-center shrink-0 font-bold text-[10px] text-foreground/60 bg-muted rounded px-0.5">
-                {player.nationality.substring(0, 2)}
-              </span>
-              <span>{t("playersPage.hoverCard.nationality", { value: player.nationality })}</span>
+          {isLoading ? (
+            <div className="space-y-1.5">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3.5 w-32" />
             </div>
-          )}
-          {age !== null && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="inline-block w-4 text-center shrink-0">&nbsp;</span>
-              <span>
-                {t("playersPage.hoverCard.ageYears", { age })}
-                {player.dateOfBirth && <span className="text-border ml-1">({formatDate(player.dateOfBirth)})</span>}
-              </span>
-            </div>
+          ) : (
+            <>
+              {player?.nationality && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-block w-4 text-center shrink-0 font-bold text-[10px] text-foreground/60 bg-muted rounded px-0.5">
+                    {player.nationality.substring(0, 2)}
+                  </span>
+                  <span>{t("playersPage.hoverCard.nationality", { value: player.nationality })}</span>
+                </div>
+              )}
+              {age !== null && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-block w-4 text-center shrink-0">&nbsp;</span>
+                  <span>
+                    {t("playersPage.hoverCard.ageYears", { age })}
+                    {player?.dateOfBirth && <span className="text-border ml-1">({formatDate(player.dateOfBirth)})</span>}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -130,7 +165,7 @@ function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, childre
         <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-2">
           <Link
             to="/players/$playerId/history"
-            params={{ playerId: player.id }}
+            params={{ playerId }}
             className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
           >
             <History className="h-3 w-3" aria-hidden="true" />
@@ -150,13 +185,7 @@ function PlayerHoverCard({ player, team, position, jerseyNumber, onEdit, childre
       </div>
     </div>
   )
-
-  return (
-    <HoverCard content={content} disabled={disabled}>
-      {children}
-    </HoverCard>
-  )
 }
 
 export { PlayerHoverCard }
-export type { PlayerData, PlayerHoverCardProps }
+export type { PlayerHoverCardProps }

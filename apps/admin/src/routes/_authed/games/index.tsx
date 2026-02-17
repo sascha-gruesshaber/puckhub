@@ -12,11 +12,14 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Ban, CalendarDays, ClipboardList, Pencil, Plus, RotateCcw, Sparkles, Trash2, Trophy } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { GameStatusBadge } from "~/components/gameStatusBadge"
@@ -25,7 +28,7 @@ import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
-import { FILTER_ALL, useGamesFilters } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 
 const roundTypeOrder: Record<string, number> = {
   regular: 0,
@@ -66,6 +69,13 @@ function toLocalInputValue(value: Date | string | null | undefined): string {
 }
 
 export const Route = createFileRoute("/_authed/games/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.venue.list.ensureData()
+  },
   component: GamesPage,
 })
 
@@ -74,7 +84,18 @@ function GamesPage() {
   const { season } = useWorkingSeason()
   const utils = trpc.useUtils()
 
-  const { search, setSearch, teamFilter, setTeamFilter } = useGamesFilters()
+  const { search: searchParam, team } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const teamFilter = team ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setTeamFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
 
   const [gameDialogOpen, setGameDialogOpen] = useState(false)
   const [editingGameId, setEditingGameId] = useState<string | null>(null)
@@ -90,7 +111,7 @@ function GamesPage() {
   const [generateStartAt, setGenerateStartAt] = useState("")
   const [generateCadenceDays, setGenerateCadenceDays] = useState("7")
 
-  const { data: structure } = trpc.season.getFullStructure.useQuery({ id: season?.id ?? "" }, { enabled: !!season?.id })
+  const { data: structure, isLoading: isStructureLoading } = trpc.season.getFullStructure.useQuery({ id: season?.id ?? "" }, { enabled: !!season?.id })
   const { data: venues } = trpc.venue.list.useQuery()
   const { data: games, isLoading } = trpc.game.listForSeason.useQuery(
     {
@@ -167,10 +188,6 @@ function GamesPage() {
         name: string
         shortName: string
         logoUrl: string | null
-        city?: string | null
-        contactName?: string | null
-        website?: string | null
-        primaryColor: string | null
         defaultVenueId?: string | null
       }
     >()
@@ -180,10 +197,6 @@ function GamesPage() {
         name: ta.team.name,
         shortName: ta.team.shortName,
         logoUrl: ta.team.logoUrl ?? null,
-        city: ta.team.city ?? null,
-        contactName: ta.team.contactName ?? null,
-        website: ta.team.website ?? null,
-        primaryColor: ta.team.primaryColor ?? null,
         defaultVenueId: ta.team.defaultVenueId,
       })
     }
@@ -364,31 +377,34 @@ function GamesPage() {
           </div>
         }
         filters={
-          <TeamFilterPills
-            teams={teams}
-            activeFilter={teamFilter}
-            onFilterChange={setTeamFilter}
-            showAll
-            translationPrefix="gamesPage.filters"
-            seasonId={season?.id}
-          />
+          isStructureLoading ? (
+            <FilterPillsSkeleton />
+          ) : (
+            <TeamFilterPills
+              teams={teams}
+              activeFilter={teamFilter}
+              onFilterChange={setTeamFilter}
+              showAll
+              translationPrefix="gamesPage.filters"
+              seasonId={season?.id}
+            />
+          )
         }
         search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}
         count={
-          <div className="text-sm text-muted-foreground">
-            {teamFilter !== FILTER_ALL ? `${filteredGames.length} / ` : ""}
-            {t("gamesPage.count", { total: stats.total, completed: stats.completed, unscheduled: stats.unscheduled })}
-          </div>
+          isLoading ? (
+            <CountSkeleton />
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              {teamFilter !== FILTER_ALL ? `${filteredGames.length} / ` : ""}
+              {t("gamesPage.count", { total: stats.total, completed: stats.completed, unscheduled: stats.unscheduled })}
+            </div>
+          )
         }
       >
         <div>
           {isLoading ? (
-            <div
-              className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden px-4 py-6 text-sm text-muted-foreground"
-              suppressHydrationWarning
-            >
-              {t("loading")}
-            </div>
+            <DataListSkeleton rows={5} />
           ) : groupedGames.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden px-4 py-6 text-sm text-muted-foreground">
               {search.trim() ? t("noResults.subtitle") : t("gamesPage.noScheduledGames")}
@@ -421,8 +437,8 @@ function GamesPage() {
                         className={`data-row group px-4 py-4 hover:bg-accent/5 transition-colors ${i < group.games.length - 1 ? "border-b border-border/40" : ""}`}
                         style={{ "--row-index": rowIndex++ } as React.CSSProperties}
                       >
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(auto,600px)_minmax(auto,220px)_minmax(auto,280px)_auto] lg:items-center">
-                          <div className="min-w-0 flex items-center justify-center gap-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-14">
+                          <div className="min-w-0 flex items-center justify-center lg:justify-start gap-4">
                             {(() => {
                               const done = g.status === "completed"
                               const hWins =
@@ -431,7 +447,7 @@ function GamesPage() {
                                 done && g.homeScore != null && g.awayScore != null && g.awayScore > g.homeScore
                               return (
                                 <>
-                                  <TeamHoverCard team={g.homeTeam} seasonId={season.id}>
+                                  <TeamHoverCard teamId={g.homeTeam.id} name={g.homeTeam.name} shortName={g.homeTeam.shortName} logoUrl={g.homeTeam.logoUrl} seasonId={season.id}>
                                     <div className="flex items-center gap-2 min-w-0 cursor-default">
                                       <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
                                         {g.homeTeam.logoUrl ? (
@@ -457,7 +473,7 @@ function GamesPage() {
                                     vs.
                                   </div>
 
-                                  <TeamHoverCard team={g.awayTeam} seasonId={season.id}>
+                                  <TeamHoverCard teamId={g.awayTeam.id} name={g.awayTeam.name} shortName={g.awayTeam.shortName} logoUrl={g.awayTeam.logoUrl} seasonId={season.id}>
                                     <div className="flex items-center gap-2 min-w-0 cursor-default">
                                       <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
                                         {g.awayTeam.logoUrl ? (
@@ -483,24 +499,24 @@ function GamesPage() {
                             })()}
                           </div>
 
-                          <div className="shrink-0 text-center lg:min-w-[180px]">
-                            <div className="text-xl font-extrabold tabular-nums text-foreground">
+                          <div className="min-w-0 text-center">
+                            <div className="text-xl font-extrabold tabular-nums text-foreground whitespace-nowrap">
                               {g.homeScore == null || g.awayScore == null ? "- : -" : `${g.homeScore} : ${g.awayScore}`}
                             </div>
                             <div className="text-[11px] text-muted-foreground mt-0.5 truncate mb-1">
                               {g.round.name} • {t(`seasonStructure.roundTypes.${g.round.roundType}`)}
                             </div>
-                            <GameStatusBadge status={g.status} scheduledAt={g.scheduledAt} venueId={g.venueId} />
+                            <GameStatusBadge status={g.status} scheduledAt={g.scheduledAt} venueId={g.venueId} t={t} />
                           </div>
 
-                          <div className="lg:min-w-[260px]">
+                          <div className="min-w-0">
                             <div className="text-sm text-muted-foreground">
-                              <div className="truncate max-w-full">{formatWhen(g)}</div>
-                              <div className="truncate max-w-full">{formatWhere(g)}</div>
+                              <div className="truncate">{formatWhen(g)}</div>
+                              <div className="truncate">{formatWhere(g)}</div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0 lg:justify-end">
+                          <div className="flex items-center gap-1 flex-wrap lg:ml-auto">
                             {g.status !== "completed" && g.status !== "cancelled" && (
                               <Button
                                 variant="ghost"
@@ -690,52 +706,83 @@ function GamesPage() {
                   : undefined,
               })
             }}
-            className="space-y-4 p-6 pt-2"
+            className="space-y-6 p-6 pt-2"
           >
-            <select
-              value={generateDivisionId}
-              onChange={(e) => setGenerateDivisionId(e.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t("gamesPage.placeholders.division")}</option>
-              {divisions.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.name}
-                </option>
-              ))}
-            </select>
-            <select
-              value={generateRoundId}
-              onChange={(e) => setGenerateRoundId(e.target.value)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            >
-              <option value="">{t("gamesPage.placeholders.round")}</option>
-              {rounds
-                .filter((r) => !generateDivisionId || r.divisionId === generateDivisionId)
-                .map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name}
-                  </option>
-                ))}
-            </select>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                type="datetime-local"
-                value={generateStartAt}
-                onChange={(e) => setGenerateStartAt(e.target.value)}
-              />
-              <Input
-                type="number"
-                min={1}
-                value={generateCadenceDays}
-                onChange={(e) => setGenerateCadenceDays(e.target.value)}
-              />
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                {t("gamesPage.generate.sections.target")}
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                <FormField label={t("gamesPage.generate.fields.division")} required>
+                  <select
+                    value={generateDivisionId}
+                    onChange={(e) => {
+                      setGenerateDivisionId(e.target.value)
+                      setGenerateRoundId("")
+                    }}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">{t("gamesPage.placeholders.division")}</option>
+                    {divisions.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField label={t("gamesPage.form.fields.round")} required>
+                  <select
+                    value={generateRoundId}
+                    onChange={(e) => setGenerateRoundId(e.target.value)}
+                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">{t("gamesPage.placeholders.round")}</option>
+                    {rounds
+                      .filter((r) => !generateDivisionId || r.divisionId === generateDivisionId)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                  </select>
+                </FormField>
+              </div>
             </div>
+
+            <hr className="border-border/60" />
+
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                {t("gamesPage.generate.sections.scheduling")}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                {t("gamesPage.generate.schedulingHint")}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField label={t("gamesPage.generate.fields.startDate")}>
+                  <Input
+                    type="datetime-local"
+                    value={generateStartAt}
+                    onChange={(e) => setGenerateStartAt(e.target.value)}
+                  />
+                </FormField>
+                <FormField label={t("gamesPage.generate.fields.cadenceDays")} description={t("gamesPage.generate.fields.cadenceDaysHint")}>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={generateCadenceDays}
+                    onChange={(e) => setGenerateCadenceDays(e.target.value)}
+                    placeholder="7"
+                  />
+                </FormField>
+              </div>
+            </div>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setGenerateDialogOpen(false)}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={generate.isPending}>
+              <Button type="submit" variant="accent" disabled={generate.isPending || !generateDivisionId || !generateRoundId}>
                 {t("gamesPage.actions.generate")}
               </Button>
             </DialogFooter>

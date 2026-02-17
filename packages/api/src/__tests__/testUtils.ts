@@ -37,7 +37,7 @@ export async function closeTestDb() {
   }
 }
 
-const testUser = {
+const testAdminUser = {
   id: "test-admin-id",
   email: "admin@test.local",
   name: "Test Admin",
@@ -47,7 +47,7 @@ const testUser = {
   image: null,
 }
 
-const testSession = {
+const testAdminSession = {
   id: "test-session-id",
   userId: "test-admin-id",
   expiresAt: new Date(Date.now() + 86400000),
@@ -58,19 +58,48 @@ const testSession = {
   userAgent: null,
 }
 
+const testRegularUser = {
+  id: "test-user-id",
+  email: "user@test.local",
+  name: "Test User",
+  emailVerified: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  image: null,
+}
+
+const testRegularSession = {
+  id: "test-user-session-id",
+  userId: "test-user-id",
+  expiresAt: new Date(Date.now() + 86400000),
+  token: "test-user-token",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ipAddress: null,
+  userAgent: null,
+}
+
 /**
  * Creates a tRPC caller that talks to the real test database.
  * By default creates an unauthenticated (public) caller.
- * Pass `asAdmin: true` to simulate an authenticated admin user.
+ * Pass `asAdmin: true` to simulate an authenticated admin user (super_admin role).
+ * Pass `asUser: true` to simulate an authenticated non-admin user (no roles).
  */
-export function createTestCaller(opts?: { asAdmin?: boolean }): ReturnType<typeof appRouter.createCaller> {
+export function createTestCaller(opts?: { asAdmin?: boolean; asUser?: boolean }): ReturnType<typeof appRouter.createCaller> {
   const db = getTestDb()
 
-  const ctx: Context = {
-    db,
-    session: opts?.asAdmin ? ({ session: testSession, user: testUser } as unknown as Context["session"]) : null,
-    user: opts?.asAdmin ? (testUser as unknown as NonNullable<Context["user"]>) : null,
+  let session: Context["session"] = null
+  let user: Context["user"] = null
+
+  if (opts?.asAdmin) {
+    session = { session: testAdminSession, user: testAdminUser } as unknown as Context["session"]
+    user = testAdminUser as unknown as NonNullable<Context["user"]>
+  } else if (opts?.asUser) {
+    session = { session: testRegularSession, user: testRegularUser } as unknown as Context["session"]
+    user = testRegularUser as unknown as NonNullable<Context["user"]>
   }
+
+  const ctx: Context = { db, session, user }
 
   return appRouter.createCaller(ctx)
 }

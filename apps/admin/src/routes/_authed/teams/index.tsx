@@ -13,11 +13,14 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute } from "@tanstack/react-router"
-import { Calendar, Pencil, Plus, Shield, Shirt, Trash2, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { Pencil, Plus, Shield, Shirt, Trash2, X } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
@@ -25,10 +28,17 @@ import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { useWorkingSeason } from "~/contexts/seasonContext"
-import { useTeamsFilters, FILTER_ALL } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/teams/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; division?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.division === "string" && s.division ? { division: s.division } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.team.list.ensureData()
+  },
   component: TeamsPage,
 })
 
@@ -64,7 +74,18 @@ const emptyForm: TeamForm = {
 // ---------------------------------------------------------------------------
 function TeamsPage() {
   const { t } = useTranslation("common")
-  const { search, setSearch, divisionFilter, setDivisionFilter } = useTeamsFilters()
+  const { search: searchParam, division } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const divisionFilter = division ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setDivisionFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, division: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingTeam, setEditingTeam] = useState<{ id: string } | null>(null)
@@ -80,7 +101,7 @@ function TeamsPage() {
   const [editingAssignment, setEditingAssignment] = useState<{ id: string; name: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const [teams] = trpc.team.list.useSuspenseQuery()
+  const { data: teams, isLoading } = trpc.team.list.useQuery()
   const { data: allTrikots } = trpc.trikot.list.useQuery()
   const { data: teamAssignments } = trpc.teamTrikot.listByTeam.useQuery(
     { teamId: trikotTeamId! },
@@ -90,9 +111,6 @@ function TeamsPage() {
   // Division filter data from working season
   const { season } = useWorkingSeason()
   const { data: structure } = trpc.season.getFullStructure.useQuery({ id: season?.id ?? "" }, { enabled: !!season?.id })
-
-  // Query games to determine which teams have upcoming games
-  const { data: games } = trpc.game.listForSeason.useQuery({ seasonId: season?.id ?? "" }, { enabled: !!season?.id })
 
   // Extract divisions and team-to-division mapping
   const { divisions, teamDivisionMap } = useMemo(() => {
@@ -106,16 +124,6 @@ function TeamsPage() {
     }
     return { divisions: divs, teamDivisionMap: map }
   }, [structure])
-
-  // Determine which teams have upcoming games (scheduled or in_progress)
-  const teamsWithUpcomingGames = useMemo(() => {
-    if (!games) return new Set<string>()
-    return new Set(
-      games
-        .filter((g) => g.status === "scheduled" || g.status === "in_progress")
-        .flatMap((g) => [g.homeTeamId, g.awayTeamId]),
-    )
-  }, [games])
 
   const createMutation = trpc.team.create.useMutation({
     onSuccess: () => {
@@ -273,17 +281,6 @@ function TeamsPage() {
     setDeleteDialogOpen(true)
   }
 
-  function handleTeamCalendarCopy(teamId: string) {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001"
-    const params = new URLSearchParams()
-    params.set("seasonId", season?.id ?? "")
-    params.set("teamId", teamId)
-    const url = `${apiUrl}/api/calendar/export.ics?${params.toString()}`
-
-    navigator.clipboard.writeText(url)
-    toast.success(t("teamsPage.calendarUrlCopied"))
-  }
-
   function closeDialog() {
     setDialogOpen(false)
     setEditingTeam(null)
@@ -351,7 +348,9 @@ function TeamsPage() {
           </Button>
         }
         filters={
-          divisions.length > 0 ? (
+          isLoading ? (
+            <FilterPillsSkeleton />
+          ) : divisions.length > 0 ? (
             <>
               <FilterPill
                 label={t("teamsPage.filters.all")}
@@ -371,7 +370,9 @@ function TeamsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("teamsPage.searchPlaceholder") }}
         count={
-          teams.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (teams?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -389,7 +390,9 @@ function TeamsPage() {
         }
       >
         {/* Content */}
-        {filtered.length === 0 && !search && divisionFilter === FILTER_ALL ? (
+        {isLoading ? (
+          <DataListSkeleton rows={5} />
+        ) : filtered.length === 0 && !search && divisionFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("teamsPage.empty.title")}
@@ -419,10 +422,10 @@ function TeamsPage() {
                 >
                   {/* Logo + Info with hover card */}
                   <TeamHoverCard
-                    team={{
-                      ...team,
-                      primaryColor: firstTrikot?.primaryColor ?? null,
-                    }}
+                    teamId={team.id}
+                    name={team.name}
+                    shortName={team.shortName}
+                    logoUrl={team.logoUrl}
                     seasonId={season?.id}
                     onEdit={() => openEdit(team)}
                   >
@@ -474,17 +477,6 @@ function TeamsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 shrink-0">
-                    {teamsWithUpcomingGames.has(team.id) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleTeamCalendarCopy(team.id)}
-                        title={t("teamsPage.actions.copyCalendarUrl")}
-                        className="h-8 w-8"
-                      >
-                        <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
-                      </Button>
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"

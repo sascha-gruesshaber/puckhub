@@ -69,6 +69,7 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
             scheduledAt={game.scheduledAt}
             venueId={game.venueId}
             className="mt-2"
+            t={t}
           />
         </div>
 

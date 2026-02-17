@@ -85,6 +85,25 @@ export default async function globalSetup() {
     VALUES (${userId}, ${"super_admin"})
   `
 
+  // Seed trikot templates (needed for trikots E2E tests)
+  const oneColorSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+  <path id="brust" fill="{{color_brust}}" stroke="#000" stroke-width="3" d="m 10,46.999995 15,40 40,-25 0.7722,133.202495 121.2752,0.25633 -2.04741,-133.458825 40,25 15,-40 -50,-34.999995 h -28 C 139.83336,27.705749 110.16663,27.705749 88,12 H 60 Z" />
+</svg>`
+  const twoColorSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+  <path id="brust" fill="{{color_brust}}" stroke="#000" stroke-width="3" d="m 10,46.999995 15,40 40,-25 0.7722,133.202495 121.2752,0.25633 -2.04741,-133.458825 40,25 15,-40 -50,-34.999995 h -28 C 139.83336,27.705749 110.16663,27.705749 88,12 H 60 Z" />
+  <path id="schulter" fill="{{color_schulter}}" stroke="#000" stroke-width="0" d="m 11.281638,47.768982 14.298956,37.743671 c 0,0 0.07017,0.05963 40.892953,-26.364418 44.282223,-11.865387 74.894513,-11.712062 117.051423,-0.115073 40.82279,26.424051 40.70605,26.428872 40.70605,26.428872 l 14.23102,-37.693051 -48.97471,-34.6076 -27.231,0.376583 C 140.0897,29.243719 108.88499,28.731064 86.718361,13.025311 H 60.512656 Z"/>
+</svg>`
+
+  await e2eSql`
+    INSERT INTO trikot_templates (name, template_type, color_count, svg)
+    VALUES
+      (${"One-color"}, ${"one_color"}, ${1}, ${oneColorSvg}),
+      (${"Two-color"}, ${"two_color"}, ${2}, ${twoColorSvg})
+    ON CONFLICT DO NOTHING
+  `
+
   await e2eSql.end()
 
   // 5. Start API server (CWD = packages/api so tsx resolves from its node_modules)

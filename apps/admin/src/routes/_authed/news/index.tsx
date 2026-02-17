@@ -1,28 +1,49 @@
 import { Badge, Button, toast } from "@puckhub/ui"
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { Clock, Newspaper, Pencil, Plus, Trash2 } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
-import { useNewsFilters, FILTER_ALL } from "~/stores/usePageFilters"
+import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/news/")({
+  validateSearch: (s: Record<string, unknown>): { search?: string; year?: string } => ({
+    ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
+    ...(typeof s.year === "string" && s.year ? { year: s.year } : {}),
+  }),
+  loader: ({ context }) => {
+    void context.trpcQueryUtils?.news.list.ensureData()
+  },
   component: NewsPage,
 })
 
 function NewsPage() {
   const { t, i18n } = useTranslation("common")
-  const { search, setSearch, yearFilter, setYearFilter } = useNewsFilters()
+  const { search: searchParam, year } = Route.useSearch()
+  const navigate = useNavigate({ from: Route.fullPath })
+  const search = searchParam ?? ""
+  const yearFilter = year ?? FILTER_ALL
+  const setSearch = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
+    [navigate],
+  )
+  const setYearFilter = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, year: v === FILTER_ALL ? undefined : v }), replace: true }),
+    [navigate],
+  )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingArticle, setDeletingArticle] = useState<{ id: string; title: string } | null>(null)
 
   const utils = trpc.useUtils()
-  const [articles] = trpc.news.list.useSuspenseQuery()
+  const { data: articles, isLoading } = trpc.news.list.useQuery()
 
   const deleteMutation = trpc.news.delete.useMutation({
     onSuccess: () => {
@@ -110,7 +131,9 @@ function NewsPage() {
           </Link>
         }
         filters={
-          years.length > 1 ? (
+          isLoading ? (
+            <FilterPillsSkeleton count={3} />
+          ) : years.length > 1 ? (
             <>
               <FilterPill
                 label={t("newsPage.filters.all")}
@@ -130,7 +153,9 @@ function NewsPage() {
         }
         search={{ value: search, onChange: setSearch, placeholder: t("newsPage.searchPlaceholder") }}
         count={
-          articles.length > 0 ? (
+          isLoading ? (
+            <CountSkeleton />
+          ) : (articles?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
@@ -161,7 +186,9 @@ function NewsPage() {
         }
       >
         {/* Content */}
-        {filtered.length === 0 && !search && yearFilter === FILTER_ALL ? (
+        {isLoading ? (
+          <DataListSkeleton rows={5} showIcon={false} />
+        ) : filtered.length === 0 && !search && yearFilter === FILTER_ALL ? (
           <EmptyState
             icon={<Newspaper className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("newsPage.empty.title")}

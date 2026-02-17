@@ -9,6 +9,9 @@ import { PlayerTimeline, TimelineSkeleton } from "~/components/playerTimeline/pl
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/players/$playerId/history")({
+  loader: async ({ context, params }) => {
+    await context.trpcQueryUtils?.player.getById.ensureData({ id: params.playerId })
+  },
   component: PlayerHistoryPage,
 })
 

@@ -1,5 +1,3 @@
-import { useTranslation } from "~/i18n/use-translation"
-
 type GameStatus = "scheduled" | "in_progress" | "completed" | "postponed" | "cancelled"
 type DisplayStatus = GameStatus | "incomplete" | "report_pending"
 
@@ -18,6 +16,7 @@ interface GameStatusBadgeProps {
   scheduledAt?: string | Date | null
   venueId?: string | null
   className?: string
+  t: (key: string) => string
 }
 
 function deriveDisplayStatus(
@@ -31,9 +30,7 @@ function deriveDisplayStatus(
   return "scheduled"
 }
 
-function GameStatusBadge({ status, scheduledAt, venueId, className }: GameStatusBadgeProps) {
-  const { t } = useTranslation("common")
-
+function GameStatusBadge({ status, scheduledAt, venueId, className, t }: GameStatusBadgeProps) {
   const displayStatus = deriveDisplayStatus(status, scheduledAt, venueId)
   const styles = statusStyles[displayStatus] ?? statusStyles.scheduled
 
