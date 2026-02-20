@@ -30,7 +30,9 @@
       "pages": "Pages",
       "sponsors": "Sponsors",
       "users": "Users",
-      "settings": "Settings"
+      "settings": "Settings",
+      "security": "Security",
+      "dashboard": "Dashboard"
     }
   },
   "login": {
@@ -40,7 +42,71 @@
     "password": "Password",
     "emailPlaceholder": "admin@puckhub.com",
     "submit": "Sign in",
-    "submitting": "Signing in..."
+    "submitting": "Signing in...",
+    "passkey": {
+      "signIn": "Sign in with Passkey",
+      "signingIn": "Verifying passkey..."
+    },
+    "twoFactor": {
+      "title": "Two-Factor Authentication",
+      "subtitle": "Enter the code from your authenticator app",
+      "codePlaceholder": "000000",
+      "verify": "Verify",
+      "verifying": "Verifying...",
+      "useBackupCode": "Use backup code",
+      "backupCodePlaceholder": "Enter backup code",
+      "trustDevice": "Trust this device"
+    }
+  },
+  "security": {
+    "title": "Security",
+    "description": "Manage your sign-in methods and security settings",
+    "twoFactor": {
+      "title": "Two-Factor Authentication (2FA)",
+      "description": "Protect your account with an additional security factor",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enable": "Enable 2FA",
+      "disable": "Disable 2FA",
+      "enabling": "Enabling...",
+      "disabling": "Disabling...",
+      "setupTitle": "Set up 2FA",
+      "setupStep1": "Scan the QR code with your authenticator app",
+      "setupStep2": "Enter the 6-digit code to confirm",
+      "manualEntry": "Manual entry",
+      "verifyCode": "Verify code",
+      "verifying": "Verifying...",
+      "backupCodes": "Backup Codes",
+      "backupCodesDescription": "Save these codes securely. Each code can only be used once.",
+      "backupCodesWarning": "These codes will only be shown once!",
+      "showBackupCodes": "Show backup codes",
+      "regenerateBackupCodes": "Regenerate backup codes",
+      "regenerating": "Generating...",
+      "done": "Done",
+      "passwordRequired": "Enter password",
+      "passwordPlaceholder": "Your password",
+      "confirm": "Confirm",
+      "confirming": "Confirming...",
+      "disableConfirm": "Are you sure you want to disable two-factor authentication?"
+    },
+    "passkeys": {
+      "title": "Passkeys",
+      "description": "Sign in without a password using fingerprint, face recognition, or security key",
+      "noPasskeys": "No passkeys registered yet",
+      "add": "Add passkey",
+      "adding": "Registering...",
+      "name": "Name",
+      "deviceType": "Device type",
+      "createdAt": "Created",
+      "actions": "Actions",
+      "delete": "Remove",
+      "deleting": "Removing...",
+      "deleteConfirm": "Are you sure you want to remove this passkey?",
+      "rename": "Rename",
+      "namePlaceholder": "e.g. MacBook Touch ID",
+      "platform": "Platform",
+      "crossPlatform": "Security key"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -212,11 +278,56 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "subtitle": "Overview of the current season",
+    "noSeason": "Please select a working season to view the dashboard.",
     "cards": {
-      "seasons": "Seasons",
       "teams": "Teams",
       "players": "Players",
-      "games": "Games"
+      "completed": "Completed",
+      "remaining": "Remaining"
+    },
+    "sections": {
+      "actionItems": "Action Items",
+      "seasonInsights": "Season Insights",
+      "recentActivity": "Recent Results"
+    },
+    "missingReports": {
+      "title": "Missing Game Reports",
+      "empty": "All game reports are complete.",
+      "viewReport": "View report",
+      "count": "{count} missing"
+    },
+    "upcomingGames": {
+      "title": "Upcoming Games",
+      "empty": "No games in the next 7 days.",
+      "at": "at"
+    },
+    "activeSuspensions": {
+      "title": "Active Suspensions",
+      "empty": "No active suspensions.",
+      "remaining": "{served}/{total} games",
+      "count": "{count} active"
+    },
+    "topScorers": {
+      "title": "Top Scorers",
+      "empty": "No statistics data yet.",
+      "name": "Name",
+      "team": "Team",
+      "goals": "G",
+      "assists": "A",
+      "points": "P"
+    },
+    "topPenalized": {
+      "title": "Most Penalized",
+      "empty": "No penalty minutes yet.",
+      "name": "Name",
+      "team": "Team",
+      "pim": "PIM"
+    },
+    "recentResults": {
+      "title": "Recent Results",
+      "empty": "No completed games yet.",
+      "viewReport": "Report"
     }
   },
   "statsPage": {

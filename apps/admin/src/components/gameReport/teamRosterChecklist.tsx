@@ -185,8 +185,9 @@ function TeamRosterChecklist({
                       </span>
                     </HoverCard>
                   )}
-                  {pos === "goalie" && isChecked && (
-                    readOnly ? (
+                  {pos === "goalie" &&
+                    isChecked &&
+                    (readOnly ? (
                       startingGoalieId === p.playerId ? (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary text-primary-foreground">
                           Starter
@@ -207,8 +208,7 @@ function TeamRosterChecklist({
                       >
                         {startingGoalieId === p.playerId ? "Starter" : "Starter?"}
                       </button>
-                    )
-                  )}
+                    ))}
                 </label>
               )
             })}

@@ -30,7 +30,9 @@
       "pages": "Seiten",
       "sponsors": "Sponsoren",
       "users": "Benutzer",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "security": "Sicherheit",
+      "dashboard": "Dashboard"
     }
   },
   "login": {
@@ -40,7 +42,71 @@
     "password": "Passwort",
     "emailPlaceholder": "admin@puckhub.de",
     "submit": "Anmelden",
-    "submitting": "Anmelden..."
+    "submitting": "Anmelden...",
+    "passkey": {
+      "signIn": "Mit Passkey anmelden",
+      "signingIn": "Passkey wird geprüft..."
+    },
+    "twoFactor": {
+      "title": "Zwei-Faktor-Authentifizierung",
+      "subtitle": "Gib den Code aus deiner Authenticator-App ein",
+      "codePlaceholder": "000000",
+      "verify": "Bestätigen",
+      "verifying": "Bestätigen...",
+      "useBackupCode": "Backup-Code verwenden",
+      "backupCodePlaceholder": "Backup-Code eingeben",
+      "trustDevice": "Diesem Gerät vertrauen"
+    }
+  },
+  "security": {
+    "title": "Sicherheit",
+    "description": "Verwalte deine Anmeldemethoden und Sicherheitseinstellungen",
+    "twoFactor": {
+      "title": "Zwei-Faktor-Authentifizierung (2FA)",
+      "description": "Schütze dein Konto mit einem zusätzlichen Sicherheitsfaktor",
+      "enabled": "Aktiviert",
+      "disabled": "Deaktiviert",
+      "enable": "2FA aktivieren",
+      "disable": "2FA deaktivieren",
+      "enabling": "Aktivieren...",
+      "disabling": "Deaktivieren...",
+      "setupTitle": "2FA einrichten",
+      "setupStep1": "Scanne den QR-Code mit deiner Authenticator-App",
+      "setupStep2": "Gib den 6-stelligen Code ein, um zu bestätigen",
+      "manualEntry": "Manueller Eintrag",
+      "verifyCode": "Code bestätigen",
+      "verifying": "Bestätigen...",
+      "backupCodes": "Backup-Codes",
+      "backupCodesDescription": "Speichere diese Codes sicher ab. Jeder Code kann nur einmal verwendet werden.",
+      "backupCodesWarning": "Diese Codes werden nur einmal angezeigt!",
+      "showBackupCodes": "Backup-Codes anzeigen",
+      "regenerateBackupCodes": "Backup-Codes neu generieren",
+      "regenerating": "Generieren...",
+      "done": "Fertig",
+      "passwordRequired": "Passwort eingeben",
+      "passwordPlaceholder": "Dein Passwort",
+      "confirm": "Bestätigen",
+      "confirming": "Bestätigen...",
+      "disableConfirm": "Möchtest du die Zwei-Faktor-Authentifizierung wirklich deaktivieren?"
+    },
+    "passkeys": {
+      "title": "Passkeys",
+      "description": "Melde dich ohne Passwort mit Fingerabdruck, Gesichtserkennung oder Sicherheitsschlüssel an",
+      "noPasskeys": "Noch keine Passkeys registriert",
+      "add": "Passkey hinzufügen",
+      "adding": "Registrieren...",
+      "name": "Name",
+      "deviceType": "Gerätetyp",
+      "createdAt": "Erstellt am",
+      "actions": "Aktionen",
+      "delete": "Entfernen",
+      "deleting": "Entfernen...",
+      "deleteConfirm": "Möchtest du diesen Passkey wirklich entfernen?",
+      "rename": "Umbenennen",
+      "namePlaceholder": "z.B. MacBook Touch ID",
+      "platform": "Plattform",
+      "crossPlatform": "Sicherheitsschlüssel"
+    }
   },
   "settings": {
     "title": "Einstellungen",
@@ -212,11 +278,56 @@
   },
   "dashboard": {
     "title": "Dashboard",
+    "subtitle": "Übersicht der aktuellen Saison",
+    "noSeason": "Bitte eine Arbeitssaison auswählen, um das Dashboard zu sehen.",
     "cards": {
-      "seasons": "Saisons",
       "teams": "Teams",
       "players": "Spieler",
-      "games": "Spiele"
+      "completed": "Abgeschlossen",
+      "remaining": "Ausstehend"
+    },
+    "sections": {
+      "actionItems": "Handlungsbedarf",
+      "seasonInsights": "Saison-Einblicke",
+      "recentActivity": "Letzte Ergebnisse"
+    },
+    "missingReports": {
+      "title": "Fehlende Spielberichte",
+      "empty": "Alle Spielberichte sind vorhanden.",
+      "viewReport": "Bericht öffnen",
+      "count": "{count} fehlend"
+    },
+    "upcomingGames": {
+      "title": "Kommende Spiele",
+      "empty": "Keine Spiele in den nächsten 7 Tagen.",
+      "at": "in"
+    },
+    "activeSuspensions": {
+      "title": "Aktive Sperren",
+      "empty": "Keine aktiven Sperren.",
+      "remaining": "{served}/{total} Spiele",
+      "count": "{count} aktiv"
+    },
+    "topScorers": {
+      "title": "Top Scorer",
+      "empty": "Noch keine Statistikdaten.",
+      "name": "Name",
+      "team": "Team",
+      "goals": "T",
+      "assists": "V",
+      "points": "P"
+    },
+    "topPenalized": {
+      "title": "Meiste Strafminuten",
+      "empty": "Noch keine Strafminuten.",
+      "name": "Name",
+      "team": "Team",
+      "pim": "SM"
+    },
+    "recentResults": {
+      "title": "Letzte Ergebnisse",
+      "empty": "Noch keine abgeschlossenen Spiele.",
+      "viewReport": "Bericht"
     }
   },
   "statsPage": {

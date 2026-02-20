@@ -4,15 +4,15 @@ import { ChevronRight, FileText, Link2, Lock, Pencil, Plus, Trash2, X } from "lu
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
-import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
-import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
-import { FILTER_ALL } from "~/lib/search-params"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { useTranslation } from "~/i18n/use-translation"
+import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/pages/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; status?: string } => ({
@@ -39,7 +39,8 @@ function PagesPage() {
     [navigate],
   )
   const setStatusFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, status: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string) =>
+      navigate({ search: (prev) => ({ ...prev, status: v === FILTER_ALL ? undefined : v }), replace: true }),
     [navigate],
   )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)

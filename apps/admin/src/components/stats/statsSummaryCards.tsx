@@ -68,11 +68,7 @@ function StatsSummaryCards({ playerStats, goalieStats, penaltyStats, totalGames 
     if (!player) return "–"
     const display = `${player.firstName?.charAt(0)}. ${player.lastName}`
     return (
-      <PlayerHoverCard
-        playerId={player.id}
-        name={`${player.firstName} ${player.lastName}`}
-        team={team ?? undefined}
-      >
+      <PlayerHoverCard playerId={player.id} name={`${player.firstName} ${player.lastName}`} team={team ?? undefined}>
         <span className="cursor-pointer hover:underline decoration-dotted underline-offset-2">{display}</span>
       </PlayerHoverCard>
     )
@@ -98,7 +94,6 @@ function StatsSummaryCards({ playerStats, goalieStats, penaltyStats, totalGames 
         sublabel={
           bestGoalie
             ? `${Number(bestGoalie.gaa).toFixed(2)} ${t("statsPage.overview.gaa")} · ${bestGoalie.team?.shortName ?? ""}`
-
             : "–"
         }
         color="hsl(142, 71%, 45%)"

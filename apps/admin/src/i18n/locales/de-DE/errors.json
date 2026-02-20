@@ -17,5 +17,10 @@
   "PAGE_ALIAS_CONFLICT": "Alias ist bereits vergeben",
   "SETUP_ALREADY_COMPLETED": "Setup wurde bereits abgeschlossen",
   "VALIDATION_REQUIRED": "Bitte alle Pflichtfelder ausfüllen",
+  "TWO_FACTOR_INVALID": "Ungültiger 2FA-Code",
+  "TWO_FACTOR_NOT_ENABLED": "2FA ist nicht aktiviert",
+  "PASSKEY_FAILED": "Passkey-Anmeldung fehlgeschlagen",
+  "PASSKEY_NOT_FOUND": "Passkey nicht gefunden",
+  "BACKUP_CODE_INVALID": "Ungültiger Backup-Code",
   "UNKNOWN": "Ein unerwarteter Fehler ist aufgetreten"
 }

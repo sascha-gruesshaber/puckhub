@@ -17,12 +17,12 @@ import { Ban, CalendarDays, ClipboardList, Pencil, Plus, RotateCcw, Sparkles, Tr
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
-import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
-import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { GameStatusBadge } from "~/components/gameStatusBadge"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
@@ -111,7 +111,10 @@ function GamesPage() {
   const [generateStartAt, setGenerateStartAt] = useState("")
   const [generateCadenceDays, setGenerateCadenceDays] = useState("7")
 
-  const { data: structure, isLoading: isStructureLoading } = trpc.season.getFullStructure.useQuery({ id: season?.id ?? "" }, { enabled: !!season?.id })
+  const { data: structure, isLoading: isStructureLoading } = trpc.season.getFullStructure.useQuery(
+    { id: season?.id ?? "" },
+    { enabled: !!season?.id },
+  )
   const { data: venues } = trpc.venue.list.useQuery()
   const { data: games, isLoading } = trpc.game.listForSeason.useQuery(
     {
@@ -447,7 +450,13 @@ function GamesPage() {
                                 done && g.homeScore != null && g.awayScore != null && g.awayScore > g.homeScore
                               return (
                                 <>
-                                  <TeamHoverCard teamId={g.homeTeam.id} name={g.homeTeam.name} shortName={g.homeTeam.shortName} logoUrl={g.homeTeam.logoUrl} seasonId={season.id}>
+                                  <TeamHoverCard
+                                    teamId={g.homeTeam.id}
+                                    name={g.homeTeam.name}
+                                    shortName={g.homeTeam.shortName}
+                                    logoUrl={g.homeTeam.logoUrl}
+                                    seasonId={season.id}
+                                  >
                                     <div className="flex items-center gap-2 min-w-0 cursor-default">
                                       <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
                                         {g.homeTeam.logoUrl ? (
@@ -473,7 +482,13 @@ function GamesPage() {
                                     vs.
                                   </div>
 
-                                  <TeamHoverCard teamId={g.awayTeam.id} name={g.awayTeam.name} shortName={g.awayTeam.shortName} logoUrl={g.awayTeam.logoUrl} seasonId={season.id}>
+                                  <TeamHoverCard
+                                    teamId={g.awayTeam.id}
+                                    name={g.awayTeam.name}
+                                    shortName={g.awayTeam.shortName}
+                                    logoUrl={g.awayTeam.logoUrl}
+                                    seasonId={season.id}
+                                  >
                                     <div className="flex items-center gap-2 min-w-0 cursor-default">
                                       <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
                                         {g.awayTeam.logoUrl ? (
@@ -755,9 +770,7 @@ function GamesPage() {
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">
                 {t("gamesPage.generate.sections.scheduling")}
               </Label>
-              <p className="text-xs text-muted-foreground mt-1 mb-3">
-                {t("gamesPage.generate.schedulingHint")}
-              </p>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">{t("gamesPage.generate.schedulingHint")}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField label={t("gamesPage.generate.fields.startDate")}>
                   <Input
@@ -766,7 +779,10 @@ function GamesPage() {
                     onChange={(e) => setGenerateStartAt(e.target.value)}
                   />
                 </FormField>
-                <FormField label={t("gamesPage.generate.fields.cadenceDays")} description={t("gamesPage.generate.fields.cadenceDaysHint")}>
+                <FormField
+                  label={t("gamesPage.generate.fields.cadenceDays")}
+                  description={t("gamesPage.generate.fields.cadenceDaysHint")}
+                >
                   <Input
                     type="number"
                     min={1}
@@ -782,7 +798,11 @@ function GamesPage() {
               <Button type="button" variant="outline" onClick={() => setGenerateDialogOpen(false)}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={generate.isPending || !generateDivisionId || !generateRoundId}>
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={generate.isPending || !generateDivisionId || !generateRoundId}
+              >
                 {t("gamesPage.actions.generate")}
               </Button>
             </DialogFooter>

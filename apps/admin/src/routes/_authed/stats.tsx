@@ -13,21 +13,19 @@ import { PenaltyTeamChart } from "~/components/stats/penaltyTeamChart"
 import { PenaltyTypeChart } from "~/components/stats/penaltyTypeChart"
 import { ScorerChart } from "~/components/stats/scorerChart"
 import { ScorerTable } from "~/components/stats/scorerTable"
-import { StatsSummaryCards } from "~/components/stats/statsSummaryCards"
 import { StatsRoundInfo } from "~/components/stats/statsRoundInfo"
-import { StatsTabNavigation, type StatsTab } from "~/components/stats/statsTabNavigation"
+import { StatsSummaryCards } from "~/components/stats/statsSummaryCards"
+import { type StatsTab, StatsTabNavigation } from "~/components/stats/statsTabNavigation"
 import { TeamComparisonBar } from "~/components/stats/teamComparisonBar"
 import { TeamComparisonRadar, type TeamRadarData } from "~/components/stats/teamComparisonRadar"
 import { TeamComparisonSelector } from "~/components/stats/teamComparisonSelector"
 import { TeamStandingsTable } from "~/components/stats/teamStandingsTable"
-import { TeamFilterPills, FILTER_ALL } from "~/components/teamFilterPills"
+import { FILTER_ALL, TeamFilterPills } from "~/components/teamFilterPills"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/stats")({
-  validateSearch: (
-    s: Record<string, unknown>,
-  ): { tab?: string; team?: string; position?: string; round?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { tab?: string; team?: string; position?: string; round?: string } => ({
     ...(typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
     ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
     ...(typeof s.position === "string" && s.position ? { position: s.position } : {}),
@@ -42,18 +40,18 @@ function StatsPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const { tab, team, position, round } = Route.useSearch()
 
-  const activeTab = ((tab ?? "overview") as StatsTab)
+  const activeTab = (tab ?? "overview") as StatsTab
   const teamFilter = team ?? FILTER_ALL
   const positionFilter = position ?? "all"
   const selectedRoundId = round ?? ""
 
   const setTab = useCallback(
-    (v: StatsTab) => navigate({ search: (prev) => ({ ...prev, tab: v === "overview" ? undefined : v }), replace: true }),
+    (v: StatsTab) =>
+      navigate({ search: (prev) => ({ ...prev, tab: v === "overview" ? undefined : v }), replace: true }),
     [navigate],
   )
   const setTeamFilter = useCallback(
-    (v: string) =>
-      navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
     [navigate],
   )
   const setPositionFilter = useCallback(
@@ -162,9 +160,7 @@ function StatsPage() {
   }, [comparisonTeamIds, standings, teamPenaltyStats, teams])
 
   function toggleComparisonTeam(teamId: string) {
-    setComparisonTeamIds((prev) =>
-      prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId],
-    )
+    setComparisonTeamIds((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]))
   }
 
   // No season
@@ -185,7 +181,7 @@ function StatsPage() {
   const hasData =
     (playerStats?.length ?? 0) > 0 ||
     (penaltyStats?.length ?? 0) > 0 ||
-    ((goalieStats?.qualified.length ?? 0) + (goalieStats?.belowThreshold.length ?? 0)) > 0
+    (goalieStats?.qualified.length ?? 0) + (goalieStats?.belowThreshold.length ?? 0) > 0
 
   // Show position filters on scorer/goals/assists tabs
   const showPositionFilter = activeTab === "scorers" || activeTab === "goals" || activeTab === "assists"
@@ -303,10 +299,7 @@ function StatsPage() {
                 </div>
                 {goalieStats && goalieStats.qualified.length > 0 && (
                   <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                    <GoalieChart
-                      stats={goalieStats.qualified.slice(0, 10)}
-                      title={t("statsPage.goalies.chartTitle")}
-                    />
+                    <GoalieChart stats={goalieStats.qualified.slice(0, 10)} title={t("statsPage.goalies.chartTitle")} />
                   </div>
                 )}
               </div>
@@ -318,11 +311,7 @@ function StatsPage() {
             <div className="space-y-6">
               <ScorerTable stats={playerStats ?? []} sortBy="points" />
               <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                <ScorerChart
-                  stats={playerStats ?? []}
-                  mode="stacked"
-                  title={t("statsPage.scorers.chartTitle")}
-                />
+                <ScorerChart stats={playerStats ?? []} mode="stacked" title={t("statsPage.scorers.chartTitle")} />
               </div>
             </div>
           )}
@@ -332,11 +321,7 @@ function StatsPage() {
             <div className="space-y-6">
               <ScorerTable stats={playerStats ?? []} sortBy="goals" />
               <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                <ScorerChart
-                  stats={playerStats ?? []}
-                  mode="goals"
-                  title={t("statsPage.goalsTab.chartTitle")}
-                />
+                <ScorerChart stats={playerStats ?? []} mode="goals" title={t("statsPage.goalsTab.chartTitle")} />
               </div>
             </div>
           )}
@@ -346,11 +331,7 @@ function StatsPage() {
             <div className="space-y-6">
               <ScorerTable stats={playerStats ?? []} sortBy="assists" />
               <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                <ScorerChart
-                  stats={playerStats ?? []}
-                  mode="assists"
-                  title={t("statsPage.assistsTab.chartTitle")}
-                />
+                <ScorerChart stats={playerStats ?? []} mode="assists" title={t("statsPage.assistsTab.chartTitle")} />
               </div>
             </div>
           )}
@@ -362,18 +343,12 @@ function StatsPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {teamPenaltyStats && (
                   <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                    <PenaltyTeamChart
-                      stats={teamPenaltyStats}
-                      title={t("statsPage.penalties.teamChartTitle")}
-                    />
+                    <PenaltyTeamChart stats={teamPenaltyStats} title={t("statsPage.penalties.teamChartTitle")} />
                   </div>
                 )}
                 {teamPenaltyStats && (
                   <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                    <PenaltyTypeChart
-                      stats={teamPenaltyStats}
-                      title={t("statsPage.penalties.typeChartTitle")}
-                    />
+                    <PenaltyTypeChart stats={teamPenaltyStats} title={t("statsPage.penalties.typeChartTitle")} />
                   </div>
                 )}
               </div>
@@ -390,10 +365,7 @@ function StatsPage() {
               />
               {goalieStats.qualified.length > 0 && (
                 <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                  <GoalieChart
-                    stats={goalieStats.qualified}
-                    title={t("statsPage.goalies.chartTitle")}
-                  />
+                  <GoalieChart stats={goalieStats.qualified} title={t("statsPage.goalies.chartTitle")} />
                 </div>
               )}
             </div>
@@ -448,10 +420,7 @@ function StatsPage() {
               {/* Team penalty comparison */}
               {teamPenaltyStats && teamPenaltyStats.length > 0 && (
                 <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                  <PenaltyTeamChart
-                    stats={teamPenaltyStats}
-                    title={t("statsPage.teamsTab.penaltyComparison")}
-                  />
+                  <PenaltyTeamChart stats={teamPenaltyStats} title={t("statsPage.teamsTab.penaltyComparison")} />
                 </div>
               )}
 
@@ -484,16 +453,10 @@ function StatsPage() {
                       </div>
 
                       {comparisonChartType === "radar" && (
-                        <TeamComparisonRadar
-                          teams={radarData}
-                          title={t("statsPage.teamsTab.radarTitle")}
-                        />
+                        <TeamComparisonRadar teams={radarData} title={t("statsPage.teamsTab.radarTitle")} />
                       )}
                       {comparisonChartType === "bar" && (
-                        <TeamComparisonBar
-                          teams={radarData}
-                          title={t("statsPage.teamsTab.radarTitle")}
-                        />
+                        <TeamComparisonBar teams={radarData} title={t("statsPage.teamsTab.radarTitle")} />
                       )}
                     </>
                   )}

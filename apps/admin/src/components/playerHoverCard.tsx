@@ -23,7 +23,16 @@ interface PlayerHoverCardProps {
   disabled?: boolean
 }
 
-function PlayerHoverCard({ playerId, name, team, position, jerseyNumber, onEdit, children, disabled }: PlayerHoverCardProps) {
+function PlayerHoverCard({
+  playerId,
+  name,
+  team,
+  position,
+  jerseyNumber,
+  onEdit,
+  children,
+  disabled,
+}: PlayerHoverCardProps) {
   return (
     <HoverCard
       content={() => (
@@ -87,11 +96,7 @@ function PlayerHoverCardContent({
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
             {player?.photoUrl ? (
-              <img
-                src={player.photoUrl}
-                alt={`${firstName} ${lastName}`}
-                className="h-full w-full object-cover"
-              />
+              <img src={player.photoUrl} alt={`${firstName} ${lastName}`} className="h-full w-full object-cover" />
             ) : (
               <span className="text-sm font-bold text-muted-foreground">{initials}</span>
             )}
@@ -153,7 +158,9 @@ function PlayerHoverCardContent({
                   <span className="inline-block w-4 text-center shrink-0">&nbsp;</span>
                   <span>
                     {t("playersPage.hoverCard.ageYears", { age })}
-                    {player?.dateOfBirth && <span className="text-border ml-1">({formatDate(player.dateOfBirth)})</span>}
+                    {player?.dateOfBirth && (
+                      <span className="text-border ml-1">({formatDate(player.dateOfBirth)})</span>
+                    )}
                   </span>
                 </div>
               )}

@@ -34,9 +34,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
                   : "bg-white border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              {team.logoUrl && (
-                <img src={team.logoUrl} alt="" className="h-4 w-4 rounded-sm object-contain shrink-0" />
-              )}
+              {team.logoUrl && <img src={team.logoUrl} alt="" className="h-4 w-4 rounded-sm object-contain shrink-0" />}
               {team.shortName}
             </button>
           )

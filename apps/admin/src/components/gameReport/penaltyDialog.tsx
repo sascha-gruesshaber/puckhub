@@ -1,8 +1,8 @@
 import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, Input, toast } from "@puckhub/ui"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
-import { useTranslation } from "~/i18n/use-translation"
 import { PlayerCombobox } from "~/components/playerCombobox"
+import { useTranslation } from "~/i18n/use-translation"
 import type { TeamInfo } from "./gameTimeline"
 
 interface LineupPlayer {
@@ -45,23 +45,13 @@ interface PenaltyDialogProps {
 const selectClass =
   'w-full h-10 rounded-lg border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 appearance-none bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E")] bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10'
 
-function TeamToggleButton({
-  team,
-  isSelected,
-  onClick,
-}: {
-  team: TeamInfo
-  isSelected: boolean
-  onClick: () => void
-}) {
+function TeamToggleButton({ team, isSelected, onClick }: { team: TeamInfo; isSelected: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm transition-all ${
-        isSelected
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground"
+        isSelected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
       }`}
     >
       <div className="w-7 h-7 rounded shrink-0 overflow-hidden flex items-center justify-center bg-muted/50 border border-border/40">

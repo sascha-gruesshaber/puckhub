@@ -71,7 +71,16 @@ function PenaltyPlayerTable({ stats, limit }: PenaltyPlayerTableProps) {
                     <PlayerHoverCard
                       playerId={stat.player.id}
                       name={`${stat.player.firstName} ${stat.player.lastName}`}
-                      team={stat.team ? { id: stat.team.id, name: stat.team.name, shortName: stat.team.shortName, logoUrl: stat.team.logoUrl } : undefined}
+                      team={
+                        stat.team
+                          ? {
+                              id: stat.team.id,
+                              name: stat.team.name,
+                              shortName: stat.team.shortName,
+                              logoUrl: stat.team.logoUrl,
+                            }
+                          : undefined
+                      }
                     >
                       <span className="cursor-pointer hover:underline decoration-dotted underline-offset-2">
                         <span className="text-muted-foreground">{stat.player.firstName?.charAt(0)}.</span>{" "}
@@ -112,7 +121,8 @@ function PenaltyPlayerTable({ stats, limit }: PenaltyPlayerTableProps) {
                     .slice(0, 3)
                     .map((b, bi) => (
                       <Badge key={bi} variant="secondary" className="text-xs font-normal">
-                        {b.penaltyType?.shortName ?? b.penaltyType?.name ?? t("statsPage.penalties.unknownType")} ({b.minutes}')
+                        {b.penaltyType?.shortName ?? b.penaltyType?.name ?? t("statsPage.penalties.unknownType")} (
+                        {b.minutes}')
                       </Badge>
                     ))}
                 </div>

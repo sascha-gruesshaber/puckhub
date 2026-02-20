@@ -29,8 +29,7 @@ function GoalieRow({ stat, rank, seasonId }: { stat: GoalieStat; rank: number; s
           <span
             className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
             style={{
-              background:
-                rank === 1 ? "hsl(44, 87%, 66%)" : rank === 2 ? "hsl(0, 0%, 75%)" : "hsl(25, 60%, 60%)",
+              background: rank === 1 ? "hsl(44, 87%, 66%)" : rank === 2 ? "hsl(0, 0%, 75%)" : "hsl(25, 60%, 60%)",
               color: rank === 1 ? "hsl(44, 87%, 15%)" : "white",
             }}
           >
@@ -49,7 +48,16 @@ function GoalieRow({ stat, rank, seasonId }: { stat: GoalieStat; rank: number; s
             <PlayerHoverCard
               playerId={stat.player.id}
               name={`${stat.player.firstName} ${stat.player.lastName}`}
-              team={stat.team ? { id: stat.team.id, name: stat.team.name, shortName: stat.team.shortName, logoUrl: stat.team.logoUrl } : undefined}
+              team={
+                stat.team
+                  ? {
+                      id: stat.team.id,
+                      name: stat.team.name,
+                      shortName: stat.team.shortName,
+                      logoUrl: stat.team.logoUrl,
+                    }
+                  : undefined
+              }
               position="goalie"
             >
               <span className="cursor-pointer hover:underline decoration-dotted underline-offset-2">
@@ -72,7 +80,9 @@ function GoalieRow({ stat, rank, seasonId }: { stat: GoalieStat; rank: number; s
             seasonId={seasonId}
           >
             <div className="flex items-center gap-2 cursor-pointer hover:underline decoration-dotted underline-offset-2">
-              {stat.team.logoUrl && <img src={stat.team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />}
+              {stat.team.logoUrl && (
+                <img src={stat.team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
+              )}
               <span className="text-muted-foreground">{stat.team.shortName}</span>
             </div>
           </TeamHoverCard>
@@ -86,9 +96,7 @@ function GoalieRow({ stat, rank, seasonId }: { stat: GoalieStat; rank: number; s
         {stat.gaa != null ? Number(stat.gaa).toFixed(2) : "–"}
       </td>
       <td className="text-center px-3 py-2.5 tabular-nums hidden md:table-cell">
-        {stat.gamesPlayed > 0
-          ? (stat.goalsAgainst / stat.gamesPlayed).toFixed(2)
-          : "–"}
+        {stat.gamesPlayed > 0 ? (stat.goalsAgainst / stat.gamesPlayed).toFixed(2) : "–"}
       </td>
     </tr>
   )
@@ -137,7 +145,9 @@ function GoalieTable({ qualified, belowThreshold, minGames }: GoalieTableProps) 
         <div>
           <div className="flex items-center gap-2 mb-2">
             <h3 className="text-sm font-semibold uppercase tracking-wide">{t("statsPage.goalies.qualified")}</h3>
-            <Badge variant="secondary" className="text-xs">{qualified.length}</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {qualified.length}
+            </Badge>
           </div>
           <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
@@ -159,7 +169,9 @@ function GoalieTable({ qualified, belowThreshold, minGames }: GoalieTableProps) 
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {t("statsPage.goalies.belowThreshold")}
             </h3>
-            <Badge variant="outline" className="text-xs">{belowThreshold.length}</Badge>
+            <Badge variant="outline" className="text-xs">
+              {belowThreshold.length}
+            </Badge>
           </div>
           <div className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden opacity-75">
             <table className="w-full text-sm">

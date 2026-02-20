@@ -235,9 +235,7 @@ describe("authorization", () => {
 
     describe("gameReport", () => {
       it("setLineup requires auth", async () => {
-        await expect(
-          caller.gameReport.setLineup({ gameId: FAKE_ID, players: [] }),
-        ).rejects.toThrow("Not authenticated")
+        await expect(caller.gameReport.setLineup({ gameId: FAKE_ID, players: [] })).rejects.toThrow("Not authenticated")
       })
 
       it("addEvent requires auth", async () => {

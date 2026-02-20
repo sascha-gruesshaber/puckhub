@@ -12,6 +12,7 @@ import { goalieSeasonStats } from "./goalieSeasonStats"
 import { news } from "./news"
 import { pageAliases } from "./pageAliases"
 import { pages } from "./pages"
+import { passkey } from "./passkey"
 import { penaltyTypes } from "./penaltyTypes"
 import { playerSeasonStats } from "./playerSeasonStats"
 import { players } from "./players"
@@ -24,6 +25,7 @@ import { teams } from "./teams"
 import { teamTrikots } from "./teamTrikots"
 import { trikots } from "./trikots"
 import { trikotTemplates } from "./trikotTemplates"
+import { twoFactor } from "./twoFactor"
 import { userRoles } from "./userRoles"
 import { venues } from "./venues"
 
@@ -221,6 +223,12 @@ export const goalieGameStatsRelations = relations(goalieGameStats, ({ one }) => 
   team: one(teams, { fields: [goalieGameStats.teamId], references: [teams.id] }),
 }))
 
+// --- User ---
+export const userRelations = relations(user, ({ many }) => ({
+  twoFactors: many(twoFactor),
+  passkeys: many(passkey),
+}))
+
 // --- User Roles ---
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
   team: one(teams, { fields: [userRoles.teamId], references: [teams.id] }),
@@ -266,4 +274,14 @@ export const pagesRelations = relations(pages, ({ one, many }) => ({
 // --- Page Aliases ---
 export const pageAliasesRelations = relations(pageAliases, ({ one }) => ({
   targetPage: one(pages, { fields: [pageAliases.targetPageId], references: [pages.id] }),
+}))
+
+// --- Two Factor ---
+export const twoFactorRelations = relations(twoFactor, ({ one }) => ({
+  user: one(user, { fields: [twoFactor.userId], references: [user.id] }),
+}))
+
+// --- Passkey ---
+export const passkeyRelations = relations(passkey, ({ one }) => ({
+  user: one(user, { fields: [passkey.userId], references: [user.id] }),
 }))

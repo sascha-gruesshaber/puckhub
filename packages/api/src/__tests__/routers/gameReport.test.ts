@@ -93,9 +93,9 @@ describe("gameReport router", () => {
 
     it("throws NOT_FOUND for non-existent game", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.gameReport.getReport({ gameId: "00000000-0000-0000-0000-000000000000" }),
-      ).rejects.toThrow("nicht gefunden")
+      await expect(caller.gameReport.getReport({ gameId: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
+        "nicht gefunden",
+      )
     })
 
     it("includes events in the report", async () => {
@@ -423,9 +423,7 @@ describe("gameReport router", () => {
 
       await admin.game.complete({ id: game.id })
 
-      await expect(
-        admin.gameReport.updateEvent({ id: event!.id, period: 3 }),
-      ).rejects.toThrow("nicht bearbeitet")
+      await expect(admin.gameReport.updateEvent({ id: event!.id, period: 3 })).rejects.toThrow("nicht bearbeitet")
     })
   })
 
@@ -488,9 +486,9 @@ describe("gameReport router", () => {
 
     it("throws NOT_FOUND for non-existent event", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.gameReport.deleteEvent({ id: "00000000-0000-0000-0000-000000000000" }),
-      ).rejects.toThrow("nicht gefunden")
+      await expect(admin.gameReport.deleteEvent({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
+        "nicht gefunden",
+      )
     })
 
     it("rejects deleting event of a completed game", async () => {
@@ -607,9 +605,9 @@ describe("gameReport router", () => {
 
       await admin.game.complete({ id: game.id })
 
-      await expect(
-        admin.gameReport.updateSuspension({ id: suspension!.id, suspendedGames: 3 }),
-      ).rejects.toThrow("nicht bearbeitet")
+      await expect(admin.gameReport.updateSuspension({ id: suspension!.id, suspendedGames: 3 })).rejects.toThrow(
+        "nicht bearbeitet",
+      )
     })
   })
 
@@ -646,9 +644,7 @@ describe("gameReport router", () => {
 
       await admin.game.complete({ id: game.id })
 
-      await expect(
-        admin.gameReport.deleteSuspension({ id: suspension!.id }),
-      ).rejects.toThrow("nicht bearbeitet")
+      await expect(admin.gameReport.deleteSuspension({ id: suspension!.id })).rejects.toThrow("nicht bearbeitet")
     })
   })
 })

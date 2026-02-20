@@ -1,7 +1,7 @@
 import * as schema from "@puckhub/db/schema"
+import { recalculateStandings } from "@puckhub/db/services"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { recalculateStandings } from "../../services/standingsService"
 import { adminProcedure, publicProcedure, router } from "../init"
 
 export const standingsRouter = router({

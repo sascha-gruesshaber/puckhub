@@ -7,10 +7,12 @@ const seedDir = dirname(fileURLToPath(import.meta.url))
 config({ path: resolve(seedDir, "../../../../.env") })
 
 import { hashPassword } from "better-auth/crypto"
-import { and, eq, inArray, sql } from "drizzle-orm"
+import { sql } from "drizzle-orm"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import * as schema from "../schema"
+import { recalculateStandings } from "../services/standingsService"
+import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
 import { cleanUploads, generateSeedImages } from "./seedImages"
 
 // ---------------------------------------------------------------------------
@@ -686,7 +688,7 @@ async function seedDemo() {
     const season = seasonByYear.get(seasonDef.year)!
     for (let i = 0; i < seasonDef.divisions.length; i++) {
       const div = seasonDef.divisions[i]!
-      divisionValues.push({ seasonId: season.id, name: div.name, sortOrder: i })
+      divisionValues.push({ seasonId: season.id, name: div.name, sortOrder: i, goalieMinGames: 3 })
     }
   }
   const insertedDivisions = await db.insert(schema.divisions).values(divisionValues).returning()
@@ -1203,207 +1205,82 @@ async function seedDemo() {
   // ── 11c. Recalculate player + goalie season stats ──────────────────────
   console.log("Recalculating player and goalie season stats...")
   for (const season of insertedSeasons) {
-    // Player stats
-    const eligiblePlayerRounds = await db
-      .select({ id: schema.rounds.id })
-      .from(schema.rounds)
-      .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
-      .where(and(eq(schema.divisions.seasonId, season.id), eq(schema.rounds.countsForPlayerStats, true)))
-    const playerRoundIds = eligiblePlayerRounds.map((r) => r.id)
-    if (playerRoundIds.length > 0) {
-      const completedGameIds = (
-        await db
-          .select({ id: schema.games.id })
-          .from(schema.games)
-          .where(and(inArray(schema.games.roundId, playerRoundIds), eq(schema.games.status, "completed")))
-      ).map((g) => g.id)
-      if (completedGameIds.length > 0) {
-        // Goals
-        const goalAgg = await db
-          .select({
-            playerId: schema.gameEvents.scorerId,
-            teamId: schema.gameEvents.teamId,
-            goals: sql<number>`count(*)`,
-          })
-          .from(schema.gameEvents)
-          .where(
-            and(
-              inArray(schema.gameEvents.gameId, completedGameIds),
-              eq(schema.gameEvents.eventType, "goal"),
-              sql`${schema.gameEvents.scorerId} IS NOT NULL`,
-            ),
-          )
-          .groupBy(schema.gameEvents.scorerId, schema.gameEvents.teamId)
-        // Assists
-        const assist1Agg = await db
-          .select({
-            playerId: schema.gameEvents.assist1Id,
-            teamId: schema.gameEvents.teamId,
-            assists: sql<number>`count(*)`,
-          })
-          .from(schema.gameEvents)
-          .where(
-            and(
-              inArray(schema.gameEvents.gameId, completedGameIds),
-              eq(schema.gameEvents.eventType, "goal"),
-              sql`${schema.gameEvents.assist1Id} IS NOT NULL`,
-            ),
-          )
-          .groupBy(schema.gameEvents.assist1Id, schema.gameEvents.teamId)
-        const assist2Agg = await db
-          .select({
-            playerId: schema.gameEvents.assist2Id,
-            teamId: schema.gameEvents.teamId,
-            assists: sql<number>`count(*)`,
-          })
-          .from(schema.gameEvents)
-          .where(
-            and(
-              inArray(schema.gameEvents.gameId, completedGameIds),
-              eq(schema.gameEvents.eventType, "goal"),
-              sql`${schema.gameEvents.assist2Id} IS NOT NULL`,
-            ),
-          )
-          .groupBy(schema.gameEvents.assist2Id, schema.gameEvents.teamId)
-        // Penalty minutes
-        const penaltyAgg = await db
-          .select({
-            playerId: schema.gameEvents.penaltyPlayerId,
-            teamId: schema.gameEvents.teamId,
-            penaltyMinutes: sql<number>`coalesce(sum(${schema.gameEvents.penaltyMinutes}), 0)`,
-          })
-          .from(schema.gameEvents)
-          .where(
-            and(
-              inArray(schema.gameEvents.gameId, completedGameIds),
-              eq(schema.gameEvents.eventType, "penalty"),
-              sql`${schema.gameEvents.penaltyPlayerId} IS NOT NULL`,
-            ),
-          )
-          .groupBy(schema.gameEvents.penaltyPlayerId, schema.gameEvents.teamId)
-        // Games played
-        const gamesPlayedAgg = await db
-          .select({
-            playerId: schema.gameLineups.playerId,
-            teamId: schema.gameLineups.teamId,
-            gamesPlayed: sql<number>`count(distinct ${schema.gameLineups.gameId})`,
-          })
-          .from(schema.gameLineups)
-          .where(inArray(schema.gameLineups.gameId, completedGameIds))
-          .groupBy(schema.gameLineups.playerId, schema.gameLineups.teamId)
-        // Merge
-        const statsMap = new Map<string, { playerId: string; teamId: string; goals: number; assists: number; penaltyMinutes: number; gamesPlayed: number }>()
-        function getOrCreate(pId: string, tId: string) {
-          const key = `${pId}:${tId}`
-          let e = statsMap.get(key)
-          if (!e) { e = { playerId: pId, teamId: tId, goals: 0, assists: 0, penaltyMinutes: 0, gamesPlayed: 0 }; statsMap.set(key, e) }
-          return e
-        }
-        for (const r of goalAgg) { if (r.playerId) getOrCreate(r.playerId, r.teamId).goals = Number(r.goals) }
-        for (const r of assist1Agg) { if (r.playerId) getOrCreate(r.playerId, r.teamId).assists += Number(r.assists) }
-        for (const r of assist2Agg) { if (r.playerId) getOrCreate(r.playerId, r.teamId).assists += Number(r.assists) }
-        for (const r of penaltyAgg) { if (r.playerId) getOrCreate(r.playerId, r.teamId).penaltyMinutes = Number(r.penaltyMinutes) }
-        for (const r of gamesPlayedAgg) { getOrCreate(r.playerId, r.teamId).gamesPlayed = Number(r.gamesPlayed) }
-        await db.delete(schema.playerSeasonStats).where(eq(schema.playerSeasonStats.seasonId, season.id))
-        const psValues = Array.from(statsMap.values()).map((s) => ({
-          playerId: s.playerId, seasonId: season.id, teamId: s.teamId,
-          gamesPlayed: s.gamesPlayed, goals: s.goals, assists: s.assists,
-          totalPoints: s.goals + s.assists, penaltyMinutes: s.penaltyMinutes, updatedAt: new Date(),
-        }))
-        if (psValues.length > 0) await db.insert(schema.playerSeasonStats).values(psValues)
-      }
-    }
-
-    // Goalie stats
-    const eligibleGoalieRounds = await db
-      .select({ id: schema.rounds.id })
-      .from(schema.rounds)
-      .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
-      .where(and(eq(schema.divisions.seasonId, season.id), eq(schema.rounds.countsForGoalieStats, true)))
-    const goalieRoundIds = eligibleGoalieRounds.map((r) => r.id)
-    if (goalieRoundIds.length > 0) {
-      const completedGameIds = (
-        await db
-          .select({ id: schema.games.id })
-          .from(schema.games)
-          .where(and(inArray(schema.games.roundId, goalieRoundIds), eq(schema.games.status, "completed")))
-      ).map((g) => g.id)
-      if (completedGameIds.length > 0) {
-        const goalieAgg = await db
-          .select({
-            playerId: schema.goalieGameStats.playerId,
-            teamId: schema.goalieGameStats.teamId,
-            gamesPlayed: sql<number>`count(*)`,
-            goalsAgainst: sql<number>`coalesce(sum(${schema.goalieGameStats.goalsAgainst}), 0)`,
-          })
-          .from(schema.goalieGameStats)
-          .where(inArray(schema.goalieGameStats.gameId, completedGameIds))
-          .groupBy(schema.goalieGameStats.playerId, schema.goalieGameStats.teamId)
-        await db.delete(schema.goalieSeasonStats).where(eq(schema.goalieSeasonStats.seasonId, season.id))
-        const gsValues = goalieAgg.map((r) => {
-          const gp = Number(r.gamesPlayed)
-          const ga = Number(r.goalsAgainst)
-          return {
-            playerId: r.playerId, seasonId: season.id, teamId: r.teamId,
-            gamesPlayed: gp, goalsAgainst: ga, gaa: gp > 0 ? (ga / gp).toFixed(2) : "0.00", updatedAt: new Date(),
-          }
-        })
-        if (gsValues.length > 0) await db.insert(schema.goalieSeasonStats).values(gsValues)
-      }
-    }
+    await recalculatePlayerStats(db, season.id)
+    await recalculateGoalieStats(db, season.id)
   }
   console.log("   → Player and goalie season stats recalculated")
 
-  // ── 11d. Recalculate standings per round ──────────────────────────────
-  console.log("Recalculating standings...")
-  let standingsCount = 0
-  for (const round of insertedRounds) {
-    const completedGames = await db.query.games.findMany({
-      where: and(eq(schema.games.roundId, round.id), eq(schema.games.status, "completed")),
-      columns: { id: true, homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
-    })
-    if (completedGames.length === 0) continue
+  // ── 11d. Seed bonus points for some rounds ───────────────────────────
+  console.log("Seeding bonus points...")
+  const bonusReasons =
+    demoLang === "de"
+      ? [
+          "Fairplay-Auszeichnung",
+          "Verspäteter Spielbeginn",
+          "Regelverstoß Aufstellung",
+          "Sonderpunkte Jugendförderung",
+          "Strafpunkte unsportliches Verhalten",
+          "Nichtantritt Pflichtspiel",
+        ]
+      : [
+          "Fair play award",
+          "Delayed game start",
+          "Lineup rule violation",
+          "Youth development bonus",
+          "Unsportsmanlike conduct penalty",
+          "Forfeit of mandatory game",
+        ]
 
-    const teamMap = new Map<string, { gamesPlayed: number; wins: number; draws: number; losses: number; goalsFor: number; goalsAgainst: number }>()
-    function getOrCreateTeam(teamId: string) {
-      let s = teamMap.get(teamId)
-      if (!s) { s = { gamesPlayed: 0, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0 }; teamMap.set(teamId, s) }
-      return s
-    }
-    for (const game of completedGames) {
-      const hs = game.homeScore ?? 0
-      const as_ = game.awayScore ?? 0
-      const home = getOrCreateTeam(game.homeTeamId)
-      const away = getOrCreateTeam(game.awayTeamId)
-      home.gamesPlayed++; away.gamesPlayed++
-      home.goalsFor += hs; home.goalsAgainst += as_
-      away.goalsFor += as_; away.goalsAgainst += hs
-      if (hs > as_) { home.wins++; away.losses++ }
-      else if (hs < as_) { away.wins++; home.losses++ }
-      else { home.draws++; away.draws++ }
-    }
-
-    const { pointsWin, pointsDraw, pointsLoss } = round
-    const entries = Array.from(teamMap.entries()).map(([teamId, s]) => {
-      const pts = s.wins * pointsWin + s.draws * pointsDraw + s.losses * pointsLoss
-      return { teamId, ...s, goalDifference: s.goalsFor - s.goalsAgainst, points: pts, bonusPoints: 0, totalPoints: pts }
-    })
-    entries.sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
-      if (a.gamesPlayed !== b.gamesPlayed) return a.gamesPlayed - b.gamesPlayed
-      if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference
-      return b.goalsFor - a.goalsFor
-    })
-
-    await db.delete(schema.standings).where(eq(schema.standings.roundId, round.id))
-    if (entries.length > 0) {
-      await db.insert(schema.standings).values(
-        entries.map((e, idx) => ({ ...e, roundId: round.id, rank: idx + 1, updatedAt: new Date() })),
-      )
-      standingsCount += entries.length
+  const bonusValues: (typeof schema.bonusPoints.$inferInsert)[] = []
+  // Build a lookup: roundId -> teamIds that play in that round's division
+  const roundTeamsMap = new Map<string, string[]>()
+  for (const seasonDef of seasonStructure) {
+    const season = seasonByYear.get(seasonDef.year)!
+    for (const divDef of seasonDef.divisions) {
+      const division = divisionLookup.get(`${season.id}:${divDef.name}`)!
+      const teamIds = divDef.teamIndices.map((idx) => insertedTeams[idx]!.id)
+      for (const round of insertedRounds.filter((r) => r.divisionId === division.id)) {
+        roundTeamsMap.set(round.id, teamIds)
+      }
     }
   }
-  console.log(`   → ${standingsCount} standings entries across ${insertedRounds.length} rounds`)
+
+  let bonusSeed = 42
+  for (let i = 0; i < insertedRounds.length; i++) {
+    // Add bonus points to roughly every 3rd round
+    if (i % 3 !== 0) continue
+    const round = insertedRounds[i]!
+    const teamIds = roundTeamsMap.get(round.id)
+    if (!teamIds || teamIds.length < 2) continue
+
+    // Pick 1-2 bonus point entries per qualifying round
+    const count = (bonusSeed % 2) + 1
+    for (let j = 0; j < count; j++) {
+      const teamIdx = (bonusSeed + j * 3) % teamIds.length
+      const reasonIdx = (bonusSeed + j) % bonusReasons.length
+      // Positive bonus (1-3) for awards, negative (-1 to -2) for penalties
+      const isPositive = reasonIdx < 4
+      const pts = isPositive ? (bonusSeed % 3) + 1 : -(bonusSeed % 2) - 1
+      bonusValues.push({
+        teamId: teamIds[teamIdx]!,
+        roundId: round.id,
+        points: pts,
+        reason: bonusReasons[reasonIdx],
+      })
+      bonusSeed += 7
+    }
+  }
+  if (bonusValues.length > 0) {
+    await db.insert(schema.bonusPoints).values(bonusValues)
+  }
+  console.log(`   → ${bonusValues.length} bonus point entries`)
+
+  // ── 11e. Recalculate standings per round ──────────────────────────────
+  console.log("Recalculating standings...")
+  for (const round of insertedRounds) {
+    await recalculateStandings(db, round.id)
+  }
+  console.log(`   → Standings recalculated for ${insertedRounds.length} rounds`)
 
   // ── 12. Trikots + Team-Trikots ────────────────────────────────────────
   console.log("Seeding trikots...")

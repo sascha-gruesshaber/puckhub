@@ -18,17 +18,17 @@ import { ExternalLink, Handshake, Pencil, Plus, Trash2 } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { DataPageLayout } from "~/components/dataPageLayout"
+import { EmptyState } from "~/components/emptyState"
+import { ImageUpload } from "~/components/imageUpload"
+import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
-import { DataPageLayout } from "~/components/dataPageLayout"
-import { EmptyState } from "~/components/emptyState"
-import { NoResults } from "~/components/noResults"
-import { ImageUpload } from "~/components/imageUpload"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
-import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
+import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/sponsors/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
@@ -312,9 +312,7 @@ function SponsorsPage() {
               </Badge>
             )}
           </div>
-          {sponsor.hoverText && (
-            <p className="text-xs text-muted-foreground mt-0.5 truncate">{sponsor.hoverText}</p>
-          )}
+          {sponsor.hoverText && <p className="text-xs text-muted-foreground mt-0.5 truncate">{sponsor.hoverText}</p>}
         </div>
 
         {/* Website */}
@@ -336,12 +334,7 @@ function SponsorsPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => openEdit(sponsor)}
-            className="text-xs h-8 px-2 md:px-3"
-          >
+          <Button variant="ghost" size="sm" onClick={() => openEdit(sponsor)} className="text-xs h-8 px-2 md:px-3">
             <Pencil className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
             <span className="hidden md:inline">{t("sponsorsPage.actions.edit")}</span>
           </Button>
@@ -447,9 +440,7 @@ function SponsorsPage() {
                   </Badge>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-                  {grouped.active.map((sponsor, i) =>
-                    renderSponsorRow(sponsor, i, i === grouped.active.length - 1),
-                  )}
+                  {grouped.active.map((sponsor, i) => renderSponsorRow(sponsor, i, i === grouped.active.length - 1))}
                 </div>
               </div>
             )}

@@ -1,9 +1,7 @@
 import { Skeleton } from "@puckhub/ui"
 import { lazy, Suspense } from "react"
 
-const RichTextEditor = lazy(() =>
-  import("./richTextEditor").then((m) => ({ default: m.RichTextEditor })),
-)
+const RichTextEditor = lazy(() => import("./richTextEditor").then((m) => ({ default: m.RichTextEditor })))
 
 interface RichTextEditorLazyProps {
   content: string

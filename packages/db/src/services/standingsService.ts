@@ -1,6 +1,6 @@
-import type { Database } from "@puckhub/db"
-import * as schema from "@puckhub/db/schema"
 import { and, eq, sql } from "drizzle-orm"
+import type { Database } from "../index"
+import * as schema from "../schema"
 
 /**
  * Recalculates standings for a given round after a game result changes.

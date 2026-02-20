@@ -90,8 +90,18 @@ describe("standings router", () => {
 
       const homePlayer = (await admin.player.create({ firstName: "Home", lastName: "Player" }))!
       const awayPlayer = (await admin.player.create({ firstName: "Away", lastName: "Player" }))!
-      await admin.contract.signPlayer({ playerId: homePlayer.id, teamId: homeTeam.id, seasonId: season.id, position: "forward" })
-      await admin.contract.signPlayer({ playerId: awayPlayer.id, teamId: awayTeam.id, seasonId: season.id, position: "forward" })
+      await admin.contract.signPlayer({
+        playerId: homePlayer.id,
+        teamId: homeTeam.id,
+        seasonId: season.id,
+        position: "forward",
+      })
+      await admin.contract.signPlayer({
+        playerId: awayPlayer.id,
+        teamId: awayTeam.id,
+        seasonId: season.id,
+        position: "forward",
+      })
 
       const game = (await admin.game.create({
         roundId: round.id,

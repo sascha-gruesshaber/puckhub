@@ -43,9 +43,7 @@ function GoalieChart({ stats, title }: GoalieChartProps) {
         formatter: (params: Array<{ name: string; value: number }>) => {
           const p = params[0]
           const original = sorted.find(
-            (s) =>
-              `${s.player?.firstName?.charAt(0)}. ${s.player?.lastName} (${s.team?.shortName ?? ""})` ===
-              p?.name,
+            (s) => `${s.player?.firstName?.charAt(0)}. ${s.player?.lastName} (${s.team?.shortName ?? ""})` === p?.name,
           )
           return `${p?.name}<br/>${t("statsPage.overview.gaa")}: <b>${p?.value?.toFixed(2)}</b><br/>${t("statsPage.overview.gamesPlayedLong")}: ${original?.gamesPlayed ?? 0}`
         },

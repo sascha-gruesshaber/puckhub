@@ -116,7 +116,9 @@ function TeamStandingsTable({ standings, teams }: TeamStandingsTableProps) {
                 <td className="text-center px-3 py-2.5 tabular-nums">{s.losses}</td>
                 <td className="text-center px-3 py-2.5 tabular-nums hidden sm:table-cell">{s.goalsFor}</td>
                 <td className="text-center px-3 py-2.5 tabular-nums hidden sm:table-cell">{s.goalsAgainst}</td>
-                <td className={`text-center px-3 py-2.5 tabular-nums hidden md:table-cell ${s.goalDifference > 0 ? "text-green-600" : s.goalDifference < 0 ? "text-red-500" : ""}`}>
+                <td
+                  className={`text-center px-3 py-2.5 tabular-nums hidden md:table-cell ${s.goalDifference > 0 ? "text-green-600" : s.goalDifference < 0 ? "text-red-500" : ""}`}
+                >
                   {s.goalDifference > 0 ? `+${s.goalDifference}` : s.goalDifference}
                 </td>
                 <td className="text-center px-3 py-2.5 font-bold tabular-nums">{s.totalPoints}</td>

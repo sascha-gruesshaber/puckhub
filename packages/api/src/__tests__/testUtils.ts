@@ -85,7 +85,10 @@ const testRegularSession = {
  * Pass `asAdmin: true` to simulate an authenticated admin user (super_admin role).
  * Pass `asUser: true` to simulate an authenticated non-admin user (no roles).
  */
-export function createTestCaller(opts?: { asAdmin?: boolean; asUser?: boolean }): ReturnType<typeof appRouter.createCaller> {
+export function createTestCaller(opts?: {
+  asAdmin?: boolean
+  asUser?: boolean
+}): ReturnType<typeof appRouter.createCaller> {
   const db = getTestDb()
 
   let session: Context["session"] = null

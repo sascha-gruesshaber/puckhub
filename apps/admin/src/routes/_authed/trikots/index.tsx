@@ -19,17 +19,17 @@ import { Link2, Pencil, Plus, Shirt, Trash2, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
-import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
-import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { NoResults } from "~/components/noResults"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TrikotPreview } from "~/components/trikotPreview"
-import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
+import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/trikots/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; template?: string } => ({
@@ -73,7 +73,8 @@ function TrikotsPage() {
     [navigate],
   )
   const setTemplateFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, template: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string) =>
+      navigate({ search: (prev) => ({ ...prev, template: v === FILTER_ALL ? undefined : v }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)

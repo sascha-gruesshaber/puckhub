@@ -1,23 +1,28 @@
-import { Button, Card, CardContent, CardHeader, CardTitle, Input } from "@puckhub/ui"
+import { Card, CardContent, CardHeader, CardTitle } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { LoginForm } from "~/components/auth/loginForm"
+import { PasskeyButton } from "~/components/auth/passkeyButton"
+import { TwoFactorForm } from "~/components/auth/twoFactorForm"
 import { useTranslation } from "~/i18n/use-translation"
-import { resolveTranslatedError } from "~/lib/errorI18n"
-import { signIn } from "../../lib/auth-client"
 import { trpc } from "../../lib/trpc"
+
+interface LoginSearch {
+  mode?: "2fa"
+}
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  validateSearch: (search: Record<string, unknown>): LoginSearch => ({
+    mode: search.mode === "2fa" ? "2fa" : undefined,
+  }),
 })
 
 function LoginPage() {
   const { t } = useTranslation("common")
-  const { t: tErrors } = useTranslation("errors")
   const navigate = useNavigate()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const { mode } = Route.useSearch()
   const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
 
   // Check if setup is needed — redirect to wizard if so
   const { data: setupStatus, isLoading: setupLoading } = trpc.setup.status.useQuery()
@@ -41,23 +46,18 @@ function LoginPage() {
     return null
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError("")
-    setLoading(true)
-
-    try {
-      const result = await signIn.email({ email, password })
-      if (result.error) {
-        setError(result.error.message ?? tErrors("AUTH_NOT_AUTHENTICATED"))
-      } else {
-        navigate({ to: "/" })
-      }
-    } catch (err) {
-      setError(resolveTranslatedError(err, tErrors))
-    } finally {
-      setLoading(false)
-    }
+  // 2FA verification mode
+  if (mode === "2fa") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            {error && <div className="mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+            <TwoFactorForm onError={setError} />
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -67,38 +67,25 @@ function LoginPage() {
           <CardTitle className="text-2xl">{t("login.title")}</CardTitle>
           <p className="text-sm text-muted-foreground">{t("login.subtitle")}</p>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                {t("login.email")}
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t("login.emailPlaceholder")}
-                required
-              />
+        <CardContent className="space-y-5">
+          {/* Error display */}
+          {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+
+          {/* Password login */}
+          <LoginForm onError={setError} />
+
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
             </div>
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                {t("login.password")}
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">oder</span>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? t("login.submitting") : t("login.submit")}
-            </Button>
-          </form>
+          </div>
+
+          {/* Passkey */}
+          <PasskeyButton onError={setError} />
         </CardContent>
       </Card>
     </div>

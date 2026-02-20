@@ -265,9 +265,7 @@ export function PlayerCombobox({
                 {selectedPlayer.photoUrl ? (
                   <img src={selectedPlayer.photoUrl} alt="" className="h-full w-full object-cover" />
                 ) : selectedPlayer.jerseyNumber != null ? (
-                  <span className="text-xs font-bold font-mono text-primary/60">
-                    {selectedPlayer.jerseyNumber}
-                  </span>
+                  <span className="text-xs font-bold font-mono text-primary/60">{selectedPlayer.jerseyNumber}</span>
                 ) : (
                   <User className="h-5 w-5 text-primary/60" />
                 )}
@@ -277,9 +275,7 @@ export function PlayerCombobox({
               <div className="min-w-0 flex-1">
                 <div className="font-semibold text-sm text-foreground truncate">
                   {selectedPlayer.jerseyNumber != null && (
-                    <span className="font-mono text-xs text-muted-foreground mr-1">
-                      #{selectedPlayer.jerseyNumber}
-                    </span>
+                    <span className="font-mono text-xs text-muted-foreground mr-1">#{selectedPlayer.jerseyNumber}</span>
                   )}
                   {selectedPlayer.firstName} {selectedPlayer.lastName}
                 </div>
@@ -389,9 +385,7 @@ export function PlayerCombobox({
                           {player.photoUrl ? (
                             <img src={player.photoUrl} alt="" className="h-full w-full object-cover" />
                           ) : player.jerseyNumber != null ? (
-                            <span className="text-sm font-bold font-mono text-primary/70">
-                              {player.jerseyNumber}
-                            </span>
+                            <span className="text-sm font-bold font-mono text-primary/70">{player.jerseyNumber}</span>
                           ) : (
                             <div className="flex items-center justify-center">
                               <span className="text-xs font-bold text-primary/70">

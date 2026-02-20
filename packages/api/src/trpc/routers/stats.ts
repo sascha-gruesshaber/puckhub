@@ -1,8 +1,7 @@
 import * as schema from "@puckhub/db/schema"
+import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { and, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
-import { recalculateStandings } from "../../services/standingsService"
-import { recalculateGoalieStats, recalculatePlayerStats } from "../../services/statsService"
 import { adminProcedure, publicProcedure, router } from "../init"
 
 /**
@@ -67,10 +66,7 @@ async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void>
 
   // Get starting goalies for these games
   const goalieLineups = await db.query.gameLineups.findMany({
-    where: and(
-      inArray(schema.gameLineups.gameId, backfillGameIds),
-      eq(schema.gameLineups.isStartingGoalie, true),
-    ),
+    where: and(inArray(schema.gameLineups.gameId, backfillGameIds), eq(schema.gameLineups.isStartingGoalie, true)),
     columns: { gameId: true, playerId: true, teamId: true },
   })
 
@@ -82,12 +78,7 @@ async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void>
       count: sql<number>`count(*)`,
     })
     .from(schema.gameEvents)
-    .where(
-      and(
-        inArray(schema.gameEvents.gameId, backfillGameIds),
-        eq(schema.gameEvents.eventType, "goal"),
-      ),
-    )
+    .where(and(inArray(schema.gameEvents.gameId, backfillGameIds), eq(schema.gameEvents.eventType, "goal")))
     .groupBy(schema.gameEvents.gameId, schema.gameEvents.teamId)
 
   const goalsByGameTeam = new Map<string, number>()
@@ -117,16 +108,14 @@ async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void>
 }
 
 export const statsRouter = router({
-  seasonRoundInfo: publicProcedure
-    .input(z.object({ seasonId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const divisions = await ctx.db.query.divisions.findMany({
-        where: eq(schema.divisions.seasonId, input.seasonId),
-        with: { rounds: true },
-        orderBy: (d, { asc }) => [asc(d.sortOrder)],
-      })
-      return divisions
-    }),
+  seasonRoundInfo: publicProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    const divisions = await ctx.db.query.divisions.findMany({
+      where: eq(schema.divisions.seasonId, input.seasonId),
+      with: { rounds: true },
+      orderBy: (d, { asc }) => [asc(d.sortOrder)],
+    })
+    return divisions
+  }),
 
   playerStats: publicProcedure
     .input(
@@ -383,25 +372,23 @@ export const statsRouter = router({
       return results
     }),
 
-  recalculate: adminProcedure
-    .input(z.object({ seasonId: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      // First, generate missing goalieGameStats for completed games that lack them
-      await backfillGoalieGameStats(ctx.db, input.seasonId)
+  recalculate: adminProcedure.input(z.object({ seasonId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    // First, generate missing goalieGameStats for completed games that lack them
+    await backfillGoalieGameStats(ctx.db, input.seasonId)
 
-      await recalculatePlayerStats(ctx.db, input.seasonId)
-      await recalculateGoalieStats(ctx.db, input.seasonId)
+    await recalculatePlayerStats(ctx.db, input.seasonId)
+    await recalculateGoalieStats(ctx.db, input.seasonId)
 
-      // Recalculate standings for all rounds in this season
-      const rounds = await ctx.db
-        .select({ id: schema.rounds.id })
-        .from(schema.rounds)
-        .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
-        .where(eq(schema.divisions.seasonId, input.seasonId))
-      for (const round of rounds) {
-        await recalculateStandings(ctx.db, round.id)
-      }
+    // Recalculate standings for all rounds in this season
+    const rounds = await ctx.db
+      .select({ id: schema.rounds.id })
+      .from(schema.rounds)
+      .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
+      .where(eq(schema.divisions.seasonId, input.seasonId))
+    for (const round of rounds) {
+      await recalculateStandings(ctx.db, round.id)
+    }
 
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 })

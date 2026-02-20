@@ -36,10 +36,7 @@ function StatsRoundInfo({ divisions }: StatsRoundInfoProps) {
     return { playerRounds: pr, goalieRounds: gr }
   }, [divisions])
 
-  const allRounds = useMemo(
-    () => divisions.flatMap((d) => d.rounds),
-    [divisions],
-  )
+  const allRounds = useMemo(() => divisions.flatMap((d) => d.rounds), [divisions])
 
   if (allRounds.length === 0) return null
 
@@ -57,27 +54,23 @@ function StatsRoundInfo({ divisions }: StatsRoundInfoProps) {
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-blue-700">
           <span>
             {t("statsPage.roundInfo.playerStats")}:{" "}
-            {allPlayerStats ? (
-              t("statsPage.roundInfo.allRounds")
-            ) : (
-              playerRounds.map((r) => (
-                <Badge key={r} variant="secondary" className="ml-1 text-xs">
-                  {r}
-                </Badge>
-              ))
-            )}
+            {allPlayerStats
+              ? t("statsPage.roundInfo.allRounds")
+              : playerRounds.map((r) => (
+                  <Badge key={r} variant="secondary" className="ml-1 text-xs">
+                    {r}
+                  </Badge>
+                ))}
           </span>
           <span>
             {t("statsPage.roundInfo.goalieStats")}:{" "}
-            {allGoalieStats ? (
-              t("statsPage.roundInfo.allRounds")
-            ) : (
-              goalieRounds.map((r) => (
-                <Badge key={r} variant="secondary" className="ml-1 text-xs">
-                  {r}
-                </Badge>
-              ))
-            )}
+            {allGoalieStats
+              ? t("statsPage.roundInfo.allRounds")
+              : goalieRounds.map((r) => (
+                  <Badge key={r} variant="secondary" className="ml-1 text-xs">
+                    {r}
+                  </Badge>
+                ))}
           </span>
         </div>
       </div>

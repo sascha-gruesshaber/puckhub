@@ -228,7 +228,12 @@ function GameReportPage() {
       />
 
       {/* Suspensions in this game */}
-      <GameSuspensionList gameId={gameId} suspensions={game.suspensions as any} homeTeamId={game.homeTeamId} readOnly={readOnly} />
+      <GameSuspensionList
+        gameId={gameId}
+        suspensions={game.suspensions as any}
+        homeTeamId={game.homeTeamId}
+        readOnly={readOnly}
+      />
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b">

@@ -3,6 +3,8 @@ import {
   FileText,
   GitBranch,
   Handshake,
+  LayoutDashboard,
+  Lock,
   LogOut,
   MapPin,
   Newspaper,
@@ -60,8 +62,10 @@ const iconProps = { size: 18, strokeWidth: 1.5 } as const
 // Navigation structure
 // ---------------------------------------------------------------------------
 type RouteLink =
+  | "/"
   | "/games"
   | "/venues"
+  | "/standings"
   | "/stats"
   | "/teams"
   | "/players"
@@ -71,6 +75,7 @@ type RouteLink =
   | "/pages"
   | "/users"
   | "/settings"
+  | "/security"
 
 interface ActiveItem {
   to: RouteLink
@@ -202,6 +207,7 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
       items: [
         { to: "/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} /> },
         { to: "/settings", label: t("sidebar.items.settings"), icon: <Settings {...iconProps} /> },
+        { to: "/security", label: t("sidebar.items.security"), icon: <Lock {...iconProps} /> },
       ],
     },
   ] as NavGroup[]
@@ -296,6 +302,18 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
 
         {/* Navigation */}
         <nav className="sidebar-nav flex-1 overflow-y-auto" style={{ padding: "16px 12px" }}>
+          <Link
+            to="/"
+            activeOptions={{ exact: true }}
+            className="sidebar-link"
+            activeProps={{ className: "sidebar-link sidebar-link-active" }}
+            style={{ marginBottom: 18 }}
+          >
+            <span className="flex shrink-0">
+              <LayoutDashboard {...iconProps} />
+            </span>
+            {t("sidebar.items.dashboard")}
+          </Link>
           {translatedNavGroups.map((group, gi) => (
             <div key={group.label} style={{ marginBottom: gi < translatedNavGroups.length - 1 ? 22 : 0 }}>
               <div className="sidebar-group-label">{group.label}</div>

@@ -17,11 +17,11 @@ import { AlertTriangle, Calendar, Pencil, Plus, Star, Trash2 } from "lucide-reac
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
-import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { NoResults } from "~/components/noResults"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/seasons/")({

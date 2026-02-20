@@ -3,8 +3,8 @@ import appCss from "@puckhub/ui/globals.css?url"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
-import { LocaleProvider } from "~/i18n/locale-context"
 import { LocaleSync } from "~/components/localeSync"
+import { LocaleProvider } from "~/i18n/locale-context"
 import { createTRPCClient, trpc } from "../../lib/trpc"
 
 export interface RouterContext {

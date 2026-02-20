@@ -51,17 +51,26 @@ function ScorerTable({ stats, sortBy, limit }: ScorerTableProps) {
                 {t("statsPage.scorers.gamesPlayed")}
               </span>
             </th>
-            <th className={`text-center px-3 py-3 w-14 ${sortBy === "goals" ? "font-bold text-foreground" : ""}`} title={t("statsPage.tooltips.g")}>
+            <th
+              className={`text-center px-3 py-3 w-14 ${sortBy === "goals" ? "font-bold text-foreground" : ""}`}
+              title={t("statsPage.tooltips.g")}
+            >
               <span className="border-b border-dotted border-muted-foreground/50 cursor-help">
                 {t("statsPage.scorers.goals")}
               </span>
             </th>
-            <th className={`text-center px-3 py-3 w-14 ${sortBy === "assists" ? "font-bold text-foreground" : ""}`} title={t("statsPage.tooltips.a")}>
+            <th
+              className={`text-center px-3 py-3 w-14 ${sortBy === "assists" ? "font-bold text-foreground" : ""}`}
+              title={t("statsPage.tooltips.a")}
+            >
               <span className="border-b border-dotted border-muted-foreground/50 cursor-help">
                 {t("statsPage.scorers.assists")}
               </span>
             </th>
-            <th className={`text-center px-3 py-3 w-14 ${sortBy === "points" ? "font-bold text-foreground" : ""}`} title={t("statsPage.tooltips.pts")}>
+            <th
+              className={`text-center px-3 py-3 w-14 ${sortBy === "points" ? "font-bold text-foreground" : ""}`}
+              title={t("statsPage.tooltips.pts")}
+            >
               <span className="border-b border-dotted border-muted-foreground/50 cursor-help">
                 {t("statsPage.scorers.totalPoints")}
               </span>
@@ -79,8 +88,7 @@ function ScorerTable({ stats, sortBy, limit }: ScorerTableProps) {
                   <span
                     className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
                     style={{
-                      background:
-                        i === 0 ? "hsl(44, 87%, 66%)" : i === 1 ? "hsl(0, 0%, 75%)" : "hsl(25, 60%, 60%)",
+                      background: i === 0 ? "hsl(44, 87%, 66%)" : i === 1 ? "hsl(0, 0%, 75%)" : "hsl(25, 60%, 60%)",
                       color: i === 0 ? "hsl(44, 87%, 15%)" : "white",
                     }}
                   >
@@ -103,7 +111,16 @@ function ScorerTable({ stats, sortBy, limit }: ScorerTableProps) {
                     <PlayerHoverCard
                       playerId={stat.player.id}
                       name={`${stat.player.firstName} ${stat.player.lastName}`}
-                      team={stat.team ? { id: stat.team.id, name: stat.team.name, shortName: stat.team.shortName, logoUrl: stat.team.logoUrl } : undefined}
+                      team={
+                        stat.team
+                          ? {
+                              id: stat.team.id,
+                              name: stat.team.name,
+                              shortName: stat.team.shortName,
+                              logoUrl: stat.team.logoUrl,
+                            }
+                          : undefined
+                      }
                     >
                       <span className="cursor-pointer hover:underline decoration-dotted underline-offset-2">
                         <span className="text-muted-foreground">{stat.player.firstName?.charAt(0)}.</span>{" "}
@@ -135,9 +152,7 @@ function ScorerTable({ stats, sortBy, limit }: ScorerTableProps) {
                   <span className="text-muted-foreground">–</span>
                 )}
               </td>
-              <td className="text-center px-3 py-2.5 text-muted-foreground tabular-nums">
-                {stat.gamesPlayed}
-              </td>
+              <td className="text-center px-3 py-2.5 text-muted-foreground tabular-nums">{stat.gamesPlayed}</td>
               <td className={`text-center px-3 py-2.5 tabular-nums ${sortBy === "goals" ? "font-bold" : ""}`}>
                 {stat.goals}
               </td>

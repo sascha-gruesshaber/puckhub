@@ -318,8 +318,18 @@ describe("stats router", () => {
       const forward = (await admin.player.create({ firstName: "Fast", lastName: "Forward" }))!
       const defender = (await admin.player.create({ firstName: "Strong", lastName: "Defender" }))!
 
-      await admin.contract.signPlayer({ playerId: forward.id, teamId: team.id, seasonId: season.id, position: "forward" })
-      await admin.contract.signPlayer({ playerId: defender.id, teamId: team.id, seasonId: season.id, position: "defense" })
+      await admin.contract.signPlayer({
+        playerId: forward.id,
+        teamId: team.id,
+        seasonId: season.id,
+        position: "forward",
+      })
+      await admin.contract.signPlayer({
+        playerId: defender.id,
+        teamId: team.id,
+        seasonId: season.id,
+        position: "defense",
+      })
 
       const db = getTestDb()
       await db.insert(schema.playerSeasonStats).values([
@@ -744,8 +754,9 @@ describe("stats router", () => {
     })
 
     it("populates goalieSeasonStats when a game with goalie data is completed", async () => {
-      const { admin, season, round, teamA, teamB, playerA1, playerB1, goalieA, goalieB } =
-        await setupSeasonWithGame({ goalieMinGames: 1 })
+      const { admin, season, round, teamA, teamB, playerA1, playerB1, goalieA, goalieB } = await setupSeasonWithGame({
+        goalieMinGames: 1,
+      })
 
       const caller = createTestCaller()
       const before = await caller.stats.goalieStats({ seasonId: season.id })
@@ -816,8 +827,18 @@ describe("stats router", () => {
 
       const playerA = (await admin.player.create({ firstName: "Player", lastName: "A" }))!
       const playerB = (await admin.player.create({ firstName: "Player", lastName: "B" }))!
-      await admin.contract.signPlayer({ playerId: playerA.id, teamId: teamA.id, seasonId: season.id, position: "forward" })
-      await admin.contract.signPlayer({ playerId: playerB.id, teamId: teamB.id, seasonId: season.id, position: "forward" })
+      await admin.contract.signPlayer({
+        playerId: playerA.id,
+        teamId: teamA.id,
+        seasonId: season.id,
+        position: "forward",
+      })
+      await admin.contract.signPlayer({
+        playerId: playerB.id,
+        teamId: teamB.id,
+        seasonId: season.id,
+        position: "forward",
+      })
 
       // Complete a game in the non-counting round with 5 goals
       await createAndCompleteGame(admin, {
@@ -902,8 +923,9 @@ describe("stats router", () => {
     })
 
     it("recalculates player and goalie stats on demand", async () => {
-      const { admin, season, round, teamA, teamB, playerA1, playerB1, goalieA, goalieB } =
-        await setupSeasonWithGame({ goalieMinGames: 1 })
+      const { admin, season, round, teamA, teamB, playerA1, playerB1, goalieA, goalieB } = await setupSeasonWithGame({
+        goalieMinGames: 1,
+      })
 
       // Create and complete a game
       await createAndCompleteGame(admin, {

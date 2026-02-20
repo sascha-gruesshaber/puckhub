@@ -23,9 +23,7 @@ function PenaltyTeamChart({ stats, title }: PenaltyTeamChartProps) {
         axisPointer: { type: "shadow" },
         formatter: (params: Array<{ name: string; value: number }>) => {
           const p = params[0]
-          const original = sorted.find(
-            (s) => (s.team?.shortName ?? "–") === p?.name,
-          )
+          const original = sorted.find((s) => (s.team?.shortName ?? "–") === p?.name)
           return `${p?.name}<br/>PIM: <b>${p?.value}</b><br/>Penalties: ${original?.totalCount ?? 0}`
         },
       },

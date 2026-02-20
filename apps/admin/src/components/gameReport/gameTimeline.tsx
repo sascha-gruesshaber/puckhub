@@ -36,15 +36,7 @@ const periodNames: Record<number, string> = {
   5: "Penaltyschießen",
 }
 
-function GameTimeline({
-  gameId,
-  homeTeam,
-  awayTeam,
-  events,
-  lineups,
-  penaltyTypes,
-  readOnly,
-}: GameTimelineProps) {
+function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyTypes, readOnly }: GameTimelineProps) {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
 

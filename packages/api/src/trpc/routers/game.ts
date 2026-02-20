@@ -1,10 +1,9 @@
 import * as schema from "@puckhub/db/schema"
+import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { TRPCError } from "@trpc/server"
 import { and, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm"
 import { z } from "zod"
 import { generateRoundRobin } from "../../services/schedulerService"
-import { recalculateStandings } from "../../services/standingsService"
-import { recalculateGoalieStats, recalculatePlayerStats } from "../../services/statsService"
 import { adminProcedure, publicProcedure, router } from "../init"
 
 const gameStatusValues = ["scheduled", "completed", "cancelled"] as const

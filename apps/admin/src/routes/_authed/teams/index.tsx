@@ -18,18 +18,18 @@ import { Pencil, Plus, Shield, Shirt, Trash2, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
-import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
-import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
+import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { useWorkingSeason } from "~/contexts/seasonContext"
-import { FILTER_ALL } from "~/lib/search-params"
 import { useTranslation } from "~/i18n/use-translation"
+import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/teams/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; division?: string } => ({
@@ -83,7 +83,8 @@ function TeamsPage() {
     [navigate],
   )
   const setDivisionFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, division: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string) =>
+      navigate({ search: (prev) => ({ ...prev, division: v === FILTER_ALL ? undefined : v }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)
