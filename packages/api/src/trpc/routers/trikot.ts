@@ -1,19 +1,20 @@
 import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const trikotRouter = router({
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.query.trikots.findMany({
       with: { template: true },
+      where: eq(schema.trikots.organizationId, ctx.organizationId),
       orderBy: (t, { asc }) => [asc(t.name)],
     })
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.query.trikots.findFirst({
-      where: eq(schema.trikots.id, input.id),
+      where: and(eq(schema.trikots.id, input.id), eq(schema.trikots.organizationId, ctx.organizationId)),
       with: {
         template: true,
         teamTrikots: { with: { team: true } },
@@ -21,7 +22,7 @@ export const trikotRouter = router({
     })
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -34,6 +35,7 @@ export const trikotRouter = router({
       const [trikot] = await ctx.db
         .insert(schema.trikots)
         .values({
+          organizationId: ctx.organizationId,
           name: input.name,
           templateId: input.templateId,
           primaryColor: input.primaryColor,
@@ -43,7 +45,7 @@ export const trikotRouter = router({
       return trikot
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -58,12 +60,14 @@ export const trikotRouter = router({
       const [trikot] = await ctx.db
         .update(schema.trikots)
         .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.trikots.id, id))
+        .where(and(eq(schema.trikots.id, id), eq(schema.trikots.organizationId, ctx.organizationId)))
         .returning()
       return trikot
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.trikots).where(eq(schema.trikots.id, input.id))
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(schema.trikots)
+      .where(and(eq(schema.trikots.id, input.id), eq(schema.trikots.organizationId, ctx.organizationId)))
   }),
 })

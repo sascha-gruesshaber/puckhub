@@ -2,7 +2,7 @@ import * as schema from "@puckhub/db/schema"
 import { TRPCError } from "@trpc/server"
 import { and, eq, isNull, ne, sql } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 // ---------------------------------------------------------------------------
 // Slug utility
@@ -51,7 +51,13 @@ const STATIC_SLUGS = ["impressum", "datenschutz", "kontakt"]
 // ---------------------------------------------------------------------------
 // Slug validation
 // ---------------------------------------------------------------------------
-async function validateSlug(db: any, slug: string, parentId: string | null, excludeId?: string) {
+async function validateSlug(
+  db: any,
+  slug: string,
+  parentId: string | null,
+  organizationId: string,
+  excludeId?: string,
+) {
   if (!slug) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -66,8 +72,9 @@ async function validateSlug(db: any, slug: string, parentId: string | null, excl
     })
   }
 
-  // Check uniqueness scoped by parent level
+  // Check uniqueness scoped by parent level and organization
   const conditions = [
+    eq(schema.pages.organizationId, organizationId),
     eq(schema.pages.slug, slug),
     parentId ? eq(schema.pages.parentId, parentId) : isNull(schema.pages.parentId),
   ]
@@ -93,7 +100,7 @@ async function validateSlug(db: any, slug: string, parentId: string | null, excl
     const aliasConflict = await db
       .select({ id: schema.pageAliases.id })
       .from(schema.pageAliases)
-      .where(eq(schema.pageAliases.slug, slug))
+      .where(and(eq(schema.pageAliases.organizationId, organizationId), eq(schema.pageAliases.slug, slug)))
       .limit(1)
 
     if (aliasConflict.length > 0) {
@@ -109,16 +116,17 @@ async function validateSlug(db: any, slug: string, parentId: string | null, excl
 // Router
 // ---------------------------------------------------------------------------
 export const pageRouter = router({
-  list: adminProcedure.query(async ({ ctx }) => {
+  list: orgAdminProcedure.query(async ({ ctx }) => {
     return ctx.db.query.pages.findMany({
       with: { children: true },
+      where: eq(schema.pages.organizationId, ctx.organizationId),
       orderBy: (pages, { asc }) => [asc(pages.sortOrder), asc(pages.title)],
     })
   }),
 
-  getById: adminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getById: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
     const page = await ctx.db.query.pages.findFirst({
-      where: eq(schema.pages.id, input.id),
+      where: and(eq(schema.pages.id, input.id), eq(schema.pages.organizationId, ctx.organizationId)),
       with: { children: true },
     })
     if (!page) {
@@ -127,13 +135,16 @@ export const pageRouter = router({
     return page
   }),
 
-  getBySlug: publicProcedure.input(z.object({ slug: z.string().min(1) })).query(async ({ ctx, input }) => {
+  getBySlug: orgProcedure.input(z.object({ slug: z.string().min(1) })).query(async ({ ctx, input }) => {
     const parts = input.slug.split("/")
 
     if (parts.length === 1) {
       // Check for alias first
       const alias = await ctx.db.query.pageAliases.findFirst({
-        where: eq(schema.pageAliases.slug, parts[0]!),
+        where: and(
+          eq(schema.pageAliases.organizationId, ctx.organizationId),
+          eq(schema.pageAliases.slug, parts[0]!),
+        ),
         with: { targetPage: true },
       })
 
@@ -142,7 +153,10 @@ export const pageRouter = router({
         let targetSlug = alias.targetPage.slug
         if (alias.targetPage.parentId) {
           const parent = await ctx.db.query.pages.findFirst({
-            where: eq(schema.pages.id, alias.targetPage.parentId),
+            where: and(
+              eq(schema.pages.id, alias.targetPage.parentId),
+              eq(schema.pages.organizationId, ctx.organizationId),
+            ),
           })
           if (parent) {
             targetSlug = `${parent.slug}/${alias.targetPage.slug}`
@@ -154,6 +168,7 @@ export const pageRouter = router({
       // Look up top-level published page
       const page = await ctx.db.query.pages.findFirst({
         where: and(
+          eq(schema.pages.organizationId, ctx.organizationId),
           eq(schema.pages.slug, parts[0]!),
           eq(schema.pages.status, "published"),
           isNull(schema.pages.parentId),
@@ -170,6 +185,7 @@ export const pageRouter = router({
       // Nested: parent-slug/child-slug
       const parent = await ctx.db.query.pages.findFirst({
         where: and(
+          eq(schema.pages.organizationId, ctx.organizationId),
           eq(schema.pages.slug, parts[0]!),
           eq(schema.pages.status, "published"),
           isNull(schema.pages.parentId),
@@ -182,6 +198,7 @@ export const pageRouter = router({
 
       const child = await ctx.db.query.pages.findFirst({
         where: and(
+          eq(schema.pages.organizationId, ctx.organizationId),
           eq(schema.pages.slug, parts[1]!),
           eq(schema.pages.status, "published"),
           eq(schema.pages.parentId, parent.id),
@@ -197,7 +214,7 @@ export const pageRouter = router({
     throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
   }),
 
-  listByMenuLocation: publicProcedure
+  listByMenuLocation: orgProcedure
     .input(z.object({ location: z.enum(["main_nav", "footer"]) }))
     .query(async ({ ctx, input }) => {
       return ctx.db
@@ -205,6 +222,7 @@ export const pageRouter = router({
         .from(schema.pages)
         .where(
           and(
+            eq(schema.pages.organizationId, ctx.organizationId),
             eq(schema.pages.status, "published"),
             isNull(schema.pages.parentId),
             sql`${schema.pages.menuLocations} @> ARRAY[${sql.raw(`'${input.location}'`)}]::menu_location[]`,
@@ -213,7 +231,7 @@ export const pageRouter = router({
         .orderBy(schema.pages.sortOrder, schema.pages.title)
     }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -231,7 +249,7 @@ export const pageRouter = router({
       // Validate parent constraints
       if (parentId) {
         const parent = await ctx.db.query.pages.findFirst({
-          where: eq(schema.pages.id, parentId),
+          where: and(eq(schema.pages.id, parentId), eq(schema.pages.organizationId, ctx.organizationId)),
         })
         if (!parent) {
           throw new TRPCError({
@@ -247,11 +265,12 @@ export const pageRouter = router({
         }
       }
 
-      await validateSlug(ctx.db, slug, parentId)
+      await validateSlug(ctx.db, slug, parentId, ctx.organizationId)
 
       const [page] = await ctx.db
         .insert(schema.pages)
         .values({
+          organizationId: ctx.organizationId,
           title: input.title,
           slug,
           content: input.content,
@@ -265,7 +284,7 @@ export const pageRouter = router({
       return page
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -281,7 +300,7 @@ export const pageRouter = router({
       const { id, ...data } = input
 
       const existing = await ctx.db.query.pages.findFirst({
-        where: eq(schema.pages.id, id),
+        where: and(eq(schema.pages.id, id), eq(schema.pages.organizationId, ctx.organizationId)),
       })
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
@@ -301,14 +320,17 @@ export const pageRouter = router({
 
       if (data.title && data.title !== existing.title && !existing.isStatic) {
         slug = slugify(data.title)
-        await validateSlug(ctx.db, slug, parentId, id)
+        await validateSlug(ctx.db, slug, parentId, ctx.organizationId, id)
       }
 
       // Validate parent constraints if parentId is changing
       if (data.parentId !== undefined && data.parentId !== existing.parentId) {
         if (data.parentId) {
           const parent = await ctx.db.query.pages.findFirst({
-            where: eq(schema.pages.id, data.parentId),
+            where: and(
+              eq(schema.pages.id, data.parentId),
+              eq(schema.pages.organizationId, ctx.organizationId),
+            ),
           })
           if (!parent) {
             throw new TRPCError({
@@ -340,14 +362,14 @@ export const pageRouter = router({
           ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
           updatedAt: new Date(),
         })
-        .where(eq(schema.pages.id, id))
+        .where(and(eq(schema.pages.id, id), eq(schema.pages.organizationId, ctx.organizationId)))
         .returning()
       return page
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const existing = await ctx.db.query.pages.findFirst({
-      where: eq(schema.pages.id, input.id),
+      where: and(eq(schema.pages.id, input.id), eq(schema.pages.organizationId, ctx.organizationId)),
     })
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
@@ -358,19 +380,22 @@ export const pageRouter = router({
         message: "Statische Seiten können nicht gelöscht werden",
       })
     }
-    await ctx.db.delete(schema.pages).where(eq(schema.pages.id, input.id))
+    await ctx.db
+      .delete(schema.pages)
+      .where(and(eq(schema.pages.id, input.id), eq(schema.pages.organizationId, ctx.organizationId)))
   }),
 
   // --- Aliases ---
 
-  listAliases: adminProcedure.query(async ({ ctx }) => {
+  listAliases: orgAdminProcedure.query(async ({ ctx }) => {
     return ctx.db.query.pageAliases.findMany({
       with: { targetPage: true },
+      where: eq(schema.pageAliases.organizationId, ctx.organizationId),
       orderBy: (aliases, { asc }) => [asc(aliases.slug)],
     })
   }),
 
-  createAlias: adminProcedure
+  createAlias: orgAdminProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -394,11 +419,17 @@ export const pageRouter = router({
         })
       }
 
-      // Check against existing top-level pages
+      // Check against existing top-level pages for this organization
       const pageConflict = await ctx.db
         .select({ id: schema.pages.id })
         .from(schema.pages)
-        .where(and(eq(schema.pages.slug, slug), isNull(schema.pages.parentId)))
+        .where(
+          and(
+            eq(schema.pages.organizationId, ctx.organizationId),
+            eq(schema.pages.slug, slug),
+            isNull(schema.pages.parentId),
+          ),
+        )
         .limit(1)
 
       if (pageConflict.length > 0) {
@@ -408,11 +439,11 @@ export const pageRouter = router({
         })
       }
 
-      // Check against existing aliases
+      // Check against existing aliases for this organization
       const aliasConflict = await ctx.db
         .select({ id: schema.pageAliases.id })
         .from(schema.pageAliases)
-        .where(eq(schema.pageAliases.slug, slug))
+        .where(and(eq(schema.pageAliases.organizationId, ctx.organizationId), eq(schema.pageAliases.slug, slug)))
         .limit(1)
 
       if (aliasConflict.length > 0) {
@@ -425,6 +456,7 @@ export const pageRouter = router({
       const [alias] = await ctx.db
         .insert(schema.pageAliases)
         .values({
+          organizationId: ctx.organizationId,
           slug,
           targetPageId: input.targetPageId,
         })
@@ -432,7 +464,9 @@ export const pageRouter = router({
       return alias
     }),
 
-  deleteAlias: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.pageAliases).where(eq(schema.pageAliases.id, input.id))
+  deleteAlias: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(schema.pageAliases)
+      .where(and(eq(schema.pageAliases.id, input.id), eq(schema.pageAliases.organizationId, ctx.organizationId)))
   }),
 })

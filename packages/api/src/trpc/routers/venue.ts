@@ -2,10 +2,10 @@ import * as schema from "@puckhub/db/schema"
 import { TRPCError } from "@trpc/server"
 import { and, count, eq, ne } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const venueRouter = router({
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: orgProcedure.query(async ({ ctx }) => {
     const venues = await ctx.db.query.venues.findMany({
       with: {
         defaultForTeams: {
@@ -18,6 +18,7 @@ export const venueRouter = router({
           limit: 1,
         },
       },
+      where: eq(schema.venues.organizationId, ctx.organizationId),
       orderBy: (venues, { asc }) => [asc(venues.name), asc(venues.city)],
     })
 
@@ -27,7 +28,7 @@ export const venueRouter = router({
     }))
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -41,6 +42,7 @@ export const venueRouter = router({
         const [venue] = await tx
           .insert(schema.venues)
           .values({
+            organizationId: ctx.organizationId,
             name: input.name.trim(),
             city: input.city?.trim() || null,
             address: input.address?.trim() || null,
@@ -62,7 +64,7 @@ export const venueRouter = router({
       })
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -84,7 +86,7 @@ export const venueRouter = router({
             address: rest.address === undefined ? undefined : rest.address?.trim() || null,
             updatedAt: new Date(),
           })
-          .where(eq(schema.venues.id, id))
+          .where(and(eq(schema.venues.id, id), eq(schema.venues.organizationId, ctx.organizationId)))
           .returning()
 
         if (defaultTeamId !== undefined) {
@@ -110,7 +112,7 @@ export const venueRouter = router({
       })
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const rows = await ctx.db
       .select({ usageCount: count() })
       .from(schema.games)
@@ -129,7 +131,9 @@ export const venueRouter = router({
       .set({ defaultVenueId: null, updatedAt: new Date() })
       .where(eq(schema.teams.defaultVenueId, input.id))
 
-    await ctx.db.delete(schema.venues).where(eq(schema.venues.id, input.id))
+    await ctx.db
+      .delete(schema.venues)
+      .where(and(eq(schema.venues.id, input.id), eq(schema.venues.organizationId, ctx.organizationId)))
     return { success: true }
   }),
 })

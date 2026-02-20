@@ -43,6 +43,13 @@
       "when": 1771613299831,
       "tag": "0005_bitter_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771700000000,
+      "tag": "0006_multi_tenant",
+      "breakpoints": true
     }
   ]
 }

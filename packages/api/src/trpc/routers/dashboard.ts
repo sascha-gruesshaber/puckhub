@@ -1,10 +1,10 @@
 import * as schema from "@puckhub/db/schema"
 import { and, desc, eq, gt, inArray, isNull, lt, notInArray, or, sql } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, router } from "../init"
+import { orgAdminProcedure, router } from "../init"
 
 export const dashboardRouter = router({
-  getOverview: adminProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getOverview: orgAdminProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
     const { seasonId } = input
     const db = ctx.db
 
@@ -12,7 +12,7 @@ export const dashboardRouter = router({
     const seasonDivisions = await db
       .select({ id: schema.divisions.id })
       .from(schema.divisions)
-      .where(eq(schema.divisions.seasonId, seasonId))
+      .where(and(eq(schema.divisions.seasonId, seasonId), eq(schema.divisions.organizationId, ctx.organizationId)))
     const divisionIds = seasonDivisions.map((d) => d.id)
 
     // Get all rounds for this season
@@ -157,7 +157,10 @@ export const dashboardRouter = router({
 
     // --- Active Suspensions ---
     const activeSuspensions = await db.query.gameSuspensions.findMany({
-      where: sql`${schema.gameSuspensions.servedGames} < ${schema.gameSuspensions.suspendedGames}`,
+      where: and(
+        sql`${schema.gameSuspensions.servedGames} < ${schema.gameSuspensions.suspendedGames}`,
+        eq(schema.gameSuspensions.organizationId, ctx.organizationId),
+      ),
       with: {
         player: { columns: { id: true, firstName: true, lastName: true } },
         team: { columns: { id: true, shortName: true, logoUrl: true } },
@@ -167,7 +170,7 @@ export const dashboardRouter = router({
 
     // --- Top Scorers ---
     const topScorers = await db.query.playerSeasonStats.findMany({
-      where: eq(schema.playerSeasonStats.seasonId, seasonId),
+      where: and(eq(schema.playerSeasonStats.seasonId, seasonId), eq(schema.playerSeasonStats.organizationId, ctx.organizationId)),
       with: {
         player: { columns: { id: true, firstName: true, lastName: true } },
         team: { columns: { id: true, shortName: true, logoUrl: true } },
@@ -182,7 +185,7 @@ export const dashboardRouter = router({
 
     // --- Top Penalized ---
     const topPenalized = await db.query.playerSeasonStats.findMany({
-      where: and(eq(schema.playerSeasonStats.seasonId, seasonId), gt(schema.playerSeasonStats.penaltyMinutes, 0)),
+      where: and(eq(schema.playerSeasonStats.seasonId, seasonId), eq(schema.playerSeasonStats.organizationId, ctx.organizationId), gt(schema.playerSeasonStats.penaltyMinutes, 0)),
       with: {
         player: { columns: { id: true, firstName: true, lastName: true } },
         team: { columns: { id: true, shortName: true, logoUrl: true } },

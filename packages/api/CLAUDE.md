@@ -19,7 +19,7 @@ src/
     ├── init.ts        # tRPC init, middleware, procedure types
     ├── context.ts     # Request context (db, session, user)
     ├── index.ts       # Root router composition (appRouter)
-    └── routers/       # 22 feature routers
+    └── routers/       # 25 feature routers
 ```
 
 ## HTTP Routes
@@ -32,19 +32,21 @@ src/
 | `GET` | `/api/uploads/*` | Static file serving |
 | `GET` | `/api/health` | Health check |
 
-## Routers (22)
+## Routers (25)
 
-`season` · `division` · `round` · `team` · `teamDivision` · `player` · `contract` · `game` · `gameReport` · `standings` · `stats` · `trikotTemplate` · `trikot` · `teamTrikot` · `users` · `setup` · `settings` · `sponsor` · `news` · `page` · `venue` · `userPreferences`
+`season` · `division` · `round` · `team` · `teamDivision` · `player` · `contract` · `game` · `gameReport` · `standings` · `stats` · `trikotTemplate` · `trikot` · `teamTrikot` · `users` · `setup` · `settings` · `sponsor` · `news` · `page` · `venue` · `userPreferences` · `bonusPoints` · `dashboard` · `organization`
 
 ## Procedure Types
 
 ```ts
-publicProcedure      // No auth — use for read-only public data
-protectedProcedure   // Requires authenticated session (isAuthed middleware)
-adminProcedure       // Requires super_admin or league_admin role (isAdmin middleware)
+publicProcedure        // No auth — use for read-only public data
+protectedProcedure     // Requires authenticated session (isAuthed middleware)
+adminProcedure         // Requires org admin role (alias for orgAdminProcedure)
+orgAdminProcedure      // Requires Better Auth organization admin/owner role
+platformAdminProcedure // Requires platform-level admin privileges
 ```
 
-Most mutations use `adminProcedure`. Public queries for standings/stats use `publicProcedure`.
+Most mutations use `adminProcedure` (org-scoped). Public queries for standings/stats use `publicProcedure`.
 
 ## Services
 

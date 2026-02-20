@@ -11,6 +11,7 @@ export async function createContext(opts: FetchCreateContextFnOptions) {
     db,
     session,
     user: session?.user ?? null,
+    activeOrganizationId: (session?.session as any)?.activeOrganizationId ?? null,
   }
 }
 

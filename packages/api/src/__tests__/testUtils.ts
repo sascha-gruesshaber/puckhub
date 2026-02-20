@@ -37,6 +37,11 @@ export async function closeTestDb() {
   }
 }
 
+// --- Test org constants ---
+export const TEST_ORG_ID = "test-org-id"
+export const TEST_ORG_NAME = "Test League"
+export const TEST_ORG_SLUG = "test-league"
+
 const testAdminUser = {
   id: "test-admin-id",
   email: "admin@test.local",
@@ -45,6 +50,7 @@ const testAdminUser = {
   createdAt: new Date(),
   updatedAt: new Date(),
   image: null,
+  role: null,
 }
 
 const testAdminSession = {
@@ -56,6 +62,7 @@ const testAdminSession = {
   updatedAt: new Date(),
   ipAddress: null,
   userAgent: null,
+  activeOrganizationId: TEST_ORG_ID,
 }
 
 const testRegularUser = {
@@ -66,6 +73,7 @@ const testRegularUser = {
   createdAt: new Date(),
   updatedAt: new Date(),
   image: null,
+  role: null,
 }
 
 const testRegularSession = {
@@ -77,13 +85,49 @@ const testRegularSession = {
   updatedAt: new Date(),
   ipAddress: null,
   userAgent: null,
+  activeOrganizationId: TEST_ORG_ID,
+}
+
+/**
+ * Seeds the test organization + member records into the database.
+ * Must be called AFTER initTestDb() but BEFORE createTestCaller() when
+ * the template DB does not already contain the org data.
+ *
+ * Returns the org id for convenience.
+ */
+export async function seedTestOrg(db?: ReturnType<typeof getTestDb>) {
+  const d = db ?? getTestDb()
+
+  await d.insert(schema.organization).values({
+    id: TEST_ORG_ID,
+    name: TEST_ORG_NAME,
+    slug: TEST_ORG_SLUG,
+  })
+
+  // Admin user is "owner" of the org
+  await d.insert(schema.member).values({
+    id: "test-admin-member-id",
+    userId: "test-admin-id",
+    organizationId: TEST_ORG_ID,
+    role: "owner",
+  })
+
+  // Regular user is "member" of the org
+  await d.insert(schema.member).values({
+    id: "test-user-member-id",
+    userId: "test-user-id",
+    organizationId: TEST_ORG_ID,
+    role: "member",
+  })
+
+  return TEST_ORG_ID
 }
 
 /**
  * Creates a tRPC caller that talks to the real test database.
  * By default creates an unauthenticated (public) caller.
- * Pass `asAdmin: true` to simulate an authenticated admin user (super_admin role).
- * Pass `asUser: true` to simulate an authenticated non-admin user (no roles).
+ * Pass `asAdmin: true` to simulate an authenticated admin user (org owner).
+ * Pass `asUser: true` to simulate an authenticated non-admin user (org member).
  */
 export function createTestCaller(opts?: {
   asAdmin?: boolean
@@ -93,16 +137,19 @@ export function createTestCaller(opts?: {
 
   let session: Context["session"] = null
   let user: Context["user"] = null
+  let activeOrganizationId: Context["activeOrganizationId"] = null
 
   if (opts?.asAdmin) {
     session = { session: testAdminSession, user: testAdminUser } as unknown as Context["session"]
     user = testAdminUser as unknown as NonNullable<Context["user"]>
+    activeOrganizationId = TEST_ORG_ID
   } else if (opts?.asUser) {
     session = { session: testRegularSession, user: testRegularUser } as unknown as Context["session"]
     user = testRegularUser as unknown as NonNullable<Context["user"]>
+    activeOrganizationId = TEST_ORG_ID
   }
 
-  const ctx: Context = { db, session, user }
+  const ctx: Context = { db, session, user, activeOrganizationId }
 
   return appRouter.createCaller(ctx)
 }

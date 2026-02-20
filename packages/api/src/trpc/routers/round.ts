@@ -1,8 +1,8 @@
 import * as schema from "@puckhub/db/schema"
 import { recalculateGoalieStats, recalculatePlayerStats } from "@puckhub/db/services"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const roundTypeValues = [
   "regular",
@@ -16,20 +16,23 @@ const roundTypeValues = [
 ] as const
 
 export const roundRouter = router({
-  listByDivision: publicProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  listByDivision: orgProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.query.rounds.findMany({
-      where: eq(schema.rounds.divisionId, input.divisionId),
+      where: and(
+        eq(schema.rounds.divisionId, input.divisionId),
+        eq(schema.rounds.organizationId, ctx.organizationId),
+      ),
       orderBy: (rounds, { asc }) => [asc(rounds.sortOrder)],
     })
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.query.rounds.findFirst({
-      where: eq(schema.rounds.id, input.id),
+      where: and(eq(schema.rounds.id, input.id), eq(schema.rounds.organizationId, ctx.organizationId)),
     })
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         divisionId: z.string().uuid(),
@@ -44,11 +47,14 @@ export const roundRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [round] = await ctx.db.insert(schema.rounds).values(input).returning()
+      const [round] = await ctx.db
+        .insert(schema.rounds)
+        .values({ ...input, organizationId: ctx.organizationId })
+        .returning()
       return round
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -71,7 +77,7 @@ export const roundRouter = router({
       const [round] = await ctx.db
         .update(schema.rounds)
         .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.rounds.id, id))
+        .where(and(eq(schema.rounds.id, id), eq(schema.rounds.organizationId, ctx.organizationId)))
         .returning()
 
       // Recalculate stats when counting flags change
@@ -93,7 +99,9 @@ export const roundRouter = router({
       return round
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.rounds).where(eq(schema.rounds.id, input.id))
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(schema.rounds)
+      .where(and(eq(schema.rounds.id, input.id), eq(schema.rounds.organizationId, ctx.organizationId)))
   }),
 })

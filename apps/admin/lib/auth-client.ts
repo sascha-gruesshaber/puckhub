@@ -1,4 +1,6 @@
 import { passkeyClient } from "@better-auth/passkey/client"
+import { adminClient } from "better-auth/client/plugins"
+import { organizationClient } from "better-auth/client/plugins"
 import { twoFactorClient } from "better-auth/client/plugins"
 import { createAuthClient } from "better-auth/react"
 
@@ -11,7 +13,11 @@ export const authClient = createAuthClient({
         window.location.href = "/login?mode=2fa"
       },
     }),
+    organizationClient(),
+    adminClient(),
   ],
 })
 
 export const { signIn, signUp, signOut, useSession } = authClient
+export const useActiveOrganization = authClient.useActiveOrganization
+export const useListOrganizations = authClient.useListOrganizations

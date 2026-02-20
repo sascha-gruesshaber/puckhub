@@ -2,7 +2,7 @@
 
 TanStack Start (React 19) admin application with Vite 7, file-based routing, tRPC integration, and i18n (DE/EN).
 
-## Route Structure (26 routes)
+## Route Structure (27 routes)
 
 ```
 src/routes/
@@ -31,7 +31,8 @@ src/routes/
     ├── pages/new.tsx       # Create page
     ├── pages/$pageId/edit.tsx  # Edit page
     ├── sponsors/index.tsx  # Sponsors management
-    └── users/index.tsx     # User management
+    ├── users/index.tsx     # User management
+    └── security.tsx        # Security settings
 ```
 
 - `_authed.tsx` wraps all protected routes — checks session, redirects to `/login` if unauthenticated

@@ -1,24 +1,25 @@
 import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const sponsorRouter = router({
-  list: publicProcedure.query(async ({ ctx }) => {
+  list: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.query.sponsors.findMany({
       with: { team: true },
+      where: eq(schema.sponsors.organizationId, ctx.organizationId),
       orderBy: (sponsors, { asc }) => [asc(sponsors.sortOrder), asc(sponsors.name)],
     })
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.query.sponsors.findFirst({
-      where: eq(schema.sponsors.id, input.id),
+      where: and(eq(schema.sponsors.id, input.id), eq(schema.sponsors.organizationId, ctx.organizationId)),
       with: { team: true },
     })
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -31,11 +32,14 @@ export const sponsorRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [sponsor] = await ctx.db.insert(schema.sponsors).values(input).returning()
+      const [sponsor] = await ctx.db
+        .insert(schema.sponsors)
+        .values({ ...input, organizationId: ctx.organizationId })
+        .returning()
       return sponsor
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -53,12 +57,14 @@ export const sponsorRouter = router({
       const [sponsor] = await ctx.db
         .update(schema.sponsors)
         .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.sponsors.id, id))
+        .where(and(eq(schema.sponsors.id, id), eq(schema.sponsors.organizationId, ctx.organizationId)))
         .returning()
       return sponsor
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.sponsors).where(eq(schema.sponsors.id, input.id))
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(schema.sponsors)
+      .where(and(eq(schema.sponsors.id, input.id), eq(schema.sponsors.organizationId, ctx.organizationId)))
   }),
 })

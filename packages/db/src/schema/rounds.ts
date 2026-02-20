@@ -1,11 +1,15 @@
 import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { divisions } from "./divisions"
 import { roundTypeEnum } from "./enums"
+import { organization } from "./organization"
 
 export const rounds = pgTable(
   "rounds",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
     divisionId: uuid("division_id")
       .notNull()
       .references(() => divisions.id, { onDelete: "cascade" }),
@@ -20,5 +24,5 @@ export const rounds = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("rounds_division_id_idx").on(t.divisionId)],
+  (t) => [index("rounds_division_id_idx").on(t.divisionId), index("rounds_org_id_idx").on(t.organizationId)],
 )

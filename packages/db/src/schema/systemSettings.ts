@@ -1,10 +1,14 @@
-import { sql } from "drizzle-orm"
-import { check, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { organization } from "./organization"
 
 export const systemSettings = pgTable(
   "system_settings",
   {
-    id: integer("id").primaryKey().default(1),
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .unique()
+      .references(() => organization.id, { onDelete: "cascade" }),
     leagueName: text("league_name").notNull(),
     leagueShortName: text("league_short_name").notNull(),
     locale: text("locale").notNull().default("de-DE"),
@@ -14,5 +18,5 @@ export const systemSettings = pgTable(
     pointsLoss: integer("points_loss").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [check("singleton_row", sql`${table.id} = 1`)],
+  (t) => [index("system_settings_org_id_idx").on(t.organizationId)],
 )

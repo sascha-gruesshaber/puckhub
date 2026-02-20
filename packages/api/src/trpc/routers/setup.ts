@@ -5,6 +5,21 @@ import { sql } from "drizzle-orm"
 import { z } from "zod"
 import { publicProcedure, router } from "../init"
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
 export const setupRouter = router({
   status: publicProcedure.query(async ({ ctx }) => {
     const [result] = await ctx.db.select({ count: sql<number>`count(*)::int` }).from(schema.user)
@@ -57,13 +72,14 @@ export const setupRouter = router({
         })
       }
 
-      // Create admin user
+      // Create admin user with platform admin role
       const userId = crypto.randomUUID()
       await ctx.db.insert(schema.user).values({
         id: userId,
         email: input.admin.email,
         name: input.admin.name,
         emailVerified: true,
+        role: "admin",
       })
 
       // Create credential account
@@ -76,27 +92,39 @@ export const setupRouter = router({
         userId,
       })
 
-      // Assign super_admin role
-      await ctx.db.insert(schema.userRoles).values({
-        userId,
-        role: "super_admin",
+      // Create first organization from league name
+      const orgId = crypto.randomUUID()
+      const slug = slugify(input.leagueSettings.leagueShortName) || "default"
+      await ctx.db.insert(schema.organization).values({
+        id: orgId,
+        name: input.leagueSettings.leagueName,
+        slug,
       })
 
-      // Save league settings
+      // Add admin as org owner
+      await ctx.db.insert(schema.member).values({
+        id: crypto.randomUUID(),
+        userId,
+        organizationId: orgId,
+        role: "owner",
+      })
+
+      // Save league settings with org reference
       await ctx.db.insert(schema.systemSettings).values({
-        id: 1,
+        organizationId: orgId,
         ...input.leagueSettings,
       })
 
       // Optionally create first season
       if (input.season) {
         await ctx.db.insert(schema.seasons).values({
+          organizationId: orgId,
           name: input.season.name,
           seasonStart: new Date(`${input.season.seasonStart}T00:00:00.000Z`),
           seasonEnd: new Date(`${input.season.seasonEnd}T23:59:59.999Z`),
         })
       }
 
-      return { success: true }
+      return { success: true, organizationId: orgId }
     }),
 })

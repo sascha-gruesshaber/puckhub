@@ -15,6 +15,11 @@ export async function handleUpload(c: Context) {
     return c.json({ error: "Unauthorized" }, 401)
   }
 
+  const orgId = (session.session as any)?.activeOrganizationId
+  if (!orgId) {
+    return c.json({ error: "No organization selected" }, 400)
+  }
+
   const formData = await c.req.formData()
   const file = formData.get("file")
   const type = formData.get("type") as string
@@ -38,12 +43,12 @@ export async function handleUpload(c: Context) {
   const ext = file.name.split(".").pop() || "png"
   const folder = type === "logo" ? "logos" : "photos"
   const filename = `${randomUUID()}.${ext}`
-  const dir = join(UPLOAD_BASE, folder)
+  const dir = join(UPLOAD_BASE, orgId, folder)
 
   await mkdir(dir, { recursive: true })
   const buffer = Buffer.from(await file.arrayBuffer())
   await writeFile(join(dir, filename), buffer)
 
-  const url = `/api/uploads/${folder}/${filename}`
+  const url = `/api/uploads/${orgId}/${folder}/${filename}`
   return c.json({ url })
 }

@@ -1,10 +1,13 @@
-import { eq } from "drizzle-orm"
 import type { Database } from "../index"
 import * as schema from "../schema"
 
 /**
  * Seed reference data (penalty types, trikot templates).
  * Uses onConflictDoNothing() so it's safe to run repeatedly.
+ *
+ * Note: static pages are NOT seeded here because the pages table requires
+ * an organizationId. Static pages must be created per-organization, either
+ * via the demo seed (demo.ts) or through the admin UI after creating an org.
  */
 export async function runSeed(db: Database) {
   console.log("Seeding penalty types...")
@@ -45,47 +48,6 @@ export async function runSeed(db: Database) {
       },
     ])
     .onConflictDoNothing()
-
-  console.log("Seeding static pages...")
-  const existingStaticPages = await db
-    .select({ id: schema.pages.id })
-    .from(schema.pages)
-    .where(eq(schema.pages.isStatic, true))
-    .limit(1)
-
-  if (existingStaticPages.length === 0) {
-    await db.insert(schema.pages).values([
-      {
-        title: "Impressum",
-        slug: "impressum",
-        content: "<h2>Impressum</h2><p>Angaben gemäß § 5 TMG</p><p>[Hier Impressum-Daten eintragen]</p>",
-        status: "published",
-        isStatic: true,
-        menuLocations: ["footer"],
-        sortOrder: 100,
-      },
-      {
-        title: "Datenschutz",
-        slug: "datenschutz",
-        content: "<h2>Datenschutzerklärung</h2><p>[Hier Datenschutzerklärung eintragen]</p>",
-        status: "published",
-        isStatic: true,
-        menuLocations: ["footer"],
-        sortOrder: 101,
-      },
-      {
-        title: "Kontakt",
-        slug: "kontakt",
-        content: "<h2>Kontakt</h2><p>[Hier Kontaktinformationen eintragen]</p>",
-        status: "published",
-        isStatic: true,
-        menuLocations: ["footer"],
-        sortOrder: 102,
-      },
-    ])
-  } else {
-    console.log("  Static pages already exist, skipping.")
-  }
 
   console.log("Seed complete.")
 }

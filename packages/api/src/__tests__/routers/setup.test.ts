@@ -13,10 +13,11 @@ const defaultLeagueSettings = {
   pointsLoss: 0,
 }
 
-/** Remove all users and settings to simulate a fresh install. */
+/** Remove all users, org data and settings to simulate a fresh install. */
 async function clearSetupData() {
   const db = getTestDb()
-  await db.delete(schema.userRoles)
+  await db.delete(schema.member)
+  await db.delete(schema.organization)
   await db.delete(schema.session)
   await db.delete(schema.account)
   await db.delete(schema.user)
@@ -40,7 +41,7 @@ describe("setup router", () => {
   })
 
   describe("initialize", () => {
-    it("creates admin user with super_admin role", async () => {
+    it("creates admin user with platform admin role and organization", async () => {
       await clearSetupData()
       const caller = createTestCaller()
 
@@ -54,6 +55,7 @@ describe("setup router", () => {
       })
 
       expect(result.success).toBe(true)
+      expect(result.organizationId).toBeDefined()
 
       // Verify user
       const db = getTestDb()
@@ -61,6 +63,7 @@ describe("setup router", () => {
       expect(user).toBeDefined()
       expect(user?.name).toBe("Liga Admin")
       expect(user?.emailVerified).toBe(true)
+      expect(user?.role).toBe("admin")
 
       // Verify account with hashed password
       const [acc] = await db.select().from(schema.account).where(eq(schema.account.userId, user?.id))
@@ -69,13 +72,25 @@ describe("setup router", () => {
       expect(acc?.password).toBeTruthy()
       expect(acc?.password).not.toBe("secure123") // should be hashed
 
-      // Verify super_admin role
-      const [role] = await db.select().from(schema.userRoles).where(eq(schema.userRoles.userId, user?.id))
-      expect(role).toBeDefined()
-      expect(role?.role).toBe("super_admin")
+      // Verify organization was created
+      const [org] = await db.select().from(schema.organization).where(eq(schema.organization.id, result.organizationId))
+      expect(org).toBeDefined()
+      expect(org?.name).toBe("Test Liga")
+
+      // Verify admin is org owner
+      const [memberRecord] = await db
+        .select()
+        .from(schema.member)
+        .where(eq(schema.member.userId, user?.id))
+      expect(memberRecord).toBeDefined()
+      expect(memberRecord?.role).toBe("owner")
+      expect(memberRecord?.organizationId).toBe(result.organizationId)
 
       // Verify system settings
-      const [settings] = await db.select().from(schema.systemSettings).where(eq(schema.systemSettings.id, 1))
+      const [settings] = await db
+        .select()
+        .from(schema.systemSettings)
+        .where(eq(schema.systemSettings.organizationId, result.organizationId))
       expect(settings).toBeDefined()
       expect(settings?.leagueName).toBe("Test Liga")
       expect(settings?.leagueShortName).toBe("TL")
@@ -85,7 +100,7 @@ describe("setup router", () => {
       await clearSetupData()
       const caller = createTestCaller()
 
-      await caller.setup.initialize({
+      const result = await caller.setup.initialize({
         admin: {
           name: "Admin",
           email: "admin@test.de",
@@ -100,7 +115,10 @@ describe("setup router", () => {
       })
 
       const db = getTestDb()
-      const [season] = await db.select().from(schema.seasons)
+      const [season] = await db
+        .select()
+        .from(schema.seasons)
+        .where(eq(schema.seasons.organizationId, result.organizationId))
       expect(season).toBeDefined()
       expect(season?.name).toBe("Saison 2025/2026")
       expect(new Date(season?.seasonStart).toISOString().slice(0, 10)).toBe("2025-09-01")

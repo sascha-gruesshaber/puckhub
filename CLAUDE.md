@@ -12,8 +12,8 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 |-----------|---------|-------------|
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (port 3000), i18n (DE/EN) |
 | `apps/web` | — | Public website (placeholder) |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (22 routers) + Better Auth (port 3001) |
-| `packages/db` | `@puckhub/db` | Drizzle schema (32 files, 10 enums), migrations, seeds |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (25 routers) + Better Auth (port 3001) |
+| `packages/db` | `@puckhub/db` | Drizzle schema (34 files, 8 enums), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
 
@@ -25,7 +25,7 @@ pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
 pnpm lint               # TypeScript type-check across all packages
 pnpm db:generate        # Generate Drizzle migrations after schema changes
-pnpm db:seed:demo       # Seed demo data (10 teams, 100 players, 10 seasons)
+pnpm db:seed:demo       # Seed demo data (10 teams, 100 players, 16 seasons)
 pnpm docker:up          # Start Docker containers only
 pnpm docker:down        # Stop Docker containers
 ```

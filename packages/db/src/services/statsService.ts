@@ -6,7 +6,18 @@ import * as schema from "../schema"
  * Recalculates player season stats after a game is finalized.
  * Only counts games from rounds where countsForPlayerStats = true.
  */
-export async function recalculatePlayerStats(db: Database, seasonId: string): Promise<void> {
+export async function recalculatePlayerStats(db: Database, seasonId: string, organizationId?: string): Promise<void> {
+  // Resolve org from season if not provided
+  let orgId = organizationId
+  if (!orgId) {
+    const season = await db.query.seasons.findFirst({
+      where: eq(schema.seasons.id, seasonId),
+      columns: { organizationId: true },
+    })
+    orgId = season?.organizationId
+  }
+  if (!orgId) return
+
   // 1. Find all rounds in this season where countsForPlayerStats = true
   const eligibleRounds = await db
     .select({ id: schema.rounds.id })
@@ -153,6 +164,7 @@ export async function recalculatePlayerStats(db: Database, seasonId: string): Pr
   await db.delete(schema.playerSeasonStats).where(eq(schema.playerSeasonStats.seasonId, seasonId))
 
   const values = Array.from(statsMap.values()).map((s) => ({
+    organizationId: orgId!,
     playerId: s.playerId,
     seasonId,
     teamId: s.teamId,
@@ -173,7 +185,18 @@ export async function recalculatePlayerStats(db: Database, seasonId: string): Pr
  * Recalculates goalie season stats after a game is finalized.
  * Only counts games from rounds where countsForGoalieStats = true.
  */
-export async function recalculateGoalieStats(db: Database, seasonId: string): Promise<void> {
+export async function recalculateGoalieStats(db: Database, seasonId: string, organizationId?: string): Promise<void> {
+  // Resolve org from season if not provided
+  let orgId = organizationId
+  if (!orgId) {
+    const season = await db.query.seasons.findFirst({
+      where: eq(schema.seasons.id, seasonId),
+      columns: { organizationId: true },
+    })
+    orgId = season?.organizationId
+  }
+  if (!orgId) return
+
   // 1. Find all rounds where countsForGoalieStats = true
   const eligibleRounds = await db
     .select({ id: schema.rounds.id })
@@ -219,6 +242,7 @@ export async function recalculateGoalieStats(db: Database, seasonId: string): Pr
     const goalsAgainst = Number(row.goalsAgainst)
     const gaa = gamesPlayed > 0 ? (goalsAgainst / gamesPlayed).toFixed(2) : "0.00"
     return {
+      organizationId: orgId!,
       playerId: row.playerId,
       seasonId,
       teamId: row.teamId,

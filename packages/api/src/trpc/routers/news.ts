@@ -3,13 +3,14 @@ import { TRPCError } from "@trpc/server"
 import { and, eq, lte } from "drizzle-orm"
 import { z } from "zod"
 import type { Context } from "../context"
-import { adminProcedure, router } from "../init"
+import { orgAdminProcedure, router } from "../init"
 
 /**
- * Auto-publishes all draft news whose scheduledPublishAt has passed.
+ * Auto-publishes all draft news whose scheduledPublishAt has passed,
+ * scoped to the given organization.
  * Returns the number of promoted articles.
  */
-async function autoPublishScheduled(db: Context["db"]) {
+async function autoPublishScheduled(db: Context["db"], organizationId: string) {
   const now = new Date()
   const promoted = await db
     .update(schema.news)
@@ -19,24 +20,31 @@ async function autoPublishScheduled(db: Context["db"]) {
       scheduledPublishAt: null,
       updatedAt: now,
     })
-    .where(and(eq(schema.news.status, "draft"), lte(schema.news.scheduledPublishAt, now)))
+    .where(
+      and(
+        eq(schema.news.organizationId, organizationId),
+        eq(schema.news.status, "draft"),
+        lte(schema.news.scheduledPublishAt, now),
+      ),
+    )
     .returning({ id: schema.news.id })
   return promoted.length
 }
 
 export const newsRouter = router({
-  list: adminProcedure.query(async ({ ctx }) => {
-    await autoPublishScheduled(ctx.db)
+  list: orgAdminProcedure.query(async ({ ctx }) => {
+    await autoPublishScheduled(ctx.db, ctx.organizationId)
     return ctx.db.query.news.findMany({
       with: { author: true },
+      where: eq(schema.news.organizationId, ctx.organizationId),
       orderBy: (news, { desc }) => [desc(news.createdAt)],
     })
   }),
 
-  getById: adminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    await autoPublishScheduled(ctx.db)
+  getById: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+    await autoPublishScheduled(ctx.db, ctx.organizationId)
     const article = await ctx.db.query.news.findFirst({
-      where: eq(schema.news.id, input.id),
+      where: and(eq(schema.news.id, input.id), eq(schema.news.organizationId, ctx.organizationId)),
       with: { author: true },
     })
     if (!article) {
@@ -45,7 +53,7 @@ export const newsRouter = router({
     return article
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -59,6 +67,7 @@ export const newsRouter = router({
       const [article] = await ctx.db
         .insert(schema.news)
         .values({
+          organizationId: ctx.organizationId,
           title: input.title,
           shortText: input.shortText || null,
           content: input.content,
@@ -71,7 +80,7 @@ export const newsRouter = router({
       return article
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -87,7 +96,7 @@ export const newsRouter = router({
 
       // Fetch existing to manage publishedAt
       const existing = await ctx.db.query.news.findFirst({
-        where: eq(schema.news.id, id),
+        where: and(eq(schema.news.id, id), eq(schema.news.organizationId, ctx.organizationId)),
       })
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "News nicht gefunden" })
@@ -113,12 +122,14 @@ export const newsRouter = router({
           publishedAt,
           updatedAt: new Date(),
         })
-        .where(eq(schema.news.id, id))
+        .where(and(eq(schema.news.id, id), eq(schema.news.organizationId, ctx.organizationId)))
         .returning()
       return article
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.news).where(eq(schema.news.id, input.id))
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(schema.news)
+      .where(and(eq(schema.news.id, input.id), eq(schema.news.organizationId, ctx.organizationId)))
   }),
 })

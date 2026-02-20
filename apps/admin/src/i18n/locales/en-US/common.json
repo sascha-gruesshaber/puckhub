@@ -29,7 +29,7 @@
       "news": "News",
       "pages": "Pages",
       "sponsors": "Sponsors",
-      "users": "Users",
+      "users": "Members",
       "settings": "Settings",
       "security": "Security",
       "dashboard": "Dashboard"
@@ -835,33 +835,41 @@
       "deleteError": "Could not delete player"
     }
   },
+  "org": {
+    "select": "Select organization",
+    "pickerTitle": "Select organization",
+    "pickerDescription": "Choose the organization you want to work with.",
+    "noOrgs": "No organizations",
+    "noOrgsDescription": "You are not assigned to any organization. Contact an administrator.",
+    "roles": {
+      "owner": "Owner",
+      "admin": "Administrator",
+      "member": "Member"
+    }
+  },
   "usersPage": {
-    "title": "User management",
-    "description": "Manage users and access rights",
-    "searchPlaceholder": "Search users...",
+    "title": "Members",
+    "description": "Manage members and access rights",
+    "searchPlaceholder": "Search members...",
     "count": {
-      "users": "Users"
+      "members": "Members"
     },
     "filters": {
       "all": "All",
-      "fallback": "Filter",
-      "noRoleCount": "No role ({{count}})"
+      "fallback": "Filter"
     },
     "actions": {
-      "rolesOverview": "Roles overview",
-      "newUser": "New user",
+      "newMember": "New member",
       "edit": "Edit",
-      "delete": "Delete",
-      "manageRoles": "Manage roles",
+      "remove": "Remove",
+      "changeRole": "Change role",
       "resetPassword": "Reset password",
-      "assignRole": "Assign role",
-      "removeRole": "Remove role",
       "setPassword": "Set password"
     },
     "empty": {
-      "title": "No users yet",
-      "description": "Create the first user to build your team.",
-      "action": "Create first user"
+      "title": "No members yet",
+      "description": "Add the first member to build your team.",
+      "action": "Add first member"
     },
     "fields": {
       "name": "Name",
@@ -871,85 +879,30 @@
       "password": "Password",
       "passwordPlaceholder": "At least 6 characters",
       "newPassword": "New password",
-      "role": "Role",
-      "teamOptional": "Team (optional)",
-      "noSpecificTeam": "No specific team"
+      "role": "Role"
     },
     "dialogs": {
-      "newUserTitle": "Create new user",
+      "newMemberTitle": "Add new member",
       "editUserTitle": "Edit user",
-      "newUserDescription": "Create a new user with email and password.",
+      "newMemberDescription": "Add a new member with email and password.",
       "editUserDescription": "Change the user's basic data.",
-      "rolesTitle": "Roles: {{name}}",
-      "rolesDescription": "Manage this user's access rights.",
+      "changeRoleTitle": "Change role: {{name}}",
+      "changeRoleDescription": "Choose the new role for this member.",
       "resetPasswordTitle": "Reset password",
-      "resetPasswordDescription": "Set a new password for {{name}}.",
-      "rolesInfoTitle": "Roles and permissions",
-      "rolesInfoDescription": "Overview of all available user roles and their permissions."
+      "resetPasswordDescription": "Set a new password for {{name}}."
     },
-    "roles": {
-      "current": "Current roles",
-      "noneAssigned": "No roles assigned. This user has no access.",
-      "assignNew": "Assign new role",
-      "teamPrefix": "Team: {{name}}",
-      "noneShort": "No roles",
-      "permissionsTitle": "Permissions",
-      "super_admin": {
-        "label": "Super admin",
-        "shortLabel": "Full system access",
-        "description": "Full access to the entire system. Can manage users, assign roles and change all settings.",
-        "permissions": {
-          "manageUsers": "Create, edit and delete users",
-          "assignRoles": "Assign and remove roles",
-          "manageLeagueData": "Manage all seasons, teams and players",
-          "manageGames": "Create games and enter results",
-          "manageSettings": "Change system settings"
-        }
+    "orgRoles": {
+      "owner": {
+        "label": "Owner",
+        "description": "Full access including organization management"
       },
-      "league_admin": {
-        "label": "League admin",
-        "shortLabel": "Game operations management",
-        "description": "Manages league operations. Can manage seasons, schedules and results, but not users.",
-        "permissions": {
-          "manageSeasons": "Manage seasons and season structures",
-          "manageSchedules": "Create and edit schedules",
-          "recordResults": "Enter game results and stats",
-          "manageTeamsPlayers": "Manage teams and players",
-          "manageStandingsPenalties": "Maintain standings and penalty catalog"
-        }
+      "admin": {
+        "label": "Administrator",
+        "description": "Can manage all data but not the organization"
       },
-      "team_manager": {
-        "label": "Team manager",
-        "shortLabel": "Single team management",
-        "description": "Manages one specific team. Can maintain the roster of the assigned team.",
-        "permissions": {
-          "editTeamProfile": "Edit own team profile",
-          "manageTeamRoster": "Manage the team roster",
-          "manageContractsTransfers": "Maintain contracts and transfers",
-          "updateTeamInfo": "Update team information"
-        }
-      },
-      "scorekeeper": {
-        "label": "Scorekeeper",
-        "shortLabel": "Enter game results",
-        "description": "Enters game results. Can capture goals, penalties and game statistics.",
-        "permissions": {
-          "recordResults": "Enter game results",
-          "recordGoalsAssists": "Record goals and assists",
-          "recordPenalties": "Document penalties",
-          "recordGoalieStats": "Enter goalie statistics"
-        }
-      },
-      "viewer": {
-        "label": "Viewer",
-        "shortLabel": "Read-only access",
-        "description": "Read-only access to the admin panel. Can view all data, but cannot change anything.",
-        "permissions": {
-          "viewSeasonsSchedules": "View all seasons and schedules",
-          "viewStandingsStats": "View standings and statistics",
-          "viewTeamsPlayers": "View team and player profiles",
-          "viewResultsHistory": "Browse results and history"
-        }
+      "member": {
+        "label": "Member",
+        "description": "Standard access to the organization"
       }
     },
     "validation": {
@@ -960,20 +913,19 @@
       "passwordMin": "At least 6 characters"
     },
     "deleteDialog": {
-      "title": "Delete user",
-      "description": "Are you sure you want to delete {{name}}? All related roles and sessions will also be removed. This action cannot be undone."
+      "title": "Remove member",
+      "description": "Are you sure you want to remove {{name}} from the organization? The user will lose access to this organization."
     },
     "toast": {
-      "created": "User created",
+      "created": "Member added",
       "updated": "User updated",
-      "deleted": "User deleted",
-      "roleAssigned": "Role assigned",
-      "roleRemoved": "Role removed",
+      "deleted": "Member removed",
+      "roleUpdated": "Role updated",
       "passwordReset": "Password reset",
       "error": "Error",
-      "createError": "Could not create user",
+      "createError": "Could not add member",
       "saveError": "Could not save user",
-      "deleteError": "Could not delete user"
+      "deleteError": "Could not remove member"
     }
   },
   "sponsorsPage": {

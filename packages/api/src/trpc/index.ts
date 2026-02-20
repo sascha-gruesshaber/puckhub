@@ -6,6 +6,7 @@ import { divisionRouter } from "./routers/division"
 import { gameRouter } from "./routers/game"
 import { gameReportRouter } from "./routers/gameReport"
 import { newsRouter } from "./routers/news"
+import { organizationRouter } from "./routers/organization"
 import { pageRouter } from "./routers/page"
 import { playerRouter } from "./routers/player"
 import { roundRouter } from "./routers/round"
@@ -46,6 +47,7 @@ export const appRouter = router({
   settings: settingsRouter,
   sponsor: sponsorRouter,
   news: newsRouter,
+  organization: organizationRouter,
   page: pageRouter,
   venue: venueRouter,
   userPreferences: userPreferencesRouter,

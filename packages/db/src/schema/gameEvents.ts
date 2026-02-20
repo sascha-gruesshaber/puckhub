@@ -1,5 +1,6 @@
 import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { gameEventTypeEnum } from "./enums"
+import { organization } from "./organization"
 import { games } from "./games"
 import { penaltyTypes } from "./penaltyTypes"
 import { players } from "./players"
@@ -9,6 +10,9 @@ export const gameEvents = pgTable(
   "game_events",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
     gameId: uuid("game_id")
       .notNull()
       .references(() => games.id, { onDelete: "cascade" }),
@@ -36,5 +40,5 @@ export const gameEvents = pgTable(
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("game_events_game_id_idx").on(t.gameId)],
+  (t) => [index("game_events_game_id_idx").on(t.gameId), index("game_events_org_id_idx").on(t.organizationId)],
 )

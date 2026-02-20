@@ -6,7 +6,7 @@ import * as schema from "../schema"
  * Recalculates standings for a given round after a game result changes.
  * Sort order: totalPoints DESC, gamesPlayed ASC, goalDifference DESC, goalsFor DESC
  */
-export async function recalculateStandings(db: Database, roundId: string): Promise<void> {
+export async function recalculateStandings(db: Database, roundId: string, organizationId?: string): Promise<void> {
   // 1. Fetch the round to get point rules
   const round = await db.query.rounds.findFirst({
     where: eq(schema.rounds.id, roundId),
@@ -132,8 +132,10 @@ export async function recalculateStandings(db: Database, roundId: string): Promi
   await db.delete(schema.standings).where(eq(schema.standings.roundId, roundId))
 
   if (entries.length > 0) {
+    const orgId = organizationId ?? round.organizationId
     await db.insert(schema.standings).values(
       entries.map((e, idx) => ({
+        organizationId: orgId,
         teamId: e.teamId,
         roundId,
         gamesPlayed: e.gamesPlayed,

@@ -1,6 +1,6 @@
 import * as schema from "@puckhub/db/schema"
 import { describe, expect, it } from "vitest"
-import { createTestCaller, getTestDb } from "../testUtils"
+import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 /**
  * Helper: sets up a season with a division, round, two teams, and players.
@@ -127,6 +127,7 @@ async function createAndCompleteGame(
     const db = getTestDb()
     await db.insert(schema.goalieGameStats).values(
       opts.goalieStats.map((gs) => ({
+        organizationId: TEST_ORG_ID,
         gameId: game.id,
         playerId: gs.playerId,
         teamId: gs.teamId,
@@ -237,6 +238,7 @@ describe("stats router", () => {
       const db = getTestDb()
       await db.insert(schema.playerSeasonStats).values([
         {
+          organizationId: TEST_ORG_ID,
           playerId: player1.id,
           seasonId: season.id,
           teamId: team.id,
@@ -247,6 +249,7 @@ describe("stats router", () => {
           penaltyMinutes: 4,
         },
         {
+          organizationId: TEST_ORG_ID,
           playerId: player2.id,
           seasonId: season.id,
           teamId: team.id,
@@ -280,6 +283,7 @@ describe("stats router", () => {
       const db = getTestDb()
       await db.insert(schema.playerSeasonStats).values([
         {
+          organizationId: TEST_ORG_ID,
           playerId: player1.id,
           seasonId: season.id,
           teamId: teamA.id,
@@ -290,6 +294,7 @@ describe("stats router", () => {
           penaltyMinutes: 0,
         },
         {
+          organizationId: TEST_ORG_ID,
           playerId: player2.id,
           seasonId: season.id,
           teamId: teamB.id,
@@ -334,6 +339,7 @@ describe("stats router", () => {
       const db = getTestDb()
       await db.insert(schema.playerSeasonStats).values([
         {
+          organizationId: TEST_ORG_ID,
           playerId: forward.id,
           seasonId: season.id,
           teamId: team.id,
@@ -344,6 +350,7 @@ describe("stats router", () => {
           penaltyMinutes: 2,
         },
         {
+          organizationId: TEST_ORG_ID,
           playerId: defender.id,
           seasonId: season.id,
           teamId: team.id,
@@ -378,6 +385,7 @@ describe("stats router", () => {
 
       const db = getTestDb()
       await db.insert(schema.playerSeasonStats).values({
+        organizationId: TEST_ORG_ID,
         playerId: player.id,
         seasonId: season.id,
         teamId: team.id,
@@ -437,6 +445,7 @@ describe("stats router", () => {
       const db = getTestDb()
       await db.insert(schema.goalieSeasonStats).values([
         {
+          organizationId: TEST_ORG_ID,
           playerId: qualifiedGoalie.id,
           seasonId: season.id,
           teamId: team.id,
@@ -445,6 +454,7 @@ describe("stats router", () => {
           gaa: "2.00",
         },
         {
+          organizationId: TEST_ORG_ID,
           playerId: belowGoalie.id,
           seasonId: season.id,
           teamId: team.id,
@@ -489,6 +499,7 @@ describe("stats router", () => {
       const db = getTestDb()
       await db.insert(schema.goalieSeasonStats).values([
         {
+          organizationId: TEST_ORG_ID,
           playerId: worstGoalie.id,
           seasonId: season.id,
           teamId: team.id,
@@ -497,6 +508,7 @@ describe("stats router", () => {
           gaa: "5.00",
         },
         {
+          organizationId: TEST_ORG_ID,
           playerId: bestGoalie.id,
           seasonId: season.id,
           teamId: team.id,
@@ -537,6 +549,7 @@ describe("stats router", () => {
       const db = getTestDb()
       await db.insert(schema.goalieSeasonStats).values([
         {
+          organizationId: TEST_ORG_ID,
           playerId: goalieA.id,
           seasonId: season.id,
           teamId: teamA.id,
@@ -545,6 +558,7 @@ describe("stats router", () => {
           gaa: "2.00",
         },
         {
+          organizationId: TEST_ORG_ID,
           playerId: goalieB.id,
           seasonId: season.id,
           teamId: teamB.id,

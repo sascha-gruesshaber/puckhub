@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { and, eq, or, sql } from "drizzle-orm"
 import { aliasedTable } from "drizzle-orm/alias"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 /** Verify the game is not completed or cancelled before allowing report modifications */
 async function assertGameEditable(db: any, gameId: string) {
@@ -46,15 +46,18 @@ async function recalculateScore(db: any, gameId: string) {
 }
 
 export const gameReportRouter = router({
-  getPenaltyTypes: publicProcedure.query(async ({ ctx }) => {
+  getPenaltyTypes: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.query.penaltyTypes.findMany({
       orderBy: (pt: any, { asc }: any) => [asc(pt.code)],
     })
   }),
 
-  getReport: publicProcedure.input(z.object({ gameId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getReport: orgProcedure.input(z.object({ gameId: z.string().uuid() })).query(async ({ ctx, input }) => {
     const game = await ctx.db.query.games.findFirst({
-      where: eq(schema.games.id, input.gameId),
+      where: and(
+        eq(schema.games.id, input.gameId),
+        eq(schema.games.organizationId, ctx.organizationId),
+      ),
       with: {
         round: { with: { division: true } },
         homeTeam: true,
@@ -117,6 +120,7 @@ export const gameReportRouter = router({
         and(
           sql`${schema.gameSuspensions.gameId} != ${input.gameId}`,
           eq(schema.divisions.seasonId, currentSeasonId),
+          eq(schema.gameSuspensions.organizationId, ctx.organizationId),
           or(eq(schema.gameSuspensions.teamId, game.homeTeamId), eq(schema.gameSuspensions.teamId, game.awayTeamId)),
         ),
       )
@@ -160,7 +164,7 @@ export const gameReportRouter = router({
     return { ...game, activeSuspensions }
   }),
 
-  getRosters: publicProcedure
+  getRosters: orgProcedure
     .input(
       z.object({
         homeTeamId: z.string().uuid(),
@@ -170,7 +174,10 @@ export const gameReportRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const season = await ctx.db.query.seasons.findFirst({
-        where: eq(schema.seasons.id, input.seasonId),
+        where: and(
+          eq(schema.seasons.id, input.seasonId),
+          eq(schema.seasons.organizationId, ctx.organizationId),
+        ),
       })
       if (!season) return { home: [], away: [] }
 
@@ -180,6 +187,7 @@ export const gameReportRouter = router({
 
       const allContracts = await ctx.db.query.contracts.findMany({
         where: and(
+          eq(schema.contracts.organizationId, ctx.organizationId),
           or(eq(schema.contracts.teamId, input.homeTeamId), eq(schema.contracts.teamId, input.awayTeamId)),
           sql`${schema.contracts.startSeasonId} IN (
             SELECT id FROM seasons WHERE season_start <= ${seasonEnd}::timestamptz
@@ -197,7 +205,7 @@ export const gameReportRouter = router({
       return { home, away }
     }),
 
-  setLineup: adminProcedure
+  setLineup: orgAdminProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
@@ -220,6 +228,7 @@ export const gameReportRouter = router({
         if (input.players.length > 0) {
           await tx.insert(schema.gameLineups).values(
             input.players.map((p) => ({
+              organizationId: ctx.organizationId,
               gameId: input.gameId,
               playerId: p.playerId,
               teamId: p.teamId,
@@ -234,7 +243,7 @@ export const gameReportRouter = router({
       return { success: true }
     }),
 
-  addEvent: adminProcedure
+  addEvent: orgAdminProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
@@ -270,6 +279,7 @@ export const gameReportRouter = router({
       const [event] = await ctx.db
         .insert(schema.gameEvents)
         .values({
+          organizationId: ctx.organizationId,
           gameId: eventData.gameId,
           eventType: eventData.eventType,
           teamId: eventData.teamId,
@@ -290,6 +300,7 @@ export const gameReportRouter = router({
       // Create suspension if included
       if (suspension && eventData.penaltyPlayerId && event) {
         await ctx.db.insert(schema.gameSuspensions).values({
+          organizationId: ctx.organizationId,
           gameId: eventData.gameId,
           gameEventId: event.id,
           playerId: eventData.penaltyPlayerId,
@@ -308,7 +319,7 @@ export const gameReportRouter = router({
       return event
     }),
 
-  updateEvent: adminProcedure
+  updateEvent: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -346,7 +357,7 @@ export const gameReportRouter = router({
       return updated
     }),
 
-  deleteEvent: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  deleteEvent: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const existing = await ctx.db.query.gameEvents.findFirst({
       where: eq(schema.gameEvents.id, input.id),
     })
@@ -367,7 +378,7 @@ export const gameReportRouter = router({
     return { success: true }
   }),
 
-  addSuspension: adminProcedure
+  addSuspension: orgAdminProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
@@ -383,6 +394,7 @@ export const gameReportRouter = router({
       const [suspension] = await ctx.db
         .insert(schema.gameSuspensions)
         .values({
+          organizationId: ctx.organizationId,
           gameId: input.gameId,
           playerId: input.playerId,
           teamId: input.teamId,
@@ -395,7 +407,7 @@ export const gameReportRouter = router({
       return suspension
     }),
 
-  updateSuspension: adminProcedure
+  updateSuspension: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -425,7 +437,7 @@ export const gameReportRouter = router({
       return updated
     }),
 
-  deleteSuspension: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  deleteSuspension: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const existing = await ctx.db.query.gameSuspensions.findFirst({
       where: eq(schema.gameSuspensions.id, input.id),
       columns: { gameId: true },

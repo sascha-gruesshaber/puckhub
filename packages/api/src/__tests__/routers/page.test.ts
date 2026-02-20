@@ -1,6 +1,6 @@
 import * as schema from "@puckhub/db/schema"
 import { describe, expect, it } from "vitest"
-import { createTestCaller, getTestDb } from "../testUtils"
+import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 describe("page router", () => {
   describe("list", () => {
@@ -273,6 +273,7 @@ describe("page router", () => {
       const [page] = await db
         .insert(schema.pages)
         .values({
+          organizationId: TEST_ORG_ID,
           title: "Impressum",
           slug: "test-impressum",
           content: "<p>Test</p>",

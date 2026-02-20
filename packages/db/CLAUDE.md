@@ -2,25 +2,24 @@
 
 Drizzle ORM with PostgreSQL. Schema definitions, migrations, and seed data.
 
-## Schema Organization (32 files in `src/schema/`)
+## Schema Organization (34 files in `src/schema/`)
 
-**Auth**: `auth.ts` (user, session, account, verification)
+**Auth**: `auth.ts` (user, session, account, verification) · `passkey.ts` · `twoFactor.ts`
 **Core**: `seasons.ts` · `divisions.ts` · `rounds.ts` · `teams.ts` · `team-divisions.ts` · `venues.ts`
 **Players**: `players.ts` · `contracts.ts` (player-team-season links)
 **Games**: `games.ts` · `game-events.ts` (goals/penalties) · `game-lineups.ts` (player participation) · `game-suspensions.ts` (multi-game suspensions) · `penalty-types.ts`
 **Stats**: `standings.ts` · `bonus-points.ts` · `player-season-stats.ts` · `goalie-season-stats.ts` · `goalie-game-stats.ts`
 **Trikots**: `trikot-templates.ts` · `trikots.ts` · `team-trikots.ts`
 **Content**: `news.ts` · `pages.ts` (CMS pages with menu locations) · `page-aliases.ts` · `documents.ts` · `sponsors.ts`
-**System**: `user-roles.ts` · `system-settings.ts`
+**System**: `organization.ts` · `member.ts` · `invitation.ts` · `system-settings.ts`
 **Shared**: `enums.ts` · `relations.ts` · `index.ts` (re-exports all)
 
-## Enums (`src/schema/enums.ts`) — 10 enums
+## Enums (`src/schema/enums.ts`) — 8 enums
 
-- `roundTypeEnum`: regular, preround, playoffs, playdowns, relegation, placement, final
+- `roundTypeEnum`: regular, preround, playoffs, playdowns, relegation, placement, final, playups
 - `positionEnum`: forward, defense, goalie
 - `gameStatusEnum`: scheduled, in_progress, completed, postponed, cancelled
 - `gameEventTypeEnum`: goal, penalty
-- `roleEnum`: super_admin, league_admin, team_manager, scorekeeper, viewer
 - `newsStatusEnum`: draft, published
 - `pageStatusEnum`: draft, published
 - `menuLocationEnum`: main_nav, footer
@@ -44,7 +43,7 @@ pnpm db:migrate           # Push to dev DB (drizzle-kit push)
 pnpm db:migrate:prod      # Run migrations (drizzle-kit migrate)
 ```
 
-Migrations are in `drizzle/` (4 migration files) with journal tracking. Auto-migrate on API startup when `AUTO_MIGRATE=true`.
+Migrations are in `drizzle/` (7 migration files) with journal tracking. Auto-migrate on API startup when `AUTO_MIGRATE=true`.
 
 ## Seed System
 

@@ -3,13 +3,17 @@ import { user } from "./auth"
 import { bonusPoints } from "./bonusPoints"
 import { contracts } from "./contracts"
 import { divisions } from "./divisions"
+import { documents } from "./documents"
 import { gameEvents } from "./gameEvents"
 import { gameLineups } from "./gameLineups"
 import { gameSuspensions } from "./gameSuspensions"
 import { games } from "./games"
 import { goalieGameStats } from "./goalieGameStats"
 import { goalieSeasonStats } from "./goalieSeasonStats"
+import { invitation } from "./invitation"
+import { member } from "./member"
 import { news } from "./news"
+import { organization } from "./organization"
 import { pageAliases } from "./pageAliases"
 import { pages } from "./pages"
 import { passkey } from "./passkey"
@@ -20,17 +24,46 @@ import { rounds } from "./rounds"
 import { seasons } from "./seasons"
 import { sponsors } from "./sponsors"
 import { standings } from "./standings"
+import { systemSettings } from "./systemSettings"
 import { teamDivisions } from "./teamDivisions"
 import { teams } from "./teams"
 import { teamTrikots } from "./teamTrikots"
 import { trikots } from "./trikots"
 import { trikotTemplates } from "./trikotTemplates"
 import { twoFactor } from "./twoFactor"
-import { userRoles } from "./userRoles"
 import { venues } from "./venues"
 
+// --- Organization ---
+export const organizationRelations = relations(organization, ({ many }) => ({
+  members: many(member),
+  invitations: many(invitation),
+  seasons: many(seasons),
+  teams: many(teams),
+  players: many(players),
+  venues: many(venues),
+  news: many(news),
+  pages: many(pages),
+  sponsors: many(sponsors),
+  documents: many(documents),
+  trikots: many(trikots),
+  systemSettings: many(systemSettings),
+}))
+
+// --- Member ---
+export const memberRelations = relations(member, ({ one }) => ({
+  user: one(user, { fields: [member.userId], references: [user.id] }),
+  organization: one(organization, { fields: [member.organizationId], references: [organization.id] }),
+}))
+
+// --- Invitation ---
+export const invitationRelations = relations(invitation, ({ one }) => ({
+  organization: one(organization, { fields: [invitation.organizationId], references: [organization.id] }),
+  inviter: one(user, { fields: [invitation.inviterId], references: [user.id] }),
+}))
+
 // --- Seasons ---
-export const seasonsRelations = relations(seasons, ({ many }) => ({
+export const seasonsRelations = relations(seasons, ({ one, many }) => ({
+  organization: one(organization, { fields: [seasons.organizationId], references: [organization.id] }),
   divisions: many(divisions),
   contractsStarted: many(contracts, { relationName: "contractStartSeason" }),
   contractsEnded: many(contracts, { relationName: "contractEndSeason" }),
@@ -40,6 +73,7 @@ export const seasonsRelations = relations(seasons, ({ many }) => ({
 
 // --- Divisions ---
 export const divisionsRelations = relations(divisions, ({ one, many }) => ({
+  organization: one(organization, { fields: [divisions.organizationId], references: [organization.id] }),
   season: one(seasons, { fields: [divisions.seasonId], references: [seasons.id] }),
   rounds: many(rounds),
   teamDivisions: many(teamDivisions),
@@ -47,6 +81,7 @@ export const divisionsRelations = relations(divisions, ({ one, many }) => ({
 
 // --- Rounds ---
 export const roundsRelations = relations(rounds, ({ one, many }) => ({
+  organization: one(organization, { fields: [rounds.organizationId], references: [organization.id] }),
   division: one(divisions, { fields: [rounds.divisionId], references: [divisions.id] }),
   games: many(games),
   standings: many(standings),
@@ -55,6 +90,7 @@ export const roundsRelations = relations(rounds, ({ one, many }) => ({
 
 // --- Teams ---
 export const teamsRelations = relations(teams, ({ one, many }) => ({
+  organization: one(organization, { fields: [teams.organizationId], references: [organization.id] }),
   contracts: many(contracts),
   teamDivisions: many(teamDivisions),
   homeGames: many(games, { relationName: "homeTeam" }),
@@ -65,7 +101,6 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   playerSeasonStats: many(playerSeasonStats),
   goalieSeasonStats: many(goalieSeasonStats),
   goalieGameStats: many(goalieGameStats),
-  userRoles: many(userRoles),
   teamTrikots: many(teamTrikots),
   sponsors: many(sponsors),
   defaultVenue: one(venues, { fields: [teams.defaultVenueId], references: [venues.id] }),
@@ -73,12 +108,14 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
 
 // --- Team Divisions (junction) ---
 export const teamDivisionsRelations = relations(teamDivisions, ({ one }) => ({
+  organization: one(organization, { fields: [teamDivisions.organizationId], references: [organization.id] }),
   team: one(teams, { fields: [teamDivisions.teamId], references: [teams.id] }),
   division: one(divisions, { fields: [teamDivisions.divisionId], references: [divisions.id] }),
 }))
 
 // --- Players ---
-export const playersRelations = relations(players, ({ many }) => ({
+export const playersRelations = relations(players, ({ one, many }) => ({
+  organization: one(organization, { fields: [players.organizationId], references: [organization.id] }),
   contracts: many(contracts),
   scorerEvents: many(gameEvents, { relationName: "eventScorer" }),
   assist1Events: many(gameEvents, { relationName: "eventAssist1" }),
@@ -94,6 +131,7 @@ export const playersRelations = relations(players, ({ many }) => ({
 
 // --- Contracts ---
 export const contractsRelations = relations(contracts, ({ one }) => ({
+  organization: one(organization, { fields: [contracts.organizationId], references: [organization.id] }),
   player: one(players, { fields: [contracts.playerId], references: [players.id] }),
   team: one(teams, { fields: [contracts.teamId], references: [teams.id] }),
   startSeason: one(seasons, {
@@ -110,6 +148,7 @@ export const contractsRelations = relations(contracts, ({ one }) => ({
 
 // --- Games ---
 export const gamesRelations = relations(games, ({ one, many }) => ({
+  organization: one(organization, { fields: [games.organizationId], references: [organization.id] }),
   round: one(rounds, { fields: [games.roundId], references: [rounds.id] }),
   homeTeam: one(teams, {
     fields: [games.homeTeamId],
@@ -130,6 +169,7 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
 
 // --- Game Events ---
 export const gameEventsRelations = relations(gameEvents, ({ one }) => ({
+  organization: one(organization, { fields: [gameEvents.organizationId], references: [organization.id] }),
   game: one(games, { fields: [gameEvents.gameId], references: [games.id] }),
   team: one(teams, { fields: [gameEvents.teamId], references: [teams.id] }),
   scorer: one(players, {
@@ -166,6 +206,7 @@ export const gameEventsRelations = relations(gameEvents, ({ one }) => ({
 
 // --- Game Lineups ---
 export const gameLineupsRelations = relations(gameLineups, ({ one }) => ({
+  organization: one(organization, { fields: [gameLineups.organizationId], references: [organization.id] }),
   game: one(games, { fields: [gameLineups.gameId], references: [games.id] }),
   player: one(players, { fields: [gameLineups.playerId], references: [players.id] }),
   team: one(teams, { fields: [gameLineups.teamId], references: [teams.id] }),
@@ -173,6 +214,7 @@ export const gameLineupsRelations = relations(gameLineups, ({ one }) => ({
 
 // --- Game Suspensions ---
 export const gameSuspensionsRelations = relations(gameSuspensions, ({ one }) => ({
+  organization: one(organization, { fields: [gameSuspensions.organizationId], references: [organization.id] }),
   game: one(games, { fields: [gameSuspensions.gameId], references: [games.id] }),
   gameEvent: one(gameEvents, { fields: [gameSuspensions.gameEventId], references: [gameEvents.id] }),
   player: one(players, { fields: [gameSuspensions.playerId], references: [players.id] }),
@@ -180,7 +222,8 @@ export const gameSuspensionsRelations = relations(gameSuspensions, ({ one }) => 
 }))
 
 // --- Venues ---
-export const venuesRelations = relations(venues, ({ many }) => ({
+export const venuesRelations = relations(venues, ({ one, many }) => ({
+  organization: one(organization, { fields: [venues.organizationId], references: [organization.id] }),
   games: many(games),
   defaultForTeams: many(teams),
 }))
@@ -192,18 +235,21 @@ export const penaltyTypesRelations = relations(penaltyTypes, ({ many }) => ({
 
 // --- Standings ---
 export const standingsRelations = relations(standings, ({ one }) => ({
+  organization: one(organization, { fields: [standings.organizationId], references: [organization.id] }),
   team: one(teams, { fields: [standings.teamId], references: [teams.id] }),
   round: one(rounds, { fields: [standings.roundId], references: [rounds.id] }),
 }))
 
 // --- Bonus Points ---
 export const bonusPointsRelations = relations(bonusPoints, ({ one }) => ({
+  organization: one(organization, { fields: [bonusPoints.organizationId], references: [organization.id] }),
   team: one(teams, { fields: [bonusPoints.teamId], references: [teams.id] }),
   round: one(rounds, { fields: [bonusPoints.roundId], references: [rounds.id] }),
 }))
 
 // --- Player Season Stats ---
 export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one }) => ({
+  organization: one(organization, { fields: [playerSeasonStats.organizationId], references: [organization.id] }),
   player: one(players, { fields: [playerSeasonStats.playerId], references: [players.id] }),
   season: one(seasons, { fields: [playerSeasonStats.seasonId], references: [seasons.id] }),
   team: one(teams, { fields: [playerSeasonStats.teamId], references: [teams.id] }),
@@ -211,6 +257,7 @@ export const playerSeasonStatsRelations = relations(playerSeasonStats, ({ one })
 
 // --- Goalie Season Stats ---
 export const goalieSeasonStatsRelations = relations(goalieSeasonStats, ({ one }) => ({
+  organization: one(organization, { fields: [goalieSeasonStats.organizationId], references: [organization.id] }),
   player: one(players, { fields: [goalieSeasonStats.playerId], references: [players.id] }),
   season: one(seasons, { fields: [goalieSeasonStats.seasonId], references: [seasons.id] }),
   team: one(teams, { fields: [goalieSeasonStats.teamId], references: [teams.id] }),
@@ -218,20 +265,22 @@ export const goalieSeasonStatsRelations = relations(goalieSeasonStats, ({ one })
 
 // --- Goalie Game Stats ---
 export const goalieGameStatsRelations = relations(goalieGameStats, ({ one }) => ({
+  organization: one(organization, { fields: [goalieGameStats.organizationId], references: [organization.id] }),
   game: one(games, { fields: [goalieGameStats.gameId], references: [games.id] }),
   player: one(players, { fields: [goalieGameStats.playerId], references: [players.id] }),
   team: one(teams, { fields: [goalieGameStats.teamId], references: [teams.id] }),
+}))
+
+// --- System Settings ---
+export const systemSettingsRelations = relations(systemSettings, ({ one }) => ({
+  organization: one(organization, { fields: [systemSettings.organizationId], references: [organization.id] }),
 }))
 
 // --- User ---
 export const userRelations = relations(user, ({ many }) => ({
   twoFactors: many(twoFactor),
   passkeys: many(passkey),
-}))
-
-// --- User Roles ---
-export const userRolesRelations = relations(userRoles, ({ one }) => ({
-  team: one(teams, { fields: [userRoles.teamId], references: [teams.id] }),
+  members: many(member),
 }))
 
 // --- Trikot Templates ---
@@ -241,6 +290,7 @@ export const trikotTemplatesRelations = relations(trikotTemplates, ({ many }) =>
 
 // --- Trikots ---
 export const trikotsRelations = relations(trikots, ({ one, many }) => ({
+  organization: one(organization, { fields: [trikots.organizationId], references: [organization.id] }),
   template: one(trikotTemplates, {
     fields: [trikots.templateId],
     references: [trikotTemplates.id],
@@ -250,22 +300,26 @@ export const trikotsRelations = relations(trikots, ({ one, many }) => ({
 
 // --- Team Trikots (junction) ---
 export const teamTrikotsRelations = relations(teamTrikots, ({ one }) => ({
+  organization: one(organization, { fields: [teamTrikots.organizationId], references: [organization.id] }),
   team: one(teams, { fields: [teamTrikots.teamId], references: [teams.id] }),
   trikot: one(trikots, { fields: [teamTrikots.trikotId], references: [trikots.id] }),
 }))
 
 // --- Sponsors ---
 export const sponsorsRelations = relations(sponsors, ({ one }) => ({
+  organization: one(organization, { fields: [sponsors.organizationId], references: [organization.id] }),
   team: one(teams, { fields: [sponsors.teamId], references: [teams.id] }),
 }))
 
 // --- News ---
 export const newsRelations = relations(news, ({ one }) => ({
+  organization: one(organization, { fields: [news.organizationId], references: [organization.id] }),
   author: one(user, { fields: [news.authorId], references: [user.id] }),
 }))
 
 // --- Pages ---
 export const pagesRelations = relations(pages, ({ one, many }) => ({
+  organization: one(organization, { fields: [pages.organizationId], references: [organization.id] }),
   parent: one(pages, { fields: [pages.parentId], references: [pages.id], relationName: "pageChildren" }),
   children: many(pages, { relationName: "pageChildren" }),
   aliases: many(pageAliases),
@@ -273,7 +327,13 @@ export const pagesRelations = relations(pages, ({ one, many }) => ({
 
 // --- Page Aliases ---
 export const pageAliasesRelations = relations(pageAliases, ({ one }) => ({
+  organization: one(organization, { fields: [pageAliases.organizationId], references: [organization.id] }),
   targetPage: one(pages, { fields: [pageAliases.targetPageId], references: [pages.id] }),
+}))
+
+// --- Documents ---
+export const documentsRelations = relations(documents, ({ one }) => ({
+  organization: one(organization, { fields: [documents.organizationId], references: [organization.id] }),
 }))
 
 // --- Two Factor ---

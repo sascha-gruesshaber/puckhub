@@ -376,18 +376,10 @@ describe("authorization", () => {
         )
       })
 
-      it("assignRole requires auth", async () => {
-        await expect(caller.users.assignRole({ userId: "some-id", role: "viewer" })).rejects.toThrow(
+      it("updateRole requires auth", async () => {
+        await expect(caller.users.updateRole({ userId: "some-id", role: "admin" })).rejects.toThrow(
           "Not authenticated",
         )
-      })
-
-      it("removeRole requires auth", async () => {
-        await expect(caller.users.removeRole({ roleId: FAKE_ID })).rejects.toThrow("Not authenticated")
-      })
-
-      it("listTeams requires auth", async () => {
-        await expect(caller.users.listTeams()).rejects.toThrow("Not authenticated")
       })
     })
   })

@@ -3,91 +3,75 @@ import { TRPCError } from "@trpc/server"
 import { hashPassword } from "better-auth/crypto"
 import { and, eq, ne } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, router } from "../init"
-
-const roleValues = ["super_admin", "league_admin", "team_manager", "scorekeeper", "viewer"] as const
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const usersRouter = router({
-  list: adminProcedure.query(async ({ ctx }) => {
-    const users = await ctx.db
-      .select({
-        id: schema.user.id,
-        name: schema.user.name,
-        email: schema.user.email,
-        emailVerified: schema.user.emailVerified,
-        image: schema.user.image,
-        createdAt: schema.user.createdAt,
-      })
-      .from(schema.user)
-      .orderBy(schema.user.name)
+  list: orgProcedure.query(async ({ ctx }) => {
+    const members = await ctx.db.query.member.findMany({
+      where: eq(schema.member.organizationId, ctx.organizationId),
+      with: {
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerified: true,
+            image: true,
+            createdAt: true,
+          },
+        },
+      },
+    })
 
-    const roles = await ctx.db
-      .select({
-        id: schema.userRoles.id,
-        userId: schema.userRoles.userId,
-        role: schema.userRoles.role,
-        teamId: schema.userRoles.teamId,
-        createdAt: schema.userRoles.createdAt,
-      })
-      .from(schema.userRoles)
-
-    const teams = await ctx.db
-      .select({
-        id: schema.teams.id,
-        name: schema.teams.name,
-        shortName: schema.teams.shortName,
-      })
-      .from(schema.teams)
-
-    const teamMap = new Map(teams.map((t) => [t.id, t]))
-
-    const rolesByUser = new Map<string, typeof roles>()
-    for (const r of roles) {
-      let list = rolesByUser.get(r.userId)
-      if (!list) {
-        list = []
-        rolesByUser.set(r.userId, list)
-      }
-      list.push(r)
-    }
-
-    return users.map((u) => ({
-      ...u,
-      roles: (rolesByUser.get(u.id) ?? []).map((r) => ({
-        ...r,
-        team: r.teamId ? (teamMap.get(r.teamId) ?? null) : null,
-      })),
+    return members.map((m) => ({
+      id: m.user.id,
+      name: m.user.name,
+      email: m.user.email,
+      emailVerified: m.user.emailVerified,
+      image: m.user.image,
+      createdAt: m.user.createdAt,
+      memberId: m.id,
+      role: m.role,
+      memberSince: m.createdAt,
     }))
   }),
 
-  getById: adminProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    const [user] = await ctx.db
-      .select({
-        id: schema.user.id,
-        name: schema.user.name,
-        email: schema.user.email,
-        emailVerified: schema.user.emailVerified,
-        image: schema.user.image,
-        createdAt: schema.user.createdAt,
-      })
-      .from(schema.user)
-      .where(eq(schema.user.id, input.id))
+  getById: orgAdminProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+    const memberRecord = await ctx.db.query.member.findFirst({
+      where: and(eq(schema.member.userId, input.id), eq(schema.member.organizationId, ctx.organizationId)),
+      with: {
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            email: true,
+            emailVerified: true,
+            image: true,
+            createdAt: true,
+          },
+        },
+      },
+    })
 
-    if (!user) {
+    if (!memberRecord) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Benutzer nicht gefunden" })
     }
 
-    const roles = await ctx.db.select().from(schema.userRoles).where(eq(schema.userRoles.userId, input.id))
-
-    return { ...user, roles }
+    return {
+      ...memberRecord.user,
+      memberId: memberRecord.id,
+      role: memberRecord.role,
+      memberSince: memberRecord.createdAt,
+    }
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         name: z.string().min(1),
         email: z.string().email(),
         password: z.string().min(6),
+        role: z.enum(["admin", "member"]).default("member"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -96,37 +80,52 @@ export const usersRouter = router({
         .from(schema.user)
         .where(eq(schema.user.email, input.email))
 
-      if (existing) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Ein Benutzer mit dieser E-Mail-Adresse existiert bereits",
-        })
-      }
+      let userId: string
 
-      const userId = crypto.randomUUID()
-      const [user] = await ctx.db
-        .insert(schema.user)
-        .values({
+      if (existing) {
+        // User exists — check if already a member of this org
+        const existingMember = await ctx.db.query.member.findFirst({
+          where: and(eq(schema.member.userId, existing.id), eq(schema.member.organizationId, ctx.organizationId)),
+        })
+        if (existingMember) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Benutzer ist bereits Mitglied dieser Organisation",
+          })
+        }
+        userId = existing.id
+      } else {
+        // Create new user
+        userId = crypto.randomUUID()
+        await ctx.db.insert(schema.user).values({
           id: userId,
           email: input.email,
           name: input.name,
           emailVerified: true,
         })
-        .returning()
 
-      const hashedPw = await hashPassword(input.password)
-      await ctx.db.insert(schema.account).values({
+        const hashedPw = await hashPassword(input.password)
+        await ctx.db.insert(schema.account).values({
+          id: crypto.randomUUID(),
+          accountId: userId,
+          providerId: "credential",
+          password: hashedPw,
+          userId,
+        })
+      }
+
+      // Add as member to org
+      await ctx.db.insert(schema.member).values({
         id: crypto.randomUUID(),
-        accountId: userId,
-        providerId: "credential",
-        password: hashedPw,
         userId,
+        organizationId: ctx.organizationId,
+        role: input.role,
       })
 
-      return user!
+      return { userId }
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string(),
@@ -165,24 +164,21 @@ export const usersRouter = router({
       return updated
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    // Prevent deleting yourself
+  delete: orgAdminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
     if (ctx.user.id === input.id) {
       throw new TRPCError({
         code: "BAD_REQUEST",
-        message: "Du kannst deinen eigenen Account nicht löschen",
+        message: "Du kannst dich selbst nicht entfernen",
       })
     }
 
-    await ctx.db.transaction(async (tx) => {
-      // userRoles has no FK cascade, delete explicitly
-      await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, input.id))
-      // session + account cascade via onDelete on user FK
-      await tx.delete(schema.user).where(eq(schema.user.id, input.id))
-    })
+    // Remove member record from this org (don't delete the user globally)
+    await ctx.db
+      .delete(schema.member)
+      .where(and(eq(schema.member.userId, input.id), eq(schema.member.organizationId, ctx.organizationId)))
   }),
 
-  resetPassword: adminProcedure
+  resetPassword: orgAdminProcedure
     .input(
       z.object({
         id: z.string(),
@@ -202,55 +198,31 @@ export const usersRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Account nicht gefunden" })
       }
 
-      // Invalidate all existing sessions
       await ctx.db.delete(schema.session).where(eq(schema.session.userId, input.id))
     }),
 
-  assignRole: adminProcedure
+  updateRole: orgAdminProcedure
     .input(
       z.object({
         userId: z.string(),
-        role: z.enum(roleValues),
-        teamId: z.string().uuid().optional(),
+        role: z.enum(["owner", "admin", "member"]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      // Check if user already has this role (with same team)
-      const existing = await ctx.db.select().from(schema.userRoles).where(eq(schema.userRoles.userId, input.userId))
+      const memberRecord = await ctx.db.query.member.findFirst({
+        where: and(eq(schema.member.userId, input.userId), eq(schema.member.organizationId, ctx.organizationId)),
+      })
 
-      const duplicate = existing.find((r) => r.role === input.role && r.teamId === (input.teamId ?? null))
-
-      if (duplicate) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Diese Rolle ist bereits zugewiesen",
-        })
+      if (!memberRecord) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Mitglied nicht gefunden" })
       }
 
-      const [role] = await ctx.db
-        .insert(schema.userRoles)
-        .values({
-          userId: input.userId,
-          role: input.role,
-          teamId: input.teamId ?? null,
-        })
+      const [updated] = await ctx.db
+        .update(schema.member)
+        .set({ role: input.role })
+        .where(eq(schema.member.id, memberRecord.id))
         .returning()
 
-      return role
+      return updated
     }),
-
-  removeRole: adminProcedure.input(z.object({ roleId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.userRoles).where(eq(schema.userRoles.id, input.roleId))
-  }),
-
-  listTeams: adminProcedure.query(async ({ ctx }) => {
-    return ctx.db
-      .select({
-        id: schema.teams.id,
-        name: schema.teams.name,
-        shortName: schema.teams.shortName,
-      })
-      .from(schema.teams)
-      .orderBy(schema.teams.name)
-  }),
 })

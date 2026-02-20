@@ -17,7 +17,6 @@ export const gameStatusEnum = pgEnum("game_status", ["scheduled", "in_progress",
 
 export const gameEventTypeEnum = pgEnum("game_event_type", ["goal", "penalty"])
 
-export const roleEnum = pgEnum("user_role", ["super_admin", "league_admin", "team_manager", "scorekeeper", "viewer"])
 
 export const newsStatusEnum = pgEnum("news_status", ["draft", "published"])
 

@@ -16,6 +16,12 @@ import { recalculateGoalieStats, recalculatePlayerStats } from "../services/stat
 import { cleanUploads, generateSeedImages } from "./seedImages"
 
 // ---------------------------------------------------------------------------
+// Organization IDs
+// ---------------------------------------------------------------------------
+const DEMO_ORG_1_ID = "demo-org-1"
+const DEMO_ORG_2_ID = "demo-org-2"
+
+// ---------------------------------------------------------------------------
 // Team data
 // ---------------------------------------------------------------------------
 const TEAMS = [
@@ -608,6 +614,23 @@ async function seedDemo() {
           ],
   })
 
+  // ── 1c. Organizations ─────────────────────────────────────────────────
+  console.log("Seeding organizations...")
+  await db.insert(schema.organization).values([
+    {
+      id: DEMO_ORG_1_ID,
+      name: demoLang === "de" ? "Oberliga Baden-Württemberg" : "Oberliga Baden-Württemberg",
+      slug: "obwl",
+      createdAt: new Date(),
+    },
+    {
+      id: DEMO_ORG_2_ID,
+      name: demoLang === "de" ? "Bezirksliga Nordbaden" : "Bezirksliga Nordbaden",
+      slug: "blnb",
+      createdAt: new Date(),
+    },
+  ])
+
   // ── 2. Reference data ─────────────────────────────────────────────────
   console.log("Seeding penalty types...")
   const insertedPenaltyTypes = await db.insert(schema.penaltyTypes).values(getPenaltyTypes(demoLang)).returning()
@@ -627,7 +650,7 @@ async function seedDemo() {
   // ── 2b. System settings ─────────────────────────────────────────────
   console.log("Seeding system settings...")
   await db.insert(schema.systemSettings).values({
-    id: 1,
+    organizationId: DEMO_ORG_1_ID,
     leagueName: demoLang === "de" ? "PuckHub Demo Liga" : "PuckHub Demo League",
     leagueShortName: "PDL",
     locale: demoLang === "de" ? "de-DE" : "en-US",
@@ -649,6 +672,7 @@ async function seedDemo() {
     email: adminEmail,
     name: "Demo Admin",
     emailVerified: true,
+    role: "admin",
   })
 
   await db.insert(schema.account).values({
@@ -659,10 +683,24 @@ async function seedDemo() {
     userId: adminUserId,
   })
 
-  await db.insert(schema.userRoles).values({
-    userId: adminUserId,
-    role: "super_admin",
-  })
+  // ── 2d. Member records for admin in both orgs ────────────────────────
+  console.log("Seeding organization members...")
+  await db.insert(schema.member).values([
+    {
+      id: crypto.randomUUID(),
+      userId: adminUserId,
+      organizationId: DEMO_ORG_1_ID,
+      role: "owner",
+      createdAt: new Date(),
+    },
+    {
+      id: crypto.randomUUID(),
+      userId: adminUserId,
+      organizationId: DEMO_ORG_2_ID,
+      role: "owner",
+      createdAt: new Date(),
+    },
+  ])
 
   // ── 3. Seasons ────────────────────────────────────────────────────────
   console.log(`Seeding ${seasonStructure.length} seasons...`)
@@ -670,6 +708,7 @@ async function seedDemo() {
     .insert(schema.seasons)
     .values(
       seasonStructure.map((s) => ({
+        organizationId: DEMO_ORG_1_ID,
         name: s.name,
         seasonStart: new Date(Date.UTC(s.year, 8, 1, 0, 0, 0)),
         seasonEnd: new Date(Date.UTC(s.year + 1, 3, 30, 23, 59, 59)),
@@ -688,7 +727,13 @@ async function seedDemo() {
     const season = seasonByYear.get(seasonDef.year)!
     for (let i = 0; i < seasonDef.divisions.length; i++) {
       const div = seasonDef.divisions[i]!
-      divisionValues.push({ seasonId: season.id, name: div.name, sortOrder: i, goalieMinGames: 3 })
+      divisionValues.push({
+        organizationId: DEMO_ORG_1_ID,
+        seasonId: season.id,
+        name: div.name,
+        sortOrder: i,
+        goalieMinGames: 3,
+      })
     }
   }
   const insertedDivisions = await db.insert(schema.divisions).values(divisionValues).returning()
@@ -706,6 +751,7 @@ async function seedDemo() {
       for (let i = 0; i < divDef.rounds.length; i++) {
         const round = divDef.rounds[i]!
         roundValues.push({
+          organizationId: DEMO_ORG_1_ID,
           divisionId: division.id,
           name: round.name,
           roundType: round.roundType,
@@ -724,6 +770,7 @@ async function seedDemo() {
     .insert(schema.teams)
     .values(
       TEAMS.map((t, i) => ({
+        organizationId: DEMO_ORG_1_ID,
         name: t.name,
         shortName: t.shortName,
         city: t.city,
@@ -736,7 +783,14 @@ async function seedDemo() {
   console.log("Seeding 10 venues...")
   const insertedVenues = await db
     .insert(schema.venues)
-    .values(VENUES.map((v) => ({ name: v.name, city: v.city, address: v.address })))
+    .values(
+      VENUES.map((v) => ({
+        organizationId: DEMO_ORG_1_ID,
+        name: v.name,
+        city: v.city,
+        address: v.address,
+      })),
+    )
     .returning()
 
   // ── 8. Team-Division assignments ──────────────────────────────────────
@@ -749,7 +803,11 @@ async function seedDemo() {
       for (const teamIdx of divDef.teamIndices) {
         const team = insertedTeams[teamIdx]
         if (!team) continue
-        tdValues.push({ teamId: team.id, divisionId: division.id })
+        tdValues.push({
+          organizationId: DEMO_ORG_1_ID,
+          teamId: team.id,
+          divisionId: division.id,
+        })
       }
     }
   }
@@ -817,6 +875,7 @@ async function seedDemo() {
           const scoreSeed = seasonIdx * 10000 + roundIdx * 1000 + gameIdx * 10
 
           gamesValues.push({
+            organizationId: DEMO_ORG_1_ID,
             roundId: round.id,
             homeTeamId: fixture.homeTeamId,
             awayTeamId: fixture.awayTeamId,
@@ -853,6 +912,7 @@ async function seedDemo() {
     .insert(schema.players)
     .values(
       allPlayerDefs.map((pd, i) => ({
+        organizationId: DEMO_ORG_1_ID,
         firstName: pd.def.firstName,
         lastName: pd.def.lastName,
         dateOfBirth: pd.def.dob,
@@ -884,6 +944,7 @@ async function seedDemo() {
       const endSeasonYear = firstSeasonYear + transfer.afterSeasonOffset
       const endSeason = seasonByYear.get(endSeasonYear)!
       contractValues.push({
+        organizationId: DEMO_ORG_1_ID,
         playerId: player.id,
         teamId: team.id,
         position: pd.def.position,
@@ -896,6 +957,7 @@ async function seedDemo() {
       const nextYear = endSeasonYear + 1
       const startSeason = seasonByYear.get(nextYear)!
       contractValues.push({
+        organizationId: DEMO_ORG_1_ID,
         playerId: player.id,
         teamId: newTeam.id,
         position: pd.def.position,
@@ -908,6 +970,7 @@ async function seedDemo() {
       const endSeasonYear = firstSeasonYear + retirement.afterSeasonOffset
       const endSeason = seasonByYear.get(endSeasonYear)!
       contractValues.push({
+        organizationId: DEMO_ORG_1_ID,
         playerId: player.id,
         teamId: team.id,
         position: pd.def.position,
@@ -918,6 +981,7 @@ async function seedDemo() {
     } else {
       // Regular active contract: first season -> open-ended
       contractValues.push({
+        organizationId: DEMO_ORG_1_ID,
         playerId: player.id,
         teamId: team.id,
         position: pd.def.position,
@@ -1004,6 +1068,7 @@ async function seedDemo() {
     // ── Lineups: add all roster players
     for (const rp of homeRoster) {
       lineupValues.push({
+        organizationId: DEMO_ORG_1_ID,
         gameId: game.id,
         playerId: rp.playerId,
         teamId: game.homeTeamId,
@@ -1015,6 +1080,7 @@ async function seedDemo() {
     }
     for (const rp of awayRoster) {
       lineupValues.push({
+        organizationId: DEMO_ORG_1_ID,
         gameId: game.id,
         playerId: rp.playerId,
         teamId: game.awayTeamId,
@@ -1088,6 +1154,7 @@ async function seedDemo() {
       const goalieId = opposingGoalies.length > 0 ? opposingGoalies[0]?.playerId : null
 
       eventValues.push({
+        organizationId: DEMO_ORG_1_ID,
         gameId: game.id,
         eventType: "goal",
         teamId: goal.teamId,
@@ -1117,6 +1184,7 @@ async function seedDemo() {
       const period = seededInt(gameSeed + 1000 + p * 19, 1, 3)
 
       eventValues.push({
+        organizationId: DEMO_ORG_1_ID,
         gameId: game.id,
         eventType: "penalty",
         teamId,
@@ -1141,6 +1209,7 @@ async function seedDemo() {
         const suspendedPlayer = roster[playerIdx]
         if (!suspendedPlayer) continue
         suspensionValues.push({
+          organizationId: DEMO_ORG_1_ID,
           gameId: game.id,
           playerId: suspendedPlayer.playerId,
           teamId,
@@ -1158,6 +1227,7 @@ async function seedDemo() {
     const awayStartingGoalie = awayGoalies[0]
     if (homeStartingGoalie) {
       goalieGameStatsValues.push({
+        organizationId: DEMO_ORG_1_ID,
         gameId: game.id,
         playerId: homeStartingGoalie.playerId,
         teamId: game.homeTeamId,
@@ -1166,6 +1236,7 @@ async function seedDemo() {
     }
     if (awayStartingGoalie) {
       goalieGameStatsValues.push({
+        organizationId: DEMO_ORG_1_ID,
         gameId: game.id,
         playerId: awayStartingGoalie.playerId,
         teamId: game.awayTeamId,
@@ -1262,6 +1333,7 @@ async function seedDemo() {
       const isPositive = reasonIdx < 4
       const pts = isPositive ? (bonusSeed % 3) + 1 : -(bonusSeed % 2) - 1
       bonusValues.push({
+        organizationId: DEMO_ORG_1_ID,
         teamId: teamIds[teamIdx]!,
         roundId: round.id,
         points: pts,
@@ -1290,6 +1362,7 @@ async function seedDemo() {
     const colors = TEAM_COLORS[t]!
     // Home trikot (two-color)
     trikotValues.push({
+      organizationId: DEMO_ORG_1_ID,
       name: `${team.name} Heim`,
       templateId: twoColorTemplate.id,
       primaryColor: colors[0],
@@ -1297,6 +1370,7 @@ async function seedDemo() {
     })
     // Away trikot (one-color)
     trikotValues.push({
+      organizationId: DEMO_ORG_1_ID,
       name: `${team.name} Auswärts`,
       templateId: oneColorTemplate.id,
       primaryColor: colors[2],
@@ -1311,8 +1385,18 @@ async function seedDemo() {
     const team = insertedTeams[t]!
     const homeTrikot = insertedTrikots[t * 2]!
     const awayTrikot = insertedTrikots[t * 2 + 1]!
-    teamTrikotValues.push({ teamId: team.id, trikotId: homeTrikot.id, name: demoLang === "de" ? "Heim" : "Home" })
-    teamTrikotValues.push({ teamId: team.id, trikotId: awayTrikot.id, name: demoLang === "de" ? "Auswaerts" : "Away" })
+    teamTrikotValues.push({
+      organizationId: DEMO_ORG_1_ID,
+      teamId: team.id,
+      trikotId: homeTrikot.id,
+      name: demoLang === "de" ? "Heim" : "Home",
+    })
+    teamTrikotValues.push({
+      organizationId: DEMO_ORG_1_ID,
+      teamId: team.id,
+      trikotId: awayTrikot.id,
+      name: demoLang === "de" ? "Auswaerts" : "Away",
+    })
   }
   await db.insert(schema.teamTrikots).values(teamTrikotValues)
 
@@ -1322,6 +1406,7 @@ async function seedDemo() {
     demoLang === "de"
       ? [
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Stadtwerke Karlsruhe",
             websiteUrl: "https://www.stadtwerke-karlsruhe.de",
             hoverText: "Offizieller Energiepartner",
@@ -1330,6 +1415,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[0],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Autohaus Mueller",
             websiteUrl: "https://www.autohaus-mueller.de",
             hoverText: "Ihr Autohaus in der Region",
@@ -1339,6 +1425,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[1],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Brauerei Schwaben",
             websiteUrl: "https://www.brauerei-schwaben.de",
             hoverText: "Erfrischung fuer Champions",
@@ -1348,6 +1435,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[2],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "SportShop24",
             websiteUrl: "https://www.sportshop24.de",
             hoverText: "Ausruestungspartner",
@@ -1356,6 +1444,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[3],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Alte Apotheke",
             hoverText: "Ehemaliger Sponsor",
             sortOrder: 5,
@@ -1365,6 +1454,7 @@ async function seedDemo() {
         ]
       : [
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Karlsruhe Utilities",
             websiteUrl: "https://www.stadtwerke-karlsruhe.de",
             hoverText: "Official energy partner",
@@ -1373,6 +1463,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[0],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Mueller Auto Group",
             websiteUrl: "https://www.autohaus-mueller.de",
             hoverText: "Local mobility partner",
@@ -1382,6 +1473,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[1],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Swabian Brewery",
             websiteUrl: "https://www.brauerei-schwaben.de",
             hoverText: "Refreshment partner",
@@ -1391,6 +1483,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[2],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "SportShop24",
             websiteUrl: "https://www.sportshop24.de",
             hoverText: "Equipment partner",
@@ -1399,6 +1492,7 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[3],
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             name: "Old Town Pharmacy",
             hoverText: "Former sponsor",
             sortOrder: 5,
@@ -1414,6 +1508,7 @@ async function seedDemo() {
     demoLang === "de"
       ? [
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Saisonstart 2024/25: Spielplan ist online",
             shortText: "Alle Termine fuer die 10 Teams sind jetzt verfuegbar.",
             content:
@@ -1424,6 +1519,7 @@ async function seedDemo() {
             createdAt: new Date("2024-09-15T10:00:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Karlsruhe verstaerkt den Sturm",
             shortText: "Zwei neue Angreifer stoessen zum Kader.",
             content:
@@ -1434,6 +1530,7 @@ async function seedDemo() {
             createdAt: new Date("2024-10-01T14:30:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Liga beschliesst neues Playoff-Format",
             shortText: "Best-of-Three und neue Overtime-Regel kommen.",
             content: "<h2>Playoff-Update</h2><p>Die Liga fuehrt ein angepasstes Playoff-Format ein.</p>",
@@ -1443,6 +1540,7 @@ async function seedDemo() {
             createdAt: new Date("2024-11-20T09:00:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Winterpause: Anpassung der Eiszeiten",
             shortText: "Zwischen Feiertagen gelten geaenderte Hallenzeiten.",
             content:
@@ -1453,6 +1551,7 @@ async function seedDemo() {
             createdAt: new Date("2024-12-18T16:00:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Ausblick auf die Rueckrunde",
             shortText: "Der Kampf um die Playoff-Plaetze ist offen.",
             content:
@@ -1464,6 +1563,7 @@ async function seedDemo() {
         ]
       : [
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "2024/25 season kickoff: schedule is live",
             shortText: "The full fixture list is now available for all 10 teams.",
             content:
@@ -1474,6 +1574,7 @@ async function seedDemo() {
             createdAt: new Date("2024-09-15T10:00:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Karlsruhe signs two forwards",
             shortText: "The club adds depth and speed up front.",
             content:
@@ -1484,6 +1585,7 @@ async function seedDemo() {
             createdAt: new Date("2024-10-01T14:30:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "League confirms playoff format changes",
             shortText: "Best-of-three and updated overtime rules are approved.",
             content:
@@ -1494,6 +1596,7 @@ async function seedDemo() {
             createdAt: new Date("2024-11-20T09:00:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Holiday break schedule update",
             shortText: "Adjusted ice times apply from late December to early January.",
             content:
@@ -1504,6 +1607,7 @@ async function seedDemo() {
             createdAt: new Date("2024-12-18T16:00:00Z"),
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Second half preview: race to playoffs",
             shortText: "The table is tight and every point matters.",
             content:
@@ -1515,13 +1619,14 @@ async function seedDemo() {
         ]
   await db.insert(schema.news).values(newsValues)
 
-  // ── 14. Pages ──────────────────────────────────────────────────────────
+  // ── 15. Pages ──────────────────────────────────────────────────────────
   console.log("Seeding pages...")
 
   const topLevelPages: (typeof schema.pages.$inferInsert)[] =
     demoLang === "de"
       ? [
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Impressum",
             slug: "legal-notice",
             content:
@@ -1532,6 +1637,7 @@ async function seedDemo() {
             sortOrder: 100,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Datenschutz",
             slug: "privacy-policy",
             content:
@@ -1542,6 +1648,7 @@ async function seedDemo() {
             sortOrder: 101,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Kontakt",
             slug: "contact",
             content:
@@ -1552,6 +1659,7 @@ async function seedDemo() {
             sortOrder: 102,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Ueber die Liga",
             slug: "about-the-league",
             content:
@@ -1562,6 +1670,7 @@ async function seedDemo() {
             sortOrder: 1,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Regeln und Hinweise",
             slug: "rules-and-guidance",
             content:
@@ -1572,6 +1681,7 @@ async function seedDemo() {
             sortOrder: 2,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Schnuppertraining",
             slug: "tryout-registration",
             content: "<h2>Schnuppertraining</h2><p>Teams bieten regelmaessig offene Einheiten fuer Einsteiger an.</p>",
@@ -1583,6 +1693,7 @@ async function seedDemo() {
         ]
       : [
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Legal Notice",
             slug: "legal-notice",
             content:
@@ -1593,6 +1704,7 @@ async function seedDemo() {
             sortOrder: 100,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Privacy Policy",
             slug: "privacy-policy",
             content:
@@ -1603,6 +1715,7 @@ async function seedDemo() {
             sortOrder: 101,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Contact",
             slug: "contact",
             content:
@@ -1613,6 +1726,7 @@ async function seedDemo() {
             sortOrder: 102,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "About The League",
             slug: "about-the-league",
             content:
@@ -1623,6 +1737,7 @@ async function seedDemo() {
             sortOrder: 1,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Rules And Guidance",
             slug: "rules-and-guidance",
             content:
@@ -1633,6 +1748,7 @@ async function seedDemo() {
             sortOrder: 2,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Tryout Registration",
             slug: "tryout-registration",
             content:
@@ -1653,6 +1769,7 @@ async function seedDemo() {
     demoLang === "de"
       ? [
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Vorstand und Organisation",
             slug: "board-and-operations",
             content:
@@ -1664,6 +1781,7 @@ async function seedDemo() {
             sortOrder: 1,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Ligageschichte",
             slug: "league-history",
             content: "<h2>Ligageschichte</h2><p>Von 4 auf 10 Teams in weniger als 10 Jahren.</p>",
@@ -1674,6 +1792,7 @@ async function seedDemo() {
             sortOrder: 2,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Strafenkatalog",
             slug: "penalty-guide",
             content: "<h2>Strafenkatalog</h2><p>Uebersicht ueber kleine, grosse und Disziplinarstrafen.</p>",
@@ -1686,6 +1805,7 @@ async function seedDemo() {
         ]
       : [
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Board And Operations",
             slug: "board-and-operations",
             content:
@@ -1697,6 +1817,7 @@ async function seedDemo() {
             sortOrder: 1,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "League History",
             slug: "league-history",
             content:
@@ -1708,6 +1829,7 @@ async function seedDemo() {
             sortOrder: 2,
           },
           {
+            organizationId: DEMO_ORG_1_ID,
             title: "Penalty Guide",
             slug: "penalty-guide",
             content:
@@ -1728,10 +1850,14 @@ async function seedDemo() {
 
   console.log("Seeding page aliases...")
   const aliasValues: (typeof schema.pageAliases.$inferInsert)[] = [
-    { slug: "kontakt", targetPageId: contactPage.id },
-    { slug: "impressum", targetPageId: insertedPages.find((p) => p.slug === "legal-notice")!.id },
-    { slug: "privacy", targetPageId: privacyPage.id },
-    { slug: "datenschutz", targetPageId: privacyPage.id },
+    { organizationId: DEMO_ORG_1_ID, slug: "kontakt", targetPageId: contactPage.id },
+    {
+      organizationId: DEMO_ORG_1_ID,
+      slug: "impressum",
+      targetPageId: insertedPages.find((p) => p.slug === "legal-notice")!.id,
+    },
+    { organizationId: DEMO_ORG_1_ID, slug: "privacy", targetPageId: privacyPage.id },
+    { organizationId: DEMO_ORG_1_ID, slug: "datenschutz", targetPageId: privacyPage.id },
   ]
   await db.insert(schema.pageAliases).values(aliasValues)
 
@@ -1742,7 +1868,8 @@ async function seedDemo() {
   console.log(
     `   • ${seedImages.teamLogoUrls.length + seedImages.playerPhotoUrls.length + seedImages.sponsorLogoUrls.length} generated images (${seedImages.teamLogoUrls.length} team logos, ${seedImages.playerPhotoUrls.length} player avatars, ${seedImages.sponsorLogoUrls.length} sponsor logos)`,
   )
-  console.log(`   • 1 admin user (${adminEmail} / ${adminPassword})`)
+  console.log(`   • 2 organizations (${DEMO_ORG_1_ID}, ${DEMO_ORG_2_ID})`)
+  console.log(`   • 1 admin user (${adminEmail} / ${adminPassword}) — platform admin, owner of both orgs`)
   console.log(`   • 1 system settings row (${demoLang === "de" ? "PuckHub Demo Liga" : "PuckHub Demo League"})`)
   console.log(`   • ${insertedSeasons.length} seasons`)
   console.log(`   • ${insertedDivisions.length} divisions`)

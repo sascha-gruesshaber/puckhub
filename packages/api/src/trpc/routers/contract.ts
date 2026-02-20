@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { and, eq, gte, isNull, lt, lte, or } from "drizzle-orm"
 import { aliasedTable } from "drizzle-orm/alias"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 // Alias for the end_season self-join on the seasons table
 const endSeason = aliasedTable(schema.seasons, "end_season")
@@ -14,7 +14,7 @@ export const contractRouter = router({
    * Returns contracts where the season falls within the start/end range,
    * with nested player and season data.
    */
-  rosterForSeason: publicProcedure
+  rosterForSeason: orgProcedure
     .input(
       z.object({
         teamId: z.string().uuid(),
@@ -23,7 +23,10 @@ export const contractRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const targetSeason = await ctx.db.query.seasons.findFirst({
-        where: eq(schema.seasons.id, input.seasonId),
+        where: and(
+          eq(schema.seasons.id, input.seasonId),
+          eq(schema.seasons.organizationId, ctx.organizationId),
+        ),
       })
       if (!targetSeason) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Saison nicht gefunden" })
@@ -55,6 +58,7 @@ export const contractRouter = router({
         .leftJoin(endSeason, eq(schema.contracts.endSeasonId, endSeason.id))
         .where(
           and(
+            eq(schema.contracts.organizationId, ctx.organizationId),
             eq(schema.contracts.teamId, input.teamId),
             lte(schema.seasons.seasonStart, targetSeason.seasonEnd),
             or(isNull(schema.contracts.endSeasonId), gte(endSeason.seasonEnd, targetSeason.seasonStart)),
@@ -86,9 +90,12 @@ export const contractRouter = router({
   /**
    * Get contract history for a specific player.
    */
-  getByPlayer: publicProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getByPlayer: orgProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.query.contracts.findMany({
-      where: eq(schema.contracts.playerId, input.playerId),
+      where: and(
+        eq(schema.contracts.playerId, input.playerId),
+        eq(schema.contracts.organizationId, ctx.organizationId),
+      ),
       with: {
         team: true,
         startSeason: true,
@@ -102,7 +109,7 @@ export const contractRouter = router({
    * Sign a player to a team for a given season.
    * Creates a new contract with startSeasonId = the given season.
    */
-  signPlayer: adminProcedure
+  signPlayer: orgAdminProcedure
     .input(
       z.object({
         playerId: z.string().uuid(),
@@ -114,7 +121,10 @@ export const contractRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const targetSeason = await ctx.db.query.seasons.findFirst({
-        where: eq(schema.seasons.id, input.seasonId),
+        where: and(
+          eq(schema.seasons.id, input.seasonId),
+          eq(schema.seasons.organizationId, ctx.organizationId),
+        ),
       })
       if (!targetSeason) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Saison nicht gefunden" })
@@ -128,6 +138,7 @@ export const contractRouter = router({
         .leftJoin(endSeason, eq(schema.contracts.endSeasonId, endSeason.id))
         .where(
           and(
+            eq(schema.contracts.organizationId, ctx.organizationId),
             eq(schema.contracts.playerId, input.playerId),
             lte(schema.seasons.seasonStart, targetSeason.seasonEnd),
             or(isNull(schema.contracts.endSeasonId), gte(endSeason.seasonEnd, targetSeason.seasonStart)),
@@ -144,6 +155,7 @@ export const contractRouter = router({
       const [contract] = await ctx.db
         .insert(schema.contracts)
         .values({
+          organizationId: ctx.organizationId,
           playerId: input.playerId,
           teamId: input.teamId,
           startSeasonId: input.seasonId,
@@ -159,7 +171,7 @@ export const contractRouter = router({
    * Transfer a player from one team to another.
    * Closes the old contract and creates a new one in a transaction.
    */
-  transferPlayer: adminProcedure
+  transferPlayer: orgAdminProcedure
     .input(
       z.object({
         contractId: z.string().uuid(),
@@ -172,14 +184,20 @@ export const contractRouter = router({
     .mutation(async ({ ctx, input }) => {
       return ctx.db.transaction(async (tx) => {
         const existing = await tx.query.contracts.findFirst({
-          where: eq(schema.contracts.id, input.contractId),
+          where: and(
+            eq(schema.contracts.id, input.contractId),
+            eq(schema.contracts.organizationId, ctx.organizationId),
+          ),
         })
         if (!existing) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Vertrag nicht gefunden" })
         }
 
         const transferSeason = await tx.query.seasons.findFirst({
-          where: eq(schema.seasons.id, input.seasonId),
+          where: and(
+            eq(schema.seasons.id, input.seasonId),
+            eq(schema.seasons.organizationId, ctx.organizationId),
+          ),
         })
         if (!transferSeason) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Saison nicht gefunden" })
@@ -187,7 +205,10 @@ export const contractRouter = router({
 
         // Find the season before this one for closing the old contract
         const previousSeason = await tx.query.seasons.findFirst({
-          where: lt(schema.seasons.seasonEnd, transferSeason.seasonStart),
+          where: and(
+            lt(schema.seasons.seasonEnd, transferSeason.seasonStart),
+            eq(schema.seasons.organizationId, ctx.organizationId),
+          ),
           orderBy: (seasons, { desc }) => [desc(seasons.seasonEnd)],
         })
 
@@ -204,6 +225,7 @@ export const contractRouter = router({
         const [newContract] = await tx
           .insert(schema.contracts)
           .values({
+            organizationId: ctx.organizationId,
             playerId: existing.playerId,
             teamId: input.newTeamId,
             startSeasonId: input.seasonId,
@@ -219,7 +241,7 @@ export const contractRouter = router({
   /**
    * Release a player by closing their contract.
    */
-  releasePlayer: adminProcedure
+  releasePlayer: orgAdminProcedure
     .input(
       z.object({
         contractId: z.string().uuid(),
@@ -228,7 +250,10 @@ export const contractRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const existing = await ctx.db.query.contracts.findFirst({
-        where: eq(schema.contracts.id, input.contractId),
+        where: and(
+          eq(schema.contracts.id, input.contractId),
+          eq(schema.contracts.organizationId, ctx.organizationId),
+        ),
       })
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Vertrag nicht gefunden" })
@@ -252,7 +277,7 @@ export const contractRouter = router({
   /**
    * Update contract details (position, jersey number).
    */
-  updateContract: adminProcedure
+  updateContract: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),

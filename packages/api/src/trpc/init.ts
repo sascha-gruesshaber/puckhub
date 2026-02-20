@@ -1,6 +1,6 @@
 import * as schema from "@puckhub/db/schema"
 import { initTRPC, TRPCError } from "@trpc/server"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import superjson from "superjson"
 import { createAppError, inferAppErrorCode } from "../errors/appError"
 import { APP_ERROR_CODES } from "../errors/codes"
@@ -23,6 +23,7 @@ export const router = t.router
 export const publicProcedure = t.procedure
 export const middleware = t.middleware
 
+// --- isAuthed: requires authenticated session ---
 const isAuthed = middleware(({ ctx, next }) => {
   if (!ctx.user) {
     throw createAppError("UNAUTHORIZED", APP_ERROR_CODES.AUTH_NOT_AUTHENTICATED, "Not authenticated")
@@ -38,20 +39,115 @@ const isAuthed = middleware(({ ctx, next }) => {
 
 export const protectedProcedure = t.procedure.use(isAuthed)
 
-const isAdmin = middleware(async ({ ctx, next }) => {
+// --- isOrgMember: requires active org + membership ---
+const isOrgMember = middleware(async ({ ctx, next }) => {
   if (!ctx.user) {
     throw createAppError("UNAUTHORIZED", APP_ERROR_CODES.AUTH_NOT_AUTHENTICATED, "Not authenticated")
   }
 
-  const roles = await ctx.db
-    .select({ role: schema.userRoles.role })
-    .from(schema.userRoles)
-    .where(eq(schema.userRoles.userId, ctx.user.id))
+  const organizationId = ctx.activeOrganizationId
+  if (!organizationId) {
+    throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_SELECTED, "Keine Organisation ausgewählt")
+  }
 
-  const isAdminRole = roles.some((r) => r.role === "super_admin" || r.role === "league_admin")
+  // Platform admins bypass membership check
+  const isPlatformAdmin = (ctx.user as any).role === "admin"
+  if (!isPlatformAdmin) {
+    const membership = await ctx.db
+      .select({ role: schema.member.role })
+      .from(schema.member)
+      .where(and(eq(schema.member.userId, ctx.user.id), eq(schema.member.organizationId, organizationId)))
+      .limit(1)
 
-  if (!isAdminRole) {
-    throw createAppError("FORBIDDEN", APP_ERROR_CODES.AUTH_NOT_ADMIN, "Keine Administratorrechte")
+    if (membership.length === 0) {
+      throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_MEMBER, "Kein Mitglied dieser Organisation")
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+        session: ctx.session!,
+        organizationId,
+        orgRole: membership[0]!.role,
+      },
+    })
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+      session: ctx.session!,
+      organizationId,
+      orgRole: "owner" as const,
+    },
+  })
+})
+
+export const orgProcedure = t.procedure.use(isOrgMember)
+
+// --- isOrgAdmin: requires active org + owner/admin role ---
+const isOrgAdmin = middleware(async ({ ctx, next }) => {
+  if (!ctx.user) {
+    throw createAppError("UNAUTHORIZED", APP_ERROR_CODES.AUTH_NOT_AUTHENTICATED, "Not authenticated")
+  }
+
+  const organizationId = ctx.activeOrganizationId
+  if (!organizationId) {
+    throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_SELECTED, "Keine Organisation ausgewählt")
+  }
+
+  // Platform admins bypass org role check
+  const isPlatformAdmin = (ctx.user as any).role === "admin"
+  if (!isPlatformAdmin) {
+    const membership = await ctx.db
+      .select({ role: schema.member.role })
+      .from(schema.member)
+      .where(and(eq(schema.member.userId, ctx.user.id), eq(schema.member.organizationId, organizationId)))
+      .limit(1)
+
+    if (membership.length === 0) {
+      throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_MEMBER, "Kein Mitglied dieser Organisation")
+    }
+
+    const role = membership[0]!.role
+    if (role !== "owner" && role !== "admin") {
+      throw createAppError("FORBIDDEN", APP_ERROR_CODES.AUTH_NOT_ADMIN, "Keine Administratorrechte")
+    }
+
+    return next({
+      ctx: {
+        ...ctx,
+        user: ctx.user,
+        session: ctx.session!,
+        organizationId,
+        orgRole: role,
+      },
+    })
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+      session: ctx.session!,
+      organizationId,
+      orgRole: "owner" as const,
+    },
+  })
+})
+
+export const orgAdminProcedure = t.procedure.use(isOrgAdmin)
+
+// --- isPlatformAdmin: requires user.role === 'admin' ---
+const isPlatformAdmin = middleware(({ ctx, next }) => {
+  if (!ctx.user) {
+    throw createAppError("UNAUTHORIZED", APP_ERROR_CODES.AUTH_NOT_AUTHENTICATED, "Not authenticated")
+  }
+
+  if ((ctx.user as any).role !== "admin") {
+    throw createAppError("FORBIDDEN", APP_ERROR_CODES.AUTH_NOT_PLATFORM_ADMIN, "Keine Plattform-Administratorrechte")
   }
 
   return next({
@@ -63,4 +159,7 @@ const isAdmin = middleware(async ({ ctx, next }) => {
   })
 })
 
-export const adminProcedure = t.procedure.use(isAdmin)
+export const platformAdminProcedure = t.procedure.use(isPlatformAdmin)
+
+// Keep adminProcedure as alias for orgAdminProcedure during migration
+export const adminProcedure = orgAdminProcedure

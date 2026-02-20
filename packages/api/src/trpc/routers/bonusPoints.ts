@@ -1,19 +1,22 @@
 import * as schema from "@puckhub/db/schema"
 import { recalculateStandings } from "@puckhub/db/services"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const bonusPointsRouter = router({
-  listByRound: publicProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  listByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.query.bonusPoints.findMany({
-      where: eq(schema.bonusPoints.roundId, input.roundId),
+      where: and(
+        eq(schema.bonusPoints.roundId, input.roundId),
+        eq(schema.bonusPoints.organizationId, ctx.organizationId),
+      ),
       with: { team: true },
       orderBy: (bp, { desc }) => [desc(bp.createdAt)],
     })
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         teamId: z.string().uuid(),
@@ -23,12 +26,15 @@ export const bonusPointsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [bp] = await ctx.db.insert(schema.bonusPoints).values(input).returning()
+      const [bp] = await ctx.db
+        .insert(schema.bonusPoints)
+        .values({ ...input, organizationId: ctx.organizationId })
+        .returning()
       await recalculateStandings(ctx.db, input.roundId)
       return bp
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -45,7 +51,7 @@ export const bonusPointsRouter = router({
       return bp
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     // Fetch before deleting to get roundId for recalculation
     const bp = await ctx.db.query.bonusPoints.findFirst({
       where: eq(schema.bonusPoints.id, input.id),

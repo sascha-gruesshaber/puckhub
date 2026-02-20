@@ -1,5 +1,6 @@
-import { index, integer, pgTable, timestamp, unique, uuid } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core"
 import { positionEnum } from "./enums"
+import { organization } from "./organization"
 import { players } from "./players"
 import { seasons } from "./seasons"
 import { teams } from "./teams"
@@ -8,6 +9,9 @@ export const contracts = pgTable(
   "contracts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
     playerId: uuid("player_id")
       .notNull()
       .references(() => players.id, { onDelete: "cascade" }),
@@ -30,5 +34,6 @@ export const contracts = pgTable(
     index("contracts_player_id_idx").on(t.playerId),
     index("contracts_team_id_idx").on(t.teamId),
     index("contracts_start_season_id_idx").on(t.startSeasonId),
+    index("contracts_org_id_idx").on(t.organizationId),
   ],
 )

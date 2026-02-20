@@ -1,15 +1,18 @@
 import * as schema from "@puckhub/db/schema"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const settingsRouter = router({
-  get: publicProcedure.query(async ({ ctx }) => {
-    const [row] = await ctx.db.select().from(schema.systemSettings).where(eq(schema.systemSettings.id, 1))
+  get: orgProcedure.query(async ({ ctx }) => {
+    const [row] = await ctx.db
+      .select()
+      .from(schema.systemSettings)
+      .where(eq(schema.systemSettings.organizationId, ctx.organizationId))
     return row ?? null
   }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         leagueName: z.string().min(1, "Liga-Name ist erforderlich"),
@@ -25,16 +28,16 @@ export const settingsRouter = router({
       const [existing] = await ctx.db
         .select({ id: schema.systemSettings.id })
         .from(schema.systemSettings)
-        .where(eq(schema.systemSettings.id, 1))
+        .where(eq(schema.systemSettings.organizationId, ctx.organizationId))
 
       if (existing) {
         await ctx.db
           .update(schema.systemSettings)
           .set({ ...input, updatedAt: new Date() })
-          .where(eq(schema.systemSettings.id, 1))
+          .where(eq(schema.systemSettings.organizationId, ctx.organizationId))
       } else {
         await ctx.db.insert(schema.systemSettings).values({
-          id: 1,
+          organizationId: ctx.organizationId,
           ...input,
         })
       }

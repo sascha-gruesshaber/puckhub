@@ -2,7 +2,7 @@ import * as schema from "@puckhub/db/schema"
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { and, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 /**
  * Helper: get IDs of completed games in rounds matching a stats toggle for a given season.
@@ -33,7 +33,7 @@ async function getEligibleGameIds(
  * Backfill goalieGameStats for completed games that are missing them.
  * Uses starting goalies from lineups and goal counts from events.
  */
-async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void> {
+async function backfillGoalieGameStats(db: any, seasonId: string, organizationId: string): Promise<void> {
   // Get all completed games for this season (across all rounds)
   const allRounds = await db
     .select({ id: schema.rounds.id })
@@ -94,6 +94,7 @@ async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void>
       if (!game) return null
       const opponentTeamId = gl.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
       return {
+        organizationId,
         gameId: gl.gameId,
         playerId: gl.playerId,
         teamId: gl.teamId,
@@ -108,16 +109,19 @@ async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void>
 }
 
 export const statsRouter = router({
-  seasonRoundInfo: publicProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  seasonRoundInfo: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
     const divisions = await ctx.db.query.divisions.findMany({
-      where: eq(schema.divisions.seasonId, input.seasonId),
+      where: and(
+        eq(schema.divisions.seasonId, input.seasonId),
+        eq(schema.divisions.organizationId, ctx.organizationId),
+      ),
       with: { rounds: true },
       orderBy: (d, { asc }) => [asc(d.sortOrder)],
     })
     return divisions
   }),
 
-  playerStats: publicProcedure
+  playerStats: orgProcedure
     .input(
       z.object({
         seasonId: z.string().uuid(),
@@ -126,7 +130,10 @@ export const statsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(schema.playerSeasonStats.seasonId, input.seasonId)]
+      const conditions = [
+        eq(schema.playerSeasonStats.seasonId, input.seasonId),
+        eq(schema.playerSeasonStats.organizationId, ctx.organizationId),
+      ]
       if (input.teamId) {
         conditions.push(eq(schema.playerSeasonStats.teamId, input.teamId))
       }
@@ -158,7 +165,7 @@ export const statsRouter = router({
       return stats
     }),
 
-  goalieStats: publicProcedure
+  goalieStats: orgProcedure
     .input(
       z.object({
         seasonId: z.string().uuid(),
@@ -166,7 +173,10 @@ export const statsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [eq(schema.goalieSeasonStats.seasonId, input.seasonId)]
+      const conditions = [
+        eq(schema.goalieSeasonStats.seasonId, input.seasonId),
+        eq(schema.goalieSeasonStats.organizationId, ctx.organizationId),
+      ]
       if (input.teamId) {
         conditions.push(eq(schema.goalieSeasonStats.teamId, input.teamId))
       }
@@ -182,7 +192,10 @@ export const statsRouter = router({
 
       // Get goalie_min_games from divisions in this season
       const divisions = await ctx.db.query.divisions.findMany({
-        where: eq(schema.divisions.seasonId, input.seasonId),
+        where: and(
+          eq(schema.divisions.seasonId, input.seasonId),
+          eq(schema.divisions.organizationId, ctx.organizationId),
+        ),
         columns: { goalieMinGames: true },
       })
       // Use the minimum threshold across all divisions in the season
@@ -194,7 +207,7 @@ export const statsRouter = router({
       return { qualified, belowThreshold, minGames }
     }),
 
-  penaltyStats: publicProcedure
+  penaltyStats: orgProcedure
     .input(
       z.object({
         seasonId: z.string().uuid(),
@@ -218,6 +231,7 @@ export const statsRouter = router({
         .where(
           and(
             inArray(schema.gameEvents.gameId, gameIds),
+            eq(schema.gameEvents.organizationId, ctx.organizationId),
             eq(schema.gameEvents.eventType, "penalty"),
             sql`${schema.gameEvents.penaltyPlayerId} IS NOT NULL`,
             teamCondition,
@@ -295,7 +309,7 @@ export const statsRouter = router({
       return results
     }),
 
-  teamPenaltyStats: publicProcedure
+  teamPenaltyStats: orgProcedure
     .input(
       z.object({
         seasonId: z.string().uuid(),
@@ -312,7 +326,13 @@ export const statsRouter = router({
           penaltyTypeId: schema.gameEvents.penaltyTypeId,
         })
         .from(schema.gameEvents)
-        .where(and(inArray(schema.gameEvents.gameId, gameIds), eq(schema.gameEvents.eventType, "penalty")))
+        .where(
+          and(
+            inArray(schema.gameEvents.gameId, gameIds),
+            eq(schema.gameEvents.organizationId, ctx.organizationId),
+            eq(schema.gameEvents.eventType, "penalty"),
+          ),
+        )
 
       type TeamPenalty = {
         teamId: string
@@ -372,9 +392,9 @@ export const statsRouter = router({
       return results
     }),
 
-  recalculate: adminProcedure.input(z.object({ seasonId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  recalculate: orgAdminProcedure.input(z.object({ seasonId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     // First, generate missing goalieGameStats for completed games that lack them
-    await backfillGoalieGameStats(ctx.db, input.seasonId)
+    await backfillGoalieGameStats(ctx.db, input.seasonId, ctx.organizationId)
 
     await recalculatePlayerStats(ctx.db, input.seasonId)
     await recalculateGoalieStats(ctx.db, input.seasonId)

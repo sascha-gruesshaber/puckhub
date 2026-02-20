@@ -1,7 +1,7 @@
 import * as schema from "@puckhub/db/schema"
 import { eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
-import { createTestCaller, getTestDb } from "../testUtils"
+import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 describe("standings router", () => {
   describe("getByRound", () => {
@@ -36,6 +36,7 @@ describe("standings router", () => {
       const db = getTestDb()
       await db.insert(schema.standings).values([
         {
+          organizationId: TEST_ORG_ID,
           teamId: teamA.id,
           roundId: round.id,
           gamesPlayed: 5,
@@ -51,6 +52,7 @@ describe("standings router", () => {
           rank: 1,
         },
         {
+          organizationId: TEST_ORG_ID,
           teamId: teamB.id,
           roundId: round.id,
           gamesPlayed: 5,
@@ -133,7 +135,10 @@ describe("standings router", () => {
 
       // Fetch system settings to know win points (default: 2)
       const db = getTestDb()
-      const [settings] = await db.select().from(schema.systemSettings).where(eq(schema.systemSettings.id, 1))
+      const [settings] = await db
+        .select()
+        .from(schema.systemSettings)
+        .where(eq(schema.systemSettings.organizationId, TEST_ORG_ID))
       const pointsWin = settings?.pointsWin ?? 2
 
       const caller = createTestCaller()

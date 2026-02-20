@@ -1,10 +1,10 @@
 import * as schema from "@puckhub/db/schema"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const teamDivisionRouter = router({
-  listByDivision: publicProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  listByDivision: orgProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
     const rows = await ctx.db
       .select({
         id: schema.teamDivisions.id,
@@ -20,11 +20,16 @@ export const teamDivisionRouter = router({
       })
       .from(schema.teamDivisions)
       .innerJoin(schema.teams, eq(schema.teamDivisions.teamId, schema.teams.id))
-      .where(eq(schema.teamDivisions.divisionId, input.divisionId))
+      .where(
+        and(
+          eq(schema.teamDivisions.divisionId, input.divisionId),
+          eq(schema.teamDivisions.organizationId, ctx.organizationId),
+        ),
+      )
     return rows
   }),
 
-  assign: adminProcedure
+  assign: orgAdminProcedure
     .input(
       z.object({
         teamId: z.string().uuid(),
@@ -36,16 +41,25 @@ export const teamDivisionRouter = router({
         .select()
         .from(schema.teamDivisions)
         .where(
-          and(eq(schema.teamDivisions.teamId, input.teamId), eq(schema.teamDivisions.divisionId, input.divisionId)),
+          and(
+            eq(schema.teamDivisions.teamId, input.teamId),
+            eq(schema.teamDivisions.divisionId, input.divisionId),
+            eq(schema.teamDivisions.organizationId, ctx.organizationId),
+          ),
         )
         .limit(1)
       if (existing) return existing
 
-      const [row] = await ctx.db.insert(schema.teamDivisions).values(input).returning()
+      const [row] = await ctx.db
+        .insert(schema.teamDivisions)
+        .values({ ...input, organizationId: ctx.organizationId })
+        .returning()
       return row
     }),
 
-  remove: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.teamDivisions).where(eq(schema.teamDivisions.id, input.id))
+  remove: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db
+      .delete(schema.teamDivisions)
+      .where(and(eq(schema.teamDivisions.id, input.id), eq(schema.teamDivisions.organizationId, ctx.organizationId)))
   }),
 })

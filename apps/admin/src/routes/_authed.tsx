@@ -18,10 +18,13 @@ import {
 } from "lucide-react"
 import { Suspense, useState } from "react"
 import { LanguagePicker } from "~/components/languagePicker"
+import { OrgPickerPage } from "~/components/orgPickerPage"
+import { OrgSwitcher } from "~/components/orgSwitcher"
 
 import { PageSkeleton } from "~/components/pageSkeleton"
 import { SeasonIndicator } from "~/components/seasonIndicator"
 import { SeasonPickerModal } from "~/components/seasonPickerModal"
+import { OrganizationProvider, useOrganization } from "~/contexts/organizationContext"
 import { SeasonProvider, useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { signOut, useSession } from "../../lib/auth-client"
@@ -151,6 +154,45 @@ function AuthedLayout() {
   }
 
   return (
+    <OrganizationProvider>
+      <OrgGate session={session} />
+    </OrganizationProvider>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Org Gate — shows org picker if no active org, otherwise renders sidebar
+// ---------------------------------------------------------------------------
+function OrgGate({ session }: { session: { user: { email: string } } }) {
+  const { organization, isLoading } = useOrganization()
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div
+            className="pulse-brand flex items-center justify-center rounded-xl"
+            style={{
+              width: 44,
+              height: 44,
+              background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
+              color: "#0C1929",
+              fontWeight: 800,
+              fontSize: 20,
+            }}
+          >
+            P
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!organization) {
+    return <OrgPickerPage />
+  }
+
+  return (
     <SeasonProvider>
       <SidebarLayout session={session} />
     </SeasonProvider>
@@ -164,6 +206,7 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
   const { season } = useWorkingSeason()
+  const { organization } = useOrganization()
   const { data: settings } = trpc.settings.get.useQuery()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerTarget, setPickerTarget] = useState<{ label: string; route: string }>({
@@ -292,9 +335,14 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
                 lineHeight: 1.4,
               }}
             >
-              {settings?.leagueName ?? t("sidebar.leagueAdmin")}
+              {settings?.leagueName ?? organization?.name ?? t("sidebar.leagueAdmin")}
             </div>
           </div>
+        </div>
+
+        {/* Organization Switcher */}
+        <div style={{ padding: "10px 12px 0" }}>
+          <OrgSwitcher />
         </div>
 
         {/* Season Indicator */}

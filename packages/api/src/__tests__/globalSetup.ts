@@ -76,10 +76,6 @@ export default async function globalSetup() {
       email: "admin@test.local",
       emailVerified: true,
     })
-    await db.insert(schemaModule.userRoles).values({
-      userId: "test-admin-id",
-      role: "super_admin",
-    })
 
     // Seed a regular (non-admin) user for protectedProcedure tests
     await db.insert(schemaModule.user).values({
@@ -87,6 +83,29 @@ export default async function globalSetup() {
       name: "Test User",
       email: "user@test.local",
       emailVerified: true,
+    })
+
+    // Seed test organization + member records
+    await db.insert(schemaModule.organization).values({
+      id: "test-org-id",
+      name: "Test League",
+      slug: "test-league",
+    })
+
+    // Admin user is org owner
+    await db.insert(schemaModule.member).values({
+      id: "test-admin-member-id",
+      userId: "test-admin-id",
+      organizationId: "test-org-id",
+      role: "owner",
+    })
+
+    // Regular user is org member
+    await db.insert(schemaModule.member).values({
+      id: "test-user-member-id",
+      userId: "test-user-id",
+      organizationId: "test-org-id",
+      role: "member",
     })
 
     await templateSql.end()

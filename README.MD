@@ -6,8 +6,8 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | [Hono](https://hono.dev) (HTTP) + [tRPC](https://trpc.io) (type-safe API, 22 routers) |
-| **ORM** | [Drizzle](https://orm.drizzle.team) (PostgreSQL, 32 schema files, 10 enums) |
+| **Backend** | [Hono](https://hono.dev) (HTTP) + [tRPC](https://trpc.io) (type-safe API, 25 routers) |
+| **ORM** | [Drizzle](https://orm.drizzle.team) (PostgreSQL, 34 schema files, 8 enums) |
 | **Auth** | [Better Auth](https://www.better-auth.com) (self-hosted, email/password) |
 | **Frontend** | [TanStack Start](https://tanstack.com/start) (SSR + Router + Query, React 19) |
 | **UI** | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) style components |
@@ -26,7 +26,7 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 - **Content Management** — News articles (draft/published), CMS pages with menu locations, sponsor management
 - **Jersey Management** — Trikot templates, team jersey assignments with color customization
 - **Venue Management** — Venues with addresses, linked to teams and games
-- **User Management** — Role-based access (super_admin, league_admin, team_manager, scorekeeper, viewer)
+- **User Management** — Role-based access via Better Auth organizations (owner, admin, member)
 - **Setup Wizard** — Guided onboarding for first-time league setup
 - **Multi-language** — Full German and English UI with language picker
 
@@ -35,11 +35,11 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 ```
 puckhub.cms/
 ├── apps/
-│   ├── admin/          # TanStack Start admin CMS (26 routes, ~65 components)
+│   ├── admin/          # TanStack Start admin CMS (27 routes, ~65 components)
 │   └── web/            # Future public-facing site
 ├── packages/
-│   ├── api/            # Hono + tRPC server, 22 routers, 3 services (@puckhub/api)
-│   ├── db/             # Drizzle schema (32 files) + migrations (4) + seeds (@puckhub/db)
+│   ├── api/            # Hono + tRPC server, 25 routers, 3 services (@puckhub/api)
+│   ├── db/             # Drizzle schema (34 files) + migrations (7) + seeds (@puckhub/db)
 │   ├── config/         # Minimal — runtime config in DB (@puckhub/config)
 │   └── ui/             # Shared UI components — 11 files, 13+ exports (@puckhub/ui)
 ├── docker/             # Docker Compose + pgAdmin config

@@ -1,4 +1,5 @@
-import { index, integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core"
+import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { organization } from "./organization"
 import { rounds } from "./rounds"
 import { teams } from "./teams"
 
@@ -6,6 +7,9 @@ export const standings = pgTable(
   "standings",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
     teamId: uuid("team_id")
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
@@ -26,5 +30,5 @@ export const standings = pgTable(
     previousRank: integer("previous_rank"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("standings_round_id_idx").on(t.roundId)],
+  (t) => [index("standings_round_id_idx").on(t.roundId), index("standings_org_id_idx").on(t.organizationId)],
 )
