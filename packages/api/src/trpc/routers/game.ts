@@ -4,9 +4,24 @@ import { and, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm"
 import { z } from "zod"
 import { generateRoundRobin } from "../../services/schedulerService"
 import { recalculateStandings } from "../../services/standingsService"
+import { recalculateGoalieStats, recalculatePlayerStats } from "../../services/statsService"
 import { adminProcedure, publicProcedure, router } from "../init"
 
 const gameStatusValues = ["scheduled", "completed", "cancelled"] as const
+
+/** Resolve the seasonId from a roundId (round -> division -> season). */
+async function getSeasonIdFromRound(db: any, roundId: string): Promise<string | null> {
+  const round = await db.query.rounds.findFirst({
+    where: eq(schema.rounds.id, roundId),
+    columns: { divisionId: true },
+  })
+  if (!round) return null
+  const division = await db.query.divisions.findFirst({
+    where: eq(schema.divisions.id, round.divisionId),
+    columns: { seasonId: true },
+  })
+  return division?.seasonId ?? null
+}
 
 async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, homeTeamId: string, awayTeamId: string) {
   if (homeTeamId === awayTeamId) {
@@ -263,8 +278,46 @@ export const gameRouter = router({
         ),
       )
 
+    // Generate goalie game stats from lineups + goals
+    const goalieLineups = lineups.filter((l) => l.isStartingGoalie)
+    if (goalieLineups.length > 0) {
+      // Count goals per team from game events
+      const goalEvents = await ctx.db.query.gameEvents.findMany({
+        where: and(eq(schema.gameEvents.gameId, input.id), eq(schema.gameEvents.eventType, "goal")),
+        columns: { teamId: true },
+      })
+      const goalsByTeam = new Map<string, number>()
+      for (const e of goalEvents) {
+        goalsByTeam.set(e.teamId, (goalsByTeam.get(e.teamId) ?? 0) + 1)
+      }
+
+      // Delete existing goalie stats for this game (in case of re-complete after reopen)
+      await ctx.db.delete(schema.goalieGameStats).where(eq(schema.goalieGameStats.gameId, input.id))
+
+      const goalieStatsValues = goalieLineups.map((gl) => {
+        // Goals against = goals scored by the OTHER team
+        const opponentTeamId = gl.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
+        return {
+          gameId: input.id,
+          playerId: gl.playerId,
+          teamId: gl.teamId,
+          goalsAgainst: goalsByTeam.get(opponentTeamId) ?? 0,
+        }
+      })
+      if (goalieStatsValues.length > 0) {
+        await ctx.db.insert(schema.goalieGameStats).values(goalieStatsValues)
+      }
+    }
+
     // Recalculate standings for the round
     await recalculateStandings(ctx.db, game.roundId)
+
+    // Recalculate player and goalie stats for the season
+    const seasonId = await getSeasonIdFromRound(ctx.db, game.roundId)
+    if (seasonId) {
+      await recalculatePlayerStats(ctx.db, seasonId)
+      await recalculateGoalieStats(ctx.db, seasonId)
+    }
 
     return updated
   }),
@@ -345,9 +398,14 @@ export const gameRouter = router({
       .where(eq(schema.games.id, input.id))
       .returning()
 
-    // Recalculate standings if reopening from completed
+    // Recalculate standings and stats if reopening from completed
     if (wasCompleted) {
       await recalculateStandings(ctx.db, game.roundId)
+      const seasonId = await getSeasonIdFromRound(ctx.db, game.roundId)
+      if (seasonId) {
+        await recalculatePlayerStats(ctx.db, seasonId)
+        await recalculateGoalieStats(ctx.db, seasonId)
+      }
     }
 
     return updated

@@ -220,12 +220,212 @@
     }
   },
   "statsPage": {
-    "title": "Stats",
-    "placeholder": "The stats view will be implemented here."
+    "title": "Statistics",
+    "placeholder": "The stats view will be implemented here.",
+    "noSeason": "Please select a working season to view statistics.",
+    "noData": "No statistics data for this season.",
+    "noDataDescription": "Games need to be played and completed first.",
+    "tabs": {
+      "overview": "Overview",
+      "scorers": "Scorers",
+      "goals": "Goals",
+      "assists": "Assists",
+      "penalties": "Penalties",
+      "goalies": "Goalies",
+      "teams": "Teams"
+    },
+    "roundInfo": {
+      "title": "Counted rounds",
+      "playerStats": "Player stats",
+      "goalieStats": "Goalie stats",
+      "allRounds": "All rounds",
+      "noRounds": "No rounds configured"
+    },
+    "overview": {
+      "topScorer": "Top Scorer",
+      "bestGoalie": "Best Goalie",
+      "mostPenalties": "Most Penalty Minutes",
+      "gamesPlayed": "Games Played",
+      "points": "Points",
+      "gaa": "Goals Against Average",
+      "pim": "Penalty Minutes",
+      "goalsLong": "Goals",
+      "assistsLong": "Assists",
+      "gamesPlayedLong": "Games Played"
+    },
+    "scorers": {
+      "title": "Scorer Rankings",
+      "rank": "#",
+      "player": "Player",
+      "team": "Team",
+      "gamesPlayed": "GP",
+      "goals": "G",
+      "assists": "A",
+      "totalPoints": "Pts",
+      "pointsPerGame": "Pts/GP",
+      "chartTitle": "Top 15 Scorers"
+    },
+    "goalsTab": {
+      "title": "Goal Scorer Rankings",
+      "chartTitle": "Top 15 Goal Scorers"
+    },
+    "assistsTab": {
+      "title": "Assist Rankings",
+      "chartTitle": "Top 15 Assist Leaders"
+    },
+    "penalties": {
+      "title": "Penalty Minute Rankings",
+      "rank": "#",
+      "player": "Player",
+      "team": "Team",
+      "totalMinutes": "PIM",
+      "totalCount": "Pen",
+      "breakdown": "Breakdown",
+      "chartTitle": "Top 15 Players by PIM",
+      "teamChartTitle": "Penalty Minutes per Team",
+      "typeChartTitle": "Distribution by Penalty Type",
+      "unknownType": "Unknown"
+    },
+    "goalies": {
+      "title": "Goalie Rankings",
+      "qualified": "Qualified",
+      "belowThreshold": "Below Minimum Games",
+      "minGamesInfo": "Minimum {{min}} games to qualify",
+      "rank": "#",
+      "player": "Player",
+      "team": "Team",
+      "gamesPlayed": "GP",
+      "goalsAgainst": "GA",
+      "gaa": "GAA",
+      "saves": "SV",
+      "savePercentage": "SV%",
+      "shutouts": "SO",
+      "chartTitle": "Goalie GAA (qualified)"
+    },
+    "teamsTab": {
+      "title": "Team Comparison",
+      "selectRound": "Select round",
+      "standings": "Standings",
+      "rank": "#",
+      "team": "Team",
+      "gamesPlayed": "GP",
+      "wins": "W",
+      "draws": "D",
+      "losses": "L",
+      "goalsFor": "GF",
+      "goalsAgainst": "GA",
+      "goalDifference": "GD",
+      "points": "Pts",
+      "penaltyComparison": "Penalty Comparison",
+      "radarTitle": "Team Comparison",
+      "selectTeams": "Select teams (min. 2)",
+      "noStandings": "No standings data for this round.",
+      "radarWins": "Wins",
+      "radarLosses": "Losses",
+      "radarGoalsFor": "Goals",
+      "radarGoalsAgainst": "Goals Against",
+      "radarPim": "Penalty Minutes",
+      "chartRadar": "Radar",
+      "chartBar": "Bar Chart"
+    },
+    "filters": {
+      "allTeams": "All Teams",
+      "allPositions": "All Positions",
+      "forward": "Forwards",
+      "defense": "Defense"
+    },
+    "tooltips": {
+      "gp": "Games Played",
+      "g": "Goals",
+      "a": "Assists",
+      "pts": "Points",
+      "pim": "Penalty In Minutes",
+      "pen": "Number of Penalties",
+      "ga": "Goals Against",
+      "gaa": "Goals Against Average",
+      "gaPerGp": "Goals Against per Game",
+      "w": "Wins",
+      "d": "Draws",
+      "l": "Losses",
+      "gf": "Goals For",
+      "gaTeam": "Goals Against",
+      "gd": "Goal Difference"
+    },
+    "recalculate": "Recalculate",
+    "recalculating": "Recalculating statistics…",
+    "recalculateSuccess": "Statistics have been recalculated."
   },
   "standingsPage": {
     "title": "Standings",
-    "placeholder": "The standings view will be implemented here."
+    "description": "Current standings by round",
+    "noSeason": "Please select a season first.",
+    "noData": "No standings data",
+    "noDataDescription": "No results available for this round yet.",
+    "columns": {
+      "rank": "#",
+      "team": "Team",
+      "form": "Form",
+      "gamesPlayed": "GP",
+      "wins": "W",
+      "draws": "D",
+      "losses": "L",
+      "goalsFor": "GF",
+      "goalsAgainst": "GA",
+      "goalDifference": "GD",
+      "points": "Pts",
+      "bonusPoints": "BP",
+      "totalPoints": "Tot"
+    },
+    "tooltips": {
+      "rank": "Position",
+      "gamesPlayed": "Games played",
+      "wins": "Wins",
+      "draws": "Draws",
+      "losses": "Losses",
+      "goalsFor": "Goals for",
+      "goalsAgainst": "Goals against",
+      "goalDifference": "Goal difference",
+      "points": "Points",
+      "bonusPoints": "Bonus points",
+      "totalPoints": "Total points",
+      "formWin": "Win",
+      "formDraw": "Draw",
+      "formLoss": "Loss"
+    },
+    "form": {
+      "win": "W",
+      "draw": "D",
+      "loss": "L"
+    },
+    "zones": {
+      "promotion": "Promotion zone",
+      "relegation": "Relegation zone"
+    },
+    "recalculate": {
+      "button": "Recalculate",
+      "round": "Recalculate round",
+      "allRounds": "Recalculate all rounds",
+      "loading": "Calculating…",
+      "success": "Standings have been recalculated.",
+      "allSuccess": "All rounds have been recalculated."
+    },
+    "bonusPoints": {
+      "title": "Bonus Points",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "team": "Team",
+      "points": "Points",
+      "reason": "Reason",
+      "reasonPlaceholder": "e.g. Penalty, license violation…",
+      "actions": "Actions",
+      "noEntries": "No bonus points recorded.",
+      "created": "Bonus points added.",
+      "updated": "Bonus points updated.",
+      "deleted": "Bonus points deleted.",
+      "confirmDelete": "Delete bonus points?",
+      "confirmDeleteDescription": "This action cannot be undone. The standings will be recalculated automatically."
+    }
   },
   "newsCreate": {
     "title": "New news",

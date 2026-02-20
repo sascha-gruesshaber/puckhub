@@ -1,7 +1,9 @@
 import * as schema from "@puckhub/db/schema"
 import { and, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
-import { publicProcedure, router } from "../init"
+import { recalculateStandings } from "../../services/standingsService"
+import { recalculateGoalieStats, recalculatePlayerStats } from "../../services/statsService"
+import { adminProcedure, publicProcedure, router } from "../init"
 
 /**
  * Helper: get IDs of completed games in rounds matching a stats toggle for a given season.
@@ -28,7 +30,104 @@ async function getEligibleGameIds(
   return completedGames.map((g: any) => g.id) as string[]
 }
 
+/**
+ * Backfill goalieGameStats for completed games that are missing them.
+ * Uses starting goalies from lineups and goal counts from events.
+ */
+async function backfillGoalieGameStats(db: any, seasonId: string): Promise<void> {
+  // Get all completed games for this season (across all rounds)
+  const allRounds = await db
+    .select({ id: schema.rounds.id })
+    .from(schema.rounds)
+    .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
+    .where(eq(schema.divisions.seasonId, seasonId))
+
+  const roundIds = allRounds.map((r: any) => r.id) as string[]
+  if (roundIds.length === 0) return
+
+  const completedGames = await db.query.games.findMany({
+    where: and(inArray(schema.games.roundId, roundIds), eq(schema.games.status, "completed")),
+    columns: { id: true, homeTeamId: true, awayTeamId: true },
+  })
+  if (completedGames.length === 0) return
+
+  const gameIds = completedGames.map((g: any) => g.id) as string[]
+
+  // Find games that already have goalie stats
+  const existingStats = await db
+    .select({ gameId: schema.goalieGameStats.gameId })
+    .from(schema.goalieGameStats)
+    .where(inArray(schema.goalieGameStats.gameId, gameIds))
+  const gamesWithStats = new Set(existingStats.map((s: any) => s.gameId))
+
+  const gamesToBackfill = completedGames.filter((g: any) => !gamesWithStats.has(g.id))
+  if (gamesToBackfill.length === 0) return
+
+  const backfillGameIds = gamesToBackfill.map((g: any) => g.id) as string[]
+
+  // Get starting goalies for these games
+  const goalieLineups = await db.query.gameLineups.findMany({
+    where: and(
+      inArray(schema.gameLineups.gameId, backfillGameIds),
+      eq(schema.gameLineups.isStartingGoalie, true),
+    ),
+    columns: { gameId: true, playerId: true, teamId: true },
+  })
+
+  // Count goals per game+team from events
+  const goalEvents = await db
+    .select({
+      gameId: schema.gameEvents.gameId,
+      teamId: schema.gameEvents.teamId,
+      count: sql<number>`count(*)`,
+    })
+    .from(schema.gameEvents)
+    .where(
+      and(
+        inArray(schema.gameEvents.gameId, backfillGameIds),
+        eq(schema.gameEvents.eventType, "goal"),
+      ),
+    )
+    .groupBy(schema.gameEvents.gameId, schema.gameEvents.teamId)
+
+  const goalsByGameTeam = new Map<string, number>()
+  for (const row of goalEvents) {
+    goalsByGameTeam.set(`${row.gameId}:${row.teamId}`, Number(row.count))
+  }
+
+  const gameMap = new Map(gamesToBackfill.map((g: any) => [g.id, g]))
+
+  const values = goalieLineups
+    .map((gl: any) => {
+      const game = gameMap.get(gl.gameId) as any
+      if (!game) return null
+      const opponentTeamId = gl.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
+      return {
+        gameId: gl.gameId,
+        playerId: gl.playerId,
+        teamId: gl.teamId,
+        goalsAgainst: goalsByGameTeam.get(`${gl.gameId}:${opponentTeamId}`) ?? 0,
+      }
+    })
+    .filter((v: any): v is NonNullable<typeof v> => v !== null)
+
+  if (values.length > 0) {
+    await db.insert(schema.goalieGameStats).values(values)
+  }
+}
+
 export const statsRouter = router({
+  seasonRoundInfo: publicProcedure
+    .input(z.object({ seasonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const divisions = await ctx.db.query.divisions.findMany({
+        where: eq(schema.divisions.seasonId, input.seasonId),
+        with: { rounds: true },
+        orderBy: (d, { asc }) => [asc(d.sortOrder)],
+      })
+      return divisions
+    }),
+
   playerStats: publicProcedure
     .input(
       z.object({
@@ -52,16 +151,19 @@ export const statsRouter = router({
         orderBy: (s, { desc }) => [desc(s.totalPoints), desc(s.goals), desc(s.assists)],
       })
 
-      // Filter by position if requested (requires joining through contracts or player position)
+      // Filter by position if requested — look up position from contracts matching player+team
       if (input.position) {
-        // Get active contracts for this season to determine player positions
-        const contracts = await ctx.db.query.contracts.findMany({
-          where: eq(schema.contracts.startSeasonId, input.seasonId),
-          columns: { playerId: true, position: true },
-        })
-        const positionMap = new Map(contracts.map((c) => [c.playerId, c.position]))
+        const playerIds = [...new Set(stats.map((s) => s.playerId))]
+        if (playerIds.length === 0) return []
 
-        return stats.filter((s) => positionMap.get(s.playerId) === input.position)
+        const contracts = await ctx.db.query.contracts.findMany({
+          where: inArray(schema.contracts.playerId, playerIds),
+          columns: { playerId: true, teamId: true, position: true },
+        })
+        // Key by player+team since a player's position depends on which team they play for
+        const positionMap = new Map(contracts.map((c) => [`${c.playerId}:${c.teamId}`, c.position]))
+
+        return stats.filter((s) => positionMap.get(`${s.playerId}:${s.teamId}`) === input.position)
       }
 
       return stats
@@ -279,5 +381,27 @@ export const statsRouter = router({
         .sort((a, b) => b.totalMinutes - a.totalMinutes)
 
       return results
+    }),
+
+  recalculate: adminProcedure
+    .input(z.object({ seasonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      // First, generate missing goalieGameStats for completed games that lack them
+      await backfillGoalieGameStats(ctx.db, input.seasonId)
+
+      await recalculatePlayerStats(ctx.db, input.seasonId)
+      await recalculateGoalieStats(ctx.db, input.seasonId)
+
+      // Recalculate standings for all rounds in this season
+      const rounds = await ctx.db
+        .select({ id: schema.rounds.id })
+        .from(schema.rounds)
+        .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
+        .where(eq(schema.divisions.seasonId, input.seasonId))
+      for (const round of rounds) {
+        await recalculateStandings(ctx.db, round.id)
+      }
+
+      return { success: true }
     }),
 })

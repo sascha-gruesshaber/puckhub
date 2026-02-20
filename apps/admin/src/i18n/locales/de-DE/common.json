@@ -221,11 +221,211 @@
   },
   "statsPage": {
     "title": "Statistiken",
-    "placeholder": "Die Statistikansicht wird hier implementiert."
+    "placeholder": "Die Statistikansicht wird hier implementiert.",
+    "noSeason": "Bitte eine Arbeitssaison auswählen, um Statistiken zu sehen.",
+    "noData": "Keine Statistikdaten für diese Saison vorhanden.",
+    "noDataDescription": "Es müssen zuerst Spiele gespielt und abgeschlossen werden.",
+    "tabs": {
+      "overview": "Übersicht",
+      "scorers": "Scorer",
+      "goals": "Torschützen",
+      "assists": "Assists",
+      "penalties": "Strafen",
+      "goalies": "Torhüter",
+      "teams": "Teams"
+    },
+    "roundInfo": {
+      "title": "Berücksichtigte Runden",
+      "playerStats": "Spielerstatistik",
+      "goalieStats": "Torwartstatistik",
+      "allRounds": "Alle Runden",
+      "noRounds": "Keine Runden konfiguriert"
+    },
+    "overview": {
+      "topScorer": "Top Scorer",
+      "bestGoalie": "Bester Torhüter",
+      "mostPenalties": "Meiste Strafminuten",
+      "gamesPlayed": "Gespielte Spiele",
+      "points": "Punkte",
+      "gaa": "Gegentorschnitt",
+      "pim": "Strafminuten",
+      "goalsLong": "Tore",
+      "assistsLong": "Vorlagen",
+      "gamesPlayedLong": "Spiele"
+    },
+    "scorers": {
+      "title": "Scorer-Rangliste",
+      "rank": "#",
+      "player": "Spieler",
+      "team": "Team",
+      "gamesPlayed": "Sp",
+      "goals": "T",
+      "assists": "V",
+      "totalPoints": "Pkt",
+      "pointsPerGame": "Pkt/Sp",
+      "chartTitle": "Top 15 Scorer"
+    },
+    "goalsTab": {
+      "title": "Torschützen-Rangliste",
+      "chartTitle": "Top 15 Torschützen"
+    },
+    "assistsTab": {
+      "title": "Assists-Rangliste",
+      "chartTitle": "Top 15 Vorlagengeber"
+    },
+    "penalties": {
+      "title": "Strafminuten-Rangliste",
+      "rank": "#",
+      "player": "Spieler",
+      "team": "Team",
+      "totalMinutes": "SM",
+      "totalCount": "Str",
+      "breakdown": "Aufschlüsselung",
+      "chartTitle": "Top 15 Spieler nach Strafminuten",
+      "teamChartTitle": "Strafminuten pro Team",
+      "typeChartTitle": "Verteilung nach Strafart",
+      "unknownType": "Unbekannt"
+    },
+    "goalies": {
+      "title": "Torhüter-Rangliste",
+      "qualified": "Qualifiziert",
+      "belowThreshold": "Unter Mindestspielen",
+      "minGamesInfo": "Mindestens {{min}} Spiele für die Qualifikation",
+      "rank": "#",
+      "player": "Spieler",
+      "team": "Team",
+      "gamesPlayed": "Sp",
+      "goalsAgainst": "GT",
+      "gaa": "GAA",
+      "saves": "SV",
+      "savePercentage": "SV%",
+      "shutouts": "SO",
+      "chartTitle": "Torhüter GAA (qualifiziert)"
+    },
+    "teamsTab": {
+      "title": "Teamvergleich",
+      "selectRound": "Runde auswählen",
+      "standings": "Tabelle",
+      "rank": "#",
+      "team": "Team",
+      "gamesPlayed": "Sp",
+      "wins": "S",
+      "draws": "U",
+      "losses": "N",
+      "goalsFor": "T+",
+      "goalsAgainst": "T-",
+      "goalDifference": "TD",
+      "points": "Pkt",
+      "penaltyComparison": "Strafvergleich",
+      "radarTitle": "Teamvergleich",
+      "selectTeams": "Teams auswählen (mind. 2)",
+      "noStandings": "Keine Tabellendaten für diese Runde.",
+      "radarWins": "Siege",
+      "radarLosses": "Niederlagen",
+      "radarGoalsFor": "Tore",
+      "radarGoalsAgainst": "Gegentore",
+      "radarPim": "Strafminuten",
+      "chartRadar": "Radar",
+      "chartBar": "Balkendiagramm"
+    },
+    "filters": {
+      "allTeams": "Alle Teams",
+      "allPositions": "Alle Positionen",
+      "forward": "Stürmer",
+      "defense": "Verteidiger"
+    },
+    "tooltips": {
+      "gp": "Spiele",
+      "g": "Tore",
+      "a": "Vorlagen",
+      "pts": "Punkte",
+      "pim": "Strafminuten",
+      "pen": "Anzahl Strafen",
+      "ga": "Gegentore",
+      "gaa": "Gegentorschnitt (Goals Against Average)",
+      "gaPerGp": "Gegentore pro Spiel",
+      "w": "Siege",
+      "d": "Unentschieden",
+      "l": "Niederlagen",
+      "gf": "Erzielte Tore",
+      "gaTeam": "Kassierte Tore",
+      "gd": "Tordifferenz"
+    },
+    "recalculate": "Neu berechnen",
+    "recalculating": "Statistiken werden neu berechnet…",
+    "recalculateSuccess": "Statistiken wurden neu berechnet."
   },
   "standingsPage": {
     "title": "Tabelle",
-    "placeholder": "Die Tabellenansicht wird hier implementiert."
+    "description": "Aktuelle Tabellenstände nach Runde",
+    "noSeason": "Bitte wähle zuerst eine Saison aus.",
+    "noData": "Keine Tabellendaten",
+    "noDataDescription": "Für diese Runde liegen noch keine Ergebnisse vor.",
+    "columns": {
+      "rank": "#",
+      "team": "Team",
+      "form": "Form",
+      "gamesPlayed": "Sp",
+      "wins": "S",
+      "draws": "U",
+      "losses": "N",
+      "goalsFor": "T+",
+      "goalsAgainst": "T-",
+      "goalDifference": "Diff",
+      "points": "Pkt",
+      "bonusPoints": "BP",
+      "totalPoints": "Ges"
+    },
+    "tooltips": {
+      "rank": "Platz",
+      "gamesPlayed": "Spiele",
+      "wins": "Siege",
+      "draws": "Unentschieden",
+      "losses": "Niederlagen",
+      "goalsFor": "Tore erzielt",
+      "goalsAgainst": "Gegentore",
+      "goalDifference": "Tordifferenz",
+      "points": "Punkte",
+      "bonusPoints": "Bonuspunkte",
+      "totalPoints": "Gesamtpunkte",
+      "formWin": "Sieg",
+      "formDraw": "Unentschieden",
+      "formLoss": "Niederlage"
+    },
+    "form": {
+      "win": "S",
+      "draw": "U",
+      "loss": "N"
+    },
+    "zones": {
+      "promotion": "Aufstiegszone",
+      "relegation": "Abstiegszone"
+    },
+    "recalculate": {
+      "button": "Neu berechnen",
+      "round": "Runde neu berechnen",
+      "allRounds": "Alle Runden neu berechnen",
+      "loading": "Berechne…",
+      "success": "Tabelle wurde neu berechnet.",
+      "allSuccess": "Alle Runden wurden neu berechnet."
+    },
+    "bonusPoints": {
+      "title": "Bonuspunkte",
+      "add": "Hinzufügen",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "team": "Team",
+      "points": "Punkte",
+      "reason": "Grund",
+      "reasonPlaceholder": "z.B. Strafe, Lizenzverstoß…",
+      "actions": "Aktionen",
+      "noEntries": "Keine Bonuspunkte vorhanden.",
+      "created": "Bonuspunkte hinzugefügt.",
+      "updated": "Bonuspunkte aktualisiert.",
+      "deleted": "Bonuspunkte gelöscht.",
+      "confirmDelete": "Bonuspunkte wirklich löschen?",
+      "confirmDeleteDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Die Tabelle wird automatisch neu berechnet."
+    }
   },
   "newsCreate": {
     "title": "Neue News",

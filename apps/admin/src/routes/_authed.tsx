@@ -62,6 +62,7 @@ const iconProps = { size: 18, strokeWidth: 1.5 } as const
 type RouteLink =
   | "/games"
   | "/venues"
+  | "/stats"
   | "/teams"
   | "/players"
   | "/trikots"
@@ -170,8 +171,8 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
       items: [
         { to: "/games", label: t("sidebar.items.games"), icon: <IconPuck /> },
         { to: "/venues", label: t("sidebar.items.venues"), icon: <MapPin {...iconProps} /> },
-        { label: t("sidebar.items.standings"), icon: <Trophy {...iconProps} />, disabled: true, badge: "Soon" },
-        { label: t("sidebar.items.stats"), icon: <TrendingUp {...iconProps} />, disabled: true, badge: "Soon" },
+        { to: "/standings", label: t("sidebar.items.standings"), icon: <Trophy {...iconProps} /> },
+        { to: "/stats", label: t("sidebar.items.stats"), icon: <TrendingUp {...iconProps} /> },
       ],
     },
     {

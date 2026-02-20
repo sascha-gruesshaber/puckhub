@@ -121,7 +121,14 @@ export async function recalculateStandings(db: Database, roundId: string): Promi
     return b.goalsFor - a.goalsFor
   })
 
-  // 6. Delete existing standings and insert fresh with ranks
+  // 6. Read current ranks before deleting (for previousRank tracking)
+  const existing = await db.query.standings.findMany({
+    where: eq(schema.standings.roundId, roundId),
+    columns: { teamId: true, rank: true },
+  })
+  const previousRankMap = new Map(existing.map((s) => [s.teamId, s.rank]))
+
+  // 7. Delete existing standings and insert fresh with ranks
   await db.delete(schema.standings).where(eq(schema.standings.roundId, roundId))
 
   if (entries.length > 0) {
@@ -140,6 +147,7 @@ export async function recalculateStandings(db: Database, roundId: string): Promi
         bonusPoints: e.bonusPoints,
         totalPoints: e.totalPoints,
         rank: idx + 1,
+        previousRank: previousRankMap.get(e.teamId) ?? null,
         updatedAt: new Date(),
       })),
     )

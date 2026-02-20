@@ -23,6 +23,7 @@ export const standings = pgTable(
     bonusPoints: integer("bonus_points").notNull().default(0),
     totalPoints: integer("total_points").notNull().default(0),
     rank: integer("rank"),
+    previousRank: integer("previous_rank"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("standings_round_id_idx").on(t.roundId)],

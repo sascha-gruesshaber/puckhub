@@ -1,4 +1,5 @@
 import { router } from "./init"
+import { bonusPointsRouter } from "./routers/bonusPoints"
 import { contractRouter } from "./routers/contract"
 import { divisionRouter } from "./routers/division"
 import { gameRouter } from "./routers/game"
@@ -23,6 +24,7 @@ import { usersRouter } from "./routers/users"
 import { venueRouter } from "./routers/venue"
 
 export const appRouter = router({
+  bonusPoints: bonusPointsRouter,
   season: seasonRouter,
   division: divisionRouter,
   round: roundRouter,

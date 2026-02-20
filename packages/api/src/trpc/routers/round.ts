@@ -1,6 +1,7 @@
 import * as schema from "@puckhub/db/schema"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
+import { recalculateGoalieStats, recalculatePlayerStats } from "../../services/statsService"
 import { adminProcedure, publicProcedure, router } from "../init"
 
 const roundTypeValues = [
@@ -63,11 +64,33 @@ export const roundRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+
+      // Check if counting flags are being changed — need old values to compare
+      const statsToggleChanged =
+        input.countsForPlayerStats !== undefined || input.countsForGoalieStats !== undefined
+
       const [round] = await ctx.db
         .update(schema.rounds)
         .set({ ...data, updatedAt: new Date() })
         .where(eq(schema.rounds.id, id))
         .returning()
+
+      // Recalculate stats when counting flags change
+      if (statsToggleChanged && round) {
+        const division = await ctx.db.query.divisions.findFirst({
+          where: eq(schema.divisions.id, round.divisionId),
+          columns: { seasonId: true },
+        })
+        if (division) {
+          if (input.countsForPlayerStats !== undefined) {
+            await recalculatePlayerStats(ctx.db, division.seasonId)
+          }
+          if (input.countsForGoalieStats !== undefined) {
+            await recalculateGoalieStats(ctx.db, division.seasonId)
+          }
+        }
+      }
+
       return round
     }),
 
