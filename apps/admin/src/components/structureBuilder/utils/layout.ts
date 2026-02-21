@@ -120,7 +120,9 @@ export function getLayoutedElements(nodes: Node[], edges: Edge[]): { nodes: Node
       const roundX = blockX
 
       for (let i = 0; i < block.rounds.length; i++) {
-        positions.set(block.rounds[i]?.id, {
+        const roundId = block.rounds[i]?.id
+        if (!roundId) continue
+        positions.set(roundId, {
           x: roundX,
           y: divisionY + i * (roundD.height + ITEM_GAP),
         })
@@ -132,7 +134,9 @@ export function getLayoutedElements(nodes: Node[], edges: Edge[]): { nodes: Node
       const teamX = divX + divD.width + COL_GAP
 
       for (let i = 0; i < block.teams.length; i++) {
-        positions.set(block.teams[i]?.id, {
+        const teamId = block.teams[i]?.id
+        if (!teamId) continue
+        positions.set(teamId, {
           x: teamX,
           y: divisionY + i * (teamD.height + ITEM_GAP),
         })

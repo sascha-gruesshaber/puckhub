@@ -6,7 +6,7 @@ import { PasskeyButton } from "~/components/auth/passkeyButton"
 import { TwoFactorForm } from "~/components/auth/twoFactorForm"
 import { useTranslation } from "~/i18n/use-translation"
 
-interface LoginSearch {
+export interface LoginSearch {
   mode?: "2fa"
 }
 
