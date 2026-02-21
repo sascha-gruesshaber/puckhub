@@ -208,6 +208,21 @@ export const organizationRouter = router({
       await ctx.db.delete(schema.member).where(eq(schema.member.id, input.memberId))
     }),
 
+  delete: platformAdminProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const org = await ctx.db.query.organization.findFirst({
+        where: eq(schema.organization.id, input.id),
+      })
+      if (!org) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Organisation nicht gefunden" })
+      }
+
+      await ctx.db.delete(schema.organization).where(eq(schema.organization.id, input.id))
+
+      return { id: input.id }
+    }),
+
   updateMemberRole: orgAdminProcedure
     .input(
       z.object({

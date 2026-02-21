@@ -12,7 +12,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Plus } from "lucide-react"
+import { Building2, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -36,6 +36,9 @@ function OrganizationsPage() {
   const [form, setForm] = useState<OrgForm>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof OrgForm, string>>>({})
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deletingOrg, setDeletingOrg] = useState<{ id: string; name: string } | null>(null)
+
   const utils = trpc.useUtils()
   const createMutation = trpc.organization.create.useMutation({
     onSuccess: () => {
@@ -43,6 +46,16 @@ function OrganizationsPage() {
       setDialogOpen(false)
       setForm(emptyForm)
       toast.success("Organization created")
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
+  const deleteMutation = trpc.organization.delete.useMutation({
+    onSuccess: () => {
+      utils.organization.listAll.invalidate()
+      setDeleteDialogOpen(false)
+      setDeletingOrg(null)
+      toast.success("Organization deleted")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -153,6 +166,17 @@ function OrganizationsPage() {
                 <p className="text-sm font-medium">{org.memberCount}</p>
                 <p className="text-xs text-muted-foreground">members</p>
               </div>
+              <button
+                type="button"
+                title="Delete organization"
+                onClick={() => {
+                  setDeletingOrg({ id: org.id, name: org.name })
+                  setDeleteDialogOpen(true)
+                }}
+                className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
           ))}
         </div>
@@ -218,6 +242,35 @@ function OrganizationsPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Organization Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogClose onClick={() => setDeleteDialogOpen(false)} />
+          <DialogHeader>
+            <DialogTitle>Delete Organization</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <strong>{deletingOrg?.name}</strong>? This will permanently remove the
+              organization and all its data including seasons, teams, players, games, and statistics. This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deletingOrg) deleteMutation.mutate({ id: deletingOrg.id })
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
