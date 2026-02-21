@@ -560,12 +560,6 @@ describe("authorization", () => {
       })
     })
 
-    describe("setup", () => {
-      it("status is public", async () => {
-        await expectNotUnauthorized(() => caller.setup.status())
-      })
-    })
-
     describe("page", () => {
       it("getBySlug is public", async () => {
         await expectNotUnauthorized(() => caller.page.getBySlug({ slug: "test" }))

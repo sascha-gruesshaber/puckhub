@@ -12,7 +12,6 @@ import { playerRouter } from "./routers/player"
 import { roundRouter } from "./routers/round"
 import { seasonRouter } from "./routers/season"
 import { settingsRouter } from "./routers/settings"
-import { setupRouter } from "./routers/setup"
 import { sponsorRouter } from "./routers/sponsor"
 import { standingsRouter } from "./routers/standings"
 import { statsRouter } from "./routers/stats"
@@ -43,7 +42,6 @@ export const appRouter = router({
   trikot: trikotRouter,
   teamTrikot: teamTrikotRouter,
   users: usersRouter,
-  setup: setupRouter,
   settings: settingsRouter,
   sponsor: sponsorRouter,
   news: newsRouter,

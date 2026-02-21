@@ -11,6 +11,10 @@ try {
     await runSeed(db)
   }
 
+  // Create default admin user from env if no users exist yet
+  const { ensureDefaultUser } = await import("./lib/ensureDefaultUser")
+  await ensureDefaultUser()
+
   const { serve } = await import("@hono/node-server")
   const { app } = await import("./app")
 
