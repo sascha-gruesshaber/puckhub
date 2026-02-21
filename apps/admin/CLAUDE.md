@@ -12,6 +12,7 @@ src/routes/
 └── _authed.tsx             # Protected layout (sidebar, session check, season context)
     ├── index.tsx           # Dashboard
     ├── settings.tsx        # League settings
+    ├── security.tsx        # Security settings (passkey, 2FA)
     ├── standings.tsx       # Standings view
     ├── stats.tsx           # Statistics
     ├── games/index.tsx     # Games calendar + scheduling
@@ -61,9 +62,9 @@ import { useTranslation } from '~/i18n/use-translation'
 ```
 src/i18n/
 ├── locales/
-│   ├── de-DE/common.json   # German translations (~1300 lines)
+│   ├── de-DE/common.json   # German translations
 │   ├── de-DE/errors.json   # German error messages
-│   ├── en-US/common.json   # English translations (~1300 lines)
+│   ├── en-US/common.json   # English translations
 │   └── en-US/errors.json   # English error messages
 ├── resources.ts             # Resource imports & locale normalization
 ├── locale-context.tsx       # LocaleProvider context, useLocale() hook
@@ -76,15 +77,14 @@ src/i18n/
 - **Namespaces**: `common` (all UI text), `errors` (error messages)
 - User locale preference stored in DB and synced via `localeSync.tsx` component
 
-## Component Organization (~65 files)
+## Component Organization (~89 files)
 
 ```
 src/components/
-├── gettingStarted/        # Setup wizard
-│   ├── gettingStartedWizard.tsx
-│   ├── wizardLayout.tsx
-│   ├── stepIndicator.tsx
-│   └── steps/             # welcomeStep, leagueOverviewStep, adminAccountStep, firstSeasonStep, completeStep
+├── auth/                  # Authentication components
+│   ├── loginForm.tsx
+│   ├── passkeyButton.tsx
+│   └── twoFactorForm.tsx
 ├── gameReport/            # Game report editing (10 components)
 │   ├── gameReportHeader.tsx
 │   ├── gameTimeline.tsx   # Chronological event timeline
@@ -96,58 +96,94 @@ src/components/
 │   ├── lineupEditor.tsx   # Manage game lineups
 │   ├── teamRosterChecklist.tsx  # Player checklist for lineup
 │   └── timelineEvent.tsx  # Single event in timeline
-├── structureBuilder/      # React Flow canvas for season structure
+├── gettingStarted/        # Setup wizard (8 files)
+│   ├── gettingStartedWizard.tsx
+│   ├── wizardLayout.tsx
+│   ├── stepIndicator.tsx
+│   └── steps/             # welcomeStep, leagueOverviewStep, adminAccountStep, firstSeasonStep, completeStep
+├── playerTimeline/        # Player history timeline (playerTimeline.tsx)
+├── roster/                # Roster management (4 files)
+│   ├── rosterTable.tsx
+│   ├── signPlayerDialog.tsx
+│   ├── editContractDialog.tsx
+│   └── transferDialog.tsx
+├── security/              # Security settings (2 files)
+│   ├── passkeySection.tsx
+│   └── twoFactorSection.tsx
+├── skeletons/             # Loading skeleton components (3 files)
+│   ├── countSkeleton.tsx
+│   ├── dataListSkeleton.tsx
+│   └── filterPillsSkeleton.tsx
+├── standings/             # Standings components (3 files)
+│   ├── standingsTable.tsx
+│   ├── bonusPointsSection.tsx
+│   └── bonusPointsDialog.tsx
+├── stats/                 # Statistics & charts (15 files)
+│   ├── statsSummaryCards.tsx
+│   ├── statsTabNavigation.tsx
+│   ├── statsRoundInfo.tsx
+│   ├── scorerTable.tsx
+│   ├── scorerChart.tsx
+│   ├── goalieTable.tsx
+│   ├── goalieChart.tsx
+│   ├── penaltyPlayerTable.tsx
+│   ├── penaltyTeamChart.tsx
+│   ├── penaltyTypeChart.tsx
+│   ├── teamStandingsTable.tsx
+│   ├── teamComparisonSelector.tsx
+│   ├── teamComparisonBar.tsx
+│   ├── teamComparisonRadar.tsx
+│   └── echartsWrapper.tsx
+├── structureBuilder/      # React Flow canvas for season structure (15 files)
 │   ├── structureCanvas.tsx
 │   ├── setupWizardDialog.tsx
 │   ├── nodes/             # Custom node types (seasonNode, divisionNode, roundNode, teamNode)
 │   ├── panels/            # sidePanel, divisionEditPanel, roundEditPanel, teamAssignmentPanel, teamPalette
 │   └── utils/             # layout, nodeFactory, roundTypeColors, roundTypeIcons
-├── playerTimeline/        # Player history timeline (playerTimeline.tsx)
-├── roster/                # Roster management (rosterTable, signPlayerDialog, editContractDialog, transferDialog)
-├── skeletons/             # Loading skeleton components
-│   ├── countSkeleton.tsx
-│   ├── dataListSkeleton.tsx
-│   └── filterPillsSkeleton.tsx
-├── playerCombobox.tsx     # Player search/select combobox
-├── teamCombobox.tsx       # Team search/select combobox
-├── teamFilterPills.tsx    # Team filter pill badges
-├── dataPageLayout.tsx     # Standard data page layout wrapper
-├── pageHeader.tsx         # Reusable page header
-├── emptyState.tsx         # Empty state placeholder
-├── noResults.tsx          # No search results state
 ├── confirmDialog.tsx      # Confirmation modal
-├── searchInput.tsx        # Search input
+├── dataPageLayout.tsx     # Standard data page layout wrapper
+├── emptyState.tsx         # Empty state placeholder
 ├── filterPill.tsx         # Filter pill component
+├── gameStatusBadge.tsx    # Game status badge
+├── hoverCard.tsx          # Generic hover card
 ├── imageUpload.tsx        # Image upload (logo/photo)
+├── languagePicker.tsx     # Language picker (DE/EN)
+├── localeSync.tsx         # Locale synchronization
+├── newsForm.tsx           # News article form
+├── noResults.tsx          # No search results state
+├── pageForm.tsx           # Page content form
+├── pageHeader.tsx         # Reusable page header
+├── pageSkeleton.tsx       # Full-page loading skeleton
+├── playerCombobox.tsx     # Player search/select combobox
+├── playerHoverCard.tsx    # Player hover card
 ├── richTextEditor.tsx     # Rich text editor (Tiptap)
 ├── richTextEditorLazy.tsx # Lazy-loaded rich text editor
-├── pageSkeleton.tsx       # Full-page loading skeleton
-├── trikotPreview.tsx      # Jersey preview
-├── teamHoverCard.tsx      # Team hover card
-├── playerHoverCard.tsx    # Player hover card
-├── hoverCard.tsx          # Generic hover card
-├── gameStatusBadge.tsx    # Game status badge
+├── searchInput.tsx        # Search input
 ├── seasonIndicator.tsx    # Season indicator badge
 ├── seasonPickerModal.tsx  # Season selection modal
-├── localeSync.tsx         # Locale synchronization
-├── languagePicker.tsx     # Language picker (DE/EN)
-├── newsForm.tsx           # News article form
-└── pageForm.tsx           # Page content form
+├── teamCombobox.tsx       # Team search/select combobox
+├── teamFilterPills.tsx    # Team filter pill badges
+├── teamHoverCard.tsx      # Team hover card
+└── trikotPreview.tsx      # Jersey preview
 ```
 
 ## Contexts
 
 ```
 src/contexts/
-└── season-context.tsx     # Current season selection (used in _authed.tsx layout)
+└── seasonContext.tsx      # Current season selection (used in _authed.tsx layout)
 ```
 
 ## Lib
 
 ```
-src/lib/
-├── errorI18n.ts        # Error code to i18n key mapping
-└── search-params.ts    # FILTER_ALL constant for URL-based filtering
+lib/                       # @/ alias target (at app root, outside src/)
+├── auth-client.ts         # Better Auth React client configuration
+└── trpc.ts                # tRPC React Query client configuration
+
+src/lib/                   # Inside src/
+├── errorI18n.ts           # Error code to i18n key mapping
+└── search-params.ts       # FILTER_ALL constant for URL-based filtering
 ```
 
 ## State Management
@@ -161,7 +197,8 @@ src/lib/
 ## E2E Testing
 
 - **Framework**: Playwright (Chromium only)
-- **Test dir**: `e2e/`
+- **Test dir**: `e2e/` (4 spec files + 3 infrastructure files)
+- **Specs**: `auth.spec.ts`, `players.spec.ts`, `teams.spec.ts`, `trikots.spec.ts`
 - **Ports**: Admin on 4000, API on 4001 (separate from dev)
-- **Isolation**: `globalSetup` / `globalTeardown` handle test DB via testcontainers
+- **Isolation**: `global-setup.ts` / `global-teardown.ts` handle test DB via testcontainers
 - **Run**: `pnpm test:e2e`
