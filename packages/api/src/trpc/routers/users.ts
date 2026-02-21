@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server"
 import { hashPassword } from "better-auth/crypto"
 import { and, eq, ne } from "drizzle-orm"
 import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, platformAdminProcedure, router } from "../init"
 
 export const usersRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -33,6 +33,47 @@ export const usersRouter = router({
       memberId: m.id,
       role: m.role,
       memberSince: m.createdAt,
+    }))
+  }),
+
+  listAll: platformAdminProcedure.query(async ({ ctx }) => {
+    const allUsers = await ctx.db.query.user.findMany({
+      orderBy: (u, { asc }) => [asc(u.name)],
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+        emailVerified: true,
+        image: true,
+        role: true,
+        banned: true,
+        createdAt: true,
+      },
+    })
+
+    const allMembers = await ctx.db.query.member.findMany({
+      with: {
+        organization: {
+          columns: { id: true, name: true, slug: true },
+        },
+      },
+    })
+
+    const membersByUser = new Map<string, { organizationId: string; organizationName: string; organizationSlug: string; role: string }[]>()
+    for (const m of allMembers) {
+      const list = membersByUser.get(m.userId) ?? []
+      list.push({
+        organizationId: m.organization.id,
+        organizationName: m.organization.name,
+        organizationSlug: m.organization.slug,
+        role: m.role,
+      })
+      membersByUser.set(m.userId, list)
+    }
+
+    return allUsers.map((u) => ({
+      ...u,
+      organizations: membersByUser.get(u.id) ?? [],
     }))
   }),
 
