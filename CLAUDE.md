@@ -11,9 +11,9 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 | Workspace | Package | Description |
 |-----------|---------|-------------|
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (port 3000), i18n (DE/EN) |
-| `apps/web` | — | Public website (placeholder) |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (22 routers) + Better Auth (port 3001) |
-| `packages/db` | `@puckhub/db` | Drizzle schema (32 files, 10 enums), migrations, seeds |
+| `apps/web` | `@puckhub/web` | Public website (placeholder) |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (24 routers) + Better Auth (port 3001) |
+| `packages/db` | `@puckhub/db` | Drizzle schema (34 files, 10 enums), migrations, seeds, services |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
 
@@ -23,18 +23,24 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 pnpm dev                # Start Docker (DB + pgAdmin) + all dev servers (admin :3000, api :3001)
 pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
+pnpm test:api           # Run API tests only
+pnpm test:e2e           # Run Playwright E2E tests (admin app)
 pnpm lint               # TypeScript type-check across all packages
+pnpm format             # Format all files with Biome
+pnpm format:check       # Check formatting without writing
+pnpm check              # Biome check + auto-fix
+pnpm check:ci           # Biome CI check (no auto-fix)
 pnpm db:generate        # Generate Drizzle migrations after schema changes
-pnpm db:seed:demo       # Seed demo data (10 teams, 100 players, 10 seasons)
-pnpm docker:up          # Start Docker containers only
-pnpm docker:down        # Stop Docker containers
+pnpm db:init-demo       # Seed demo data (10 teams, 100 players, 16 seasons)
+pnpm db:reset           # Reset database (truncate all tables)
+pnpm dev:docker:up      # Start Docker containers only
+pnpm dev:docker:down    # Stop Docker containers
 ```
 
 **Per-package** (run from package dir or with `pnpm --filter`):
 - `db:migrate` — push schema (dev) · `db:migrate:prod` — run migrations (prod)
 - `db:studio` — Drizzle Studio visual editor
-- `db:seed` — seed reference data only (penalty types, trikot templates)
-- `test:e2e` — Playwright E2E tests (admin app)
+- `db:seed` — seed reference data only (penalty types, trikot templates, static pages)
 
 ## Environment
 
@@ -49,6 +55,14 @@ Copy `.env.example` to `.env`. Key variables:
 | `ADMIN_PORT` | `3000` | Admin dev server port |
 | `AUTO_MIGRATE` | `true` | Auto-run migrations on API startup |
 | `UPLOAD_DIR` | `./uploads` | File upload directory |
+| `PASSKEY_RP_ID` | `localhost` | WebAuthn relying party ID |
+| `PASSKEY_RP_NAME` | `PuckHub Admin` | WebAuthn relying party name |
+| `PASSKEY_ORIGIN` | `http://localhost:3000` | WebAuthn origin |
+
+## Docker
+
+- **Development**: `docker/docker-compose.yml` — PostgreSQL 16 + pgAdmin (port 5050)
+- **Production**: `docker-compose.prod.yml` — PostgreSQL 16 + API container (multi-stage `Dockerfile`)
 
 ## Conventions
 
@@ -59,6 +73,7 @@ Copy `.env.example` to `.env`. Key variables:
 - **Package manager**: pnpm 10.28.2 — always use `pnpm`, never npm/yarn
 - **TypeScript**: Strict mode, `noUncheckedIndexedAccess`, ES2022 target
 - **Path aliases**: `~/` = `src/`, `@/` = `lib/` (admin app only)
+- **Formatter/Linter**: Biome (2-space indent, 120-char line width, single quotes JS, double quotes JSX)
 
 ## Package-Level Docs
 
