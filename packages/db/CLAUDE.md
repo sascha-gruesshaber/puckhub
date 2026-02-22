@@ -14,16 +14,17 @@ Drizzle ORM with PostgreSQL. Schema definitions, migrations, seeds, and services
 **System**: `organization.ts` · `member.ts` · `invitation.ts` · `system-settings.ts`
 **Shared**: `enums.ts` · `relations.ts` · `index.ts` (re-exports all)
 
-## Enums (`src/schema/enums.ts`) — 8 enums
+## Enums (`prisma/schema.prisma`) — 9 enums
 
-- `roundTypeEnum`: regular, preround, playoffs, playdowns, relegation, placement, final, playups
-- `positionEnum`: forward, defense, goalie
-- `gameStatusEnum`: scheduled, in_progress, completed, postponed, cancelled
-- `gameEventTypeEnum`: goal, penalty
-- `newsStatusEnum`: draft, published
-- `pageStatusEnum`: draft, published
-- `menuLocationEnum`: main_nav, footer
-- `trikotTemplateTypeEnum`: one_color, two_color
+- `RoundType`: regular, preround, playoffs, playdowns, relegation, placement, final, playups
+- `Position`: forward, defense, goalie
+- `GameStatus`: scheduled, in_progress, completed, postponed, cancelled
+- `GameEventType`: goal, penalty
+- `NewsStatus`: draft, published
+- `PageStatus`: draft, published
+- `MenuLocation`: main_nav, footer
+- `TrikotTemplateType`: one_color, two_color
+- `OrgRole`: owner, admin, game_manager, game_reporter, team_manager, editor
 
 ## Key Patterns
 
