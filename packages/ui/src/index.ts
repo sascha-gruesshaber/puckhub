@@ -2,6 +2,11 @@ export { toast } from "sonner"
 export { Badge, type BadgeProps, badgeVariants } from "./components/badge"
 export { Button, type ButtonProps, buttonVariants } from "./components/button"
 export { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./components/card"
+export {
+  ChangePasswordCard,
+  type ChangePasswordCardProps,
+  type ChangePasswordValues,
+} from "./components/changePasswordCard"
 export { ColorInput, type ColorInputProps } from "./components/colorInput"
 export {
   Dialog,

@@ -4,8 +4,8 @@ import { createTestCaller } from "../testUtils"
 describe("sponsor router", () => {
   describe("list", () => {
     it("returns empty list when no sponsors exist", async () => {
-      const caller = createTestCaller()
-      const result = await caller.sponsor.list()
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.sponsor.list()
       expect(result).toEqual([])
     })
 
@@ -15,8 +15,7 @@ describe("sponsor router", () => {
       await admin.sponsor.create({ name: "Alpha AG", sortOrder: 1 })
       await admin.sponsor.create({ name: "Beta Corp", sortOrder: 1 })
 
-      const caller = createTestCaller()
-      const result = await caller.sponsor.list()
+      const result = await admin.sponsor.list()
       expect(result).toHaveLength(3)
       expect(result[0]?.name).toBe("Alpha AG")
       expect(result[1]?.name).toBe("Beta Corp")
@@ -76,8 +75,7 @@ describe("sponsor router", () => {
         teamId: team?.id,
       })
 
-      const caller = createTestCaller()
-      const result = await caller.sponsor.getById({ id: created?.id })
+      const result = await admin.sponsor.getById({ id: created?.id })
       expect(result?.name).toBe("Sponsor A")
       expect(result?.team?.name).toBe("Eagles")
     })
@@ -135,9 +133,8 @@ describe("sponsor router", () => {
 
       await admin.sponsor.delete({ id: sponsor?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.sponsor.getById({ id: sponsor?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.sponsor.getById({ id: sponsor?.id })
+      expect(result).toBeNull()
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -161,8 +158,7 @@ describe("sponsor router", () => {
 
       await admin.team.delete({ id: team?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.sponsor.getById({ id: sponsor?.id })
+      const result = await admin.sponsor.getById({ id: sponsor?.id })
       expect(result).toBeDefined()
       expect(result?.teamId).toBeNull()
     })

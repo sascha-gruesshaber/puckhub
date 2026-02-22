@@ -1,0 +1,12 @@
+:80 {
+  # API routes
+  @api path /api /api/*
+  reverse_proxy @api api:3001
+
+  # Platform app under /platform
+  @platform path /platform /platform/*
+  reverse_proxy @platform platform:3002
+
+  # Default app
+  reverse_proxy admin:3000
+}

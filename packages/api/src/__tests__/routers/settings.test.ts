@@ -4,8 +4,8 @@ import { createTestCaller } from "../testUtils"
 describe("settings router", () => {
   describe("get", () => {
     it("returns null when no settings exist", async () => {
-      const caller = createTestCaller()
-      const result = await caller.settings.get()
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.settings.get()
       expect(result).toBeNull()
     })
 
@@ -21,8 +21,7 @@ describe("settings router", () => {
         pointsLoss: 0,
       })
 
-      const caller = createTestCaller()
-      const result = await caller.settings.get()
+      const result = await admin.settings.get()
       expect(result).not.toBeNull()
       expect(result?.leagueName).toBe("Eishockey Liga")
       expect(result?.leagueShortName).toBe("EHL")
@@ -44,8 +43,7 @@ describe("settings router", () => {
 
       expect(result).toEqual({ success: true })
 
-      const caller = createTestCaller()
-      const settings = await caller.settings.get()
+      const settings = await admin.settings.get()
       expect(settings?.leagueName).toBe("Test Liga")
       expect(settings?.pointsWin).toBe(3)
     })
@@ -73,8 +71,7 @@ describe("settings router", () => {
         pointsLoss: 0,
       })
 
-      const caller = createTestCaller()
-      const settings = await caller.settings.get()
+      const settings = await admin.settings.get()
       expect(settings?.leagueName).toBe("Updated Liga")
       expect(settings?.locale).toBe("en-US")
       expect(settings?.pointsWin).toBe(3)

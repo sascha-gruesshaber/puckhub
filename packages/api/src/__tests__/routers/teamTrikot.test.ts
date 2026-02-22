@@ -23,8 +23,8 @@ describe("team-trikot router", () => {
   describe("listByTeam", () => {
     it("returns empty list when team has no trikots", async () => {
       const { team } = await createTeamTrikotFixtures()
-      const caller = createTestCaller()
-      const result = await caller.teamTrikot.listByTeam({ teamId: team.id })
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.teamTrikot.listByTeam({ teamId: team.id })
       expect(result).toEqual([])
     })
 
@@ -39,19 +39,18 @@ describe("team-trikot router", () => {
           name: "Home Kit",
         })
 
-        const caller = createTestCaller()
-        const result = await caller.teamTrikot.listByTeam({ teamId: team.id })
+        const reader = createTestCaller({ asAdmin: true })
+        const result = await reader.teamTrikot.listByTeam({ teamId: team.id })
         expect(result).toHaveLength(1)
         expect(result[0]?.name).toBe("Home Kit")
         expect(result[0]?.teamId).toBe(team.id)
       }
     })
 
-    it("is publicly accessible", async () => {
+    it("rejects unauthenticated access", async () => {
       const { team } = await createTeamTrikotFixtures()
       const publicCaller = createTestCaller()
-      const result = await publicCaller.teamTrikot.listByTeam({ teamId: team.id })
-      expect(Array.isArray(result)).toBe(true)
+      await expect(publicCaller.teamTrikot.listByTeam({ teamId: team.id })).rejects.toThrow("Not authenticated")
     })
   })
 
@@ -60,8 +59,8 @@ describe("team-trikot router", () => {
       const { trikot } = await createTeamTrikotFixtures()
 
       if (trikot) {
-        const caller = createTestCaller()
-        const result = await caller.teamTrikot.listByTrikot({ trikotId: trikot.id })
+        const admin = createTestCaller({ asAdmin: true })
+        const result = await admin.teamTrikot.listByTrikot({ trikotId: trikot.id })
         expect(result).toEqual([])
       }
     })
@@ -77,20 +76,19 @@ describe("team-trikot router", () => {
           name: "Home Kit",
         })
 
-        const caller = createTestCaller()
-        const result = await caller.teamTrikot.listByTrikot({ trikotId: trikot.id })
+        const reader = createTestCaller({ asAdmin: true })
+        const result = await reader.teamTrikot.listByTrikot({ trikotId: trikot.id })
         expect(result).toHaveLength(1)
         expect(result[0]?.team.id).toBe(team.id)
       }
     })
 
-    it("is publicly accessible", async () => {
+    it("rejects unauthenticated access", async () => {
       const { trikot } = await createTeamTrikotFixtures()
 
       if (trikot) {
         const publicCaller = createTestCaller()
-        const result = await publicCaller.teamTrikot.listByTrikot({ trikotId: trikot.id })
-        expect(Array.isArray(result)).toBe(true)
+        await expect(publicCaller.teamTrikot.listByTrikot({ trikotId: trikot.id })).rejects.toThrow("Not authenticated")
       }
     })
   })
@@ -186,8 +184,7 @@ describe("team-trikot router", () => {
 
         await admin.teamTrikot.remove({ id: assignment?.id })
 
-        const caller = createTestCaller()
-        const result = await caller.teamTrikot.listByTeam({ teamId: team.id })
+        const result = await admin.teamTrikot.listByTeam({ teamId: team.id })
         expect(result).toHaveLength(0)
       }
     })

@@ -2,6 +2,7 @@ import { Button, toast } from "@puckhub/ui"
 import { Check, ChevronRight, Copy, FileX, GitBranch, Layers, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
 type Template = "standard" | "copy" | "empty"
@@ -14,6 +15,7 @@ interface SetupWizardDialogProps {
 
 export function SetupWizardDialog({ seasonId, seasonName, onComplete }: SetupWizardDialogProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [selected, setSelected] = useState<Template | null>(null)
   const [sourceSeasonId, setSourceSeasonId] = useState<string>("")
 
@@ -35,7 +37,7 @@ export function SetupWizardDialog({ seasonId, seasonName, onComplete }: SetupWiz
       }
       onComplete()
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleConfirm() {

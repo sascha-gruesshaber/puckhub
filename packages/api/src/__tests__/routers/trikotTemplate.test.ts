@@ -42,12 +42,12 @@ describe("trikot-template router", () => {
       }
     })
 
-    it("returns undefined for non-existent id", async () => {
+    it("returns null for non-existent id", async () => {
       const caller = createTestCaller()
       const result = await caller.trikotTemplate.getById({
         id: "00000000-0000-0000-0000-000000000000",
       })
-      expect(result).toBeUndefined()
+      expect(result).toBeNull()
     })
 
     it("is publicly accessible", async () => {

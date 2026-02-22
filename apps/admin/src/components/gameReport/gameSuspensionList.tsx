@@ -3,6 +3,7 @@ import { Link2, Pencil, ShieldBan, Trash2, Unlink } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
 interface GameSuspension {
@@ -45,6 +46,7 @@ function EditSuspensionDialog({
   suspension: GameSuspension | null
 }) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
 
   const [suspensionType, setSuspensionType] = useState<"match_penalty" | "game_misconduct">("match_penalty")
@@ -65,7 +67,7 @@ function EditSuspensionDialog({
       utils.gameReport.getReport.invalidate({ gameId })
       onOpenChange(false)
     },
-    onError: () => toast.error(t("gameReport.toast.error")),
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -143,6 +145,7 @@ function EditSuspensionDialog({
 
 function GameSuspensionList({ gameId, suspensions, homeTeamId, readOnly }: GameSuspensionListProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
 
   const [editingSuspension, setEditingSuspension] = useState<GameSuspension | null>(null)
@@ -154,7 +157,7 @@ function GameSuspensionList({ gameId, suspensions, homeTeamId, readOnly }: GameS
       utils.gameReport.getReport.invalidate({ gameId })
       setDeleteTarget(null)
     },
-    onError: () => toast.error(t("gameReport.toast.error")),
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   if (suspensions.length === 0) return null

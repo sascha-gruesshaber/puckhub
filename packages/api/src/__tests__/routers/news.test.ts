@@ -1,5 +1,3 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb } from "../testUtils"
 
@@ -100,7 +98,7 @@ describe("news router", () => {
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.news.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "News nicht gefunden",
+        "NEWS_NOT_FOUND",
       )
     })
   })
@@ -193,7 +191,7 @@ describe("news router", () => {
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.news.update({ id: "00000000-0000-0000-0000-000000000000", title: "X" })).rejects.toThrow(
-        "News nicht gefunden",
+        "NEWS_NOT_FOUND",
       )
     })
 
@@ -213,7 +211,7 @@ describe("news router", () => {
 
       await admin.news.delete({ id: news?.id })
 
-      await expect(admin.news.getById({ id: news?.id })).rejects.toThrow("News nicht gefunden")
+      await expect(admin.news.getById({ id: news?.id })).rejects.toThrow("NEWS_NOT_FOUND")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -237,10 +235,10 @@ describe("news router", () => {
 
       // Manually set scheduledPublishAt to the past via DB
       const db = getTestDb()
-      await db
-        .update(schema.news)
-        .set({ scheduledPublishAt: new Date(Date.now() - 60000) })
-        .where(eq(schema.news.id, draft?.id))
+      await db.news.update({
+        where: { id: draft?.id },
+        data: { scheduledPublishAt: new Date(Date.now() - 60000) },
+      })
 
       const result = await admin.news.list()
       const found = result.find((n) => n.id === draft?.id)
@@ -258,10 +256,10 @@ describe("news router", () => {
       })
 
       const db = getTestDb()
-      await db
-        .update(schema.news)
-        .set({ scheduledPublishAt: new Date(Date.now() - 60000) })
-        .where(eq(schema.news.id, draft?.id))
+      await db.news.update({
+        where: { id: draft?.id },
+        data: { scheduledPublishAt: new Date(Date.now() - 60000) },
+      })
 
       const result = await admin.news.getById({ id: draft?.id })
       expect(result.status).toBe("published")

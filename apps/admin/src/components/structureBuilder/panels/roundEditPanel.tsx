@@ -2,6 +2,7 @@ import { Button, Input, toast } from "@puckhub/ui"
 import { Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import { type RoundType, roundTypeMap } from "../utils/roundTypeColors"
 
@@ -31,6 +32,7 @@ export function RoundEditPanel({
   onInvalidate,
 }: RoundEditPanelProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [editName, setEditName] = useState(name)
   const [editType, setEditType] = useState(roundType)
   const [editWin, setEditWin] = useState(String(pointsWin))
@@ -54,7 +56,7 @@ export function RoundEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.roundUpdated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.round.delete.useMutation({
@@ -62,7 +64,7 @@ export function RoundEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.roundDeleted"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleSave() {

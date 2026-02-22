@@ -3,6 +3,7 @@ import type { Node } from "@xyflow/react"
 import { ChevronLeft, ChevronRight, GripVertical, Plus } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import { type RoundType, roundTypeMap } from "../utils/roundTypeColors"
 import { divisionIcon, roundTypeIcons } from "../utils/roundTypeIcons"
@@ -141,6 +142,7 @@ export function SidePanel({
   onDragTypeChange,
 }: SidePanelProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [collapsed, setCollapsed] = useState(false)
 
   const createDivisionMutation = trpc.division.create.useMutation({
@@ -148,7 +150,7 @@ export function SidePanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.divisionCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleAddDivision() {

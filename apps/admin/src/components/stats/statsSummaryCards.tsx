@@ -43,7 +43,7 @@ interface StatsSummaryCardsProps {
       playerId: string
       player: { id: string; firstName: string; lastName: string } | null
       team: { id: string; name: string; shortName: string; logoUrl?: string | null } | null
-      gaa: string | number | null
+      gaa: { toString(): string } | number | string | null
     }>
   } | null
   penaltyStats: Array<{

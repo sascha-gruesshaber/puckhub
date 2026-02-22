@@ -1,16 +1,20 @@
+import { execSync } from "node:child_process"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { migrate } from "drizzle-orm/postgres-js/migrator"
 import type { Database } from "./index"
 
-const migrationsFolder = resolve(dirname(fileURLToPath(import.meta.url)), "../drizzle")
+const dbPkgDir = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 
 /**
- * Run all pending Drizzle migrations.
- * Drizzle tracks applied migrations in a journal table, so this is idempotent.
+ * Run all pending Prisma migrations.
+ * Uses `prisma migrate deploy` which is idempotent.
  */
-export async function runMigrations(db: Database) {
-  console.log("Running migrations...")
-  await migrate(db, { migrationsFolder })
+export async function runMigrations(_db: Database) {
+  console.log("Running Prisma migrations...")
+  execSync("npx prisma migrate deploy", {
+    cwd: dbPkgDir,
+    env: { ...process.env },
+    stdio: "inherit",
+  })
   console.log("Migrations complete.")
 }

@@ -7,7 +7,7 @@ interface Player {
   id: string
   firstName: string
   lastName: string
-  dateOfBirth?: string | null
+  dateOfBirth?: string | Date | null
   nationality?: string | null
   photoUrl?: string | null
   jerseyNumber?: number | null
@@ -23,7 +23,7 @@ interface PlayerComboboxProps {
   className?: string
 }
 
-function calculateAge(dateOfBirth: string | null | undefined): number | null {
+function calculateAge(dateOfBirth: string | Date | null | undefined): number | null {
   if (!dateOfBirth) return null
   const birth = new Date(dateOfBirth)
   const today = new Date()

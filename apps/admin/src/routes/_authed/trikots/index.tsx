@@ -28,7 +28,9 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TrikotPreview } from "~/components/trikotPreview"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/trikots/")({
@@ -63,7 +65,9 @@ const emptyForm: TrikotForm = {
 // Main page
 // ---------------------------------------------------------------------------
 function TrikotsPage() {
+  usePermissionGuard("trikots")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { search: searchParam, template } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -106,7 +110,7 @@ function TrikotsPage() {
       closeDialog()
       toast.success(t("trikotsPage.toast.created"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.createError"), { description: err.message }),
+    onError: (err) => toast.error(t("trikotsPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateMutation = trpc.trikot.update.useMutation({
@@ -115,7 +119,7 @@ function TrikotsPage() {
       closeDialog()
       toast.success(t("trikotsPage.toast.updated"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.saveError"), { description: err.message }),
+    onError: (err) => toast.error(t("trikotsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.trikot.delete.useMutation({
@@ -125,7 +129,7 @@ function TrikotsPage() {
       setDeletingTrikot(null)
       toast.success(t("trikotsPage.toast.deleted"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.deleteError"), { description: err.message }),
+    onError: (err) => toast.error(t("trikotsPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const assignMutation = trpc.teamTrikot.assign.useMutation({
@@ -136,7 +140,7 @@ function TrikotsPage() {
       setAssignName("")
       toast.success(t("trikotsPage.assignments.toast.created"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateAssignmentMutation = trpc.teamTrikot.update.useMutation({
@@ -145,7 +149,7 @@ function TrikotsPage() {
       setEditingAssignment(null)
       toast.success(t("trikotsPage.assignments.toast.updated"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const removeAssignmentMutation = trpc.teamTrikot.remove.useMutation({
@@ -154,7 +158,7 @@ function TrikotsPage() {
       utils.trikot.list.invalidate()
       toast.success(t("trikotsPage.assignments.toast.removed"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function getTemplateLabel(

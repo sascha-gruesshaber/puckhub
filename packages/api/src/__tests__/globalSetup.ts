@@ -55,41 +55,95 @@ export default async function globalSetup() {
     // Create template DB
     await maintenanceSql.unsafe(`CREATE DATABASE ${TEMPLATE_DB}`)
 
-    // Push schema to template DB using drizzle-kit
+    // Push schema to template DB using prisma db push
     const dbPkgDir = resolve(monorepoRoot, "packages/db")
-    const drizzleKitBin = resolve(dbPkgDir, "node_modules/.bin/drizzle-kit")
-    execSync(`${drizzleKitBin} push --force`, {
+    execSync("npx prisma db push --accept-data-loss", {
       cwd: dbPkgDir,
       env: { ...process.env, DATABASE_URL: templateUrl },
       stdio: "pipe",
     })
 
-    // Seed template with admin user + role
-    const templateSql = postgres(templateUrl, { max: 1 })
-    const { drizzle } = await import("drizzle-orm/postgres-js")
-    const schemaModule = await import("@puckhub/db/schema")
-    const db = drizzle(templateSql, { schema: schemaModule })
+    // Seed template with admin user + role using Prisma
+    const { createPrismaClientWithUrl } = await import("@puckhub/db")
+    const db = createPrismaClientWithUrl(templateUrl)
 
-    await db.insert(schemaModule.user).values({
-      id: "test-admin-id",
-      name: "Test Admin",
-      email: "admin@test.local",
-      emailVerified: true,
-    })
-    await db.insert(schemaModule.userRoles).values({
-      userId: "test-admin-id",
-      role: "super_admin",
+    await db.user.create({
+      data: {
+        id: "test-admin-id",
+        name: "Test Admin",
+        email: "admin@test.local",
+        emailVerified: true,
+      },
     })
 
     // Seed a regular (non-admin) user for protectedProcedure tests
-    await db.insert(schemaModule.user).values({
-      id: "test-user-id",
-      name: "Test User",
-      email: "user@test.local",
-      emailVerified: true,
+    await db.user.create({
+      data: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "user@test.local",
+        emailVerified: true,
+      },
     })
 
-    await templateSql.end()
+    // Seed a platform admin user (user.role = "admin")
+    await db.user.create({
+      data: {
+        id: "test-platform-admin-id",
+        name: "Platform Admin",
+        email: "platform@test.local",
+        emailVerified: true,
+        role: "admin",
+      },
+    })
+
+    // Seed a second org owner user (for cross-org tests)
+    await db.user.create({
+      data: {
+        id: "other-admin-id",
+        name: "Other Admin",
+        email: "other-admin@test.local",
+        emailVerified: true,
+      },
+    })
+
+    // Seed test organization + member records
+    await db.organization.create({
+      data: {
+        id: "test-org-id",
+        name: "Test League",
+      },
+    })
+
+    // Admin user is org member (role field kept as "member" — ignored for auth)
+    await db.member.create({
+      data: {
+        id: "test-admin-member-id",
+        userId: "test-admin-id",
+        organizationId: "test-org-id",
+        role: "member",
+      },
+    })
+
+    // Admin gets "owner" MemberRole
+    await db.memberRole.create({
+      data: {
+        memberId: "test-admin-member-id",
+        role: "owner",
+      },
+    })
+
+    // Regular user is org member (no MemberRole entries = no permissions)
+    await db.member.create({
+      data: {
+        id: "test-user-member-id",
+        userId: "test-user-id",
+        organizationId: "test-org-id",
+        role: "member",
+      },
+    })
+
+    await db.$disconnect()
   } finally {
     await maintenanceSql.end()
   }

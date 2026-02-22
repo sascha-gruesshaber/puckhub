@@ -11,6 +11,19 @@ try {
     await runSeed(db)
   }
 
+  // Create default admin user from env if no users exist yet
+  const { ensureDefaultUser } = await import("./lib/ensureDefaultUser")
+  await ensureDefaultUser()
+
+  // Register and start job scheduler
+  const { Scheduler, setSchedulerInstance } = await import("./lib/scheduler")
+  const { createDemoResetJob } = await import("./lib/jobs/demoResetJob")
+
+  const scheduler = new Scheduler()
+  scheduler.register(createDemoResetJob())
+  scheduler.start()
+  setSchedulerInstance(scheduler)
+
   const { serve } = await import("@hono/node-server")
   const { app } = await import("./app")
 

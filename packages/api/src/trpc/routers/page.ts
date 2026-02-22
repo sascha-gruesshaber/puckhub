@@ -1,8 +1,7 @@
-import * as schema from "@puckhub/db/schema"
-import { TRPCError } from "@trpc/server"
-import { and, eq, isNull, ne, sql } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgProcedure, requireRole, router } from "../init"
 
 // ---------------------------------------------------------------------------
 // Slug utility
@@ -51,56 +50,49 @@ const STATIC_SLUGS = ["impressum", "datenschutz", "kontakt"]
 // ---------------------------------------------------------------------------
 // Slug validation
 // ---------------------------------------------------------------------------
-async function validateSlug(db: any, slug: string, parentId: string | null, excludeId?: string) {
+async function validateSlug(
+  db: any,
+  slug: string,
+  parentId: string | null,
+  organizationId: string,
+  excludeId?: string,
+) {
   if (!slug) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Der Titel ergibt keinen gültigen URL-Slug",
-    })
+    throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_INVALID_SLUG)
   }
 
   if (FORBIDDEN_SLUGS.includes(slug) || STATIC_SLUGS.includes(slug)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: `Der Slug "${slug}" ist reserviert`,
-    })
+    throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_SLUG_RESERVED)
   }
 
-  // Check uniqueness scoped by parent level
-  const conditions = [
-    eq(schema.pages.slug, slug),
-    parentId ? eq(schema.pages.parentId, parentId) : isNull(schema.pages.parentId),
-  ]
+  // Check uniqueness scoped by parent level and organization
+  const where: any = {
+    organizationId,
+    slug,
+    parentId: parentId ?? null,
+  }
   if (excludeId) {
-    conditions.push(ne(schema.pages.id, excludeId))
+    where.id = { not: excludeId }
   }
 
-  const existing = await db
-    .select({ id: schema.pages.id })
-    .from(schema.pages)
-    .where(and(...conditions))
-    .limit(1)
+  const existing = await db.page.findFirst({
+    where,
+    select: { id: true },
+  })
 
-  if (existing.length > 0) {
-    throw new TRPCError({
-      code: "CONFLICT",
-      message: `Eine Seite mit dem Slug "${slug}" existiert bereits auf dieser Ebene`,
-    })
+  if (existing) {
+    throw createAppError("CONFLICT", APP_ERROR_CODES.PAGE_SLUG_CONFLICT)
   }
 
   // Check against aliases (top-level only)
   if (!parentId) {
-    const aliasConflict = await db
-      .select({ id: schema.pageAliases.id })
-      .from(schema.pageAliases)
-      .where(eq(schema.pageAliases.slug, slug))
-      .limit(1)
+    const aliasConflict = await db.pageAlias.findFirst({
+      where: { organizationId, slug },
+      select: { id: true },
+    })
 
-    if (aliasConflict.length > 0) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: `Eine Seite mit dem Slug "${slug}" existiert bereits (als Alias)`,
-      })
+    if (aliasConflict) {
+      throw createAppError("CONFLICT", APP_ERROR_CODES.PAGE_ALIAS_CONFLICT)
     }
   }
 }
@@ -109,40 +101,49 @@ async function validateSlug(db: any, slug: string, parentId: string | null, excl
 // Router
 // ---------------------------------------------------------------------------
 export const pageRouter = router({
-  list: adminProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.pages.findMany({
-      with: { children: true },
-      orderBy: (pages, { asc }) => [asc(pages.sortOrder), asc(pages.title)],
+  list: orgProcedure.query(async ({ ctx }) => {
+    requireRole(ctx, "editor")
+    return ctx.db.page.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: { children: true },
+      orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     })
   }),
 
-  getById: adminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    const page = await ctx.db.query.pages.findFirst({
-      where: eq(schema.pages.id, input.id),
-      with: { children: true },
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+    requireRole(ctx, "editor")
+    const page = await ctx.db.page.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      include: { children: true },
     })
     if (!page) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
     }
     return page
   }),
 
-  getBySlug: publicProcedure.input(z.object({ slug: z.string().min(1) })).query(async ({ ctx, input }) => {
+  getBySlug: orgProcedure.input(z.object({ slug: z.string().min(1) })).query(async ({ ctx, input }) => {
     const parts = input.slug.split("/")
 
     if (parts.length === 1) {
       // Check for alias first
-      const alias = await ctx.db.query.pageAliases.findFirst({
-        where: eq(schema.pageAliases.slug, parts[0]!),
-        with: { targetPage: true },
+      const alias = await ctx.db.pageAlias.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          slug: parts[0]!,
+        },
+        include: { targetPage: true },
       })
 
       if (alias) {
         // Build target slug (could be a sub-page)
         let targetSlug = alias.targetPage.slug
         if (alias.targetPage.parentId) {
-          const parent = await ctx.db.query.pages.findFirst({
-            where: eq(schema.pages.id, alias.targetPage.parentId),
+          const parent = await ctx.db.page.findFirst({
+            where: {
+              id: alias.targetPage.parentId,
+              organizationId: ctx.organizationId,
+            },
           })
           if (parent) {
             targetSlug = `${parent.slug}/${alias.targetPage.slug}`
@@ -152,68 +153,69 @@ export const pageRouter = router({
       }
 
       // Look up top-level published page
-      const page = await ctx.db.query.pages.findFirst({
-        where: and(
-          eq(schema.pages.slug, parts[0]!),
-          eq(schema.pages.status, "published"),
-          isNull(schema.pages.parentId),
-        ),
+      const page = await ctx.db.page.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          slug: parts[0]!,
+          status: "published",
+          parentId: null,
+        },
       })
 
       if (!page) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
       }
       return page
     }
 
     if (parts.length === 2) {
       // Nested: parent-slug/child-slug
-      const parent = await ctx.db.query.pages.findFirst({
-        where: and(
-          eq(schema.pages.slug, parts[0]!),
-          eq(schema.pages.status, "published"),
-          isNull(schema.pages.parentId),
-        ),
+      const parent = await ctx.db.page.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          slug: parts[0]!,
+          status: "published",
+          parentId: null,
+        },
       })
 
       if (!parent) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
       }
 
-      const child = await ctx.db.query.pages.findFirst({
-        where: and(
-          eq(schema.pages.slug, parts[1]!),
-          eq(schema.pages.status, "published"),
-          eq(schema.pages.parentId, parent.id),
-        ),
+      const child = await ctx.db.page.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          slug: parts[1]!,
+          status: "published",
+          parentId: parent.id,
+        },
       })
 
       if (!child) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
       }
       return child
     }
 
-    throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+    throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
   }),
 
-  listByMenuLocation: publicProcedure
+  listByMenuLocation: orgProcedure
     .input(z.object({ location: z.enum(["main_nav", "footer"]) }))
     .query(async ({ ctx, input }) => {
-      return ctx.db
-        .select()
-        .from(schema.pages)
-        .where(
-          and(
-            eq(schema.pages.status, "published"),
-            isNull(schema.pages.parentId),
-            sql`${schema.pages.menuLocations} @> ARRAY[${sql.raw(`'${input.location}'`)}]::menu_location[]`,
-          ),
-        )
-        .orderBy(schema.pages.sortOrder, schema.pages.title)
+      return ctx.db.page.findMany({
+        where: {
+          organizationId: ctx.organizationId,
+          status: "published",
+          parentId: null,
+          menuLocations: { has: input.location },
+        },
+        orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+      })
     }),
 
-  create: adminProcedure
+  create: orgProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -225,33 +227,28 @@ export const pageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "editor")
       const slug = slugify(input.title)
       const parentId = input.parentId ?? null
 
       // Validate parent constraints
       if (parentId) {
-        const parent = await ctx.db.query.pages.findFirst({
-          where: eq(schema.pages.id, parentId),
+        const parent = await ctx.db.page.findFirst({
+          where: { id: parentId, organizationId: ctx.organizationId },
         })
         if (!parent) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Übergeordnete Seite nicht gefunden",
-          })
+          throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_PARENT_NOT_FOUND)
         }
         if (parent.parentId) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Unterseiten können nur eine Ebene tief verschachtelt werden",
-          })
+          throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_NESTING_LIMIT)
         }
       }
 
-      await validateSlug(ctx.db, slug, parentId)
+      await validateSlug(ctx.db, slug, parentId, ctx.organizationId)
 
-      const [page] = await ctx.db
-        .insert(schema.pages)
-        .values({
+      const page = await ctx.db.page.create({
+        data: {
+          organizationId: ctx.organizationId,
           title: input.title,
           slug,
           content: input.content,
@@ -260,12 +257,12 @@ export const pageRouter = router({
           parentId,
           menuLocations: parentId ? [] : input.menuLocations,
           sortOrder: input.sortOrder,
-        })
-        .returning()
+        },
+      })
       return page
     }),
 
-  update: adminProcedure
+  update: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -278,21 +275,19 @@ export const pageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "editor")
       const { id, ...data } = input
 
-      const existing = await ctx.db.query.pages.findFirst({
-        where: eq(schema.pages.id, id),
+      const existing = await ctx.db.page.findFirst({
+        where: { id, organizationId: ctx.organizationId },
       })
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
       }
 
       // Static pages: title locked
       if (existing.isStatic && data.title && data.title !== existing.title) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Der Titel einer statischen Seite kann nicht geändert werden",
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_STATIC_TITLE_LOCKED)
       }
 
       // Determine new slug if title changed on dynamic page
@@ -301,26 +296,23 @@ export const pageRouter = router({
 
       if (data.title && data.title !== existing.title && !existing.isStatic) {
         slug = slugify(data.title)
-        await validateSlug(ctx.db, slug, parentId, id)
+        await validateSlug(ctx.db, slug, parentId, ctx.organizationId, id)
       }
 
       // Validate parent constraints if parentId is changing
       if (data.parentId !== undefined && data.parentId !== existing.parentId) {
         if (data.parentId) {
-          const parent = await ctx.db.query.pages.findFirst({
-            where: eq(schema.pages.id, data.parentId),
+          const parent = await ctx.db.page.findFirst({
+            where: {
+              id: data.parentId,
+              organizationId: ctx.organizationId,
+            },
           })
           if (!parent) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Übergeordnete Seite nicht gefunden",
-            })
+            throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_PARENT_NOT_FOUND)
           }
           if (parent.parentId) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: "Unterseiten können nur eine Ebene tief verschachtelt werden",
-            })
+            throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_NESTING_LIMIT)
           }
         }
       }
@@ -328,49 +320,52 @@ export const pageRouter = router({
       // Sub-pages forced to empty menuLocations
       const menuLocations = parentId ? [] : (data.menuLocations ?? existing.menuLocations)
 
-      const [page] = await ctx.db
-        .update(schema.pages)
-        .set({
-          ...(data.title && !existing.isStatic ? { title: data.title } : {}),
-          slug,
-          ...(data.content !== undefined ? { content: data.content } : {}),
-          ...(data.status ? { status: data.status } : {}),
-          ...(data.parentId !== undefined ? { parentId } : {}),
-          menuLocations,
-          ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.pages.id, id))
-        .returning()
+      const updateData: Record<string, unknown> = {
+        slug,
+        menuLocations,
+        updatedAt: new Date(),
+      }
+      if (data.title && !existing.isStatic) updateData.title = data.title
+      if (data.content !== undefined) updateData.content = data.content
+      if (data.status) updateData.status = data.status
+      if (data.parentId !== undefined) updateData.parentId = parentId
+      if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder
+
+      const page = await ctx.db.page.update({
+        where: { id },
+        data: updateData,
+      })
       return page
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const existing = await ctx.db.query.pages.findFirst({
-      where: eq(schema.pages.id, input.id),
+  delete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    requireRole(ctx, "editor")
+    const existing = await ctx.db.page.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
     if (!existing) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Seite nicht gefunden" })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
     }
     if (existing.isStatic) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: "Statische Seiten können nicht gelöscht werden",
-      })
+      throw createAppError("FORBIDDEN", APP_ERROR_CODES.PAGE_STATIC_CANNOT_DELETE)
     }
-    await ctx.db.delete(schema.pages).where(eq(schema.pages.id, input.id))
+    await ctx.db.page.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 
   // --- Aliases ---
 
-  listAliases: adminProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.pageAliases.findMany({
-      with: { targetPage: true },
-      orderBy: (aliases, { asc }) => [asc(aliases.slug)],
+  listAliases: orgProcedure.query(async ({ ctx }) => {
+    requireRole(ctx, "editor")
+    return ctx.db.pageAlias.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: { targetPage: true },
+      orderBy: { slug: "asc" },
     })
   }),
 
-  createAlias: adminProcedure
+  createAlias: orgProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -378,61 +373,55 @@ export const pageRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "editor")
       const slug = slugify(input.title)
 
       if (!slug) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Der Titel ergibt keinen gültigen URL-Slug",
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_INVALID_SLUG)
       }
 
       if (FORBIDDEN_SLUGS.includes(slug) || STATIC_SLUGS.includes(slug)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Der Slug "${slug}" ist reserviert`,
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_SLUG_RESERVED)
       }
 
-      // Check against existing top-level pages
-      const pageConflict = await ctx.db
-        .select({ id: schema.pages.id })
-        .from(schema.pages)
-        .where(and(eq(schema.pages.slug, slug), isNull(schema.pages.parentId)))
-        .limit(1)
+      // Check against existing top-level pages for this organization
+      const pageConflict = await ctx.db.page.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          slug,
+          parentId: null,
+        },
+        select: { id: true },
+      })
 
-      if (pageConflict.length > 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `Eine Seite mit dem Slug "${slug}" existiert bereits`,
-        })
+      if (pageConflict) {
+        throw createAppError("CONFLICT", APP_ERROR_CODES.PAGE_SLUG_CONFLICT)
       }
 
-      // Check against existing aliases
-      const aliasConflict = await ctx.db
-        .select({ id: schema.pageAliases.id })
-        .from(schema.pageAliases)
-        .where(eq(schema.pageAliases.slug, slug))
-        .limit(1)
+      // Check against existing aliases for this organization
+      const aliasConflict = await ctx.db.pageAlias.findFirst({
+        where: { organizationId: ctx.organizationId, slug },
+        select: { id: true },
+      })
 
-      if (aliasConflict.length > 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: `Ein Alias mit dem Slug "${slug}" existiert bereits`,
-        })
+      if (aliasConflict) {
+        throw createAppError("CONFLICT", APP_ERROR_CODES.PAGE_ALIAS_CONFLICT)
       }
 
-      const [alias] = await ctx.db
-        .insert(schema.pageAliases)
-        .values({
+      const alias = await ctx.db.pageAlias.create({
+        data: {
+          organizationId: ctx.organizationId,
           slug,
           targetPageId: input.targetPageId,
-        })
-        .returning()
+        },
+      })
       return alias
     }),
 
-  deleteAlias: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.pageAliases).where(eq(schema.pageAliases.id, input.id))
+  deleteAlias: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    requireRole(ctx, "editor")
+    await ctx.db.pageAlias.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

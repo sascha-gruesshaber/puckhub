@@ -1,6 +1,7 @@
 import { Button, toast } from "@puckhub/ui"
 import { Trash2 } from "lucide-react"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
 interface TeamAssignmentPanelProps {
@@ -19,12 +20,13 @@ export function TeamAssignmentPanel({
   onInvalidate,
 }: TeamAssignmentPanelProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const removeMutation = trpc.teamDivision.remove.useMutation({
     onSuccess: () => {
       onInvalidate()
       toast.success(t("seasonStructure.toast.teamRemoved"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const initials = shortName.substring(0, 2).toUpperCase()

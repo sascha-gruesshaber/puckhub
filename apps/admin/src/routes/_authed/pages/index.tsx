@@ -11,7 +11,9 @@ import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/pages/")({
@@ -29,7 +31,9 @@ const FILTER_PUBLISHED = "__published__"
 const FILTER_DRAFT = "__draft__"
 
 function PagesPage() {
+  usePermissionGuard("pages")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { search: searchParam, status } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -64,7 +68,7 @@ function PagesPage() {
       toast.success(t("pagesPage.toast.pageDeleted"))
     },
     onError: (err) => {
-      toast.error(t("pagesPage.toast.deleteError"), { description: err.message })
+      toast.error(t("pagesPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -77,7 +81,7 @@ function PagesPage() {
       toast.success(t("pagesPage.toast.aliasCreated"))
     },
     onError: (err) => {
-      toast.error(t("pagesPage.toast.createError"), { description: err.message })
+      toast.error(t("pagesPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -89,7 +93,7 @@ function PagesPage() {
       toast.success(t("pagesPage.toast.aliasDeleted"))
     },
     onError: (err) => {
-      toast.error(t("pagesPage.toast.deleteError"), { description: err.message })
+      toast.error(t("pagesPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

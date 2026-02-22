@@ -1,51 +1,57 @@
-import * as schema from "@puckhub/db/schema"
-import { TRPCError } from "@trpc/server"
-import { and, eq, lte } from "drizzle-orm"
 import { z } from "zod"
 import type { Context } from "../context"
-import { adminProcedure, router } from "../init"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgProcedure, requireRole, router } from "../init"
 
 /**
- * Auto-publishes all draft news whose scheduledPublishAt has passed.
+ * Auto-publishes all draft news whose scheduledPublishAt has passed,
+ * scoped to the given organization.
  * Returns the number of promoted articles.
  */
-async function autoPublishScheduled(db: Context["db"]) {
+async function autoPublishScheduled(db: Context["db"], organizationId: string) {
   const now = new Date()
-  const promoted = await db
-    .update(schema.news)
-    .set({
+  const promoted = await db.news.updateMany({
+    where: {
+      organizationId,
+      status: "draft",
+      scheduledPublishAt: { lte: now },
+    },
+    data: {
       status: "published",
       publishedAt: now,
       scheduledPublishAt: null,
       updatedAt: now,
-    })
-    .where(and(eq(schema.news.status, "draft"), lte(schema.news.scheduledPublishAt, now)))
-    .returning({ id: schema.news.id })
-  return promoted.length
+    },
+  })
+  return promoted.count
 }
 
 export const newsRouter = router({
-  list: adminProcedure.query(async ({ ctx }) => {
-    await autoPublishScheduled(ctx.db)
-    return ctx.db.query.news.findMany({
-      with: { author: true },
-      orderBy: (news, { desc }) => [desc(news.createdAt)],
+  list: orgProcedure.query(async ({ ctx }) => {
+    requireRole(ctx, "editor")
+    await autoPublishScheduled(ctx.db, ctx.organizationId)
+    return ctx.db.news.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: { author: true },
+      orderBy: { createdAt: "desc" },
     })
   }),
 
-  getById: adminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    await autoPublishScheduled(ctx.db)
-    const article = await ctx.db.query.news.findFirst({
-      where: eq(schema.news.id, input.id),
-      with: { author: true },
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+    requireRole(ctx, "editor")
+    await autoPublishScheduled(ctx.db, ctx.organizationId)
+    const article = await ctx.db.news.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      include: { author: true },
     })
     if (!article) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "News nicht gefunden" })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.NEWS_NOT_FOUND)
     }
     return article
   }),
 
-  create: adminProcedure
+  create: orgProcedure
     .input(
       z.object({
         title: z.string().min(1),
@@ -56,9 +62,10 @@ export const newsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [article] = await ctx.db
-        .insert(schema.news)
-        .values({
+      requireRole(ctx, "editor")
+      const article = await ctx.db.news.create({
+        data: {
+          organizationId: ctx.organizationId,
           title: input.title,
           shortText: input.shortText || null,
           content: input.content,
@@ -66,12 +73,12 @@ export const newsRouter = router({
           authorId: ctx.user.id,
           publishedAt: input.status === "published" ? new Date() : null,
           scheduledPublishAt: input.scheduledPublishAt ? new Date(input.scheduledPublishAt) : null,
-        })
-        .returning()
+        },
+      })
       return article
     }),
 
-  update: adminProcedure
+  update: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -83,14 +90,15 @@ export const newsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "editor")
       const { id, ...data } = input
 
       // Fetch existing to manage publishedAt
-      const existing = await ctx.db.query.news.findFirst({
-        where: eq(schema.news.id, id),
+      const existing = await ctx.db.news.findFirst({
+        where: { id, organizationId: ctx.organizationId },
       })
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "News nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.NEWS_NOT_FOUND)
       }
 
       let publishedAt = existing.publishedAt
@@ -100,9 +108,9 @@ export const newsRouter = router({
         publishedAt = null
       }
 
-      const [article] = await ctx.db
-        .update(schema.news)
-        .set({
+      const article = await ctx.db.news.update({
+        where: { id },
+        data: {
           ...data,
           scheduledPublishAt:
             data.scheduledPublishAt !== undefined
@@ -112,13 +120,15 @@ export const newsRouter = router({
               : undefined,
           publishedAt,
           updatedAt: new Date(),
-        })
-        .where(eq(schema.news.id, id))
-        .returning()
+        },
+      })
       return article
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.news).where(eq(schema.news.id, input.id))
+  delete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    requireRole(ctx, "editor")
+    await ctx.db.news.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

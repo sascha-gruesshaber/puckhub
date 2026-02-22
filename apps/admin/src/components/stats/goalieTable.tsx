@@ -12,7 +12,7 @@ interface GoalieStat {
   team: { id: string; name: string; shortName: string; logoUrl?: string | null } | null
   gamesPlayed: number
   goalsAgainst: number
-  gaa: string | number | null
+  gaa: { toString(): string } | number | string | null
 }
 
 interface GoalieTableProps {

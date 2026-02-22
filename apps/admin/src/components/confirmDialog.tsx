@@ -15,6 +15,7 @@ interface ConfirmDialogProps {
   title: string
   description: React.ReactNode
   confirmLabel?: string
+  cancelLabel?: string
   onConfirm: () => void
   isPending?: boolean
   variant?: "destructive" | "default"
@@ -26,6 +27,7 @@ function ConfirmDialog({
   title,
   description,
   confirmLabel = "Bestätigen",
+  cancelLabel = "Abbrechen",
   onConfirm,
   isPending,
   variant = "default",
@@ -40,7 +42,7 @@ function ConfirmDialog({
         </DialogHeader>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Abbrechen
+            {cancelLabel}
           </Button>
           <Button
             variant={variant === "destructive" ? "destructive" : "default"}

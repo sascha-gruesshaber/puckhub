@@ -1,8 +1,6 @@
-import * as schema from "@puckhub/db/schema"
 import { recalculateGoalieStats, recalculatePlayerStats } from "@puckhub/db/services"
-import { eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const roundTypeValues = [
   "regular",
@@ -16,20 +14,23 @@ const roundTypeValues = [
 ] as const
 
 export const roundRouter = router({
-  listByDivision: publicProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.rounds.findMany({
-      where: eq(schema.rounds.divisionId, input.divisionId),
-      orderBy: (rounds, { asc }) => [asc(rounds.sortOrder)],
+  listByDivision: orgProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    return ctx.db.round.findMany({
+      where: {
+        divisionId: input.divisionId,
+        organizationId: ctx.organizationId,
+      },
+      orderBy: { sortOrder: "asc" },
     })
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.rounds.findFirst({
-      where: eq(schema.rounds.id, input.id),
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+    return ctx.db.round.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         divisionId: z.string().uuid(),
@@ -44,11 +45,13 @@ export const roundRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [round] = await ctx.db.insert(schema.rounds).values(input).returning()
+      const round = await ctx.db.round.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return round
     }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -68,17 +71,22 @@ export const roundRouter = router({
       // Check if counting flags are being changed — need old values to compare
       const statsToggleChanged = input.countsForPlayerStats !== undefined || input.countsForGoalieStats !== undefined
 
-      const [round] = await ctx.db
-        .update(schema.rounds)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.rounds.id, id))
-        .returning()
+      const updateResult = await ctx.db.round.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: { ...data, updatedAt: new Date() },
+      })
+
+      if (updateResult.count === 0) return undefined
+
+      const round = await ctx.db.round.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+      })
 
       // Recalculate stats when counting flags change
       if (statsToggleChanged && round) {
-        const division = await ctx.db.query.divisions.findFirst({
-          where: eq(schema.divisions.id, round.divisionId),
-          columns: { seasonId: true },
+        const division = await ctx.db.division.findFirst({
+          where: { id: round.divisionId },
+          select: { seasonId: true },
         })
         if (division) {
           if (input.countsForPlayerStats !== undefined) {
@@ -93,7 +101,9 @@ export const roundRouter = router({
       return round
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.rounds).where(eq(schema.rounds.id, input.id))
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db.round.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

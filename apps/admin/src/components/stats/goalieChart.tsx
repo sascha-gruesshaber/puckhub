@@ -5,7 +5,7 @@ import { CHART_COLORS, EChartsWrapper } from "./echartsWrapper"
 interface GoalieChartStat {
   player: { firstName: string; lastName: string } | null
   team: { shortName: string } | null
-  gaa: string | number | null
+  gaa: { toString(): string } | number | string | null
   gamesPlayed: number
 }
 

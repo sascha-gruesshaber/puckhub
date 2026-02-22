@@ -1,15 +1,15 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const settingsRouter = router({
-  get: publicProcedure.query(async ({ ctx }) => {
-    const [row] = await ctx.db.select().from(schema.systemSettings).where(eq(schema.systemSettings.id, 1))
+  get: orgProcedure.query(async ({ ctx }) => {
+    const row = await ctx.db.systemSettings.findFirst({
+      where: { organizationId: ctx.organizationId },
+    })
     return row ?? null
   }),
 
-  update: adminProcedure
+  update: orgAdminProcedure
     .input(
       z.object({
         leagueName: z.string().min(1, "Liga-Name ist erforderlich"),
@@ -22,20 +22,22 @@ export const settingsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [existing] = await ctx.db
-        .select({ id: schema.systemSettings.id })
-        .from(schema.systemSettings)
-        .where(eq(schema.systemSettings.id, 1))
+      const existing = await ctx.db.systemSettings.findFirst({
+        where: { organizationId: ctx.organizationId },
+        select: { id: true },
+      })
 
       if (existing) {
-        await ctx.db
-          .update(schema.systemSettings)
-          .set({ ...input, updatedAt: new Date() })
-          .where(eq(schema.systemSettings.id, 1))
+        await ctx.db.systemSettings.update({
+          where: { id: existing.id },
+          data: { ...input, updatedAt: new Date() },
+        })
       } else {
-        await ctx.db.insert(schema.systemSettings).values({
-          id: 1,
-          ...input,
+        await ctx.db.systemSettings.create({
+          data: {
+            organizationId: ctx.organizationId,
+            ...input,
+          },
         })
       }
 

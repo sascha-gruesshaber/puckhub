@@ -2,6 +2,7 @@ import { Button, Input, toast } from "@puckhub/ui"
 import { Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
 interface DivisionEditPanelProps {
@@ -22,6 +23,7 @@ export function DivisionEditPanel({
   onInvalidate,
 }: DivisionEditPanelProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [editName, setEditName] = useState(name)
   const [editOrder, setEditOrder] = useState(String(sortOrder))
   const [editGoalieMinGames, setEditGoalieMinGames] = useState(String(goalieMinGames))
@@ -37,7 +39,7 @@ export function DivisionEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.divisionUpdated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.division.delete.useMutation({
@@ -45,7 +47,7 @@ export function DivisionEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.divisionDeleted"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const createRoundMutation = trpc.round.create.useMutation({
@@ -53,7 +55,7 @@ export function DivisionEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.roundCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleSave() {

@@ -835,33 +835,45 @@
       "deleteError": "Fehler beim Löschen"
     }
   },
+  "org": {
+    "select": "Liga wählen",
+    "pickerTitle": "Liga auswählen",
+    "pickerDescription": "Wähle die Liga, mit der du arbeiten möchtest.",
+    "noOrgs": "Keine Ligen",
+    "noOrgsDescription": "Du bist keiner Liga zugeordnet. Kontaktiere einen Administrator.",
+    "noOrgsPlatformAdmin": "Es existieren noch keine Ligen. Erstelle eine in der Plattform-Verwaltung.",
+    "platformAdminNote": "Du hast Zugriff auf alle Ligen",
+    "switchLeague": "Liga wechseln",
+    "roles": {
+      "owner": "Eigentümer",
+      "admin": "Administrator",
+      "member": "Mitglied"
+    }
+  },
   "usersPage": {
-    "title": "Benutzerverwaltung",
+    "title": "Benutzer",
     "description": "Benutzer und Zugriffsrechte verwalten",
     "searchPlaceholder": "Benutzer durchsuchen...",
     "count": {
-      "users": "Benutzer"
+      "members": "Benutzer"
     },
     "filters": {
       "all": "Alle",
-      "fallback": "Filter",
-      "noRoleCount": "Ohne Rolle ({{count}})"
+      "fallback": "Filter"
     },
     "actions": {
-      "rolesOverview": "Rollen-Übersicht",
-      "newUser": "Neuer Benutzer",
+      "newMember": "Neuer Benutzer",
       "edit": "Bearbeiten",
-      "delete": "Löschen",
+      "remove": "Entfernen",
+      "changeRole": "Rolle ändern",
       "manageRoles": "Rollen verwalten",
       "resetPassword": "Passwort zurücksetzen",
-      "assignRole": "Rolle zuweisen",
-      "removeRole": "Rolle entfernen",
       "setPassword": "Passwort setzen"
     },
     "empty": {
       "title": "Noch keine Benutzer",
-      "description": "Erstelle den ersten Benutzer, um das Team aufzubauen.",
-      "action": "Ersten Benutzer erstellen"
+      "description": "Füge den ersten Benutzer hinzu.",
+      "action": "Ersten Benutzer hinzufügen"
     },
     "fields": {
       "name": "Name",
@@ -871,86 +883,52 @@
       "password": "Passwort",
       "passwordPlaceholder": "Mindestens 6 Zeichen",
       "newPassword": "Neues Passwort",
-      "role": "Rolle",
-      "teamOptional": "Team (optional)",
-      "noSpecificTeam": "Kein bestimmtes Team"
+      "role": "Rolle"
     },
     "dialogs": {
-      "newUserTitle": "Neuen Benutzer erstellen",
+      "newMemberTitle": "Neuen Benutzer hinzufügen",
       "editUserTitle": "Benutzer bearbeiten",
-      "newUserDescription": "Erstelle einen neuen Benutzer mit E-Mail und Passwort.",
+      "newMemberDescription": "Füge einen neuen Benutzer mit E-Mail und Passwort hinzu.",
       "editUserDescription": "Ändere die Grunddaten des Benutzers.",
-      "rolesTitle": "Rollen: {{name}}",
-      "rolesDescription": "Verwalte die Zugriffsrechte dieses Benutzers.",
+      "changeRoleTitle": "Rolle ändern: {{name}}",
+      "changeRoleDescription": "Wähle die neue Rolle für diesen Benutzer.",
+      "manageRolesTitle": "Rollen verwalten: {{name}}",
+      "manageRolesDescription": "Rollen hinzufügen oder entfernen. Teamspezifische Rollen können auf bestimmte Teams beschränkt werden.",
       "resetPasswordTitle": "Passwort zurücksetzen",
-      "resetPasswordDescription": "Neues Passwort für {{name}} festlegen.",
-      "rolesInfoTitle": "Rollen und Berechtigungen",
-      "rolesInfoDescription": "Übersicht aller verfügbaren Benutzerrollen und ihrer Berechtigungen."
+      "resetPasswordDescription": "Neues Passwort für {{name}} festlegen."
     },
-    "roles": {
-      "current": "Aktuelle Rollen",
-      "noneAssigned": "Keine Rollen zugewiesen. Dieser Benutzer hat keinen Zugriff.",
-      "assignNew": "Neue Rolle zuweisen",
-      "teamPrefix": "Team: {{name}}",
-      "noneShort": "Keine Rollen",
-      "permissionsTitle": "Berechtigungen",
-      "super_admin": {
-        "label": "Super-Admin",
-        "shortLabel": "Vollzugriff auf das System",
-        "description": "Vollzugriff auf das gesamte System. Kann Benutzer verwalten, Rollen zuweisen und alle Einstellungen ändern.",
-        "permissions": {
-          "manageUsers": "Benutzer erstellen, bearbeiten und löschen",
-          "assignRoles": "Rollen zuweisen und entziehen",
-          "manageLeagueData": "Alle Saisons, Teams und Spieler verwalten",
-          "manageGames": "Spiele anlegen und Ergebnisse eintragen",
-          "manageSettings": "Systemeinstellungen ändern"
-        }
+    "orgRoles": {
+      "owner": {
+        "label": "Eigentümer",
+        "description": "Vollzugriff auf alle Bereiche inkl. Löschung der Organisation."
       },
-      "league_admin": {
-        "label": "Liga-Admin",
-        "shortLabel": "Verwaltung des Spielbetriebs",
-        "description": "Verwaltung des Spielbetriebs. Kann Saisons, Spielpläne und Ergebnisse verwalten, aber keine Benutzer.",
-        "permissions": {
-          "manageSeasons": "Saisons und Saisonstrukturen verwalten",
-          "manageSchedules": "Spielpläne erstellen und bearbeiten",
-          "recordResults": "Spielergebnisse und Statistiken eintragen",
-          "manageTeamsPlayers": "Teams und Spieler verwalten",
-          "manageStandingsPenalties": "Tabellen und Strafenkatalog pflegen"
-        }
+      "admin": {
+        "label": "Administrator",
+        "description": "Vollzugriff auf alle Bereiche außer Organisationslöschung."
+      },
+      "game_manager": {
+        "label": "Spielleiter",
+        "description": "Spiele erstellen, bearbeiten und verwalten."
+      },
+      "game_reporter": {
+        "label": "Spielberichter",
+        "description": "Spielberichte, Aufstellungen und Ereignisse verwalten."
       },
       "team_manager": {
-        "label": "Team-Manager",
-        "shortLabel": "Verwaltung eines Teams",
-        "description": "Verwaltung eines bestimmten Teams. Kann den Kader des zugewiesenen Teams pflegen.",
-        "permissions": {
-          "editTeamProfile": "Eigenes Team-Profil bearbeiten",
-          "manageTeamRoster": "Spielerkader des Teams verwalten",
-          "manageContractsTransfers": "Verträge und Transfers pflegen",
-          "updateTeamInfo": "Team-Informationen aktualisieren"
-        }
+        "label": "Teammanager",
+        "description": "Teamdetails, Kader und Verträge verwalten."
       },
-      "scorekeeper": {
-        "label": "Schreiber",
-        "shortLabel": "Eingabe von Ergebnissen",
-        "description": "Eingabe von Spielergebnissen. Kann Tore, Strafen und Spielstatistiken erfassen.",
-        "permissions": {
-          "recordResults": "Spielergebnisse eintragen",
-          "recordGoalsAssists": "Tore und Vorlagen erfassen",
-          "recordPenalties": "Strafen dokumentieren",
-          "recordGoalieStats": "Torhüterstatistiken eingeben"
-        }
-      },
-      "viewer": {
-        "label": "Betrachter",
-        "shortLabel": "Nur Lesezugriff",
-        "description": "Nur Lesezugriff auf das Admin-Panel. Kann alle Daten einsehen, aber nichts ändern.",
-        "permissions": {
-          "viewSeasonsSchedules": "Alle Saisons und Spielpläne einsehen",
-          "viewStandingsStats": "Tabellen und Statistiken ansehen",
-          "viewTeamsPlayers": "Team- und Spielerprofile betrachten",
-          "viewResultsHistory": "Ergebnisse und Historie durchsuchen"
-        }
+      "editor": {
+        "label": "Redakteur",
+        "description": "News-Artikel und Seiten erstellen und bearbeiten."
       }
+    },
+    "roles": {
+      "currentRoles": "Aktuelle Rollen",
+      "noRoles": "Keine Rollen",
+      "addRole": "Rolle hinzufügen",
+      "teamScope": "Team-Zuordnung (optional)",
+      "allTeams": "Alle Teams (ligaweit)"
     },
     "validation": {
       "nameRequired": "Name ist erforderlich",
@@ -960,20 +938,21 @@
       "passwordMin": "Mindestens 6 Zeichen"
     },
     "deleteDialog": {
-      "title": "Benutzer löschen",
-      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Alle zugehörigen Rollen und Sitzungen werden ebenfalls entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
+      "title": "Benutzer entfernen",
+      "description": "Bist du sicher, dass du {{name}} aus der Liga entfernen möchtest? Der Benutzer verliert den Zugriff auf diese Liga."
     },
     "toast": {
-      "created": "Benutzer erstellt",
+      "created": "Benutzer hinzugefügt",
       "updated": "Benutzer aktualisiert",
-      "deleted": "Benutzer gelöscht",
-      "roleAssigned": "Rolle zugewiesen",
+      "deleted": "Benutzer entfernt",
+      "roleUpdated": "Rolle aktualisiert",
+      "roleAdded": "Rolle hinzugefügt",
       "roleRemoved": "Rolle entfernt",
       "passwordReset": "Passwort zurückgesetzt",
       "error": "Fehler",
-      "createError": "Fehler beim Erstellen",
+      "createError": "Fehler beim Hinzufügen",
       "saveError": "Fehler beim Speichern",
-      "deleteError": "Fehler beim Löschen"
+      "deleteError": "Fehler beim Entfernen des Benutzers"
     }
   },
   "sponsorsPage": {
@@ -1593,6 +1572,29 @@
       "saveError": "Fehler beim Speichern",
       "deleteError": "Fehler beim Löschen"
     }
+  },
+  "profile": {
+    "title": "Profil",
+    "description": "Persönliche Einstellungen und Sicherheit verwalten",
+    "personalInfo": "Persönliche Informationen",
+    "personalInfoDescription": "Dein Name und deine E-Mail-Adresse",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "email": "E-Mail",
+    "emailReadOnly": "Die E-Mail-Adresse kann nicht geändert werden",
+    "saved": "Profil gespeichert",
+    "languagePreference": "Spracheinstellung",
+    "languagePreferenceDescription": "Wähle deine bevorzugte Sprache für die Benutzeroberfläche",
+    "language": "Sprache",
+    "languageOptions": {
+      "de-DE": "Deutsch",
+      "en-US": "English"
+    }
+  },
+  "topBar": {
+    "profile": "Profil",
+    "switchLeague": "Liga wechseln",
+    "logout": "Abmelden"
   },
   "gameReport": {
     "home": "Heim",

@@ -4,6 +4,7 @@ import { Save, Settings } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { PageHeader } from "~/components/pageHeader"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -25,6 +26,7 @@ const TIMEZONES = [
 ]
 
 function SettingsPage() {
+  usePermissionGuard("settings")
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const { data: settings, isLoading } = trpc.settings.get.useQuery()

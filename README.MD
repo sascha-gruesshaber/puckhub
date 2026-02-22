@@ -6,8 +6,8 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | [Hono](https://hono.dev) (HTTP) + [tRPC](https://trpc.io) (type-safe API, 22 routers) |
-| **ORM** | [Drizzle](https://orm.drizzle.team) (PostgreSQL, 32 schema files, 10 enums) |
+| **Backend** | [Hono](https://hono.dev) (HTTP) + [tRPC](https://trpc.io) (type-safe API, 25 routers) |
+| **ORM** | [Prisma](https://www.prisma.io) (PostgreSQL, schema in `packages/db/prisma/schema.prisma`) |
 | **Auth** | [Better Auth](https://www.better-auth.com) (self-hosted, email/password) |
 | **Frontend** | [TanStack Start](https://tanstack.com/start) (SSR + Router + Query, React 19) |
 | **UI** | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) style components |
@@ -26,7 +26,7 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 - **Content Management** — News articles (draft/published), CMS pages with menu locations, sponsor management
 - **Jersey Management** — Trikot templates, team jersey assignments with color customization
 - **Venue Management** — Venues with addresses, linked to teams and games
-- **User Management** — Role-based access (super_admin, league_admin, team_manager, scorekeeper, viewer)
+- **User Management** — Role-based access via Better Auth organizations (owner, admin, member)
 - **Setup Wizard** — Guided onboarding for first-time league setup
 - **Multi-language** — Full German and English UI with language picker
 
@@ -35,11 +35,12 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 ```
 puckhub.cms/
 ├── apps/
-│   ├── admin/          # TanStack Start admin CMS (26 routes, ~65 components)
+│   ├── admin/          # TanStack Start admin CMS (27 routes, ~65 components)
+│   ├── platform/       # TanStack Start platform app (served at /platform in production)
 │   └── web/            # Future public-facing site
 ├── packages/
-│   ├── api/            # Hono + tRPC server, 22 routers, 3 services (@puckhub/api)
-│   ├── db/             # Drizzle schema (32 files) + migrations (4) + seeds (@puckhub/db)
+│   ├── api/            # Hono + tRPC server, 25 routers, 3 services (@puckhub/api)
+│   ├── db/             # Prisma schema + migrations + seeds (@puckhub/db)
 │   ├── config/         # Minimal — runtime config in DB (@puckhub/config)
 │   └── ui/             # Shared UI components — 11 files, 13+ exports (@puckhub/ui)
 ├── docker/             # Docker Compose + pgAdmin config
@@ -48,7 +49,7 @@ puckhub.cms/
 ## Prerequisites
 
 - **Node.js** 20+
-- **pnpm** 9+
+- **pnpm** 10+
 - **Docker** (for PostgreSQL)
 
 ## Getting Started
@@ -84,11 +85,24 @@ pnpm dev                # Start Docker (DB + pgAdmin) + all dev servers
 pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
 pnpm lint               # TypeScript type-check across all packages
-pnpm db:generate        # Generate Drizzle migrations after schema changes
-pnpm db:seed:demo       # Seed demo data (10 teams, 100 players, 16 seasons)
-pnpm docker:up          # Start Docker containers only
-pnpm docker:down        # Stop Docker containers
+pnpm db:generate        # Generate Prisma client
+pnpm db:reset           # Reset database via @puckhub/db seed reset utility
+pnpm dev:docker:up      # Start Docker containers only
+pnpm dev:docker:down    # Stop Docker containers only
 ```
+
+## Production Containers
+
+- **App images**:
+- `ghcr.io/sascha-gruesshaber/puckhub-api`
+- `ghcr.io/sascha-gruesshaber/puckhub-admin`
+- `ghcr.io/sascha-gruesshaber/puckhub-platform`
+- **Edge**: Caddy routes traffic on one host:
+- `/` -> admin
+- `/platform` -> platform
+- `/api` -> api
+
+Note: CI currently builds all three images but temporarily does **not** push them to GHCR.
 
 ## Settings
 
@@ -143,7 +157,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## Support
 
-- **Documentation**: See package-level `CLAUDE.md` files in `apps/` and `packages/`
+- **Documentation**: See `AGENT.md` and package-level `AGENT.md` files in `apps/` and `packages/`
 - **Issues**: [GitHub Issues](https://github.com/sascha-gruesshaber/puckhub/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/sascha-gruesshaber/puckhub/discussions)
 - **Contact**: sascha@gruesshaber.eu

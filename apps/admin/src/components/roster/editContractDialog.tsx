@@ -13,6 +13,7 @@ import {
 } from "@puckhub/ui"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import type { ContractRow } from "./rosterTable"
 
@@ -26,6 +27,7 @@ interface EditContractDialogProps {
 
 function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: EditContractDialogProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [position, setPosition] = useState<"forward" | "defense" | "goalie">("forward")
   const [jerseyNumber, setJerseyNumber] = useState("")
 
@@ -45,7 +47,7 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
       toast.success(t("rosterPage.editDialog.toast.updated"))
     },
     onError: (err) => {
-      toast.error(t("rosterPage.editDialog.toast.saveError"), { description: err.message })
+      toast.error(t("rosterPage.editDialog.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

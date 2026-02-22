@@ -6,12 +6,13 @@ import { divisionRouter } from "./routers/division"
 import { gameRouter } from "./routers/game"
 import { gameReportRouter } from "./routers/gameReport"
 import { newsRouter } from "./routers/news"
+import { organizationRouter } from "./routers/organization"
 import { pageRouter } from "./routers/page"
 import { playerRouter } from "./routers/player"
 import { roundRouter } from "./routers/round"
+import { schedulerRouter } from "./routers/scheduler"
 import { seasonRouter } from "./routers/season"
 import { settingsRouter } from "./routers/settings"
-import { setupRouter } from "./routers/setup"
 import { sponsorRouter } from "./routers/sponsor"
 import { standingsRouter } from "./routers/standings"
 import { statsRouter } from "./routers/stats"
@@ -42,13 +43,14 @@ export const appRouter = router({
   trikot: trikotRouter,
   teamTrikot: teamTrikotRouter,
   users: usersRouter,
-  setup: setupRouter,
   settings: settingsRouter,
   sponsor: sponsorRouter,
   news: newsRouter,
+  organization: organizationRouter,
   page: pageRouter,
   venue: venueRouter,
   userPreferences: userPreferencesRouter,
+  scheduler: schedulerRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -80,8 +80,7 @@ describe("contract router", () => {
         jerseyNumber: 1,
       })
 
-      const caller = createTestCaller()
-      const roster = await caller.contract.rosterForSeason({
+      const roster = await admin.contract.rosterForSeason({
         teamId: team.id,
         seasonId: season.id,
       })
@@ -120,8 +119,7 @@ describe("contract router", () => {
         seasonId: season2024.id,
       })
 
-      const caller = createTestCaller()
-      const roster = await caller.contract.rosterForSeason({
+      const roster = await admin.contract.rosterForSeason({
         teamId: team.id,
         seasonId: season2025.id,
       })
@@ -142,8 +140,7 @@ describe("contract router", () => {
         position: "defense",
       })
 
-      const caller = createTestCaller()
-      const history = await caller.contract.getByPlayer({ playerId: player.id })
+      const history = await admin.contract.getByPlayer({ playerId: player.id })
       expect(history).toHaveLength(1)
       expect(history[0]?.position).toBe("defense")
     })
@@ -186,8 +183,7 @@ describe("contract router", () => {
       expect(newContract?.jerseyNumber).toBe(7)
 
       // Old contract should be closed
-      const caller = createTestCaller()
-      const history = await caller.contract.getByPlayer({ playerId: player.id })
+      const history = await admin.contract.getByPlayer({ playerId: player.id })
       const closedContract = history.find((c) => c.id === oldContract?.id)
       expect(closedContract?.endSeasonId).toBeDefined()
     })

@@ -1,28 +1,27 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, requireRole, router } from "../init"
 
 export const teamRouter = router({
-  list: publicProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.teams.findMany({
-      with: {
+  list: orgProcedure.query(async ({ ctx }) => {
+    return ctx.db.team.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: {
         teamTrikots: {
-          with: { trikot: { with: { template: true } } },
-          limit: 1,
+          include: { trikot: { include: { template: true } } },
+          take: 1,
         },
       },
-      orderBy: (teams, { asc }) => [asc(teams.name)],
+      orderBy: { name: "asc" },
     })
   }),
 
-  getById: publicProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.teams.findFirst({
-      where: eq(schema.teams.id, input.id),
+  getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+    return ctx.db.team.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
   }),
 
-  create: adminProcedure
+  create: orgAdminProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -38,11 +37,13 @@ export const teamRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [team] = await ctx.db.insert(schema.teams).values(input).returning()
+      const team = await ctx.db.team.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return team
     }),
 
-  update: adminProcedure
+  update: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -60,15 +61,22 @@ export const teamRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
-      const [team] = await ctx.db
-        .update(schema.teams)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.teams.id, id))
-        .returning()
-      return team
+
+      // team_manager can update their own team
+      requireRole(ctx, "team_manager", id)
+
+      const updateResult = await ctx.db.team.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: { ...data, updatedAt: new Date() },
+      })
+
+      if (updateResult.count === 0) return undefined
+      return ctx.db.team.findFirst({ where: { id, organizationId: ctx.organizationId } })
     }),
 
-  delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.teams).where(eq(schema.teams.id, input.id))
+  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await ctx.db.team.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

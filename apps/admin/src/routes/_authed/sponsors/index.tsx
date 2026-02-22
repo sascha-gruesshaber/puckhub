@@ -27,7 +27,9 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/sponsors/")({
@@ -70,7 +72,9 @@ const FILTER_SITEWIDE = "__sitewide__"
 // Main page
 // ---------------------------------------------------------------------------
 function SponsorsPage() {
+  usePermissionGuard("sponsors")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -122,7 +126,7 @@ function SponsorsPage() {
       toast.success(t("sponsorsPage.toast.created"))
     },
     onError: (err) => {
-      toast.error(t("sponsorsPage.toast.createError"), { description: err.message })
+      toast.error(t("sponsorsPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -133,7 +137,7 @@ function SponsorsPage() {
       toast.success(t("sponsorsPage.toast.updated"))
     },
     onError: (err) => {
-      toast.error(t("sponsorsPage.toast.saveError"), { description: err.message })
+      toast.error(t("sponsorsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -145,7 +149,7 @@ function SponsorsPage() {
       toast.success(t("sponsorsPage.toast.deleted"))
     },
     onError: (err) => {
-      toast.error(t("sponsorsPage.toast.deleteError"), { description: err.message })
+      toast.error(t("sponsorsPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

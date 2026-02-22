@@ -4,8 +4,8 @@ import { createTestCaller } from "../testUtils"
 describe("season router", () => {
   describe("list", () => {
     it("returns empty list when no seasons exist", async () => {
-      const caller = createTestCaller()
-      const result = await caller.season.list()
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.season.list()
       expect(result).toEqual([])
     })
 
@@ -15,8 +15,7 @@ describe("season router", () => {
       await admin.season.create({ name: "2025/26", seasonStart: "2025-09-01", seasonEnd: "2026-04-30" })
       await admin.season.create({ name: "2024/25", seasonStart: "2024-09-01", seasonEnd: "2025-04-30" })
 
-      const caller = createTestCaller()
-      const result = await caller.season.list()
+      const result = await admin.season.list()
       expect(result).toHaveLength(3)
       expect(result[0]?.name).toBe("2025/26")
       expect(result[1]?.name).toBe("2024/25")
@@ -49,16 +48,15 @@ describe("season router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const created = await admin.season.create({ name: "2025/26", seasonStart: "2025-09-01", seasonEnd: "2026-04-30" })
 
-      const caller = createTestCaller()
-      const result = await caller.season.getById({ id: created?.id })
+      const result = await admin.season.getById({ id: created?.id })
       expect(result).toBeDefined()
       expect(result?.name).toBe("2025/26")
     })
 
-    it("returns undefined for non-existent id", async () => {
-      const caller = createTestCaller()
-      const result = await caller.season.getById({ id: "00000000-0000-0000-0000-000000000000" })
-      expect(result).toBeUndefined()
+    it("returns null for non-existent id", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.season.getById({ id: "00000000-0000-0000-0000-000000000000" })
+      expect(result).toBeNull()
     })
   })
 
@@ -70,8 +68,7 @@ describe("season router", () => {
       const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString().slice(0, 10)
       await admin.season.create({ name: "Current", seasonStart: start, seasonEnd: end })
 
-      const caller = createTestCaller()
-      const result = await caller.season.getCurrent()
+      const result = await admin.season.getCurrent()
       expect(result).toBeDefined()
       expect(result?.name).toBe("Current")
     })
@@ -81,16 +78,15 @@ describe("season router", () => {
       await admin.season.create({ name: "Older", seasonStart: "2022-09-01", seasonEnd: "2023-04-30" })
       await admin.season.create({ name: "Latest Past", seasonStart: "2023-09-01", seasonEnd: "2024-04-30" })
 
-      const caller = createTestCaller()
-      const result = await caller.season.getCurrent()
+      const result = await admin.season.getCurrent()
       expect(result).toBeDefined()
       expect(result?.name).toBe("Latest Past")
     })
 
-    it("returns undefined when no seasons exist", async () => {
-      const caller = createTestCaller()
-      const result = await caller.season.getCurrent()
-      expect(result).toBeUndefined()
+    it("returns null when no seasons exist", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.season.getCurrent()
+      expect(result).toBeNull()
     })
   })
 
@@ -125,9 +121,8 @@ describe("season router", () => {
 
       await admin.season.delete({ id: season?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.season.getById({ id: season?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.season.getById({ id: season?.id })
+      expect(result).toBeNull()
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -146,8 +141,7 @@ describe("season router", () => {
       await admin.division.create({ seasonId: season?.id, name: "Division A" })
       await admin.division.create({ seasonId: season?.id, name: "Division B" })
 
-      const caller = createTestCaller()
-      const counts = await caller.season.structureCounts()
+      const counts = await admin.season.structureCounts()
       expect(counts[season?.id]).toBe(2)
     })
   })
@@ -210,8 +204,7 @@ describe("season router", () => {
       await admin.round.create({ divisionId: div?.id, name: "Hauptrunde" })
       await admin.teamDivision.assign({ teamId: team?.id, divisionId: div?.id })
 
-      const caller = createTestCaller()
-      const structure = await caller.season.getFullStructure({ id: season?.id })
+      const structure = await admin.season.getFullStructure({ id: season?.id })
 
       expect(structure).toBeDefined()
       expect(structure?.season.name).toBe("2025/26")
@@ -222,8 +215,8 @@ describe("season router", () => {
     })
 
     it("returns null for non-existent season", async () => {
-      const caller = createTestCaller()
-      const result = await caller.season.getFullStructure({
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.season.getFullStructure({
         id: "00000000-0000-0000-0000-000000000000",
       })
       expect(result).toBeNull()

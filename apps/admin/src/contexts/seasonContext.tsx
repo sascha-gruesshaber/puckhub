@@ -53,6 +53,10 @@ export function SeasonProvider({ children }: { children: ReactNode }) {
         (a, b) => new Date(b.seasonEnd).getTime() - new Date(a.seasonEnd).getTime(),
       )
       const latestSeason = sortedSeasons[0]
+      if (!latestSeason) {
+        setIsLoading(false)
+        return
+      }
       const ws: WorkingSeason = {
         id: latestSeason.id,
         name: latestSeason.name,

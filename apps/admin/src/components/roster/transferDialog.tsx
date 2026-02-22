@@ -14,6 +14,7 @@ import {
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { TeamCombobox } from "~/components/teamCombobox"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import type { ContractRow } from "./rosterTable"
 
@@ -35,6 +36,7 @@ interface TransferDialogProps {
 
 function TransferDialog({ open, onOpenChange, contract, currentTeamId, seasonId, teams }: TransferDialogProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [newTeamId, setNewTeamId] = useState("")
   const [position, setPosition] = useState<"forward" | "defense" | "goalie">("forward")
   const [jerseyNumber, setJerseyNumber] = useState("")
@@ -63,7 +65,7 @@ function TransferDialog({ open, onOpenChange, contract, currentTeamId, seasonId,
       toast.success(t("rosterPage.transferDialog.toast.transferred"))
     },
     onError: (err) => {
-      toast.error(t("rosterPage.transferDialog.toast.transferError"), { description: err.message })
+      toast.error(t("rosterPage.transferDialog.toast.transferError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

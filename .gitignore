@@ -39,6 +39,7 @@ coverage/
 
 # Generated
 *.gen.ts
+packages/db/src/generated/
 
 # Uploads (keep .gitkeep)
 uploads/*

@@ -1,12 +1,7 @@
-import * as schema from "@puckhub/db/schema"
-import { TRPCError } from "@trpc/server"
-import { and, eq, gte, isNull, lt, lte, or } from "drizzle-orm"
-import { aliasedTable } from "drizzle-orm/alias"
 import { z } from "zod"
-import { adminProcedure, publicProcedure, router } from "../init"
-
-// Alias for the end_season self-join on the seasons table
-const endSeason = aliasedTable(schema.seasons, "end_season")
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgProcedure, requireRole, router } from "../init"
 
 export const contractRouter = router({
   /**
@@ -14,7 +9,7 @@ export const contractRouter = router({
    * Returns contracts where the season falls within the start/end range,
    * with nested player and season data.
    */
-  rosterForSeason: publicProcedure
+  rosterForSeason: orgProcedure
     .input(
       z.object({
         teamId: z.string().uuid(),
@@ -22,47 +17,59 @@ export const contractRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const targetSeason = await ctx.db.query.seasons.findFirst({
-        where: eq(schema.seasons.id, input.seasonId),
+      const targetSeason = await ctx.db.season.findFirst({
+        where: {
+          id: input.seasonId,
+          organizationId: ctx.organizationId,
+        },
       })
       if (!targetSeason) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Saison nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
       }
 
-      const rows = await ctx.db
-        .select({
-          id: schema.contracts.id,
-          playerId: schema.contracts.playerId,
-          teamId: schema.contracts.teamId,
-          position: schema.contracts.position,
-          jerseyNumber: schema.contracts.jerseyNumber,
-          startSeasonId: schema.contracts.startSeasonId,
-          endSeasonId: schema.contracts.endSeasonId,
-          createdAt: schema.contracts.createdAt,
-          updatedAt: schema.contracts.updatedAt,
-          player: {
-            id: schema.players.id,
-            firstName: schema.players.firstName,
-            lastName: schema.players.lastName,
-            dateOfBirth: schema.players.dateOfBirth,
-            nationality: schema.players.nationality,
-            photoUrl: schema.players.photoUrl,
+      // Fetch contracts with their start season, end season, and player included
+      const contracts = await ctx.db.contract.findMany({
+        where: {
+          organizationId: ctx.organizationId,
+          teamId: input.teamId,
+          startSeason: {
+            seasonStart: { lte: targetSeason.seasonEnd },
           },
-        })
-        .from(schema.contracts)
-        .innerJoin(schema.players, eq(schema.contracts.playerId, schema.players.id))
-        .innerJoin(schema.seasons, eq(schema.contracts.startSeasonId, schema.seasons.id))
-        .leftJoin(endSeason, eq(schema.contracts.endSeasonId, endSeason.id))
-        .where(
-          and(
-            eq(schema.contracts.teamId, input.teamId),
-            lte(schema.seasons.seasonStart, targetSeason.seasonEnd),
-            or(isNull(schema.contracts.endSeasonId), gte(endSeason.seasonEnd, targetSeason.seasonStart)),
-          ),
-        )
+          OR: [
+            { endSeasonId: null },
+            {
+              endSeason: {
+                seasonEnd: { gte: targetSeason.seasonStart },
+              },
+            },
+          ],
+        },
+        include: {
+          player: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              dateOfBirth: true,
+              nationality: true,
+              photoUrl: true,
+            },
+          },
+        },
+      })
 
-      // Drizzle can't infer return type through aliasedTable leftJoin — cast explicitly
-      return rows as Array<{
+      return contracts.map((c: any) => ({
+        id: c.id,
+        playerId: c.playerId,
+        teamId: c.teamId,
+        position: c.position,
+        jerseyNumber: c.jerseyNumber,
+        startSeasonId: c.startSeasonId,
+        endSeasonId: c.endSeasonId,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+        player: c.player,
+      })) as Array<{
         id: string
         playerId: string
         teamId: string
@@ -86,15 +93,18 @@ export const contractRouter = router({
   /**
    * Get contract history for a specific player.
    */
-  getByPlayer: publicProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.contracts.findMany({
-      where: eq(schema.contracts.playerId, input.playerId),
-      with: {
+  getByPlayer: orgProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    return ctx.db.contract.findMany({
+      where: {
+        playerId: input.playerId,
+        organizationId: ctx.organizationId,
+      },
+      include: {
         team: true,
         startSeason: true,
         endSeason: true,
       },
-      orderBy: (contracts, { desc }) => [desc(contracts.createdAt)],
+      orderBy: { createdAt: "desc" },
     })
   }),
 
@@ -102,7 +112,7 @@ export const contractRouter = router({
    * Sign a player to a team for a given season.
    * Creates a new contract with startSeasonId = the given season.
    */
-  signPlayer: adminProcedure
+  signPlayer: orgProcedure
     .input(
       z.object({
         playerId: z.string().uuid(),
@@ -113,44 +123,53 @@ export const contractRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const targetSeason = await ctx.db.query.seasons.findFirst({
-        where: eq(schema.seasons.id, input.seasonId),
+      // team_manager can sign players to their team
+      requireRole(ctx, "team_manager", input.teamId)
+
+      const targetSeason = await ctx.db.season.findFirst({
+        where: {
+          id: input.seasonId,
+          organizationId: ctx.organizationId,
+        },
       })
       if (!targetSeason) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Saison nicht gefunden" })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
       }
 
       // Check if player already has an active contract with ANY team for this season
-      const existingContracts = await ctx.db
-        .select({ id: schema.contracts.id })
-        .from(schema.contracts)
-        .innerJoin(schema.seasons, eq(schema.contracts.startSeasonId, schema.seasons.id))
-        .leftJoin(endSeason, eq(schema.contracts.endSeasonId, endSeason.id))
-        .where(
-          and(
-            eq(schema.contracts.playerId, input.playerId),
-            lte(schema.seasons.seasonStart, targetSeason.seasonEnd),
-            or(isNull(schema.contracts.endSeasonId), gte(endSeason.seasonEnd, targetSeason.seasonStart)),
-          ),
-        )
+      const existingContracts = await ctx.db.contract.findMany({
+        where: {
+          organizationId: ctx.organizationId,
+          playerId: input.playerId,
+          startSeason: {
+            seasonStart: { lte: targetSeason.seasonEnd },
+          },
+          OR: [
+            { endSeasonId: null },
+            {
+              endSeason: {
+                seasonEnd: { gte: targetSeason.seasonStart },
+              },
+            },
+          ],
+        },
+        select: { id: true },
+      })
 
       if (existingContracts.length > 0) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "Spieler hat bereits einen aktiven Vertrag in dieser Saison",
-        })
+        throw createAppError("CONFLICT", APP_ERROR_CODES.CONTRACT_ALREADY_ACTIVE)
       }
 
-      const [contract] = await ctx.db
-        .insert(schema.contracts)
-        .values({
+      const contract = await ctx.db.contract.create({
+        data: {
+          organizationId: ctx.organizationId,
           playerId: input.playerId,
           teamId: input.teamId,
           startSeasonId: input.seasonId,
           position: input.position,
           jerseyNumber: input.jerseyNumber,
-        })
-        .returning()
+        },
+      })
 
       return contract
     }),
@@ -159,7 +178,7 @@ export const contractRouter = router({
    * Transfer a player from one team to another.
    * Closes the old contract and creates a new one in a transaction.
    */
-  transferPlayer: adminProcedure
+  transferPlayer: orgProcedure
     .input(
       z.object({
         contractId: z.string().uuid(),
@@ -170,47 +189,59 @@ export const contractRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.transaction(async (tx) => {
-        const existing = await tx.query.contracts.findFirst({
-          where: eq(schema.contracts.id, input.contractId),
+      // team_manager for the new team
+      requireRole(ctx, "team_manager", input.newTeamId)
+
+      return ctx.db.$transaction(async (tx: any) => {
+        const existing = await tx.contract.findFirst({
+          where: {
+            id: input.contractId,
+            organizationId: ctx.organizationId,
+          },
         })
         if (!existing) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Vertrag nicht gefunden" })
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
         }
 
-        const transferSeason = await tx.query.seasons.findFirst({
-          where: eq(schema.seasons.id, input.seasonId),
+        const transferSeason = await tx.season.findFirst({
+          where: {
+            id: input.seasonId,
+            organizationId: ctx.organizationId,
+          },
         })
         if (!transferSeason) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Saison nicht gefunden" })
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
         }
 
         // Find the season before this one for closing the old contract
-        const previousSeason = await tx.query.seasons.findFirst({
-          where: lt(schema.seasons.seasonEnd, transferSeason.seasonStart),
-          orderBy: (seasons, { desc }) => [desc(seasons.seasonEnd)],
+        const previousSeason = await tx.season.findFirst({
+          where: {
+            organizationId: ctx.organizationId,
+            seasonEnd: { lt: transferSeason.seasonStart },
+          },
+          orderBy: { seasonEnd: "desc" },
         })
 
         // Close old contract
-        await tx
-          .update(schema.contracts)
-          .set({
+        await tx.contract.update({
+          where: { id: input.contractId },
+          data: {
             endSeasonId: previousSeason?.id ?? input.seasonId,
             updatedAt: new Date(),
-          })
-          .where(eq(schema.contracts.id, input.contractId))
+          },
+        })
 
         // Create new contract
-        const [newContract] = await tx
-          .insert(schema.contracts)
-          .values({
+        const newContract = await tx.contract.create({
+          data: {
+            organizationId: ctx.organizationId,
             playerId: existing.playerId,
             teamId: input.newTeamId,
             startSeasonId: input.seasonId,
             position: input.position ?? existing.position,
             jerseyNumber: input.jerseyNumber,
-          })
-          .returning()
+          },
+        })
 
         return newContract
       })
@@ -219,7 +250,7 @@ export const contractRouter = router({
   /**
    * Release a player by closing their contract.
    */
-  releasePlayer: adminProcedure
+  releasePlayer: orgProcedure
     .input(
       z.object({
         contractId: z.string().uuid(),
@@ -227,24 +258,27 @@ export const contractRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.db.query.contracts.findFirst({
-        where: eq(schema.contracts.id, input.contractId),
+      const existing = await ctx.db.contract.findFirst({
+        where: {
+          id: input.contractId,
+          organizationId: ctx.organizationId,
+        },
       })
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Vertrag nicht gefunden" })
-      }
-      if (existing.endSeasonId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Vertrag ist bereits beendet",
-        })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
       }
 
-      const [updated] = await ctx.db
-        .update(schema.contracts)
-        .set({ endSeasonId: input.seasonId, updatedAt: new Date() })
-        .where(eq(schema.contracts.id, input.contractId))
-        .returning()
+      // team_manager for the contract's team
+      requireRole(ctx, "team_manager", existing.teamId)
+
+      if (existing.endSeasonId) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_ALREADY_ENDED)
+      }
+
+      const updated = await ctx.db.contract.update({
+        where: { id: input.contractId },
+        data: { endSeasonId: input.seasonId, updatedAt: new Date() },
+      })
 
       return updated
     }),
@@ -252,7 +286,7 @@ export const contractRouter = router({
   /**
    * Update contract details (position, jersey number).
    */
-  updateContract: adminProcedure
+  updateContract: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -262,15 +296,26 @@ export const contractRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+
+      const existing = await ctx.db.contract.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+        select: { teamId: true },
+      })
+      if (!existing) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
+      }
+
+      // team_manager for the contract's team
+      requireRole(ctx, "team_manager", existing.teamId)
+
       const updateData: Record<string, unknown> = { updatedAt: new Date() }
       if (data.position !== undefined) updateData.position = data.position
       if (data.jerseyNumber !== undefined) updateData.jerseyNumber = data.jerseyNumber
 
-      const [updated] = await ctx.db
-        .update(schema.contracts)
-        .set(updateData)
-        .where(eq(schema.contracts.id, id))
-        .returning()
+      const updated = await ctx.db.contract.update({
+        where: { id },
+        data: updateData,
+      })
 
       return updated
     }),
