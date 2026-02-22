@@ -193,25 +193,30 @@ function OrganizationsPage() {
                 </p>
               </div>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
+                className="text-xs h-8 px-2 md:px-3"
                 onClick={() => setActiveMutation.mutate({ organizationId: org.id })}
                 disabled={setActiveMutation.isPending}
+                title="Login to league"
+                aria-label="Login to league"
               >
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                Manage
+                <ExternalLink className="h-3.5 w-3.5 md:mr-1.5" />
+                <span className="hidden md:inline">Login to league</span>
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-destructive hover:border-destructive/50"
+                className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
                 onClick={() => {
                   setDeletingOrg({ id: org.id, name: org.name })
                   setDeleteDialogOpen(true)
                 }}
+                title="Delete league"
+                aria-label="Delete league"
               >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                Delete
+                <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
+                <span className="hidden md:inline">Delete</span>
               </Button>
             </div>
           ))}

@@ -36,14 +36,39 @@ function ProfilePage() {
   return (
     <div>
       <PageHeader title={t("profile.title")} description={t("profile.description")} />
-      <div className="space-y-6 mt-6" style={{ maxWidth: 640 }}>
-        {session && <PersonalInfoSection session={session} />}
-        <ChangePasswordCard onSubmit={handleChangePassword} />
-        <LanguageSection />
-        <TwoFactorSection />
-        <PasskeySection />
+      <div className="mt-6 grid gap-6 xl:grid-cols-2 items-start">
+        <ProfileSection title={`${t("profile.personalInfo")} & ${t("profile.languagePreference")}`} description={t("profile.description")}>
+          {session && <PersonalInfoSection session={session} />}
+          <LanguageSection />
+        </ProfileSection>
+
+        <ProfileSection title="Security" description="Password, two-factor, and passkeys">
+          <ChangePasswordCard onSubmit={handleChangePassword} />
+          <TwoFactorSection />
+          <PasskeySection />
+        </ProfileSection>
       </div>
     </div>
+  )
+}
+
+function ProfileSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 md:p-5">
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
   )
 }
 

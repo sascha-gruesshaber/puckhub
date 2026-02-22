@@ -247,7 +247,7 @@ function UsersPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                className="shrink-0 text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
                 onClick={() =>
                   setDeleteDialog({
                     open: true,
@@ -255,8 +255,10 @@ function UsersPage() {
                   })
                 }
                 title="Delete user"
+                aria-label="Delete user"
               >
-                <Trash2 size={14} />
+                <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
+                <span className="hidden md:inline">Delete</span>
               </Button>
             </div>
           ))}

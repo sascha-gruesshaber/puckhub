@@ -42,51 +42,77 @@ function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6" style={{ maxWidth: 760 }}>
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage your personal account settings</p>
       </div>
 
-      <div className="rounded-xl border bg-card" style={{ borderColor: "hsl(var(--border))" }}>
-        <div style={{ padding: "20px 24px 0" }}>
-          <h2 style={{ fontSize: 16, fontWeight: 600 }}>Personal Information</h2>
-          <p style={{ fontSize: 13, color: "hsl(var(--muted-foreground))", marginTop: 2 }}>
-            Update your account details.
-          </p>
-        </div>
-        <form onSubmit={handleSaveProfile} style={{ padding: "16px 24px 20px" }}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="platform-profile-name" style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}>
-                Name
-              </label>
-              <Input
-                id="platform-profile-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-              />
+      <div className="grid gap-6 xl:grid-cols-2 items-start">
+        <ProfileSection title="Account" description="Name and email settings">
+          <div className="rounded-xl border bg-card" style={{ borderColor: "hsl(var(--border))" }}>
+            <div style={{ padding: "20px 24px 0" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 600 }}>Personal Information</h2>
+              <p style={{ fontSize: 13, color: "hsl(var(--muted-foreground))", marginTop: 2 }}>
+                Update your account details.
+              </p>
             </div>
+            <form onSubmit={handleSaveProfile} style={{ padding: "16px 24px 20px" }}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="platform-profile-name" style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}>
+                    Name
+                  </label>
+                  <Input
+                    id="platform-profile-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
 
-            <div>
-              <label htmlFor="platform-profile-email" style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}>
-                Email
-              </label>
-              <Input id="platform-profile-email" type="email" value={session?.user.email ?? ""} readOnly className="bg-muted" />
-            </div>
-          </div>
+                <div>
+                  <label htmlFor="platform-profile-email" style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}>
+                    Email
+                  </label>
+                  <Input id="platform-profile-email" type="email" value={session?.user.email ?? ""} readOnly className="bg-muted" />
+                </div>
+              </div>
 
-          <div style={{ marginTop: 16 }}>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save"}
-            </Button>
+              <div style={{ marginTop: 16 }}>
+                <Button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
+        </ProfileSection>
+
+        <ProfileSection title="Security" description="Password and sign-in protection">
+          <ChangePasswordCard onSubmit={handleChangePassword} successMessage="Password updated successfully." />
+        </ProfileSection>
       </div>
-
-      <ChangePasswordCard onSubmit={handleChangePassword} successMessage="Password updated successfully." />
     </div>
+  )
+}
+
+function ProfileSection({
+  title,
+  description,
+  children,
+}: {
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-border/60 bg-muted/20 p-4 md:p-5">
+      <div className="mb-4">
+        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
   )
 }
