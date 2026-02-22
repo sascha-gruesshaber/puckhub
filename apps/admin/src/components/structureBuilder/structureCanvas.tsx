@@ -16,6 +16,7 @@ import "./structureFlow.css"
 
 import { toast } from "@puckhub/ui"
 import { trpc } from "@/trpc"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import { DivisionNode } from "./nodes/divisionNode"
 import { RoundNode } from "./nodes/roundNode"
@@ -40,6 +41,7 @@ interface StructureCanvasProps {
 
 export function StructureCanvas({ seasonId }: StructureCanvasProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([])
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([])
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -57,7 +59,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       invalidate()
       toast.success(t("seasonStructure.toast.teamAssigned"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const createDivisionMutation = trpc.division.create.useMutation({
@@ -65,7 +67,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       invalidate()
       toast.success(t("seasonStructure.toast.divisionCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const createRoundMutation = trpc.round.create.useMutation({
@@ -73,7 +75,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       invalidate()
       toast.success(t("seasonStructure.toast.roundCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function invalidate() {

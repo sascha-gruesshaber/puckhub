@@ -45,34 +45,5 @@ export async function ensureDefaultUser(): Promise<void> {
     },
   })
 
-  // Create a default organization
-  const orgId = crypto.randomUUID()
-  await db.organization.create({
-    data: {
-      id: orgId,
-      name: "Default",
-      slug: "default",
-    },
-  })
-
-  // Add admin as org owner
-  await db.member.create({
-    data: {
-      id: crypto.randomUUID(),
-      userId,
-      organizationId: orgId,
-      role: "owner",
-    },
-  })
-
-  // Create default system settings
-  await db.systemSettings.create({
-    data: {
-      organizationId: orgId,
-      leagueName: "Default",
-      leagueShortName: "DEF",
-    },
-  })
-
   console.log("Default admin user created successfully.")
 }

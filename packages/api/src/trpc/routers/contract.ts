@@ -1,6 +1,7 @@
-import { TRPCError } from '@trpc/server'
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgProcedure, requireRole, router } from "../init"
 
 export const contractRouter = router({
   /**
@@ -23,7 +24,7 @@ export const contractRouter = router({
         },
       })
       if (!targetSeason) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Saison nicht gefunden' })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
       }
 
       // Fetch contracts with their start season, end season, and player included
@@ -103,7 +104,7 @@ export const contractRouter = router({
         startSeason: true,
         endSeason: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     })
   }),
 
@@ -111,17 +112,20 @@ export const contractRouter = router({
    * Sign a player to a team for a given season.
    * Creates a new contract with startSeasonId = the given season.
    */
-  signPlayer: orgAdminProcedure
+  signPlayer: orgProcedure
     .input(
       z.object({
         playerId: z.string().uuid(),
         teamId: z.string().uuid(),
         seasonId: z.string().uuid(),
-        position: z.enum(['forward', 'defense', 'goalie']),
+        position: z.enum(["forward", "defense", "goalie"]),
         jerseyNumber: z.number().int().positive().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // team_manager can sign players to their team
+      requireRole(ctx, "team_manager", input.teamId)
+
       const targetSeason = await ctx.db.season.findFirst({
         where: {
           id: input.seasonId,
@@ -129,7 +133,7 @@ export const contractRouter = router({
         },
       })
       if (!targetSeason) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Saison nicht gefunden' })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
       }
 
       // Check if player already has an active contract with ANY team for this season
@@ -153,10 +157,7 @@ export const contractRouter = router({
       })
 
       if (existingContracts.length > 0) {
-        throw new TRPCError({
-          code: 'CONFLICT',
-          message: 'Spieler hat bereits einen aktiven Vertrag in dieser Saison',
-        })
+        throw createAppError("CONFLICT", APP_ERROR_CODES.CONTRACT_ALREADY_ACTIVE)
       }
 
       const contract = await ctx.db.contract.create({
@@ -177,17 +178,20 @@ export const contractRouter = router({
    * Transfer a player from one team to another.
    * Closes the old contract and creates a new one in a transaction.
    */
-  transferPlayer: orgAdminProcedure
+  transferPlayer: orgProcedure
     .input(
       z.object({
         contractId: z.string().uuid(),
         newTeamId: z.string().uuid(),
         seasonId: z.string().uuid(),
-        position: z.enum(['forward', 'defense', 'goalie']).optional(),
+        position: z.enum(["forward", "defense", "goalie"]).optional(),
         jerseyNumber: z.number().int().positive().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // team_manager for the new team
+      requireRole(ctx, "team_manager", input.newTeamId)
+
       return ctx.db.$transaction(async (tx: any) => {
         const existing = await tx.contract.findFirst({
           where: {
@@ -196,7 +200,7 @@ export const contractRouter = router({
           },
         })
         if (!existing) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Vertrag nicht gefunden' })
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
         }
 
         const transferSeason = await tx.season.findFirst({
@@ -206,7 +210,7 @@ export const contractRouter = router({
           },
         })
         if (!transferSeason) {
-          throw new TRPCError({ code: 'NOT_FOUND', message: 'Saison nicht gefunden' })
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
         }
 
         // Find the season before this one for closing the old contract
@@ -215,7 +219,7 @@ export const contractRouter = router({
             organizationId: ctx.organizationId,
             seasonEnd: { lt: transferSeason.seasonStart },
           },
-          orderBy: { seasonEnd: 'desc' },
+          orderBy: { seasonEnd: "desc" },
         })
 
         // Close old contract
@@ -246,7 +250,7 @@ export const contractRouter = router({
   /**
    * Release a player by closing their contract.
    */
-  releasePlayer: orgAdminProcedure
+  releasePlayer: orgProcedure
     .input(
       z.object({
         contractId: z.string().uuid(),
@@ -261,13 +265,14 @@ export const contractRouter = router({
         },
       })
       if (!existing) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Vertrag nicht gefunden' })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
       }
+
+      // team_manager for the contract's team
+      requireRole(ctx, "team_manager", existing.teamId)
+
       if (existing.endSeasonId) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'Vertrag ist bereits beendet',
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_ALREADY_ENDED)
       }
 
       const updated = await ctx.db.contract.update({
@@ -281,16 +286,28 @@ export const contractRouter = router({
   /**
    * Update contract details (position, jersey number).
    */
-  updateContract: orgAdminProcedure
+  updateContract: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
-        position: z.enum(['forward', 'defense', 'goalie']).optional(),
+        position: z.enum(["forward", "defense", "goalie"]).optional(),
         jerseyNumber: z.number().int().positive().nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+
+      const existing = await ctx.db.contract.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+        select: { teamId: true },
+      })
+      if (!existing) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
+      }
+
+      // team_manager for the contract's team
+      requireRole(ctx, "team_manager", existing.teamId)
+
       const updateData: Record<string, unknown> = { updatedAt: new Date() }
       if (data.position !== undefined) updateData.position = data.position
       if (data.jerseyNumber !== undefined) updateData.jerseyNumber = data.jerseyNumber

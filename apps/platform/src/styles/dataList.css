@@ -1,0 +1,25 @@
+/* ── Staggered row fade-in ── */
+@keyframes data-row-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-6px) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+.data-row {
+  opacity: 0;
+  animation: data-row-enter 250ms ease-out forwards;
+  animation-delay: calc(min(var(--row-index, 0), 15) * 30ms);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .data-row {
+    opacity: 1;
+    animation: none;
+  }
+}

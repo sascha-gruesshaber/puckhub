@@ -29,7 +29,7 @@
       "news": "News",
       "pages": "Pages",
       "sponsors": "Sponsors",
-      "users": "Members",
+      "users": "Users",
       "settings": "Settings",
       "security": "Security",
       "dashboard": "Dashboard"
@@ -836,11 +836,14 @@
     }
   },
   "org": {
-    "select": "Select organization",
-    "pickerTitle": "Select organization",
-    "pickerDescription": "Choose the organization you want to work with.",
-    "noOrgs": "No organizations",
-    "noOrgsDescription": "You are not assigned to any organization. Contact an administrator.",
+    "select": "Select league",
+    "pickerTitle": "Select league",
+    "pickerDescription": "Choose the league you want to work with.",
+    "noOrgs": "No leagues",
+    "noOrgsDescription": "You are not assigned to any league. Contact an administrator.",
+    "noOrgsPlatformAdmin": "No leagues exist yet. Create one in the platform admin.",
+    "platformAdminNote": "You have access to all leagues",
+    "switchLeague": "Switch league",
     "roles": {
       "owner": "Owner",
       "admin": "Administrator",
@@ -848,28 +851,29 @@
     }
   },
   "usersPage": {
-    "title": "Members",
-    "description": "Manage members and access rights",
-    "searchPlaceholder": "Search members...",
+    "title": "Users",
+    "description": "Manage users and access rights",
+    "searchPlaceholder": "Search users...",
     "count": {
-      "members": "Members"
+      "members": "Users"
     },
     "filters": {
       "all": "All",
       "fallback": "Filter"
     },
     "actions": {
-      "newMember": "New member",
+      "newMember": "New user",
       "edit": "Edit",
       "remove": "Remove",
       "changeRole": "Change role",
+      "manageRoles": "Manage roles",
       "resetPassword": "Reset password",
       "setPassword": "Set password"
     },
     "empty": {
-      "title": "No members yet",
-      "description": "Add the first member to build your team.",
-      "action": "Add first member"
+      "title": "No users yet",
+      "description": "Add the first user.",
+      "action": "Add first user"
     },
     "fields": {
       "name": "Name",
@@ -882,28 +886,49 @@
       "role": "Role"
     },
     "dialogs": {
-      "newMemberTitle": "Add new member",
+      "newMemberTitle": "Add new user",
       "editUserTitle": "Edit user",
-      "newMemberDescription": "Add a new member with email and password.",
+      "newMemberDescription": "Add a new user with email and password.",
       "editUserDescription": "Change the user's basic data.",
       "changeRoleTitle": "Change role: {{name}}",
-      "changeRoleDescription": "Choose the new role for this member.",
+      "changeRoleDescription": "Choose the new role for this user.",
+      "manageRolesTitle": "Manage roles: {{name}}",
+      "manageRolesDescription": "Add or remove roles. Team-scoped roles can be limited to specific teams.",
       "resetPasswordTitle": "Reset password",
       "resetPasswordDescription": "Set a new password for {{name}}."
     },
     "orgRoles": {
       "owner": {
         "label": "Owner",
-        "description": "Full access including organization management"
+        "description": "Full access to all areas including organization deletion."
       },
       "admin": {
         "label": "Administrator",
-        "description": "Can manage all data but not the organization"
+        "description": "Full access to all areas except organization deletion."
       },
-      "member": {
-        "label": "Member",
-        "description": "Standard access to the organization"
+      "game_manager": {
+        "label": "Game Manager",
+        "description": "Create, edit, and manage games."
+      },
+      "game_reporter": {
+        "label": "Game Reporter",
+        "description": "Manage game reports, lineups, and events."
+      },
+      "team_manager": {
+        "label": "Team Manager",
+        "description": "Manage team details, rosters, and contracts."
+      },
+      "editor": {
+        "label": "Editor",
+        "description": "Create and edit news articles and pages."
       }
+    },
+    "roles": {
+      "currentRoles": "Current roles",
+      "noRoles": "No roles",
+      "addRole": "Add role",
+      "teamScope": "Team assignment (optional)",
+      "allTeams": "All teams (league-wide)"
     },
     "validation": {
       "nameRequired": "Name is required",
@@ -913,19 +938,21 @@
       "passwordMin": "At least 6 characters"
     },
     "deleteDialog": {
-      "title": "Remove member",
-      "description": "Are you sure you want to remove {{name}} from the organization? The user will lose access to this organization."
+      "title": "Remove user",
+      "description": "Are you sure you want to remove {{name}} from the league? The user will lose access to this league."
     },
     "toast": {
-      "created": "Member added",
+      "created": "User added",
       "updated": "User updated",
-      "deleted": "Member removed",
+      "deleted": "User removed",
       "roleUpdated": "Role updated",
+      "roleAdded": "Role added",
+      "roleRemoved": "Role removed",
       "passwordReset": "Password reset",
       "error": "Error",
-      "createError": "Could not add member",
+      "createError": "Could not add user",
       "saveError": "Could not save user",
-      "deleteError": "Could not remove member"
+      "deleteError": "Could not remove user"
     }
   },
   "sponsorsPage": {
@@ -1545,6 +1572,29 @@
       "saveError": "Could not save season",
       "deleteError": "Could not delete season"
     }
+  },
+  "profile": {
+    "title": "Profile",
+    "description": "Manage your personal settings and security",
+    "personalInfo": "Personal Information",
+    "personalInfoDescription": "Your name and email address",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "emailReadOnly": "Email address cannot be changed",
+    "saved": "Profile saved",
+    "languagePreference": "Language Preference",
+    "languagePreferenceDescription": "Choose your preferred language for the user interface",
+    "language": "Language",
+    "languageOptions": {
+      "de-DE": "Deutsch",
+      "en-US": "English"
+    }
+  },
+  "topBar": {
+    "profile": "Profile",
+    "switchLeague": "Switch league",
+    "logout": "Sign out"
   },
   "gameReport": {
     "home": "Home",

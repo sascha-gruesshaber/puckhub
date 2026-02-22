@@ -29,7 +29,7 @@
       "news": "News",
       "pages": "Seiten",
       "sponsors": "Sponsoren",
-      "users": "Mitglieder",
+      "users": "Benutzer",
       "settings": "Einstellungen",
       "security": "Sicherheit",
       "dashboard": "Dashboard"
@@ -836,11 +836,14 @@
     }
   },
   "org": {
-    "select": "Organisation wählen",
-    "pickerTitle": "Organisation auswählen",
-    "pickerDescription": "Wähle die Organisation, mit der du arbeiten möchtest.",
-    "noOrgs": "Keine Organisationen",
-    "noOrgsDescription": "Du bist keiner Organisation zugeordnet. Kontaktiere einen Administrator.",
+    "select": "Liga wählen",
+    "pickerTitle": "Liga auswählen",
+    "pickerDescription": "Wähle die Liga, mit der du arbeiten möchtest.",
+    "noOrgs": "Keine Ligen",
+    "noOrgsDescription": "Du bist keiner Liga zugeordnet. Kontaktiere einen Administrator.",
+    "noOrgsPlatformAdmin": "Es existieren noch keine Ligen. Erstelle eine in der Plattform-Verwaltung.",
+    "platformAdminNote": "Du hast Zugriff auf alle Ligen",
+    "switchLeague": "Liga wechseln",
     "roles": {
       "owner": "Eigentümer",
       "admin": "Administrator",
@@ -848,28 +851,29 @@
     }
   },
   "usersPage": {
-    "title": "Mitglieder",
-    "description": "Mitglieder und Zugriffsrechte verwalten",
-    "searchPlaceholder": "Mitglieder durchsuchen...",
+    "title": "Benutzer",
+    "description": "Benutzer und Zugriffsrechte verwalten",
+    "searchPlaceholder": "Benutzer durchsuchen...",
     "count": {
-      "members": "Mitglieder"
+      "members": "Benutzer"
     },
     "filters": {
       "all": "Alle",
       "fallback": "Filter"
     },
     "actions": {
-      "newMember": "Neues Mitglied",
+      "newMember": "Neuer Benutzer",
       "edit": "Bearbeiten",
       "remove": "Entfernen",
       "changeRole": "Rolle ändern",
+      "manageRoles": "Rollen verwalten",
       "resetPassword": "Passwort zurücksetzen",
       "setPassword": "Passwort setzen"
     },
     "empty": {
-      "title": "Noch keine Mitglieder",
-      "description": "Füge das erste Mitglied hinzu, um das Team aufzubauen.",
-      "action": "Erstes Mitglied hinzufügen"
+      "title": "Noch keine Benutzer",
+      "description": "Füge den ersten Benutzer hinzu.",
+      "action": "Ersten Benutzer hinzufügen"
     },
     "fields": {
       "name": "Name",
@@ -882,28 +886,49 @@
       "role": "Rolle"
     },
     "dialogs": {
-      "newMemberTitle": "Neues Mitglied hinzufügen",
+      "newMemberTitle": "Neuen Benutzer hinzufügen",
       "editUserTitle": "Benutzer bearbeiten",
-      "newMemberDescription": "Füge ein neues Mitglied mit E-Mail und Passwort hinzu.",
+      "newMemberDescription": "Füge einen neuen Benutzer mit E-Mail und Passwort hinzu.",
       "editUserDescription": "Ändere die Grunddaten des Benutzers.",
       "changeRoleTitle": "Rolle ändern: {{name}}",
-      "changeRoleDescription": "Wähle die neue Rolle für dieses Mitglied.",
+      "changeRoleDescription": "Wähle die neue Rolle für diesen Benutzer.",
+      "manageRolesTitle": "Rollen verwalten: {{name}}",
+      "manageRolesDescription": "Rollen hinzufügen oder entfernen. Teamspezifische Rollen können auf bestimmte Teams beschränkt werden.",
       "resetPasswordTitle": "Passwort zurücksetzen",
       "resetPasswordDescription": "Neues Passwort für {{name}} festlegen."
     },
     "orgRoles": {
       "owner": {
         "label": "Eigentümer",
-        "description": "Vollzugriff inkl. Organisationsverwaltung"
+        "description": "Vollzugriff auf alle Bereiche inkl. Löschung der Organisation."
       },
       "admin": {
         "label": "Administrator",
-        "description": "Kann alle Daten verwalten, aber nicht die Organisation"
+        "description": "Vollzugriff auf alle Bereiche außer Organisationslöschung."
       },
-      "member": {
-        "label": "Mitglied",
-        "description": "Standardzugriff auf die Organisation"
+      "game_manager": {
+        "label": "Spielleiter",
+        "description": "Spiele erstellen, bearbeiten und verwalten."
+      },
+      "game_reporter": {
+        "label": "Spielberichter",
+        "description": "Spielberichte, Aufstellungen und Ereignisse verwalten."
+      },
+      "team_manager": {
+        "label": "Teammanager",
+        "description": "Teamdetails, Kader und Verträge verwalten."
+      },
+      "editor": {
+        "label": "Redakteur",
+        "description": "News-Artikel und Seiten erstellen und bearbeiten."
       }
+    },
+    "roles": {
+      "currentRoles": "Aktuelle Rollen",
+      "noRoles": "Keine Rollen",
+      "addRole": "Rolle hinzufügen",
+      "teamScope": "Team-Zuordnung (optional)",
+      "allTeams": "Alle Teams (ligaweit)"
     },
     "validation": {
       "nameRequired": "Name ist erforderlich",
@@ -913,19 +938,21 @@
       "passwordMin": "Mindestens 6 Zeichen"
     },
     "deleteDialog": {
-      "title": "Mitglied entfernen",
-      "description": "Bist du sicher, dass du {{name}} aus der Organisation entfernen möchtest? Der Benutzer verliert den Zugriff auf diese Organisation."
+      "title": "Benutzer entfernen",
+      "description": "Bist du sicher, dass du {{name}} aus der Liga entfernen möchtest? Der Benutzer verliert den Zugriff auf diese Liga."
     },
     "toast": {
-      "created": "Mitglied hinzugefügt",
+      "created": "Benutzer hinzugefügt",
       "updated": "Benutzer aktualisiert",
-      "deleted": "Mitglied entfernt",
+      "deleted": "Benutzer entfernt",
       "roleUpdated": "Rolle aktualisiert",
+      "roleAdded": "Rolle hinzugefügt",
+      "roleRemoved": "Rolle entfernt",
       "passwordReset": "Passwort zurückgesetzt",
       "error": "Fehler",
       "createError": "Fehler beim Hinzufügen",
       "saveError": "Fehler beim Speichern",
-      "deleteError": "Fehler beim Entfernen"
+      "deleteError": "Fehler beim Entfernen des Benutzers"
     }
   },
   "sponsorsPage": {
@@ -1545,6 +1572,29 @@
       "saveError": "Fehler beim Speichern",
       "deleteError": "Fehler beim Löschen"
     }
+  },
+  "profile": {
+    "title": "Profil",
+    "description": "Persönliche Einstellungen und Sicherheit verwalten",
+    "personalInfo": "Persönliche Informationen",
+    "personalInfoDescription": "Dein Name und deine E-Mail-Adresse",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "email": "E-Mail",
+    "emailReadOnly": "Die E-Mail-Adresse kann nicht geändert werden",
+    "saved": "Profil gespeichert",
+    "languagePreference": "Spracheinstellung",
+    "languagePreferenceDescription": "Wähle deine bevorzugte Sprache für die Benutzeroberfläche",
+    "language": "Sprache",
+    "languageOptions": {
+      "de-DE": "Deutsch",
+      "en-US": "English"
+    }
+  },
+  "topBar": {
+    "profile": "Profil",
+    "switchLeague": "Liga wechseln",
+    "logout": "Abmelden"
   },
   "gameReport": {
     "home": "Heim",

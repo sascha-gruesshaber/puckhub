@@ -60,8 +60,8 @@ describe("teamDivision router", () => {
 
       await admin.teamDivision.assign({ teamId: team.id, divisionId: division.id })
 
-      const caller = createTestCaller()
-      const result = await caller.teamDivision.listByDivision({ divisionId: division.id })
+      const reader = createTestCaller({ asAdmin: true })
+      const result = await reader.teamDivision.listByDivision({ divisionId: division.id })
 
       expect(result).toHaveLength(1)
       expect(result[0]?.team.name).toBe("Eagles")
@@ -81,8 +81,7 @@ describe("teamDivision router", () => {
 
       await admin.teamDivision.remove({ id: assignment?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.teamDivision.listByDivision({ divisionId: division.id })
+      const result = await admin.teamDivision.listByDivision({ divisionId: division.id })
       expect(result).toHaveLength(0)
     })
 

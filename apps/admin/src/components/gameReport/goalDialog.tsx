@@ -2,6 +2,7 @@ import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, In
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { PlayerCombobox } from "~/components/playerCombobox"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import type { TeamInfo } from "./gameTimeline"
 
@@ -62,6 +63,7 @@ function TeamToggleButton({ team, isSelected, onClick }: { team: TeamInfo; isSel
 
 function GoalDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, editingEvent }: GoalDialogProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
 
   const isEdit = !!editingEvent
@@ -95,7 +97,7 @@ function GoalDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, e
       utils.gameReport.getReport.invalidate({ gameId })
       onOpenChange(false)
     },
-    onError: () => toast.error(t("gameReport.toast.error")),
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateEvent = trpc.gameReport.updateEvent.useMutation({
@@ -104,7 +106,7 @@ function GoalDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, e
       utils.gameReport.getReport.invalidate({ gameId })
       onOpenChange(false)
     },
-    onError: () => toast.error(t("gameReport.toast.error")),
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const isPending = addEvent.isPending || updateEvent.isPending

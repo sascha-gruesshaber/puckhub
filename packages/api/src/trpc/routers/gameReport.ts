@@ -1,6 +1,7 @@
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { type OrgContext, orgProcedure, requireRole, router } from "../init"
 
 /** Verify the game is not completed or cancelled before allowing report modifications */
 async function assertGameEditable(db: any, gameId: string) {
@@ -9,13 +10,24 @@ async function assertGameEditable(db: any, gameId: string) {
     select: { status: true },
   })
   if (!game) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+    throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
   }
   if (game.status === "completed" || game.status === "cancelled") {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Abgeschlossene oder abgesagte Spiele können nicht bearbeitet werden.",
-    })
+    throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_NOT_EDITABLE)
+  }
+}
+
+/** Check game_reporter role for a game (either team). */
+async function assertGameReporter(ctx: OrgContext & { db: any }, gameId: string) {
+  const game = await ctx.db.game.findUnique({
+    where: { id: gameId },
+    select: { homeTeamId: true, awayTeamId: true },
+  })
+  if (!game) {
+    throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
+  }
+  if (!ctx.hasRole("game_reporter", game.homeTeamId) && !ctx.hasRole("game_reporter", game.awayTeamId)) {
+    requireRole(ctx, "game_reporter")
   }
 }
 
@@ -86,7 +98,7 @@ export const gameReportRouter = router({
     })
 
     if (!game) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
     }
 
     // Active suspensions for both teams (from OTHER games, same season only)
@@ -220,7 +232,7 @@ export const gameReportRouter = router({
       const seasonEnd = season.seasonEnd.toISOString()
       const seasonStart = season.seasonStart.toISOString()
 
-      const allContracts = await ctx.db.$queryRaw`
+      const allContracts = (await ctx.db.$queryRaw`
         SELECT c.*, row_to_json(p) as player
         FROM contracts c
         JOIN players p ON p.id = c.player_id
@@ -232,12 +244,12 @@ export const gameReportRouter = router({
           AND (c.end_season_id IS NULL OR c.end_season_id IN (
             SELECT id FROM seasons WHERE season_end >= ${seasonStart}::timestamptz
           ))
-      ` as any[]
+      `) as any[]
 
       // Normalize the raw results - parse the player JSON
       const contracts = allContracts.map((c: any) => ({
         ...c,
-        player: typeof c.player === 'string' ? JSON.parse(c.player) : c.player,
+        player: typeof c.player === "string" ? JSON.parse(c.player) : c.player,
       }))
 
       const home = contracts.filter((c: any) => c.team_id === input.homeTeamId || c.teamId === input.homeTeamId)
@@ -246,7 +258,7 @@ export const gameReportRouter = router({
       return { home, away }
     }),
 
-  setLineup: orgAdminProcedure
+  setLineup: orgProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
@@ -262,6 +274,7 @@ export const gameReportRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertGameReporter(ctx, input.gameId)
       await assertGameEditable(ctx.db, input.gameId)
       await ctx.db.$transaction(async (tx: any) => {
         await tx.gameLineup.deleteMany({ where: { gameId: input.gameId } })
@@ -284,7 +297,7 @@ export const gameReportRouter = router({
       return { success: true }
     }),
 
-  addEvent: orgAdminProcedure
+  addEvent: orgProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
@@ -314,6 +327,7 @@ export const gameReportRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertGameReporter(ctx, input.gameId)
       await assertGameEditable(ctx.db, input.gameId)
       const { suspension, ...eventData } = input
 
@@ -361,7 +375,7 @@ export const gameReportRouter = router({
       return event
     }),
 
-  updateEvent: orgAdminProcedure
+  updateEvent: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -386,8 +400,9 @@ export const gameReportRouter = router({
         where: { id },
       })
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Ereignis nicht gefunden." })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_EVENT_NOT_FOUND)
       }
+      await assertGameReporter(ctx, existing.gameId)
       await assertGameEditable(ctx.db, existing.gameId)
 
       const updated = await ctx.db.gameEvent.update({
@@ -402,13 +417,14 @@ export const gameReportRouter = router({
       return updated
     }),
 
-  deleteEvent: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  deleteEvent: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const existing = await ctx.db.gameEvent.findUnique({
       where: { id: input.id },
     })
     if (!existing) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Ereignis nicht gefunden." })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_EVENT_NOT_FOUND)
     }
+    await assertGameReporter(ctx, existing.gameId)
     await assertGameEditable(ctx.db, existing.gameId)
 
     // Cascade: delete linked suspension first
@@ -423,7 +439,7 @@ export const gameReportRouter = router({
     return { success: true }
   }),
 
-  addSuspension: orgAdminProcedure
+  addSuspension: orgProcedure
     .input(
       z.object({
         gameId: z.string().uuid(),
@@ -435,6 +451,7 @@ export const gameReportRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertGameReporter(ctx, input.gameId)
       await assertGameEditable(ctx.db, input.gameId)
       const suspension = await ctx.db.gameSuspension.create({
         data: {
@@ -451,7 +468,7 @@ export const gameReportRouter = router({
       return suspension
     }),
 
-  updateSuspension: orgAdminProcedure
+  updateSuspension: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -468,8 +485,9 @@ export const gameReportRouter = router({
         select: { gameId: true },
       })
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Sperre nicht gefunden." })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_SUSPENSION_NOT_FOUND)
       }
+      await assertGameReporter(ctx, existing.gameId)
       await assertGameEditable(ctx.db, existing.gameId)
 
       const updated = await ctx.db.gameSuspension.update({
@@ -480,12 +498,13 @@ export const gameReportRouter = router({
       return updated
     }),
 
-  deleteSuspension: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  deleteSuspension: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const existing = await ctx.db.gameSuspension.findUnique({
       where: { id: input.id },
       select: { gameId: true },
     })
     if (existing) {
+      await assertGameReporter(ctx, existing.gameId)
       await assertGameEditable(ctx.db, existing.gameId)
     }
 

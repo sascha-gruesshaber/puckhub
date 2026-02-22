@@ -93,8 +93,8 @@ describe("bonusPoints router", () => {
         reason: "Reason A",
       })
 
-      const caller = createTestCaller()
-      const list = await caller.bonusPoints.listByRound({ roundId: round.id })
+      const reader = createTestCaller({ asAdmin: true })
+      const list = await reader.bonusPoints.listByRound({ roundId: round.id })
       expect(list).toHaveLength(1)
       expect(list[0]!.team).toBeDefined()
       expect(list[0]!.team.name).toBe("Eagles")
@@ -130,8 +130,8 @@ describe("bonusPoints router", () => {
 
       await admin.bonusPoints.delete({ id: bp.id })
 
-      const caller = createTestCaller()
-      const list = await caller.bonusPoints.listByRound({ roundId: round.id })
+      const reader = createTestCaller({ asAdmin: true })
+      const list = await reader.bonusPoints.listByRound({ roundId: round.id })
       expect(list).toHaveLength(0)
     })
   })
@@ -144,13 +144,12 @@ describe("bonusPoints router", () => {
       await expect(user.bonusPoints.create({ teamId: teamA.id, roundId: round.id, points: 1 })).rejects.toThrow()
     })
 
-    it("allows public read", async () => {
+    it("rejects unauthenticated read", async () => {
       const { admin, round, teamA } = await setupRound()
       await admin.bonusPoints.create({ teamId: teamA.id, roundId: round.id, points: 1 })
 
       const publicCaller = createTestCaller()
-      const list = await publicCaller.bonusPoints.listByRound({ roundId: round.id })
-      expect(list).toHaveLength(1)
+      await expect(publicCaller.bonusPoints.listByRound({ roundId: round.id })).rejects.toThrow("Not authenticated")
     })
   })
 })

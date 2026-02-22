@@ -35,6 +35,7 @@
     --sidebar-active-bg: rgba(244, 211, 94, 0.08);
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --content-bg: #f5f6fa;
+    --brand-logo-size: 34px;
   }
 }
 
@@ -137,6 +138,177 @@
 .season-selector:hover {
   background: rgba(244, 211, 94, 0.1);
   border-color: rgba(244, 211, 94, 0.18);
+}
+
+/* Top Bar */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 24px;
+  background: #ffffff;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.topbar-season-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--brand-logo-size);
+  padding: 0 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.topbar-season-trigger:hover {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.topbar-user-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--brand-logo-size);
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.topbar-user-trigger:hover,
+.topbar-user-trigger[data-open="true"] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.topbar-season-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 280px;
+  background: white;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  box-shadow:
+    0 12px 28px rgba(12, 25, 41, 0.12),
+    0 2px 8px rgba(12, 25, 41, 0.06);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.topbar-season-dropdown-header {
+  padding: 11px 14px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground));
+  background: linear-gradient(180deg, hsl(var(--accent) / 0.12) 0%, transparent 100%);
+}
+
+.topbar-season-list {
+  padding: 6px;
+}
+
+.topbar-season-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: 8px 10px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.topbar-season-item:hover {
+  background: hsl(var(--muted) / 0.55);
+  border-color: hsl(var(--border));
+  transform: translateX(1px);
+}
+
+.topbar-season-item[data-selected="true"] {
+  background: linear-gradient(135deg, hsl(var(--accent) / 0.18) 0%, hsl(var(--accent) / 0.08) 100%);
+  border-color: hsl(var(--accent) / 0.35);
+}
+
+.topbar-season-item-badge {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.topbar-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 220px;
+  background: white;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.topbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.topbar-dropdown-item:hover {
+  background: hsl(var(--muted));
+}
+
+.topbar-dropdown-item[data-destructive] {
+  color: hsl(var(--destructive));
+}
+
+.topbar-dropdown-separator {
+  height: 1px;
+  background: hsl(var(--border));
+  margin: 4px 0;
 }
 
 /* Content enter animation */

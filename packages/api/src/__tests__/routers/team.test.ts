@@ -4,8 +4,8 @@ import { createTestCaller } from "../testUtils"
 describe("team router", () => {
   describe("list", () => {
     it("returns empty list when no teams exist", async () => {
-      const caller = createTestCaller()
-      const result = await caller.team.list()
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.team.list()
       expect(result).toEqual([])
     })
 
@@ -15,8 +15,7 @@ describe("team router", () => {
       await admin.team.create({ name: "Bears", shortName: "BEA" })
       await admin.team.create({ name: "Eagles", shortName: "EAG" })
 
-      const caller = createTestCaller()
-      const result = await caller.team.list()
+      const result = await admin.team.list()
       expect(result).toHaveLength(3)
       expect(result[0]?.name).toBe("Bears")
       expect(result[1]?.name).toBe("Eagles")
@@ -47,8 +46,7 @@ describe("team router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const created = await admin.team.create({ name: "Eagles", shortName: "EAG" })
 
-      const caller = createTestCaller()
-      const result = await caller.team.getById({ id: created?.id })
+      const result = await admin.team.getById({ id: created?.id })
       expect(result?.name).toBe("Eagles")
     })
   })
@@ -85,9 +83,8 @@ describe("team router", () => {
 
       await admin.team.delete({ id: team?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.team.getById({ id: team?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.team.getById({ id: team?.id })
+      expect(result).toBeNull()
     })
 
     it("rejects unauthenticated calls", async () => {

@@ -1,10 +1,10 @@
-import { z } from 'zod'
-import { publicProcedure, router } from '../init'
+import { z } from "zod"
+import { publicProcedure, router } from "../init"
 
 export const trikotTemplateRouter = router({
   list: publicProcedure.query(async ({ ctx }) => {
     return ctx.db.trikotTemplate.findMany({
-      orderBy: [{ colorCount: 'asc' }, { name: 'asc' }],
+      orderBy: [{ colorCount: "asc" }, { name: "asc" }],
     })
   }),
 

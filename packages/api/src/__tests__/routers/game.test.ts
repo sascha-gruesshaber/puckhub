@@ -55,15 +55,13 @@ describe("game router", () => {
 
   describe("listByRound", () => {
     it("returns empty list when no games exist", async () => {
-      const { round } = await createGameFixtures()
-      const caller = createTestCaller()
-      const result = await caller.game.listByRound({ roundId: round.id })
+      const { admin, round } = await createGameFixtures()
+      const result = await admin.game.listByRound({ roundId: round.id })
       expect(result).toEqual([])
     })
 
     it("returns games for a round", async () => {
-      const { round, homeTeam, awayTeam } = await createGameFixtures()
-      const admin = createTestCaller({ asAdmin: true })
+      const { admin, round, homeTeam, awayTeam } = await createGameFixtures()
 
       await admin.game.create({
         roundId: round.id,
@@ -78,8 +76,7 @@ describe("game router", () => {
         gameNumber: 2,
       })
 
-      const caller = createTestCaller()
-      const result = await caller.game.listByRound({ roundId: round.id })
+      const result = await admin.game.listByRound({ roundId: round.id })
       expect(result).toHaveLength(2)
     })
   })
@@ -122,8 +119,7 @@ describe("game router", () => {
     })
 
     it("filters by divisionId", async () => {
-      const { season, division, round, homeTeam, awayTeam } = await createGameFixtures()
-      const admin = createTestCaller({ asAdmin: true })
+      const { admin, season, division, round, homeTeam, awayTeam } = await createGameFixtures()
 
       await admin.game.create({
         roundId: round.id,
@@ -142,8 +138,7 @@ describe("game router", () => {
         awayTeamId: awayTeam.id,
       })
 
-      const caller = createTestCaller()
-      const filtered = await caller.game.listForSeason({
+      const filtered = await admin.game.listForSeason({
         seasonId: season.id,
         divisionId: division.id,
       })
@@ -152,8 +147,7 @@ describe("game router", () => {
     })
 
     it("filters by date range", async () => {
-      const { season, round, homeTeam, awayTeam } = await createGameFixtures()
-      const admin = createTestCaller({ asAdmin: true })
+      const { admin, season, round, homeTeam, awayTeam } = await createGameFixtures()
 
       await admin.game.create({
         roundId: round.id,
@@ -168,8 +162,7 @@ describe("game router", () => {
         scheduledAt: "2025-12-01T19:00:00.000Z",
       })
 
-      const caller = createTestCaller()
-      const filtered = await caller.game.listForSeason({
+      const filtered = await admin.game.listForSeason({
         seasonId: season.id,
         from: "2025-09-15T00:00:00.000Z",
         to: "2025-11-01T00:00:00.000Z",
@@ -178,8 +171,7 @@ describe("game router", () => {
     })
 
     it("filters by unscheduledOnly", async () => {
-      const { season, round, homeTeam, awayTeam } = await createGameFixtures()
-      const admin = createTestCaller({ asAdmin: true })
+      const { admin, season, round, homeTeam, awayTeam } = await createGameFixtures()
 
       await admin.game.create({
         roundId: round.id,
@@ -194,8 +186,7 @@ describe("game router", () => {
         // No scheduledAt — unscheduled
       })
 
-      const caller = createTestCaller()
-      const filtered = await caller.game.listForSeason({
+      const filtered = await admin.game.listForSeason({
         seasonId: season.id,
         unscheduledOnly: true,
       })
@@ -234,7 +225,7 @@ describe("game router", () => {
           homeTeamId: homeTeam.id,
           awayTeamId: homeTeam.id,
         }),
-      ).rejects.toThrow("different")
+      ).rejects.toThrow("GAME_TEAMS_IDENTICAL")
     })
 
     it("creates a game with scheduled date", async () => {
@@ -344,21 +335,21 @@ describe("game router", () => {
         awayTeamId: awayTeam.id,
       })
 
-      await expect(admin.game.complete({ id: game!.id })).rejects.toThrow("Aufstellung")
+      await expect(admin.game.complete({ id: game!.id })).rejects.toThrow("GAME_LINEUPS_MISSING")
     })
 
     it("rejects completing an already completed game", async () => {
       const { admin, game } = await createGameWithLineups()
 
       await admin.game.complete({ id: game.id })
-      await expect(admin.game.complete({ id: game.id })).rejects.toThrow("bereits")
+      await expect(admin.game.complete({ id: game.id })).rejects.toThrow("GAME_ALREADY_FINALIZED")
     })
 
     it("rejects completing a cancelled game", async () => {
       const { admin, game } = await createGameWithLineups()
 
       await admin.game.cancel({ id: game.id })
-      await expect(admin.game.complete({ id: game.id })).rejects.toThrow("bereits")
+      await expect(admin.game.complete({ id: game.id })).rejects.toThrow("GAME_ALREADY_FINALIZED")
     })
   })
 
@@ -381,7 +372,7 @@ describe("game router", () => {
       const { admin, game } = await createGameWithLineups()
 
       await admin.game.complete({ id: game.id })
-      await expect(admin.game.cancel({ id: game.id })).rejects.toThrow("geplante")
+      await expect(admin.game.cancel({ id: game.id })).rejects.toThrow("GAME_CANNOT_CANCEL")
     })
   })
 
@@ -422,7 +413,7 @@ describe("game router", () => {
         awayTeamId: awayTeam.id,
       })
 
-      await expect(admin.game.reopen({ id: game!.id })).rejects.toThrow("abgeschlossene")
+      await expect(admin.game.reopen({ id: game!.id })).rejects.toThrow("GAME_CANNOT_REOPEN")
     })
   })
 
@@ -479,9 +470,8 @@ describe("game router", () => {
 
       await admin.game.delete({ id: game?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.game.getById({ id: game?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.game.getById({ id: game?.id })
+      expect(result).toBeNull()
     })
 
     it("deletes multiple games", async () => {

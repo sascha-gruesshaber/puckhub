@@ -22,7 +22,9 @@ import { EmptyState } from "~/components/emptyState"
 import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/seasons/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; create?: boolean } => ({
@@ -70,7 +72,9 @@ function createEmptyForm(): SeasonForm {
 // Main page
 // ---------------------------------------------------------------------------
 function SeasonsPage() {
+  usePermissionGuard("seasonStructure")
   const { t, i18n } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { search: searchParam, create } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -107,7 +111,7 @@ function SeasonsPage() {
       toast.success(t("seasonsPage.toast.created"))
     },
     onError: (err) => {
-      toast.error(t("seasonsPage.toast.createError"), { description: err.message })
+      toast.error(t("seasonsPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -119,7 +123,7 @@ function SeasonsPage() {
       toast.success(t("seasonsPage.toast.updated"))
     },
     onError: (err) => {
-      toast.error(t("seasonsPage.toast.saveError"), { description: err.message })
+      toast.error(t("seasonsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -131,7 +135,7 @@ function SeasonsPage() {
       toast.success(t("seasonsPage.toast.deleted"))
     },
     onError: (err) => {
-      toast.error(t("seasonsPage.toast.deleteError"), { description: err.message })
+      toast.error(t("seasonsPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

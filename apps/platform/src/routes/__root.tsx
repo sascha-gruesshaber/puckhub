@@ -1,5 +1,6 @@
 import { Toaster } from "@puckhub/ui"
 import appCss from "@puckhub/ui/globals.css?url"
+import dataListCss from "../styles/dataList.css?url"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
@@ -19,6 +20,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: dataListCss },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap",

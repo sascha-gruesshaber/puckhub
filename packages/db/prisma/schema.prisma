@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ─── Enums ──────────────────────────────────────────────────────────────────
@@ -73,6 +73,17 @@ enum TrikotTemplateType {
   two_color
 
   @@map("trikot_template_type")
+}
+
+enum OrgRole {
+  owner
+  admin
+  game_manager
+  game_reporter
+  team_manager
+  editor
+
+  @@map("org_role")
 }
 
 // ─── Auth Models (Better Auth managed) ──────────────────────────────────────
@@ -186,7 +197,6 @@ model Passkey {
 model Organization {
   id        String   @id
   name      String
-  slug      String   @unique
   logo      String?
   metadata  String?
   createdAt DateTime @default(now())
@@ -231,8 +241,24 @@ model Member {
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberRoles  MemberRole[]
 
   @@map("member")
+}
+
+model MemberRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  memberId  String   @map("member_id")
+  role      OrgRole
+  teamId    String?  @map("team_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  team   Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, role, teamId])
+  @@index([memberId])
+  @@map("member_role")
 }
 
 model Invitation {
@@ -352,6 +378,7 @@ model Team {
   sponsors          Sponsor[]
   gameLineups       GameLineup[]
   gameSuspensions   GameSuspension[]
+  memberRoles       MemberRole[]
 
   @@index([organizationId], map: "teams_org_id_idx")
   @@map("teams")

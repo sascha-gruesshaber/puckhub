@@ -1,10 +1,18 @@
-import { Building2 } from "lucide-react"
+import { Building2, LogOut } from "lucide-react"
+import { useNavigate } from "@tanstack/react-router"
+import { signOut } from "@/auth-client"
 import { useOrganization } from "~/contexts/organizationContext"
 import { useTranslation } from "~/i18n/use-translation"
 
 export function OrgPickerPage() {
   const { t } = useTranslation("common")
-  const { organizations, switchOrganization, isLoading } = useOrganization()
+  const { organizations, switchOrganization, isLoading, isPlatformAdmin } = useOrganization()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await signOut()
+    navigate({ to: "/login" })
+  }
 
   if (isLoading) {
     return (
@@ -32,10 +40,7 @@ export function OrgPickerPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ background: "var(--content-bg)" }}
-    >
+    <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
       <div className="w-full max-w-md px-6">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -52,6 +57,7 @@ export function OrgPickerPage() {
           </div>
           <h1 className="text-xl font-bold text-foreground">{t("org.pickerTitle")}</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">{t("org.pickerDescription")}</p>
+          {isPlatformAdmin && <p className="mt-2 text-xs text-primary font-medium">{t("org.platformAdminNote")}</p>}
         </div>
 
         {/* Organization cards */}
@@ -65,11 +71,7 @@ export function OrgPickerPage() {
               style={{ cursor: "pointer" }}
             >
               {org.logo ? (
-                <img
-                  src={org.logo}
-                  alt=""
-                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                />
+                <img src={org.logo} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
               ) : (
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
@@ -85,7 +87,9 @@ export function OrgPickerPage() {
               )}
               <div className="min-w-0 flex-1">
                 <p className="font-semibold text-sm truncate">{org.name}</p>
-                <p className="text-xs text-muted-foreground">{t(`org.roles.${org.role}`)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isPlatformAdmin ? t("org.roles.owner") : t(`org.roles.${org.role}`)}
+                </p>
               </div>
               <Building2 size={18} className="shrink-0 text-muted-foreground" />
             </button>
@@ -96,9 +100,24 @@ export function OrgPickerPage() {
           <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
             <Building2 size={32} className="mx-auto mb-3 text-muted-foreground" />
             <p className="font-medium text-foreground">{t("org.noOrgs")}</p>
-            <p className="mt-1 text-sm text-muted-foreground">{t("org.noOrgsDescription")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isPlatformAdmin ? t("org.noOrgsPlatformAdmin") : t("org.noOrgsDescription")}
+            </p>
           </div>
         )}
+
+        {/* Logout */}
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            style={{ cursor: "pointer", background: "none", border: "none" }}
+          >
+            <LogOut size={13} />
+            {t("logout")}
+          </button>
+        </div>
       </div>
     </div>
   )

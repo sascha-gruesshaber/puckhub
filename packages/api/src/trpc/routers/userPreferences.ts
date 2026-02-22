@@ -1,9 +1,9 @@
-import { z } from 'zod'
-import { createAppError } from '../../errors/appError'
-import { APP_ERROR_CODES } from '../../errors/codes'
-import { protectedProcedure, router } from '../init'
+import { z } from "zod"
+import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { protectedProcedure, router } from "../init"
 
-const localeSchema = z.enum(['de-DE', 'en-US'])
+const localeSchema = z.enum(["de-DE", "en-US"])
 
 export const userPreferencesRouter = router({
   getMyLocale: protectedProcedure.query(async ({ ctx }) => {
@@ -13,7 +13,7 @@ export const userPreferencesRouter = router({
     })
 
     if (!row) {
-      throw createAppError('NOT_FOUND', APP_ERROR_CODES.USER_NOT_FOUND, 'Benutzer nicht gefunden')
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND, "Benutzer nicht gefunden")
     }
 
     return { locale: row.locale }
@@ -32,7 +32,7 @@ export const userPreferencesRouter = router({
           data: { locale: input.locale, updatedAt: new Date() },
         })
       } catch {
-        throw createAppError('NOT_FOUND', APP_ERROR_CODES.USER_NOT_FOUND, 'Benutzer nicht gefunden')
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND, "Benutzer nicht gefunden")
       }
 
       return { success: true }

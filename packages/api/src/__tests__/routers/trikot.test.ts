@@ -10,8 +10,8 @@ describe("trikot router", () => {
 
   describe("list", () => {
     it("returns empty list when no trikots exist", async () => {
-      const caller = createTestCaller()
-      const result = await caller.trikot.list()
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.trikot.list()
       expect(result).toEqual([])
     })
 
@@ -24,8 +24,8 @@ describe("trikot router", () => {
         await admin.trikot.create({ name: "Away Jersey", templateId, primaryColor: "#0000FF" })
         await admin.trikot.create({ name: "Third Jersey", templateId, primaryColor: "#00FF00" })
 
-        const caller = createTestCaller()
-        const result = await caller.trikot.list()
+        const reader = createTestCaller({ asAdmin: true })
+        const result = await reader.trikot.list()
         expect(result.length).toBeGreaterThanOrEqual(3)
         const sorted = [...result].sort((a, b) => a.name.localeCompare(b.name))
         expect(result.map((t) => t.name)).toEqual(sorted.map((t) => t.name))
@@ -41,14 +41,13 @@ describe("trikot router", () => {
       if (templateId) {
         const created = await admin.trikot.create({ name: "Home Jersey", templateId, primaryColor: "#FF0000" })
 
-        const caller = createTestCaller()
-        const result = await caller.trikot.getById({ id: created?.id })
+        const result = await admin.trikot.getById({ id: created?.id })
         expect(result?.name).toBe("Home Jersey")
         expect(result?.primaryColor).toBe("#FF0000")
       }
     })
 
-    it("is publicly accessible", async () => {
+    it("rejects unauthenticated access", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const { templateId } = await createTrikotFixtures()
 
@@ -56,9 +55,7 @@ describe("trikot router", () => {
         const created = await admin.trikot.create({ name: "Public Jersey", templateId, primaryColor: "#000000" })
 
         const publicCaller = createTestCaller()
-        const result = await publicCaller.trikot.getById({ id: created?.id })
-        expect(result).toBeDefined()
-        expect(result?.name).toBe("Public Jersey")
+        await expect(publicCaller.trikot.getById({ id: created?.id })).rejects.toThrow("Not authenticated")
       }
     })
   })
@@ -152,9 +149,8 @@ describe("trikot router", () => {
 
         await admin.trikot.delete({ id: trikot?.id })
 
-        const caller = createTestCaller()
-        const result = await caller.trikot.getById({ id: trikot?.id })
-        expect(result).toBeUndefined()
+        const result = await admin.trikot.getById({ id: trikot?.id })
+        expect(result).toBeNull()
       }
     })
 

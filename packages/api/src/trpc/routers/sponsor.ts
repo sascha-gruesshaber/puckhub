@@ -1,12 +1,12 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const sponsorRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.sponsor.findMany({
       where: { organizationId: ctx.organizationId },
       include: { team: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     })
   }),
 

@@ -3,14 +3,18 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { trpc } from "@/trpc"
 import { PageForm, type PageFormData } from "~/components/pageForm"
 import { PageHeader } from "~/components/pageHeader"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/pages/$pageId/edit")({
   component: EditPagePage,
 })
 
 function EditPagePage() {
+  usePermissionGuard("pages")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { pageId } = Route.useParams()
   const navigate = useNavigate()
   const utils = trpc.useUtils()
@@ -25,7 +29,7 @@ function EditPagePage() {
       navigate({ to: "/pages" })
     },
     onError: (err) => {
-      toast.error(t("pagesEdit.toast.saveError"), { description: err.message })
+      toast.error(t("pagesEdit.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

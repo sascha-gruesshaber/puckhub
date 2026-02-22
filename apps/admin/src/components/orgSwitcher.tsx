@@ -73,11 +73,7 @@ export function OrgSwitcher() {
                   }}
                 >
                   {org.logo ? (
-                    <img
-                      src={org.logo}
-                      alt=""
-                      className="h-5 w-5 shrink-0 rounded object-cover"
-                    />
+                    <img src={org.logo} alt="" className="h-5 w-5 shrink-0 rounded object-cover" />
                   ) : (
                     <div
                       className="flex h-5 w-5 shrink-0 items-center justify-center rounded"
@@ -92,9 +88,7 @@ export function OrgSwitcher() {
                     </div>
                   )}
                   <span className="flex-1 truncate">{org.name}</span>
-                  {org.id === organization?.id && (
-                    <Check size={14} className="shrink-0" style={{ color: "#F4D35E" }} />
-                  )}
+                  {org.id === organization?.id && <Check size={14} className="shrink-0" style={{ color: "#F4D35E" }} />}
                 </button>
               ))}
             </div>

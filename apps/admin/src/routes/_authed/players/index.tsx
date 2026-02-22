@@ -28,8 +28,10 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/players/")({
@@ -68,7 +70,9 @@ const FILTER_UNASSIGNED = "__unassigned__"
 // Main page
 // ---------------------------------------------------------------------------
 function PlayersPage() {
+  usePermissionGuard("players")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -120,7 +124,7 @@ function PlayersPage() {
       toast.success(t("playersPage.toast.created"))
     },
     onError: (err) => {
-      toast.error(t("playersPage.toast.createError"), { description: err.message })
+      toast.error(t("playersPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -131,7 +135,7 @@ function PlayersPage() {
       toast.success(t("playersPage.toast.updated"))
     },
     onError: (err) => {
-      toast.error(t("playersPage.toast.saveError"), { description: err.message })
+      toast.error(t("playersPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -143,7 +147,7 @@ function PlayersPage() {
       toast.success(t("playersPage.toast.deleted"))
     },
     onError: (err) => {
-      toast.error(t("playersPage.toast.deleteError"), { description: err.message })
+      toast.error(t("playersPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -230,7 +234,8 @@ function PlayersPage() {
     setForm({
       firstName: player.firstName,
       lastName: player.lastName,
-      dateOfBirth: player.dateOfBirth || "",
+      dateOfBirth:
+        player.dateOfBirth instanceof Date ? player.dateOfBirth.toISOString().slice(0, 10) : player.dateOfBirth || "",
       nationality: player.nationality || "",
       photoUrl: player.photoUrl || "",
     })
@@ -287,7 +292,7 @@ function PlayersPage() {
 
   const isSaving = createMutation.isPending || updateMutation.isPending
 
-  function calcAge(dateOfBirth: string | null) {
+  function calcAge(dateOfBirth: string | Date | null) {
     if (!dateOfBirth) return null
     const dob = new Date(dateOfBirth)
     const today = new Date()

@@ -4,7 +4,7 @@ import { createTestCaller } from "../testUtils"
 describe("player router", () => {
   describe("list", () => {
     it("returns empty list when no players exist", async () => {
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.player.list()
       expect(result).toEqual([])
     })
@@ -15,8 +15,7 @@ describe("player router", () => {
       await admin.player.create({ firstName: "Hans", lastName: "Bauer" })
       await admin.player.create({ firstName: "Anna", lastName: "Müller" })
 
-      const caller = createTestCaller()
-      const result = await caller.player.list()
+      const result = await admin.player.list()
       expect(result).toHaveLength(3)
       expect(result[0]?.lastName).toBe("Bauer")
       expect(result[1]?.firstName).toBe("Anna")
@@ -29,8 +28,7 @@ describe("player router", () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.player.create({ firstName: "Solo", lastName: "Player" })
 
-      const caller = createTestCaller()
-      const result = await caller.player.listWithCurrentTeam()
+      const result = await admin.player.listWithCurrentTeam()
       expect(result.currentSeason).toBeNull()
       expect(result.players).toHaveLength(1)
       expect(result.players[0]?.currentTeam).toBeNull()
@@ -53,8 +51,7 @@ describe("player router", () => {
         jerseyNumber: 99,
       })
 
-      const caller = createTestCaller()
-      const result = await caller.player.listWithCurrentTeam()
+      const result = await admin.player.listWithCurrentTeam()
       expect(result.currentSeason?.id).toBe(season.id)
       const found = result.players.find((p) => p.id === player.id)
       expect(found?.currentTeam).not.toBeNull()
@@ -75,7 +72,7 @@ describe("player router", () => {
 
       expect(player?.firstName).toBe("Wayne")
       expect(player?.lastName).toBe("Gretzky")
-      expect(player?.dateOfBirth).toBe("1961-01-26")
+      expect(new Date(player?.dateOfBirth).toISOString().slice(0, 10)).toBe("1961-01-26")
       expect(player?.nationality).toBe("CA")
     })
 
@@ -128,9 +125,8 @@ describe("player router", () => {
 
       await admin.player.delete({ id: player?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.player.getById({ id: player?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.player.getById({ id: player?.id })
+      expect(result).toBeNull()
     })
 
     it("rejects unauthenticated calls", async () => {

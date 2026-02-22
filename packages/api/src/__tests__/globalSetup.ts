@@ -57,15 +57,15 @@ export default async function globalSetup() {
 
     // Push schema to template DB using prisma db push
     const dbPkgDir = resolve(monorepoRoot, "packages/db")
-    execSync("npx prisma db push --skip-generate --accept-data-loss", {
+    execSync("npx prisma db push --accept-data-loss", {
       cwd: dbPkgDir,
       env: { ...process.env, DATABASE_URL: templateUrl },
       stdio: "pipe",
     })
 
     // Seed template with admin user + role using Prisma
-    const { PrismaClient } = await import("@prisma/client")
-    const db = new PrismaClient({ datasourceUrl: templateUrl })
+    const { createPrismaClientWithUrl } = await import("@puckhub/db")
+    const db = createPrismaClientWithUrl(templateUrl)
 
     await db.user.create({
       data: {
@@ -86,26 +86,54 @@ export default async function globalSetup() {
       },
     })
 
+    // Seed a platform admin user (user.role = "admin")
+    await db.user.create({
+      data: {
+        id: "test-platform-admin-id",
+        name: "Platform Admin",
+        email: "platform@test.local",
+        emailVerified: true,
+        role: "admin",
+      },
+    })
+
+    // Seed a second org owner user (for cross-org tests)
+    await db.user.create({
+      data: {
+        id: "other-admin-id",
+        name: "Other Admin",
+        email: "other-admin@test.local",
+        emailVerified: true,
+      },
+    })
+
     // Seed test organization + member records
     await db.organization.create({
       data: {
         id: "test-org-id",
         name: "Test League",
-        slug: "test-league",
       },
     })
 
-    // Admin user is org owner
+    // Admin user is org member (role field kept as "member" — ignored for auth)
     await db.member.create({
       data: {
         id: "test-admin-member-id",
         userId: "test-admin-id",
         organizationId: "test-org-id",
+        role: "member",
+      },
+    })
+
+    // Admin gets "owner" MemberRole
+    await db.memberRole.create({
+      data: {
+        memberId: "test-admin-member-id",
         role: "owner",
       },
     })
 
-    // Regular user is org member
+    // Regular user is org member (no MemberRole entries = no permissions)
     await db.member.create({
       data: {
         id: "test-user-member-id",

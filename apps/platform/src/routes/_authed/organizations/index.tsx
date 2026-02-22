@@ -12,7 +12,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Plus, Trash2 } from "lucide-react"
+import { Building2, Check, Copy, ExternalLink, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -22,13 +22,13 @@ export const Route = createFileRoute("/_authed/organizations/")({
 
 interface OrgForm {
   name: string
-  slug: string
   ownerEmail: string
+  ownerName: string
   leagueName: string
   leagueShortName: string
 }
 
-const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", leagueName: "", leagueShortName: "" }
+const emptyForm: OrgForm = { name: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "" }
 
 function OrganizationsPage() {
   const { data: orgs, isLoading } = trpc.organization.listAll.useQuery()
@@ -39,13 +39,29 @@ function OrganizationsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingOrg, setDeletingOrg] = useState<{ id: string; name: string } | null>(null)
 
+  // Credentials dialog state
+  const [credentialsDialog, setCredentialsDialog] = useState<{
+    open: boolean
+    email: string
+    password: string
+  }>({ open: false, email: "", password: "" })
+  const [copied, setCopied] = useState(false)
+
   const utils = trpc.useUtils()
   const createMutation = trpc.organization.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.organization.listAll.invalidate()
       setDialogOpen(false)
       setForm(emptyForm)
-      toast.success("Organization created")
+      if (data.isNewUser && data.generatedPassword) {
+        setCredentialsDialog({
+          open: true,
+          email: form.ownerEmail,
+          password: data.generatedPassword,
+        })
+      } else {
+        toast.success("League created")
+      }
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -53,9 +69,17 @@ function OrganizationsPage() {
   const deleteMutation = trpc.organization.delete.useMutation({
     onSuccess: () => {
       utils.organization.listAll.invalidate()
+      utils.users.listAll.invalidate()
       setDeleteDialogOpen(false)
       setDeletingOrg(null)
-      toast.success("Organization deleted")
+      toast.success("League deleted")
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
+  const setActiveMutation = trpc.organization.setActiveForAdmin.useMutation({
+    onSuccess: () => {
+      window.open("http://localhost:3000", "_blank")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -67,14 +91,7 @@ function OrganizationsPage() {
 
   function handleNameChange(value: string) {
     setField("name", value)
-    // Auto-generate slug from name
-    const slug = value
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-")
-    setField("slug", slug)
-    // Also prefill league name
+    // Auto-fill league name
     if (!form.leagueName || form.leagueName === form.name) {
       setField("leagueName", value)
     }
@@ -83,10 +100,9 @@ function OrganizationsPage() {
   function validate(): boolean {
     const next: Partial<Record<keyof OrgForm, string>> = {}
     if (!form.name.trim()) next.name = "Name is required"
-    if (!form.slug.trim()) next.slug = "Slug is required"
-    else if (!/^[a-z0-9-]+$/.test(form.slug)) next.slug = "Only lowercase letters, numbers, and hyphens"
     if (!form.ownerEmail.trim()) next.ownerEmail = "Owner email is required"
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.ownerEmail)) next.ownerEmail = "Invalid email"
+    if (!form.ownerName.trim()) next.ownerName = "Owner name is required"
     if (!form.leagueName.trim()) next.leagueName = "League name is required"
     if (!form.leagueShortName.trim()) next.leagueShortName = "Short name is required"
     setErrors(next)
@@ -97,12 +113,10 @@ function OrganizationsPage() {
     e.preventDefault()
     if (!validate()) return
 
-    // We need the owner's user ID — for now we use the email to look up
-    // The API will handle finding/creating the user
     createMutation.mutate({
       name: form.name.trim(),
-      slug: form.slug.trim(),
-      ownerUserId: form.ownerEmail.trim(), // The router expects userId; we'll need to resolve this
+      ownerEmail: form.ownerEmail.trim(),
+      ownerName: form.ownerName.trim(),
       leagueSettings: {
         leagueName: form.leagueName.trim(),
         leagueShortName: form.leagueShortName.trim(),
@@ -110,16 +124,22 @@ function OrganizationsPage() {
     })
   }
 
+  async function handleCopyPassword() {
+    await navigator.clipboard.writeText(credentialsDialog.password)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Organizations</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage all league organizations</p>
+          <h1 className="text-2xl font-bold text-foreground">Leagues</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage all leagues</p>
         </div>
         <Button variant="accent" onClick={() => setDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New Organization
+          New League
         </Button>
       </div>
 
@@ -132,11 +152,11 @@ function OrganizationsPage() {
       ) : !orgs || orgs.length === 0 ? (
         <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
           <Building2 size={32} className="mx-auto mb-3 text-muted-foreground" />
-          <p className="font-medium text-foreground">No organizations yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Create the first organization to get started.</p>
+          <p className="font-medium text-foreground">No leagues yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">Create the first league to get started.</p>
           <Button variant="accent" className="mt-4" onClick={() => setDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Create Organization
+            Create League
           </Button>
         </div>
       ) : (
@@ -144,55 +164,71 @@ function OrganizationsPage() {
           {orgs.map((org, i) => (
             <div
               key={org.id}
-              className={`flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
+              className={`data-row flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
                 i < orgs.length - 1 ? "border-b border-border/40" : ""
               }`}
+              style={{ "--row-index": i } as React.CSSProperties}
             >
               {org.logo ? (
                 <img src={org.logo} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
               ) : (
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                  style={{ background: "hsl(var(--muted))", color: "hsl(var(--muted-foreground))", fontSize: 16, fontWeight: 700 }}
+                  style={{
+                    background: "hsl(var(--muted))",
+                    color: "hsl(var(--muted-foreground))",
+                    fontSize: 16,
+                    fontWeight: 700,
+                  }}
                 >
                   {org.name.charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate">{org.name}</p>
-                <p className="text-xs text-muted-foreground">/{org.slug}</p>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-sm font-medium">{org.memberCount}</p>
-                <p className="text-xs text-muted-foreground">members</p>
+                <p className="text-sm text-muted-foreground">
+                  {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
+                </p>
               </div>
-              <button
-                type="button"
-                title="Delete organization"
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveMutation.mutate({ organizationId: org.id })}
+                disabled={setActiveMutation.isPending}
+              >
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                Manage
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-muted-foreground hover:text-destructive hover:border-destructive/50"
                 onClick={() => {
                   setDeletingOrg({ id: org.id, name: org.name })
                   setDeleteDialogOpen(true)
                 }}
-                className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
+                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                Delete
+              </Button>
             </div>
           ))}
         </div>
       )}
 
-      {/* Create Organization Dialog */}
+      {/* Create League Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogClose onClick={() => setDialogOpen(false)} />
           <DialogHeader>
-            <DialogTitle>Create Organization</DialogTitle>
-            <DialogDescription>Create a new league organization with an initial owner.</DialogDescription>
+            <DialogTitle>Create League</DialogTitle>
+            <DialogDescription>Create a new league with an initial owner.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-2">
-            <FormField label="Organization Name" error={errors.name} required>
+            <FormField label="League Name" error={errors.name} required>
               <Input
                 value={form.name}
                 onChange={(e) => handleNameChange(e.target.value)}
@@ -200,11 +236,11 @@ function OrganizationsPage() {
               />
             </FormField>
 
-            <FormField label="Slug" error={errors.slug} required>
+            <FormField label="Owner Name" error={errors.ownerName} required>
               <Input
-                value={form.slug}
-                onChange={(e) => setField("slug", e.target.value)}
-                placeholder="e.g. obwl"
+                value={form.ownerName}
+                onChange={(e) => setField("ownerName", e.target.value)}
+                placeholder="e.g. Max Mustermann"
               />
             </FormField>
 
@@ -245,16 +281,65 @@ function OrganizationsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Organization Dialog */}
+      {/* Credentials Dialog */}
+      <Dialog
+        open={credentialsDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCredentialsDialog({ open: false, email: "", password: "" })
+            setCopied(false)
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>League Created</DialogTitle>
+            <DialogDescription>
+              A new user account has been created for the owner. Save these credentials — the password cannot be
+              retrieved later.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 p-6 pt-2">
+            <FormField label="Email">
+              <Input value={credentialsDialog.email} readOnly />
+            </FormField>
+
+            <FormField label="Password">
+              <div className="flex gap-2">
+                <Input value={credentialsDialog.password} readOnly className="font-mono" />
+                <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword} title="Copy password">
+                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </FormField>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="accent"
+              onClick={() => {
+                setCredentialsDialog({ open: false, email: "", password: "" })
+                setCopied(false)
+                toast.success("League created")
+              }}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete League Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogClose onClick={() => setDeleteDialogOpen(false)} />
           <DialogHeader>
-            <DialogTitle>Delete Organization</DialogTitle>
+            <DialogTitle>Delete League</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete <strong>{deletingOrg?.name}</strong>? This will permanently remove the
-              organization and all its data including seasons, teams, players, games, and statistics. This action cannot
-              be undone.
+              league and all its data including seasons, teams, players, games, and statistics. Users who are only
+              members of this league will also be deleted. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

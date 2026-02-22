@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { orgAdminProcedure, router } from "../init"
+import { orgProcedure, router } from "../init"
 
 export const dashboardRouter = router({
-  getOverview: orgAdminProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
+  getOverview: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
     const { seasonId } = input
     const db = ctx.db
 
@@ -159,22 +159,35 @@ export const dashboardRouter = router({
     }
 
     // --- Active Suspensions ---
-    const activeSuspensions = await db.$queryRaw`
-      SELECT gs.*, row_to_json(p) as player, row_to_json(t) as team
+    const activeSuspensions = (await db.$queryRaw`
+      SELECT
+        gs.id,
+        gs.suspended_games AS "suspendedGames",
+        gs.served_games AS "servedGames",
+        json_build_object(
+          'id', p.id,
+          'firstName', p.first_name,
+          'lastName', p.last_name
+        ) AS "player",
+        json_build_object(
+          'id', t.id,
+          'shortName', t.short_name,
+          'logoUrl', t.logo_url
+        ) AS "team"
       FROM game_suspensions gs
       JOIN players p ON p.id = gs.player_id
       JOIN teams t ON t.id = gs.team_id
       WHERE gs.served_games < gs.suspended_games
         AND gs.organization_id = ${ctx.organizationId}
+      ORDER BY gs.created_at DESC
       LIMIT 10
-    ` as any[]
-
-    // Normalize the active suspensions to match expected shape
-    const normalizedSuspensions = activeSuspensions.map((s: any) => ({
-      ...s,
-      player: typeof s.player === 'string' ? JSON.parse(s.player) : s.player,
-      team: typeof s.team === 'string' ? JSON.parse(s.team) : s.team,
-    }))
+    `) as Array<{
+      id: string
+      suspendedGames: number
+      servedGames: number
+      player: { id: string; firstName: string; lastName: string }
+      team: { id: string; shortName: string; logoUrl: string | null }
+    }>
 
     // --- Top Scorers ---
     const topScorers = await db.playerSeasonStat.findMany({
@@ -242,7 +255,7 @@ export const dashboardRouter = router({
       },
       missingReports,
       upcomingGames,
-      activeSuspensions: normalizedSuspensions,
+      activeSuspensions,
       topScorers,
       topPenalized,
       recentResults,

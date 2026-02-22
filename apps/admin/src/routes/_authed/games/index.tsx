@@ -26,8 +26,10 @@ import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 const roundTypeOrder: Record<string, number> = {
@@ -80,7 +82,9 @@ export const Route = createFileRoute("/_authed/games/")({
 })
 
 function GamesPage() {
+  usePermissionGuard("games")
   const { t, i18n } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { season } = useWorkingSeason()
   const utils = trpc.useUtils()
 
@@ -131,7 +135,7 @@ function GamesPage() {
       setGameForm(emptyGameForm)
       toast.success(t("gamesPage.toast.gameCreated"))
     },
-    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
   const updateGame = trpc.game.update.useMutation({
     onSuccess: () => {
@@ -141,7 +145,7 @@ function GamesPage() {
       setGameForm(emptyGameForm)
       toast.success(t("gamesPage.toast.gameUpdated"))
     },
-    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
   const deleteGame = trpc.game.delete.useMutation({
     onSuccess: () => {
@@ -149,7 +153,7 @@ function GamesPage() {
       setDeleteGameId(null)
       toast.success(t("gamesPage.toast.gameDeleted"))
     },
-    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
   const cancelGame = trpc.game.cancel.useMutation({
     onSuccess: () => {
@@ -157,7 +161,7 @@ function GamesPage() {
       setCancelGameId(null)
       toast.success(t("gamesPage.toast.gameCancelled"))
     },
-    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
   const reopenGame = trpc.game.reopen.useMutation({
     onSuccess: () => {
@@ -165,7 +169,7 @@ function GamesPage() {
       setReopenGameId(null)
       toast.success(t("gamesPage.toast.gameReopened"))
     },
-    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
   const generate = trpc.game.generateDoubleRoundRobin.useMutation({
     onSuccess: (r) => {
@@ -178,7 +182,7 @@ function GamesPage() {
         }),
       })
     },
-    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
   const divisions = structure?.divisions ?? []

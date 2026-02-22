@@ -13,8 +13,7 @@ describe("standings router", () => {
       const division = (await admin.division.create({ seasonId: season.id, name: "Liga" }))!
       const round = (await admin.round.create({ divisionId: division.id, name: "Hauptrunde" }))!
 
-      const caller = createTestCaller()
-      const result = await caller.standings.getByRound({ roundId: round.id })
+      const result = await admin.standings.getByRound({ roundId: round.id })
       expect(result).toEqual([])
     })
 
@@ -69,8 +68,7 @@ describe("standings router", () => {
         ],
       })
 
-      const caller = createTestCaller()
-      const result = await caller.standings.getByRound({ roundId: round.id })
+      const result = await admin.standings.getByRound({ roundId: round.id })
       expect(result).toHaveLength(2)
       expect(result[0]?.totalPoints).toBe(7)
       expect(result[1]?.totalPoints).toBe(3)
@@ -140,8 +138,7 @@ describe("standings router", () => {
       })
       const pointsWin = settings?.pointsWin ?? 2
 
-      const caller = createTestCaller()
-      const standings = await caller.standings.getByRound({ roundId: round.id })
+      const standings = await admin.standings.getByRound({ roundId: round.id })
       expect(standings).toHaveLength(2)
 
       // Home team won 1-0

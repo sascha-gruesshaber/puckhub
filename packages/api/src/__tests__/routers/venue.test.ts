@@ -6,8 +6,7 @@ describe("venue router", () => {
     const admin = createTestCaller({ asAdmin: true })
     await admin.venue.create({ name: "Eisstadion Nord", city: "Kempten" })
 
-    const caller = createTestCaller()
-    const venues = await caller.venue.list()
+    const venues = await admin.venue.list()
     expect(venues.length).toBeGreaterThan(0)
     expect(venues.some((v) => v.name === "Eisstadion Nord")).toBe(true)
   })
@@ -53,7 +52,7 @@ describe("venue router", () => {
       venueId: venue.id,
     })
 
-    await expect(admin.venue.delete({ id: venue.id })).rejects.toThrow("cannot be deleted")
+    await expect(admin.venue.delete({ id: venue.id })).rejects.toThrow("VENUE_IN_USE")
   })
 
   it("manages defaultTeamId on create and update", async () => {
@@ -63,15 +62,14 @@ describe("venue router", () => {
     // Create venue with defaultTeamId
     const venue = (await admin.venue.create({ name: "Home Arena", defaultTeamId: team.id }))!
 
-    const caller = createTestCaller()
-    let venues = await caller.venue.list()
+    let venues = await admin.venue.list()
     let found = venues.find((v) => v.id === venue.id)
     expect(found?.defaultTeam?.id).toBe(team.id)
 
     // Remove default team via update
     await admin.venue.update({ id: venue.id, defaultTeamId: null })
 
-    venues = await caller.venue.list()
+    venues = await admin.venue.list()
     found = venues.find((v) => v.id === venue.id)
     expect(found?.defaultTeam).toBeNull()
   })

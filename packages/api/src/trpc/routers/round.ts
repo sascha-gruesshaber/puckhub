@@ -1,16 +1,16 @@
-import { recalculateGoalieStats, recalculatePlayerStats } from '@puckhub/db/services'
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { recalculateGoalieStats, recalculatePlayerStats } from "@puckhub/db/services"
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const roundTypeValues = [
-  'regular',
-  'preround',
-  'playoffs',
-  'playdowns',
-  'playups',
-  'relegation',
-  'placement',
-  'final',
+  "regular",
+  "preround",
+  "playoffs",
+  "playdowns",
+  "playups",
+  "relegation",
+  "placement",
+  "final",
 ] as const
 
 export const roundRouter = router({
@@ -20,7 +20,7 @@ export const roundRouter = router({
         divisionId: input.divisionId,
         organizationId: ctx.organizationId,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     })
   }),
 
@@ -35,7 +35,7 @@ export const roundRouter = router({
       z.object({
         divisionId: z.string().uuid(),
         name: z.string().min(1),
-        roundType: z.enum(roundTypeValues).default('regular'),
+        roundType: z.enum(roundTypeValues).default("regular"),
         sortOrder: z.number().int().default(0),
         pointsWin: z.number().int().default(2),
         pointsDraw: z.number().int().default(1),

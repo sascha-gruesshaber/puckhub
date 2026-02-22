@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server"
 import { beforeEach, describe, expect, it } from "vitest"
-import { createTestCaller } from "../testUtils"
+import { createTestCaller, createPlatformAdminCaller, createOtherOrgAdminCaller, createCrossOrgCaller, seedSecondOrg } from "../testUtils"
 
 const FAKE_ID = "00000000-0000-0000-0000-000000000000"
 
@@ -176,6 +176,52 @@ describe("authorization", () => {
 
       it("delete requires auth", async () => {
         await expect(caller.game.delete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("update requires auth", async () => {
+        await expect(caller.game.update({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("generateDoubleRoundRobin requires auth", async () => {
+        await expect(
+          caller.game.generateDoubleRoundRobin({ seasonId: FAKE_ID, divisionId: FAKE_ID, roundId: FAKE_ID }),
+        ).rejects.toThrow("Not authenticated")
+      })
+
+      it("deleteMany requires auth", async () => {
+        await expect(caller.game.deleteMany({ ids: [FAKE_ID] })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("bonusPoints", () => {
+      it("create requires auth", async () => {
+        await expect(
+          caller.bonusPoints.create({ teamId: FAKE_ID, roundId: FAKE_ID, points: 1 }),
+        ).rejects.toThrow("Not authenticated")
+      })
+
+      it("update requires auth", async () => {
+        await expect(caller.bonusPoints.update({ id: FAKE_ID, points: 2 })).rejects.toThrow("Not authenticated")
+      })
+
+      it("delete requires auth", async () => {
+        await expect(caller.bonusPoints.delete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("standings", () => {
+      it("recalculate requires auth", async () => {
+        await expect(caller.standings.recalculate({ roundId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("recalculateAll requires auth", async () => {
+        await expect(caller.standings.recalculateAll({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("stats", () => {
+      it("recalculate requires auth", async () => {
+        await expect(caller.stats.recalculate({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
       })
     })
 
@@ -377,9 +423,204 @@ describe("authorization", () => {
       })
 
       it("updateRole requires auth", async () => {
-        await expect(caller.users.updateRole({ userId: "some-id", role: "admin" })).rejects.toThrow(
+        await expect(caller.users.updateRole({ userId: "some-id", role: "admin" })).rejects.toThrow("Not authenticated")
+      })
+    })
+  })
+
+  describe("org-scoped read procedures reject unauthenticated access", () => {
+    let caller: ReturnType<typeof createTestCaller>
+    beforeEach(() => {
+      caller = createTestCaller()
+    })
+
+    describe("season", () => {
+      it("list requires auth", async () => {
+        await expect(caller.season.list()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.season.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("getCurrent requires auth", async () => {
+        await expect(caller.season.getCurrent()).rejects.toThrow("Not authenticated")
+      })
+
+      it("structureCounts requires auth", async () => {
+        await expect(caller.season.structureCounts()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getFullStructure requires auth", async () => {
+        await expect(caller.season.getFullStructure({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("division", () => {
+      it("listBySeason requires auth", async () => {
+        await expect(caller.division.listBySeason({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.division.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("round", () => {
+      it("listByDivision requires auth", async () => {
+        await expect(caller.round.listByDivision({ divisionId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.round.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("team", () => {
+      it("list requires auth", async () => {
+        await expect(caller.team.list()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.team.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("teamDivision", () => {
+      it("listByDivision requires auth", async () => {
+        await expect(caller.teamDivision.listByDivision({ divisionId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("player", () => {
+      it("list requires auth", async () => {
+        await expect(caller.player.list()).rejects.toThrow("Not authenticated")
+      })
+
+      it("listWithCurrentTeam requires auth", async () => {
+        await expect(caller.player.listWithCurrentTeam()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.player.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("contract", () => {
+      it("rosterForSeason requires auth", async () => {
+        await expect(caller.contract.rosterForSeason({ teamId: FAKE_ID, seasonId: FAKE_ID })).rejects.toThrow(
           "Not authenticated",
         )
+      })
+
+      it("getByPlayer requires auth", async () => {
+        await expect(caller.contract.getByPlayer({ playerId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("game", () => {
+      it("listByRound requires auth", async () => {
+        await expect(caller.game.listByRound({ roundId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.game.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("listForSeason requires auth", async () => {
+        await expect(caller.game.listForSeason({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("standings", () => {
+      it("getByRound requires auth", async () => {
+        await expect(caller.standings.getByRound({ roundId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("stats", () => {
+      it("playerStats requires auth", async () => {
+        await expect(caller.stats.playerStats({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("goalieStats requires auth", async () => {
+        await expect(caller.stats.goalieStats({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("penaltyStats requires auth", async () => {
+        await expect(caller.stats.penaltyStats({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("teamPenaltyStats requires auth", async () => {
+        await expect(caller.stats.teamPenaltyStats({ seasonId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("trikot", () => {
+      it("list requires auth", async () => {
+        await expect(caller.trikot.list()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.trikot.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("teamTrikot", () => {
+      it("listByTeam requires auth", async () => {
+        await expect(caller.teamTrikot.listByTeam({ teamId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("listByTrikot requires auth", async () => {
+        await expect(caller.teamTrikot.listByTrikot({ trikotId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("sponsor", () => {
+      it("list requires auth", async () => {
+        await expect(caller.sponsor.list()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getById requires auth", async () => {
+        await expect(caller.sponsor.getById({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("gameReport", () => {
+      it("getPenaltyTypes requires auth", async () => {
+        await expect(caller.gameReport.getPenaltyTypes()).rejects.toThrow("Not authenticated")
+      })
+
+      it("getReport requires auth", async () => {
+        await expect(caller.gameReport.getReport({ gameId: FAKE_ID })).rejects.toThrow("Not authenticated")
+      })
+
+      it("getRosters requires auth", async () => {
+        await expect(
+          caller.gameReport.getRosters({ homeTeamId: FAKE_ID, awayTeamId: FAKE_ID, seasonId: FAKE_ID }),
+        ).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("settings", () => {
+      it("get requires auth", async () => {
+        await expect(caller.settings.get()).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("page", () => {
+      it("getBySlug requires auth", async () => {
+        await expect(caller.page.getBySlug({ slug: "test" })).rejects.toThrow("Not authenticated")
+      })
+
+      it("listByMenuLocation requires auth", async () => {
+        await expect(caller.page.listByMenuLocation({ location: "main_nav" })).rejects.toThrow("Not authenticated")
+      })
+    })
+
+    describe("venue", () => {
+      it("list requires auth", async () => {
+        await expect(caller.venue.list()).rejects.toThrow("Not authenticated")
       })
     })
   })
@@ -388,114 +629,6 @@ describe("authorization", () => {
     let caller: ReturnType<typeof createTestCaller>
     beforeEach(() => {
       caller = createTestCaller()
-    })
-
-    describe("season", () => {
-      it("list is public", async () => {
-        await expectNotUnauthorized(() => caller.season.list())
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.season.getById({ id: FAKE_ID }))
-      })
-
-      it("getCurrent is public", async () => {
-        await expectNotUnauthorized(() => caller.season.getCurrent())
-      })
-
-      it("structureCounts is public", async () => {
-        await expectNotUnauthorized(() => caller.season.structureCounts())
-      })
-
-      it("getFullStructure is public", async () => {
-        await expectNotUnauthorized(() => caller.season.getFullStructure({ id: FAKE_ID }))
-      })
-    })
-
-    describe("division", () => {
-      it("listBySeason is public", async () => {
-        await expectNotUnauthorized(() => caller.division.listBySeason({ seasonId: FAKE_ID }))
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.division.getById({ id: FAKE_ID }))
-      })
-    })
-
-    describe("round", () => {
-      it("listByDivision is public", async () => {
-        await expectNotUnauthorized(() => caller.round.listByDivision({ divisionId: FAKE_ID }))
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.round.getById({ id: FAKE_ID }))
-      })
-    })
-
-    describe("team", () => {
-      it("list is public", async () => {
-        await expectNotUnauthorized(() => caller.team.list())
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.team.getById({ id: FAKE_ID }))
-      })
-    })
-
-    describe("teamDivision", () => {
-      it("listByDivision is public", async () => {
-        await expectNotUnauthorized(() => caller.teamDivision.listByDivision({ divisionId: FAKE_ID }))
-      })
-    })
-
-    describe("player", () => {
-      it("list is public", async () => {
-        await expectNotUnauthorized(() => caller.player.list())
-      })
-
-      it("listWithCurrentTeam is public", async () => {
-        await expectNotUnauthorized(() => caller.player.listWithCurrentTeam())
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.player.getById({ id: FAKE_ID }))
-      })
-    })
-
-    describe("contract", () => {
-      it("rosterForSeason is public", async () => {
-        await expectNotUnauthorized(() => caller.contract.rosterForSeason({ teamId: FAKE_ID, seasonId: FAKE_ID }))
-      })
-
-      it("getByPlayer is public", async () => {
-        await expectNotUnauthorized(() => caller.contract.getByPlayer({ playerId: FAKE_ID }))
-      })
-    })
-
-    describe("game", () => {
-      it("listByRound is public", async () => {
-        await expectNotUnauthorized(() => caller.game.listByRound({ roundId: FAKE_ID }))
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.game.getById({ id: FAKE_ID }))
-      })
-    })
-
-    describe("standings", () => {
-      it("getByRound is public", async () => {
-        await expectNotUnauthorized(() => caller.standings.getByRound({ roundId: FAKE_ID }))
-      })
-    })
-
-    describe("stats", () => {
-      it("playerStats is public", async () => {
-        await expectNotUnauthorized(() => caller.stats.playerStats({ seasonId: FAKE_ID }))
-      })
-
-      it("goalieStats is public", async () => {
-        await expectNotUnauthorized(() => caller.stats.goalieStats({ seasonId: FAKE_ID }))
-      })
     })
 
     describe("trikotTemplate", () => {
@@ -507,89 +640,180 @@ describe("authorization", () => {
         await expectNotUnauthorized(() => caller.trikotTemplate.getById({ id: FAKE_ID }))
       })
     })
+  })
 
-    describe("trikot", () => {
-      it("list is public", async () => {
-        await expectNotUnauthorized(() => caller.trikot.list())
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.trikot.getById({ id: FAKE_ID }))
-      })
+  describe("org member/admin procedures reject non-members", () => {
+    let caller: ReturnType<typeof createCrossOrgCaller>
+    beforeEach(async () => {
+      await seedSecondOrg()
+      caller = createCrossOrgCaller()
     })
 
-    describe("teamTrikot", () => {
-      it("listByTeam is public", async () => {
-        await expectNotUnauthorized(() => caller.teamTrikot.listByTeam({ teamId: FAKE_ID }))
-      })
-
-      it("listByTrikot is public", async () => {
-        await expectNotUnauthorized(() => caller.teamTrikot.listByTrikot({ trikotId: FAKE_ID }))
-      })
+    it("organization.getActive rejects non-member", async () => {
+      await expect(caller.organization.getActive()).rejects.toThrow("Kein Mitglied")
     })
 
-    describe("sponsor", () => {
-      it("list is public", async () => {
-        await expectNotUnauthorized(() => caller.sponsor.list())
-      })
-
-      it("getById is public", async () => {
-        await expectNotUnauthorized(() => caller.sponsor.getById({ id: FAKE_ID }))
-      })
+    it("organization.listMembers rejects non-member", async () => {
+      await expect(caller.organization.listMembers()).rejects.toThrow("Kein Mitglied")
     })
 
-    describe("gameReport", () => {
-      it("getPenaltyTypes is public", async () => {
-        await expectNotUnauthorized(() => caller.gameReport.getPenaltyTypes())
-      })
-
-      it("getReport is public", async () => {
-        await expectNotUnauthorized(() => caller.gameReport.getReport({ gameId: FAKE_ID }))
-      })
-
-      it("getRosters is public", async () => {
-        await expectNotUnauthorized(() =>
-          caller.gameReport.getRosters({ homeTeamId: FAKE_ID, awayTeamId: FAKE_ID, seasonId: FAKE_ID }),
-        )
-      })
+    it("season.create rejects non-member", async () => {
+      await expect(
+        caller.season.create({ name: "Test", seasonStart: "2025-09-01", seasonEnd: "2026-04-30" }),
+      ).rejects.toThrow("Kein Mitglied")
     })
 
-    describe("settings", () => {
-      it("get is public", async () => {
-        await expectNotUnauthorized(() => caller.settings.get())
-      })
+    it("team.create rejects non-member", async () => {
+      await expect(caller.team.create({ name: "Test", shortName: "TST" })).rejects.toThrow("Kein Mitglied")
     })
 
-    describe("page", () => {
-      it("getBySlug is public", async () => {
-        await expectNotUnauthorized(() => caller.page.getBySlug({ slug: "test" }))
-      })
-
-      it("listByMenuLocation is public", async () => {
-        await expectNotUnauthorized(() => caller.page.listByMenuLocation({ location: "main_nav" }))
-      })
+    it("player.create rejects non-member", async () => {
+      await expect(caller.player.create({ firstName: "Test", lastName: "Player" })).rejects.toThrow("Kein Mitglied")
     })
 
-    describe("venue", () => {
-      it("list is public", async () => {
-        await expectNotUnauthorized(() => caller.venue.list())
-      })
+    it("settings.update rejects non-member", async () => {
+      await expect(
+        caller.settings.update({
+          leagueName: "Test",
+          leagueShortName: "T",
+          locale: "de-DE",
+          timezone: "Europe/Berlin",
+          pointsWin: 2,
+          pointsDraw: 1,
+          pointsLoss: 0,
+        }),
+      ).rejects.toThrow("Kein Mitglied")
+    })
+  })
+
+  describe("admin procedures reject org members (non-admin)", () => {
+    let caller: ReturnType<typeof createTestCaller>
+    beforeEach(() => {
+      caller = createTestCaller({ asUser: true })
     })
 
-    describe("stats (extended)", () => {
-      it("penaltyStats is public", async () => {
-        await expectNotUnauthorized(() => caller.stats.penaltyStats({ seasonId: FAKE_ID }))
-      })
-
-      it("teamPenaltyStats is public", async () => {
-        await expectNotUnauthorized(() => caller.stats.teamPenaltyStats({ seasonId: FAKE_ID }))
-      })
+    it("season.create rejects non-admin member", async () => {
+      await expect(
+        caller.season.create({ name: "Test", seasonStart: "2025-09-01", seasonEnd: "2026-04-30" }),
+      ).rejects.toThrow("Keine Administratorrechte")
     })
 
-    describe("game (extended)", () => {
-      it("listForSeason is public", async () => {
-        await expectNotUnauthorized(() => caller.game.listForSeason({ seasonId: FAKE_ID }))
-      })
+    it("team.create rejects non-admin member", async () => {
+      await expect(caller.team.create({ name: "Test", shortName: "TST" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
+    })
+
+    it("player.create rejects non-admin member", async () => {
+      await expect(caller.player.create({ firstName: "Test", lastName: "Player" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
+    })
+
+    it("settings.update rejects non-admin member", async () => {
+      await expect(
+        caller.settings.update({
+          leagueName: "Test",
+          leagueShortName: "T",
+          locale: "de-DE",
+          timezone: "Europe/Berlin",
+          pointsWin: 2,
+          pointsDraw: 1,
+          pointsLoss: 0,
+        }),
+      ).rejects.toThrow("Keine Administratorrechte")
+    })
+
+    it("news.create rejects member without editor role", async () => {
+      await expect(caller.news.create({ title: "Test", content: "Body" })).rejects.toThrow(
+        "Unzureichende Berechtigungen",
+      )
+    })
+
+    it("page.create rejects member without editor role", async () => {
+      await expect(caller.page.create({ title: "Test Page" })).rejects.toThrow("Unzureichende Berechtigungen")
+    })
+
+    it("users.create rejects non-admin member", async () => {
+      await expect(
+        caller.users.create({ name: "Test", email: "test@test.com", password: "password123" }),
+      ).rejects.toThrow("Keine Administratorrechte")
+    })
+
+    it("organization.update rejects non-admin member", async () => {
+      await expect(caller.organization.update({ name: "Hacked" })).rejects.toThrow("Keine Administratorrechte")
+    })
+
+    it("organization.inviteMember rejects non-admin member", async () => {
+      await expect(caller.organization.inviteMember({ email: "test@test.com" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
+    })
+
+    it("organization.removeMember rejects non-admin member", async () => {
+      await expect(caller.organization.removeMember({ memberId: "fake" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
+    })
+
+    it("organization.updateMemberRole rejects non-admin member", async () => {
+      await expect(caller.organization.updateMemberRole({ memberId: "fake", role: "admin" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
+    })
+
+    it("game.create rejects member without game_manager role", async () => {
+      await expect(
+        caller.game.create({ roundId: FAKE_ID, homeTeamId: FAKE_ID, awayTeamId: FAKE_ID }),
+      ).rejects.toThrow("Unzureichende Berechtigungen")
+    })
+
+    it("contract.signPlayer rejects member without team_manager role", async () => {
+      await expect(
+        caller.contract.signPlayer({ playerId: FAKE_ID, teamId: FAKE_ID, seasonId: FAKE_ID, position: "forward" }),
+      ).rejects.toThrow("Unzureichende Berechtigungen")
+    })
+  })
+
+  describe("platform admin procedures reject non-platform-admins", () => {
+    let caller: ReturnType<typeof createTestCaller>
+    beforeEach(() => {
+      caller = createTestCaller({ asAdmin: true })
+    })
+
+    it("organization.listAll rejects non-platform-admin", async () => {
+      await expect(caller.organization.listAll()).rejects.toThrow("Keine Plattform-Administratorrechte")
+    })
+
+    it("organization.create rejects non-platform-admin", async () => {
+      await expect(
+        caller.organization.create({
+          name: "New Org",
+          ownerEmail: "owner@test.com",
+          ownerName: "Owner",
+          leagueSettings: {
+            leagueName: "New League",
+            leagueShortName: "NL",
+            locale: "de-DE",
+            timezone: "Europe/Berlin",
+            pointsWin: 2,
+            pointsDraw: 1,
+            pointsLoss: 0,
+          },
+        }),
+      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+    })
+
+    it("organization.delete rejects non-platform-admin", async () => {
+      await expect(caller.organization.delete({ id: "fake" })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
+    })
+
+    it("organization.setActiveForAdmin rejects non-platform-admin", async () => {
+      await expect(caller.organization.setActiveForAdmin({ organizationId: "fake" })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
   })
 })

@@ -55,23 +55,23 @@ describe("page router", () => {
 
     it("rejects forbidden slugs", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.create({ title: "Mannschaften" })).rejects.toThrow(/reserviert/)
+      await expect(admin.page.create({ title: "Mannschaften" })).rejects.toThrow("PAGE_SLUG_RESERVED")
     })
 
     it("rejects duplicate slugs", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.page.create({ title: "Test Seite" })
-      await expect(admin.page.create({ title: "Test Seite" })).rejects.toThrow(/existiert bereits/)
+      await expect(admin.page.create({ title: "Test Seite" })).rejects.toThrow("PAGE_SLUG_CONFLICT")
     })
 
     it("rejects slugs matching static page slugs", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.create({ title: "Impressum" })).rejects.toThrow(/reserviert/)
+      await expect(admin.page.create({ title: "Impressum" })).rejects.toThrow("PAGE_SLUG_RESERVED")
     })
 
     it("rejects title that produces empty slug", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.create({ title: "!!!" })).rejects.toThrow(/gültigen URL-Slug/)
+      await expect(admin.page.create({ title: "!!!" })).rejects.toThrow("PAGE_INVALID_SLUG")
     })
 
     it("creates page with menu locations", async () => {
@@ -146,7 +146,7 @@ describe("page router", () => {
       const parent = await admin.page.create({ title: "Verein Zwei" })
       await admin.page.create({ title: "Kontaktinfo", parentId: parent?.id })
       await expect(admin.page.create({ title: "Kontaktinfo", parentId: parent?.id })).rejects.toThrow(
-        /existiert bereits/,
+        "PAGE_SLUG_CONFLICT",
       )
     })
   })
@@ -171,7 +171,7 @@ describe("page router", () => {
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.page.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "Seite nicht gefunden",
+        "PAGE_NOT_FOUND",
       )
     })
   })
@@ -180,8 +180,7 @@ describe("page router", () => {
     it("returns published page by slug", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.page.create({ title: "Öffentlich", status: "published" })
-      const caller = createTestCaller()
-      const result = await caller.page.getBySlug({ slug: "oeffentlich" })
+      const result = await admin.page.getBySlug({ slug: "oeffentlich" })
       expect(result).not.toHaveProperty("redirect")
       expect((result as any).title).toBe("Öffentlich")
     })
@@ -189,16 +188,14 @@ describe("page router", () => {
     it("does not return draft pages", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.page.create({ title: "Geheim", status: "draft" })
-      const caller = createTestCaller()
-      await expect(caller.page.getBySlug({ slug: "geheim" })).rejects.toThrow("Seite nicht gefunden")
+      await expect(admin.page.getBySlug({ slug: "geheim" })).rejects.toThrow("PAGE_NOT_FOUND")
     })
 
     it("resolves nested slug for sub-pages (parent-slug/child-slug)", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const parent = await admin.page.create({ title: "Vereinsinfo", status: "published" })
       await admin.page.create({ title: "Geschichte", parentId: parent?.id, status: "published" })
-      const caller = createTestCaller()
-      const result = await caller.page.getBySlug({ slug: "vereinsinfo/geschichte" })
+      const result = await admin.page.getBySlug({ slug: "vereinsinfo/geschichte" })
       expect(result).not.toHaveProperty("redirect")
       expect((result as any).title).toBe("Geschichte")
     })
@@ -211,8 +208,7 @@ describe("page router", () => {
       await admin.page.create({ title: "Footer Page", status: "published", menuLocations: ["footer"] })
       await admin.page.create({ title: "Draft Page", status: "draft", menuLocations: ["main_nav"] })
 
-      const caller = createTestCaller()
-      const navPages = await caller.page.listByMenuLocation({ location: "main_nav" })
+      const navPages = await admin.page.listByMenuLocation({ location: "main_nav" })
       expect(navPages).toHaveLength(1)
       expect(navPages[0]?.title).toBe("Nav Page")
     })
@@ -221,9 +217,8 @@ describe("page router", () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.page.create({ title: "Beide Orte", status: "published", menuLocations: ["main_nav", "footer"] })
 
-      const caller = createTestCaller()
-      const navPages = await caller.page.listByMenuLocation({ location: "main_nav" })
-      const footerPages = await caller.page.listByMenuLocation({ location: "footer" })
+      const navPages = await admin.page.listByMenuLocation({ location: "main_nav" })
+      const footerPages = await admin.page.listByMenuLocation({ location: "footer" })
       expect(navPages).toHaveLength(1)
       expect(footerPages).toHaveLength(1)
     })
@@ -307,13 +302,13 @@ describe("page router", () => {
     it("prevents changing title of static pages", async () => {
       const page = await insertStaticPage()
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.update({ id: page.id, title: "Neuer Titel" })).rejects.toThrow(/statischen Seite/)
+      await expect(admin.page.update({ id: page.id, title: "Neuer Titel" })).rejects.toThrow("PAGE_STATIC_TITLE_LOCKED")
     })
 
     it("prevents deleting static pages", async () => {
       const page = await insertStaticPage()
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.delete({ id: page.id })).rejects.toThrow(/Statische Seiten/)
+      await expect(admin.page.delete({ id: page.id })).rejects.toThrow("PAGE_STATIC_CANNOT_DELETE")
     })
   })
 
@@ -331,7 +326,7 @@ describe("page router", () => {
       await admin.page.create({ title: "Meine Seite" })
       const target = await admin.page.create({ title: "Ziel" })
       await expect(admin.page.createAlias({ title: "Meine Seite", targetPageId: target?.id })).rejects.toThrow(
-        /existiert bereits/,
+        "PAGE_SLUG_CONFLICT",
       )
     })
 
@@ -340,7 +335,7 @@ describe("page router", () => {
       const page = await admin.page.create({ title: "Ziel Zwei" })
       await admin.page.createAlias({ title: "Weiterleitung", targetPageId: page?.id })
       await expect(admin.page.createAlias({ title: "Weiterleitung", targetPageId: page?.id })).rejects.toThrow(
-        /existiert bereits/,
+        "PAGE_ALIAS_CONFLICT",
       )
     })
 
@@ -348,7 +343,7 @@ describe("page router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const page = await admin.page.create({ title: "Ziel Drei" })
       await expect(admin.page.createAlias({ title: "Mannschaften", targetPageId: page?.id })).rejects.toThrow(
-        /reserviert/,
+        "PAGE_SLUG_RESERVED",
       )
     })
 
@@ -356,8 +351,7 @@ describe("page router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const page = await admin.page.create({ title: "Zielseite Zwei", status: "published" })
       await admin.page.createAlias({ title: "Umleitung", targetPageId: page?.id })
-      const caller = createTestCaller()
-      const result = await caller.page.getBySlug({ slug: "umleitung" })
+      const result = await admin.page.getBySlug({ slug: "umleitung" })
       expect(result).toHaveProperty("redirect", true)
       expect(result).toHaveProperty("targetSlug", "zielseite-zwei")
     })
@@ -395,7 +389,7 @@ describe("page router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const page = await admin.page.create({ title: "Löschbar" })
       await admin.page.delete({ id: page?.id })
-      await expect(admin.page.getById({ id: page?.id })).rejects.toThrow("Seite nicht gefunden")
+      await expect(admin.page.getById({ id: page?.id })).rejects.toThrow("PAGE_NOT_FOUND")
     })
 
     it("cascade-deletes children when parent is deleted", async () => {
@@ -403,7 +397,7 @@ describe("page router", () => {
       const parent = await admin.page.create({ title: "Eltern Lösch" })
       const child = await admin.page.create({ title: "Kind Lösch", parentId: parent?.id })
       await admin.page.delete({ id: parent?.id })
-      await expect(admin.page.getById({ id: child?.id })).rejects.toThrow("Seite nicht gefunden")
+      await expect(admin.page.getById({ id: child?.id })).rejects.toThrow("PAGE_NOT_FOUND")
     })
 
     it("rejects unauthenticated calls", async () => {

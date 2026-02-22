@@ -2,6 +2,7 @@ import { Skeleton } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
 import { lazy, Suspense } from "react"
 import { PageHeader } from "~/components/pageHeader"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 
 const StructureCanvas = lazy(() =>
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/_authed/seasons/$seasonId/structure")({
 })
 
 function StructurePage() {
+  usePermissionGuard("seasonStructure")
   const { t } = useTranslation("common")
   const { seasonId } = Route.useParams()
 

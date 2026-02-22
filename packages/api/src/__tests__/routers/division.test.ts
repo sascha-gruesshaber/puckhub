@@ -10,8 +10,8 @@ describe("division router", () => {
   describe("listBySeason", () => {
     it("returns empty list when no divisions exist", async () => {
       const season = await createSeason()
-      const caller = createTestCaller()
-      const result = await caller.division.listBySeason({ seasonId: season.id })
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.division.listBySeason({ seasonId: season.id })
       expect(result).toEqual([])
     })
 
@@ -22,8 +22,7 @@ describe("division router", () => {
       await admin.division.create({ seasonId: season.id, name: "Liga", sortOrder: 0 })
       await admin.division.create({ seasonId: season.id, name: "Zwischenrunde", sortOrder: 1 })
 
-      const caller = createTestCaller()
-      const result = await caller.division.listBySeason({ seasonId: season.id })
+      const result = await admin.division.listBySeason({ seasonId: season.id })
       expect(result).toHaveLength(3)
       expect(result[0]?.name).toBe("Liga")
       expect(result[1]?.name).toBe("Zwischenrunde")
@@ -45,8 +44,7 @@ describe("division router", () => {
       await admin.division.create({ seasonId: season1.id, name: "Liga A" })
       await admin.division.create({ seasonId: season2.id, name: "Liga B" })
 
-      const caller = createTestCaller()
-      const result = await caller.division.listBySeason({ seasonId: season2.id })
+      const result = await admin.division.listBySeason({ seasonId: season2.id })
       expect(result).toHaveLength(1)
       expect(result[0]?.name).toBe("Liga B")
     })
@@ -101,9 +99,8 @@ describe("division router", () => {
 
       await admin.division.delete({ id: division?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.division.getById({ id: division?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.division.getById({ id: division?.id })
+      expect(result).toBeNull()
     })
 
     it("rejects unauthenticated calls", async () => {

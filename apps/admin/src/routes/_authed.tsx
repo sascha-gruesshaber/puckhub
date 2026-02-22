@@ -4,8 +4,6 @@ import {
   GitBranch,
   Handshake,
   LayoutDashboard,
-  Lock,
-  LogOut,
   MapPin,
   Newspaper,
   Settings,
@@ -17,17 +15,16 @@ import {
   Users,
 } from "lucide-react"
 import { Suspense, useState } from "react"
-import { LanguagePicker } from "~/components/languagePicker"
 import { OrgPickerPage } from "~/components/orgPickerPage"
-import { OrgSwitcher } from "~/components/orgSwitcher"
 
 import { PageSkeleton } from "~/components/pageSkeleton"
-import { SeasonIndicator } from "~/components/seasonIndicator"
 import { SeasonPickerModal } from "~/components/seasonPickerModal"
+import { TopBar } from "~/components/topBar"
 import { OrganizationProvider, useOrganization } from "~/contexts/organizationContext"
+import { type NavPermission, PermissionsProvider, usePermissions } from "~/contexts/permissionsContext"
 import { SeasonProvider, useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
-import { signOut, useSession } from "../../lib/auth-client"
+import { useSession } from "../../lib/auth-client"
 import { trpc } from "../../lib/trpc"
 import "~/styles/dataList.css"
 
@@ -78,13 +75,13 @@ type RouteLink =
   | "/pages"
   | "/users"
   | "/settings"
-  | "/security"
 
 interface ActiveItem {
   to: RouteLink
   label: string
   icon: React.ReactNode
   exact?: boolean
+  permission?: NavPermission
 }
 
 interface DisabledItem {
@@ -92,12 +89,14 @@ interface DisabledItem {
   icon: React.ReactNode
   disabled: true
   badge?: string
+  permission?: NavPermission
 }
 
 interface SeasonScopedItem {
   label: string
   icon: React.ReactNode
   seasonRoute: "/seasons/$seasonId/structure" | "/seasons/$seasonId/roster"
+  permission?: NavPermission
 }
 
 type NavItem = ActiveItem | DisabledItem | SeasonScopedItem
@@ -155,7 +154,7 @@ function AuthedLayout() {
 
   return (
     <OrganizationProvider>
-      <OrgGate session={session} />
+      <OrgGate />
     </OrganizationProvider>
   )
 }
@@ -163,7 +162,7 @@ function AuthedLayout() {
 // ---------------------------------------------------------------------------
 // Org Gate — shows org picker if no active org, otherwise renders sidebar
 // ---------------------------------------------------------------------------
-function OrgGate({ session }: { session: { user: { email: string } } }) {
+function OrgGate() {
   const { organization, isLoading } = useOrganization()
 
   if (isLoading) {
@@ -194,7 +193,9 @@ function OrgGate({ session }: { session: { user: { email: string } } }) {
 
   return (
     <SeasonProvider>
-      <SidebarLayout session={session} />
+      <PermissionsProvider>
+        <SidebarLayout />
+      </PermissionsProvider>
     </SeasonProvider>
   )
 }
@@ -202,25 +203,26 @@ function OrgGate({ session }: { session: { user: { email: string } } }) {
 // ---------------------------------------------------------------------------
 // Sidebar + Content (extracted so useWorkingSeason is inside SeasonProvider)
 // ---------------------------------------------------------------------------
-function SidebarLayout({ session }: { session: { user: { email: string } } }) {
+function SidebarLayout() {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
   const { season } = useWorkingSeason()
   const { organization } = useOrganization()
   const { data: settings } = trpc.settings.get.useQuery()
+  const { canSee } = usePermissions()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerTarget, setPickerTarget] = useState<{ label: string; route: string }>({
     label: "",
     route: "",
   })
-  const translatedNavGroups = [
+  const allNavGroups: NavGroup[] = [
     {
       label: t("sidebar.groups.gameOperations"),
       items: [
-        { to: "/games", label: t("sidebar.items.games"), icon: <IconPuck /> },
-        { to: "/venues", label: t("sidebar.items.venues"), icon: <MapPin {...iconProps} /> },
-        { to: "/standings", label: t("sidebar.items.standings"), icon: <Trophy {...iconProps} /> },
-        { to: "/stats", label: t("sidebar.items.stats"), icon: <TrendingUp {...iconProps} /> },
+        { to: "/games", label: t("sidebar.items.games"), icon: <IconPuck />, permission: "games" },
+        { to: "/venues", label: t("sidebar.items.venues"), icon: <MapPin {...iconProps} />, permission: "venues" },
+        { to: "/standings", label: t("sidebar.items.standings"), icon: <Trophy {...iconProps} />, permission: "standings" },
+        { to: "/stats", label: t("sidebar.items.stats"), icon: <TrendingUp {...iconProps} />, permission: "stats" },
       ],
     },
     {
@@ -230,37 +232,38 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
           label: t("sidebar.items.seasonStructure"),
           icon: <GitBranch {...iconProps} />,
           seasonRoute: "/seasons/$seasonId/structure",
+          permission: "seasonStructure",
         },
-        { label: t("sidebar.items.roster"), icon: <Users {...iconProps} />, seasonRoute: "/seasons/$seasonId/roster" },
-        { to: "/teams", label: t("sidebar.items.teams"), icon: <Shield {...iconProps} /> },
-        { to: "/players", label: t("sidebar.items.players"), icon: <Users {...iconProps} /> },
-        { to: "/trikots", label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} /> },
+        { label: t("sidebar.items.roster"), icon: <Users {...iconProps} />, seasonRoute: "/seasons/$seasonId/roster", permission: "roster" },
+        { to: "/teams", label: t("sidebar.items.teams"), icon: <Shield {...iconProps} />, permission: "teams" },
+        { to: "/players", label: t("sidebar.items.players"), icon: <Users {...iconProps} />, permission: "players" },
+        { to: "/trikots", label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, permission: "trikots" },
       ],
     },
     {
       label: t("sidebar.groups.content"),
       items: [
-        { to: "/news", label: t("sidebar.items.news"), icon: <Newspaper {...iconProps} /> },
-        { to: "/pages", label: t("sidebar.items.pages"), icon: <FileText {...iconProps} /> },
-        { to: "/sponsors", label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} /> },
+        { to: "/news", label: t("sidebar.items.news"), icon: <Newspaper {...iconProps} />, permission: "news" },
+        { to: "/pages", label: t("sidebar.items.pages"), icon: <FileText {...iconProps} />, permission: "pages" },
+        { to: "/sponsors", label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} />, permission: "sponsors" },
       ],
     },
     {
       label: t("sidebar.groups.system"),
       items: [
-        { to: "/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} /> },
-        { to: "/settings", label: t("sidebar.items.settings"), icon: <Settings {...iconProps} /> },
-        { to: "/security", label: t("sidebar.items.security"), icon: <Lock {...iconProps} /> },
+        { to: "/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} />, permission: "users" },
+        { to: "/settings", label: t("sidebar.items.settings"), icon: <Settings {...iconProps} />, permission: "settings" },
       ],
     },
-  ] as NavGroup[]
+  ]
 
-  const initials = session.user.email ? session.user.email.substring(0, 2).toUpperCase() : "U"
-
-  async function handleSignOut() {
-    await signOut()
-    navigate({ to: "/login" })
-  }
+  // Filter nav groups by permissions — remove items the user cannot see, then remove empty groups
+  const translatedNavGroups = allNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.permission || canSee(item.permission)),
+    }))
+    .filter((group) => group.items.length > 0)
 
   function handleSeasonScopedClick(item: SeasonScopedItem) {
     if (season) {
@@ -305,8 +308,8 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
           <div
             className="flex items-center justify-center shrink-0 rounded-lg"
             style={{
-              width: 34,
-              height: 34,
+              width: "var(--brand-logo-size)",
+              height: "var(--brand-logo-size)",
               background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
               color: "#0C1929",
               fontWeight: 800,
@@ -339,14 +342,6 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
             </div>
           </div>
         </div>
-
-        {/* Organization Switcher */}
-        <div style={{ padding: "10px 12px 0" }}>
-          <OrgSwitcher />
-        </div>
-
-        {/* Season Indicator */}
-        <SeasonIndicator />
 
         {/* Navigation */}
         <nav className="sidebar-nav flex-1 overflow-y-auto" style={{ padding: "16px 12px" }}>
@@ -446,86 +441,18 @@ function SidebarLayout({ session }: { session: { user: { email: string } } }) {
             </div>
           ))}
         </nav>
-
-        {/* User */}
-        <div
-          className="shrink-0"
-          style={{
-            padding: "12px",
-            borderTop: "1px solid var(--sidebar-border)",
-          }}
-        >
-          {/* Language Toggle */}
-          <div style={{ marginBottom: 10 }}>
-            <LanguagePicker />
-          </div>
-
-          {/* User Info */}
-          <div
-            className="flex items-center gap-2.5"
-            style={{
-              padding: "8px 8px",
-              borderRadius: 9,
-              background: "rgba(255, 255, 255, 0.025)",
-            }}
-          >
-            <div
-              className="flex items-center justify-center shrink-0"
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: "linear-gradient(135deg, #1B365D, #264573)",
-                color: "#8B9DB8",
-                fontSize: 10.5,
-                fontWeight: 700,
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-              }}
-            >
-              {initials}
-            </div>
-            <span className="flex-1 truncate" style={{ fontSize: 12.5, fontWeight: 500, color: "#94A3B8" }}>
-              {session.user.email}
-            </span>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              title={t("logout")}
-              className="flex items-center justify-center shrink-0"
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--sidebar-text-muted)",
-                transition: "all 150ms ease",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.06)"
-                e.currentTarget.style.color = "#94A3B8"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent"
-                e.currentTarget.style.color = "var(--sidebar-text-muted)"
-              }}
-            >
-              <LogOut size={16} strokeWidth={1.5} />
-            </button>
-          </div>
-        </div>
       </aside>
 
       {/* ─── Main content ─── */}
       <main
-        className="flex-1 min-h-screen"
+        className="flex-1 min-h-screen flex flex-col"
         style={{
           marginLeft: "var(--sidebar-width)",
           background: "var(--content-bg)",
         }}
       >
-        <div className="content-enter" style={{ padding: "36px 44px" }}>
+        <TopBar />
+        <div className="content-enter flex-1" style={{ padding: "24px 44px" }}>
           <Suspense fallback={<PageSkeleton />}>
             <Outlet />
           </Suspense>

@@ -1,12 +1,12 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const trikotRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.trikot.findMany({
       where: { organizationId: ctx.organizationId },
       include: { template: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     })
   }),
 

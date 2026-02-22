@@ -3,6 +3,7 @@ import { CircleDot, Clock, ShieldBan } from "lucide-react"
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import { GoalDialog } from "./goalDialog"
 import { PenaltyDialog } from "./penaltyDialog"
@@ -38,6 +39,7 @@ const periodNames: Record<number, string> = {
 
 function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyTypes, readOnly }: GameTimelineProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
 
   const [goalDialogOpen, setGoalDialogOpen] = useState(false)
@@ -53,7 +55,7 @@ function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyType
       utils.gameReport.getReport.invalidate({ gameId })
       setDeleteTarget(null)
     },
-    onError: () => toast.error(t("gameReport.toast.error")),
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   // Group events by period and compute running score

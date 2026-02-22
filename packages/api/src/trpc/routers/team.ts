@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, requireRole, router } from "../init"
 
 export const teamRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -11,7 +11,7 @@ export const teamRouter = router({
           take: 1,
         },
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     })
   }),
 
@@ -43,7 +43,7 @@ export const teamRouter = router({
       return team
     }),
 
-  update: orgAdminProcedure
+  update: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -61,6 +61,9 @@ export const teamRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+
+      // team_manager can update their own team
+      requireRole(ctx, "team_manager", id)
 
       const updateResult = await ctx.db.team.updateMany({
         where: { id, organizationId: ctx.organizationId },

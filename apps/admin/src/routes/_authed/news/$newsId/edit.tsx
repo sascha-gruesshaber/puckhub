@@ -3,14 +3,18 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { trpc } from "@/trpc"
 import { NewsForm, type NewsFormData } from "~/components/newsForm"
 import { PageHeader } from "~/components/pageHeader"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/news/$newsId/edit")({
   component: EditNewsPage,
 })
 
 function EditNewsPage() {
+  usePermissionGuard("news")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { newsId } = Route.useParams()
   const navigate = useNavigate()
   const utils = trpc.useUtils()
@@ -25,7 +29,7 @@ function EditNewsPage() {
       navigate({ to: "/news" })
     },
     onError: (err) => {
-      toast.error(t("newsEdit.toast.saveError"), { description: err.message })
+      toast.error(t("newsEdit.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

@@ -54,20 +54,22 @@ describe("gameReport router", () => {
   // ── getPenaltyTypes ─────────────────────────────────────────────────
   describe("getPenaltyTypes", () => {
     it("returns empty list when no penalty types are seeded", async () => {
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.gameReport.getPenaltyTypes()
       expect(result).toEqual([])
     })
 
     it("returns penalty types ordered by code", async () => {
       const db = getTestDb()
-      await db.penaltyType.createMany({ data: [
-        { code: "MINOR", name: "Kleine Strafe", shortName: "2min", defaultMinutes: 2 },
-        { code: "DOUBLE_MINOR", name: "Doppelte Kleine Strafe", shortName: "2+2min", defaultMinutes: 4 },
-        { code: "MAJOR", name: "Große Strafe", shortName: "5min", defaultMinutes: 5 },
-      ] })
+      await db.penaltyType.createMany({
+        data: [
+          { code: "MINOR", name: "Kleine Strafe", shortName: "2min", defaultMinutes: 2 },
+          { code: "DOUBLE_MINOR", name: "Doppelte Kleine Strafe", shortName: "2+2min", defaultMinutes: 4 },
+          { code: "MAJOR", name: "Große Strafe", shortName: "5min", defaultMinutes: 5 },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.gameReport.getPenaltyTypes()
       expect(result).toHaveLength(3)
       expect(result[0]?.code).toBe("DOUBLE_MINOR")
@@ -79,10 +81,9 @@ describe("gameReport router", () => {
   // ── getReport ───────────────────────────────────────────────────────
   describe("getReport", () => {
     it("returns full game report with events, lineups, suspensions", async () => {
-      const { game } = await createReportFixtures()
+      const { admin, game } = await createReportFixtures()
 
-      const caller = createTestCaller()
-      const report = await caller.gameReport.getReport({ gameId: game.id })
+      const report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.id).toBe(game.id)
       expect(report.lineups).toHaveLength(2)
       expect(report.events).toHaveLength(0)
@@ -91,9 +92,9 @@ describe("gameReport router", () => {
     })
 
     it("throws NOT_FOUND for non-existent game", async () => {
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       await expect(caller.gameReport.getReport({ gameId: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "nicht gefunden",
+        "GAME_NOT_FOUND",
       )
     })
 
@@ -110,8 +111,7 @@ describe("gameReport router", () => {
         scorerId: homePlayer.id,
       })
 
-      const caller = createTestCaller()
-      const report = await caller.gameReport.getReport({ gameId: game.id })
+      const report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.events).toHaveLength(1)
       expect(report.events[0]?.eventType).toBe("goal")
     })
@@ -120,10 +120,9 @@ describe("gameReport router", () => {
   // ── getRosters ──────────────────────────────────────────────────────
   describe("getRosters", () => {
     it("returns home and away rosters for a season", async () => {
-      const { season, homeTeam, awayTeam } = await createReportFixtures()
+      const { admin, season, homeTeam, awayTeam } = await createReportFixtures()
 
-      const caller = createTestCaller()
-      const rosters = await caller.gameReport.getRosters({
+      const rosters = await admin.gameReport.getRosters({
         homeTeamId: homeTeam.id,
         awayTeamId: awayTeam.id,
         seasonId: season.id,
@@ -134,9 +133,8 @@ describe("gameReport router", () => {
     })
 
     it("returns empty rosters for non-existent season", async () => {
-      const { homeTeam, awayTeam } = await createReportFixtures()
-      const caller = createTestCaller()
-      const rosters = await caller.gameReport.getRosters({
+      const { admin, homeTeam, awayTeam } = await createReportFixtures()
+      const rosters = await admin.gameReport.getRosters({
         homeTeamId: homeTeam.id,
         awayTeamId: awayTeam.id,
         seasonId: "00000000-0000-0000-0000-000000000000",
@@ -170,8 +168,7 @@ describe("gameReport router", () => {
         players: [{ playerId: homePlayer.id, teamId: homeTeam.id, position: "goalie" }],
       })
 
-      const caller = createTestCaller()
-      const report = await caller.gameReport.getReport({ gameId: game.id })
+      const report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.lineups).toHaveLength(1)
       expect(report.lineups[0]?.position).toBe("goalie")
     })
@@ -185,7 +182,7 @@ describe("gameReport router", () => {
           gameId: game.id,
           players: [{ playerId: homePlayer.id, teamId: homeTeam.id, position: "forward" }],
         }),
-      ).rejects.toThrow("nicht bearbeitet")
+      ).rejects.toThrow("GAME_NOT_EDITABLE")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -218,8 +215,7 @@ describe("gameReport router", () => {
       expect(event?.eventType).toBe("goal")
 
       // Verify score was updated
-      const caller = createTestCaller()
-      const gameData = await caller.game.getById({ id: game.id })
+      const gameData = await admin.game.getById({ id: game.id })
       expect(gameData?.homeScore).toBe(1)
       expect(gameData?.awayScore).toBe(0)
     })
@@ -257,8 +253,7 @@ describe("gameReport router", () => {
         scorerId: homePlayer.id,
       })
 
-      const caller = createTestCaller()
-      const gameData = await caller.game.getById({ id: game.id })
+      const gameData = await admin.game.getById({ id: game.id })
       expect(gameData?.homeScore).toBe(2)
       expect(gameData?.awayScore).toBe(1)
     })
@@ -279,8 +274,7 @@ describe("gameReport router", () => {
 
       expect(event?.eventType).toBe("penalty")
 
-      const caller = createTestCaller()
-      const gameData = await caller.game.getById({ id: game.id })
+      const gameData = await admin.game.getById({ id: game.id })
       expect(gameData?.homeScore).toBeNull()
       expect(gameData?.awayScore).toBeNull()
     })
@@ -304,8 +298,7 @@ describe("gameReport router", () => {
         },
       })
 
-      const caller = createTestCaller()
-      const report = await caller.gameReport.getReport({ gameId: game.id })
+      const report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.suspensions).toHaveLength(1)
       expect(report.suspensions[0]?.suspensionType).toBe("match_penalty")
       expect(report.suspensions[0]?.suspendedGames).toBe(2)
@@ -325,7 +318,7 @@ describe("gameReport router", () => {
           timeSeconds: 0,
           scorerId: homePlayer.id,
         }),
-      ).rejects.toThrow("nicht bearbeitet")
+      ).rejects.toThrow("GAME_NOT_EDITABLE")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -391,8 +384,7 @@ describe("gameReport router", () => {
         teamId: awayTeam.id,
       })
 
-      const caller = createTestCaller()
-      const gameData = await caller.game.getById({ id: game.id })
+      const gameData = await admin.game.getById({ id: game.id })
       expect(gameData?.homeScore).toBe(0)
       expect(gameData?.awayScore).toBe(1)
     })
@@ -404,7 +396,7 @@ describe("gameReport router", () => {
           id: "00000000-0000-0000-0000-000000000000",
           period: 2,
         }),
-      ).rejects.toThrow("nicht gefunden")
+      ).rejects.toThrow("GAME_EVENT_NOT_FOUND")
     })
 
     it("rejects editing event of a completed game", async () => {
@@ -422,7 +414,7 @@ describe("gameReport router", () => {
 
       await admin.game.complete({ id: game.id })
 
-      await expect(admin.gameReport.updateEvent({ id: event!.id, period: 3 })).rejects.toThrow("nicht bearbeitet")
+      await expect(admin.gameReport.updateEvent({ id: event!.id, period: 3 })).rejects.toThrow("GAME_NOT_EDITABLE")
     })
   })
 
@@ -441,13 +433,12 @@ describe("gameReport router", () => {
         scorerId: homePlayer.id,
       })
 
-      const caller = createTestCaller()
-      let gameData = await caller.game.getById({ id: game.id })
+      let gameData = await admin.game.getById({ id: game.id })
       expect(gameData?.homeScore).toBe(1)
 
       await admin.gameReport.deleteEvent({ id: event!.id })
 
-      gameData = await caller.game.getById({ id: game.id })
+      gameData = await admin.game.getById({ id: game.id })
       expect(gameData?.homeScore).toBe(0)
       expect(gameData?.awayScore).toBe(0)
     })
@@ -470,15 +461,14 @@ describe("gameReport router", () => {
         },
       })
 
-      const caller = createTestCaller()
-      let report = await caller.gameReport.getReport({ gameId: game.id })
+      let report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.suspensions).toHaveLength(1)
       expect(report.events).toHaveLength(1)
 
       // Delete the penalty event — should also delete the suspension
       await admin.gameReport.deleteEvent({ id: report.events[0]!.id })
 
-      report = await caller.gameReport.getReport({ gameId: game.id })
+      report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.events).toHaveLength(0)
       expect(report.suspensions).toHaveLength(0)
     })
@@ -486,7 +476,7 @@ describe("gameReport router", () => {
     it("throws NOT_FOUND for non-existent event", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.gameReport.deleteEvent({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "nicht gefunden",
+        "GAME_EVENT_NOT_FOUND",
       )
     })
 
@@ -505,7 +495,7 @@ describe("gameReport router", () => {
 
       await admin.game.complete({ id: game.id })
 
-      await expect(admin.gameReport.deleteEvent({ id: event!.id })).rejects.toThrow("nicht bearbeitet")
+      await expect(admin.gameReport.deleteEvent({ id: event!.id })).rejects.toThrow("GAME_NOT_EDITABLE")
     })
   })
 
@@ -540,7 +530,7 @@ describe("gameReport router", () => {
           suspensionType: "game_misconduct",
           suspendedGames: 1,
         }),
-      ).rejects.toThrow("nicht bearbeitet")
+      ).rejects.toThrow("GAME_NOT_EDITABLE")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -588,7 +578,7 @@ describe("gameReport router", () => {
           id: "00000000-0000-0000-0000-000000000000",
           suspendedGames: 2,
         }),
-      ).rejects.toThrow("nicht gefunden")
+      ).rejects.toThrow("GAME_SUSPENSION_NOT_FOUND")
     })
 
     it("rejects updating suspension of completed game", async () => {
@@ -605,7 +595,7 @@ describe("gameReport router", () => {
       await admin.game.complete({ id: game.id })
 
       await expect(admin.gameReport.updateSuspension({ id: suspension!.id, suspendedGames: 3 })).rejects.toThrow(
-        "nicht bearbeitet",
+        "GAME_NOT_EDITABLE",
       )
     })
   })
@@ -625,8 +615,7 @@ describe("gameReport router", () => {
 
       await admin.gameReport.deleteSuspension({ id: suspension!.id })
 
-      const caller = createTestCaller()
-      const report = await caller.gameReport.getReport({ gameId: game.id })
+      const report = await admin.gameReport.getReport({ gameId: game.id })
       expect(report.suspensions).toHaveLength(0)
     })
 
@@ -643,7 +632,7 @@ describe("gameReport router", () => {
 
       await admin.game.complete({ id: game.id })
 
-      await expect(admin.gameReport.deleteSuspension({ id: suspension!.id })).rejects.toThrow("nicht bearbeitet")
+      await expect(admin.gameReport.deleteSuspension({ id: suspension!.id })).rejects.toThrow("GAME_NOT_EDITABLE")
     })
   })
 })

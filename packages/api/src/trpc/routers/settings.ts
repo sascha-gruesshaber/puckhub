@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const settingsRouter = router({
   get: orgProcedure.query(async ({ ctx }) => {
@@ -12,8 +12,8 @@ export const settingsRouter = router({
   update: orgAdminProcedure
     .input(
       z.object({
-        leagueName: z.string().min(1, 'Liga-Name ist erforderlich'),
-        leagueShortName: z.string().min(1, 'Kurzname ist erforderlich'),
+        leagueName: z.string().min(1, "Liga-Name ist erforderlich"),
+        leagueShortName: z.string().min(1, "Kurzname ist erforderlich"),
         locale: z.string().min(1),
         timezone: z.string().min(1),
         pointsWin: z.number().int().min(0),

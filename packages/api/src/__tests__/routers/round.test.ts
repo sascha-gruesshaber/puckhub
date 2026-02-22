@@ -12,8 +12,8 @@ describe("round router", () => {
   describe("listByDivision", () => {
     it("returns empty list when no rounds exist", async () => {
       const division = await createDivision()
-      const caller = createTestCaller()
-      const result = await caller.round.listByDivision({ divisionId: division.id })
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.round.listByDivision({ divisionId: division.id })
       expect(result).toEqual([])
     })
 
@@ -23,8 +23,7 @@ describe("round router", () => {
       await admin.round.create({ divisionId: division.id, name: "Playoffs", sortOrder: 1 })
       await admin.round.create({ divisionId: division.id, name: "Hauptrunde", sortOrder: 0 })
 
-      const caller = createTestCaller()
-      const result = await caller.round.listByDivision({ divisionId: division.id })
+      const result = await admin.round.listByDivision({ divisionId: division.id })
       expect(result).toHaveLength(2)
       expect(result[0]?.name).toBe("Hauptrunde")
       expect(result[1]?.name).toBe("Playoffs")
@@ -127,9 +126,8 @@ describe("round router", () => {
 
       await admin.round.delete({ id: round?.id })
 
-      const caller = createTestCaller()
-      const result = await caller.round.getById({ id: round?.id })
-      expect(result).toBeUndefined()
+      const result = await admin.round.getById({ id: round?.id })
+      expect(result).toBeNull()
     })
 
     it("rejects unauthenticated calls", async () => {

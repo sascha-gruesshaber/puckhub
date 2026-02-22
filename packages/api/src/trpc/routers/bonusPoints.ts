@@ -1,6 +1,6 @@
-import { recalculateStandings } from '@puckhub/db/services'
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { recalculateStandings } from "@puckhub/db/services"
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const bonusPointsRouter = router({
   listByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -10,7 +10,7 @@ export const bonusPointsRouter = router({
         organizationId: ctx.organizationId,
       },
       include: { team: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     })
   }),
 

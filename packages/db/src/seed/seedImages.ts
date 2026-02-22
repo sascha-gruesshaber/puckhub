@@ -12,22 +12,26 @@ const API_BASE_URL = process.env.AUTH_URL || `http://localhost:${process.env.API
 // File I/O helpers
 // ---------------------------------------------------------------------------
 
-async function writePng(folder: "logos" | "photos", svg: string, width: number, height: number): Promise<string> {
-  const dir = join(UPLOADS_DIR, folder)
+async function writePng(
+  orgId: string,
+  folder: "logos" | "photos",
+  svg: string,
+  width: number,
+  height: number,
+): Promise<string> {
+  const dir = join(UPLOADS_DIR, orgId, folder)
   await mkdir(dir, { recursive: true })
   const filename = `${randomUUID()}.png`
   const pngBuffer = await sharp(Buffer.from(svg)).resize(width, height).png().toBuffer()
   await writeFile(join(dir, filename), pngBuffer)
-  return `${API_BASE_URL}/api/uploads/${folder}/${filename}`
+  return `${API_BASE_URL}/api/uploads/${orgId}/${folder}/${filename}`
 }
 
-/** Remove existing seed images before re-generating */
-export async function cleanUploads(): Promise<void> {
-  for (const folder of ["logos", "photos"]) {
-    const dir = join(UPLOADS_DIR, folder)
-    await rm(dir, { recursive: true, force: true })
-    await mkdir(dir, { recursive: true })
-  }
+/** Remove existing seed images for an organization before re-generating */
+export async function cleanOrgUploads(orgId: string): Promise<void> {
+  const dir = join(UPLOADS_DIR, orgId)
+  await rm(dir, { recursive: true, force: true })
+  await mkdir(dir, { recursive: true })
 }
 
 // ---------------------------------------------------------------------------
@@ -195,6 +199,7 @@ function escapeXml(s: string): string {
 // ---------------------------------------------------------------------------
 
 export async function generateSeedImages(params: {
+  orgId: string
   teams: Array<{ shortName: string; primaryColor: string; secondaryColor: string }>
   players: Array<{
     firstName: string
@@ -214,7 +219,7 @@ export async function generateSeedImages(params: {
   const teamLogoUrls: string[] = []
   for (const team of params.teams) {
     const svg = generateTeamLogoSvg(team.shortName, team.primaryColor, team.secondaryColor)
-    teamLogoUrls.push(await writePng("logos", svg, 400, 480))
+    teamLogoUrls.push(await writePng(params.orgId, "logos", svg, 400, 480))
   }
 
   const playerPhotoUrls: string[] = []
@@ -228,13 +233,13 @@ export async function generateSeedImages(params: {
       team.secondaryColor,
       player.position,
     )
-    playerPhotoUrls.push(await writePng("photos", svg, 400, 400))
+    playerPhotoUrls.push(await writePng(params.orgId, "photos", svg, 400, 400))
   }
 
   const sponsorLogoUrls: string[] = []
   for (let i = 0; i < params.sponsors.length; i++) {
     const svg = generateSponsorLogoSvg(params.sponsors[i]!.name, i)
-    sponsorLogoUrls.push(await writePng("logos", svg, 600, 200))
+    sponsorLogoUrls.push(await writePng(params.orgId, "logos", svg, 600, 200))
   }
 
   console.log(

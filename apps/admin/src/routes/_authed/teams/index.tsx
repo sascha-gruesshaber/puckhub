@@ -28,8 +28,10 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { TrikotPreview } from "~/components/trikotPreview"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/teams/")({
@@ -74,7 +76,9 @@ const emptyForm: TeamForm = {
 // Main page
 // ---------------------------------------------------------------------------
 function TeamsPage() {
+  usePermissionGuard("teams")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { search: searchParam, division } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -134,7 +138,7 @@ function TeamsPage() {
       toast.success(t("teamsPage.toast.created"))
     },
     onError: (err) => {
-      toast.error(t("teamsPage.toast.createError"), { description: err.message })
+      toast.error(t("teamsPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -145,7 +149,7 @@ function TeamsPage() {
       toast.success(t("teamsPage.toast.updated"))
     },
     onError: (err) => {
-      toast.error(t("teamsPage.toast.saveError"), { description: err.message })
+      toast.error(t("teamsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -157,7 +161,7 @@ function TeamsPage() {
       toast.success(t("teamsPage.toast.deleted"))
     },
     onError: (err) => {
-      toast.error(t("teamsPage.toast.deleteError"), { description: err.message })
+      toast.error(t("teamsPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -168,7 +172,7 @@ function TeamsPage() {
       setAssignTrikotName("")
       toast.success(t("teamsPage.trikots.toast.assigned"))
     },
-    onError: (err) => toast.error(t("teamsPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("teamsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateAssignmentMutation = trpc.teamTrikot.update.useMutation({
@@ -177,7 +181,7 @@ function TeamsPage() {
       setEditingAssignment(null)
       toast.success(t("teamsPage.trikots.toast.assignmentUpdated"))
     },
-    onError: (err) => toast.error(t("teamsPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("teamsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const removeAssignmentMutation = trpc.teamTrikot.remove.useMutation({
@@ -185,7 +189,7 @@ function TeamsPage() {
       utils.teamTrikot.listByTeam.invalidate({ teamId: trikotTeamId! })
       toast.success(t("teamsPage.trikots.toast.assignmentRemoved"))
     },
-    onError: (err) => toast.error(t("teamsPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("teamsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function openTrikotDialog(teamId: string) {

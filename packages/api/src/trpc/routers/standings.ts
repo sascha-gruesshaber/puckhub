@@ -9,12 +9,7 @@ export const standingsRouter = router({
         roundId: input.roundId,
         organizationId: ctx.organizationId,
       },
-      orderBy: [
-        { totalPoints: "desc" },
-        { gamesPlayed: "asc" },
-        { goalDifference: "desc" },
-        { goalsFor: "desc" },
-      ],
+      orderBy: [{ totalPoints: "desc" }, { gamesPlayed: "asc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
     })
   }),
 

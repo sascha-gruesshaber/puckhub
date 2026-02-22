@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const teamTrikotRouter = router({
   listByTeam: orgProcedure.input(z.object({ teamId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -9,7 +9,7 @@ export const teamTrikotRouter = router({
         organizationId: ctx.organizationId,
       },
       include: { trikot: { include: { template: true } } },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     })
   }),
 
@@ -20,7 +20,7 @@ export const teamTrikotRouter = router({
         organizationId: ctx.organizationId,
       },
       include: { team: true },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     })
   }),
 

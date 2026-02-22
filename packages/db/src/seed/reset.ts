@@ -6,7 +6,7 @@ import { config } from "dotenv"
 const seedDir = dirname(fileURLToPath(import.meta.url))
 config({ path: resolve(seedDir, "../../../../.env") })
 
-import { PrismaClient } from "@prisma/client"
+import { createPrismaClientWithUrl } from "../index"
 
 async function reset() {
   const force = process.argv.includes("--force")
@@ -23,7 +23,7 @@ async function reset() {
     }
   }
 
-  const db = new PrismaClient()
+  const db = createPrismaClientWithUrl(process.env.DATABASE_URL!)
 
   console.log("Truncating all tables...")
   await db.$executeRawUnsafe(`

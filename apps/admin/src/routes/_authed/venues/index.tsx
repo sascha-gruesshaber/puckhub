@@ -26,7 +26,9 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/venues/")({
@@ -55,7 +57,9 @@ const emptyForm: VenueForm = {
 }
 
 function VenuesPage() {
+  usePermissionGuard("venues")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
@@ -126,7 +130,7 @@ function VenuesPage() {
       setForm(emptyForm)
       toast.success(t("venuesPage.toast.created"))
     },
-    onError: (e) => toast.error(t("venuesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("venuesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
   const updateVenue = trpc.venue.update.useMutation({
@@ -138,7 +142,7 @@ function VenuesPage() {
       setForm(emptyForm)
       toast.success(t("venuesPage.toast.updated"))
     },
-    onError: (e) => toast.error(t("venuesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("venuesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
   const deleteVenue = trpc.venue.delete.useMutation({
@@ -148,7 +152,7 @@ function VenuesPage() {
       setDeleteVenueId(null)
       toast.success(t("venuesPage.toast.deleted"))
     },
-    onError: (e) => toast.error(t("venuesPage.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("venuesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
   function openCreate() {

@@ -6,6 +6,7 @@ import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
 import type { Contract } from "~/components/playerTimeline/playerTimeline"
 import { PlayerTimeline, TimelineSkeleton } from "~/components/playerTimeline/playerTimeline"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/players/$playerId/history")({
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_authed/players/$playerId/history")({
 // ---------------------------------------------------------------------------
 
 function PlayerHistoryPage() {
+  usePermissionGuard("players")
   const { t } = useTranslation("common")
   const { playerId } = Route.useParams()
 

@@ -2,6 +2,7 @@ import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, In
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { PlayerCombobox } from "~/components/playerCombobox"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import type { TeamInfo } from "./gameTimeline"
 
@@ -51,6 +52,7 @@ function TeamToggleButton({ team, isSelected, onClick }: { team: TeamInfo; isSel
 
 function SuspensionDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups }: SuspensionDialogProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
 
   const [teamId, setTeamId] = useState(homeTeam.id)
@@ -76,7 +78,7 @@ function SuspensionDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, line
       utils.gameReport.getReport.invalidate({ gameId })
       onOpenChange(false)
     },
-    onError: () => toast.error(t("gameReport.toast.error")),
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const teamPlayers = lineups.filter((l) => l.teamId === teamId)

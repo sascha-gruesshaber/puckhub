@@ -14,6 +14,7 @@ import {
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { PlayerCombobox } from "~/components/playerCombobox"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
 interface SignPlayerDialogProps {
@@ -26,6 +27,7 @@ interface SignPlayerDialogProps {
 
 function SignPlayerDialog({ open, onOpenChange, teamId, seasonId, existingPlayerIds }: SignPlayerDialogProps) {
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const [selectedPlayerId, setSelectedPlayerId] = useState("")
   const [position, setPosition] = useState<"forward" | "defense" | "goalie">("forward")
   const [jerseyNumber, setJerseyNumber] = useState("")
@@ -41,7 +43,7 @@ function SignPlayerDialog({ open, onOpenChange, teamId, seasonId, existingPlayer
       toast.success(t("rosterPage.signDialog.toast.signed"))
     },
     onError: (err) => {
-      toast.error(t("rosterPage.signDialog.toast.signError"), { description: err.message })
+      toast.error(t("rosterPage.signDialog.toast.signError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

@@ -98,7 +98,7 @@ describe("news router", () => {
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.news.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "News nicht gefunden",
+        "NEWS_NOT_FOUND",
       )
     })
   })
@@ -191,7 +191,7 @@ describe("news router", () => {
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.news.update({ id: "00000000-0000-0000-0000-000000000000", title: "X" })).rejects.toThrow(
-        "News nicht gefunden",
+        "NEWS_NOT_FOUND",
       )
     })
 
@@ -211,7 +211,7 @@ describe("news router", () => {
 
       await admin.news.delete({ id: news?.id })
 
-      await expect(admin.news.getById({ id: news?.id })).rejects.toThrow("News nicht gefunden")
+      await expect(admin.news.getById({ id: news?.id })).rejects.toThrow("NEWS_NOT_FOUND")
     })
 
     it("rejects unauthenticated calls", async () => {

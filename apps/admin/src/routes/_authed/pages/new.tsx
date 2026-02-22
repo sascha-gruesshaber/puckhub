@@ -3,7 +3,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { trpc } from "@/trpc"
 import { PageForm, type PageFormData } from "~/components/pageForm"
 import { PageHeader } from "~/components/pageHeader"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/pages/new")({
   component: NewPagePage,
@@ -13,7 +15,9 @@ export const Route = createFileRoute("/_authed/pages/new")({
 })
 
 function NewPagePage() {
+  usePermissionGuard("pages")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const navigate = useNavigate()
   const { parent } = Route.useSearch()
   const utils = trpc.useUtils()
@@ -25,7 +29,7 @@ function NewPagePage() {
       navigate({ to: "/pages" })
     },
     onError: (err) => {
-      toast.error(t("pagesCreate.toast.createError"), { description: err.message })
+      toast.error(t("pagesCreate.toast.createError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

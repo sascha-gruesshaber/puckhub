@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const divisionRouter = router({
   listBySeason: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -8,7 +8,7 @@ export const divisionRouter = router({
         seasonId: input.seasonId,
         organizationId: ctx.organizationId,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     })
   }),
 

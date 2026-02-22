@@ -265,7 +265,13 @@ export const statsRouter = router({
         const key = `${row.penaltyPlayerId}:${row.teamId}`
         let entry = playerMap.get(key)
         if (!entry) {
-          entry = { playerId: row.penaltyPlayerId, teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
+          entry = {
+            playerId: row.penaltyPlayerId,
+            teamId: row.teamId,
+            totalMinutes: 0,
+            totalCount: 0,
+            byType: new Map(),
+          }
           playerMap.set(key, entry)
         }
         const mins = Number(row.penaltyMinutes ?? 0)
@@ -287,10 +293,7 @@ export const statsRouter = router({
 
       // Fetch player and team names
       const playerIds = [...new Set(Array.from(playerMap.values()).map((p) => p.playerId))]
-      const players =
-        playerIds.length > 0
-          ? await ctx.db.player.findMany({ where: { id: { in: playerIds } } })
-          : []
+      const players = playerIds.length > 0 ? await ctx.db.player.findMany({ where: { id: { in: playerIds } } }) : []
       const playerLookup = new Map(players.map((p: any) => [p.id, p]))
 
       const teamIds = [...new Set(Array.from(playerMap.values()).map((p) => p.teamId))]

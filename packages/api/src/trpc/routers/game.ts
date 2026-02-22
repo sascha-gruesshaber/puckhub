@@ -1,8 +1,9 @@
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
-import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import { generateRoundRobin } from "../../services/schedulerService"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgProcedure, requireRole, router } from "../init"
 
 const gameStatusValues = ["scheduled", "completed", "cancelled"] as const
 
@@ -22,10 +23,7 @@ async function getSeasonIdFromRound(db: any, roundId: string): Promise<string | 
 
 async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, homeTeamId: string, awayTeamId: string) {
   if (homeTeamId === awayTeamId) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Home and away team must be different.",
-    })
+    throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_TEAMS_IDENTICAL)
   }
 
   const round = await ctx.db.round.findUnique({
@@ -33,7 +31,7 @@ async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, hom
   })
 
   if (!round) {
-    throw new TRPCError({ code: "NOT_FOUND", message: "Runde nicht gefunden." })
+    throw createAppError("NOT_FOUND", APP_ERROR_CODES.ROUND_NOT_FOUND)
   }
 
   const rows = await ctx.db.teamDivision.findMany({
@@ -46,10 +44,7 @@ async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, hom
 
   const teamIds = new Set(rows.map((r: any) => r.teamId))
   if (!teamIds.has(homeTeamId) || !teamIds.has(awayTeamId)) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Both teams must belong to the selected round division.",
-    })
+    throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_TEAMS_NOT_IN_DIVISION)
   }
 }
 
@@ -160,7 +155,7 @@ export const gameRouter = router({
     })
   }),
 
-  create: orgAdminProcedure
+  create: orgProcedure
     .input(
       z.object({
         roundId: z.string().uuid(),
@@ -173,6 +168,8 @@ export const gameRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // game_manager: check for both teams
+      requireRole(ctx, "game_manager", input.homeTeamId)
       await assertTeamsAllowedForRound(ctx, input.roundId, input.homeTeamId, input.awayTeamId)
       const homeTeam = await ctx.db.team.findUnique({
         where: { id: input.homeTeamId },
@@ -195,7 +192,7 @@ export const gameRouter = router({
       return game
     }),
 
-  update: orgAdminProcedure
+  update: orgProcedure
     .input(
       z.object({
         id: z.string().uuid(),
@@ -215,13 +212,19 @@ export const gameRouter = router({
         where: { id },
       })
       if (!existing) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
       }
+
+      // game_manager: check for both teams of the game
+      if (
+        !ctx.hasRole("game_manager", existing.homeTeamId) &&
+        !ctx.hasRole("game_manager", existing.awayTeamId)
+      ) {
+        requireRole(ctx, "game_manager")
+      }
+
       if (existing.status === "completed" || existing.status === "cancelled") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Abgeschlossene oder abgesagte Spiele können nicht bearbeitet werden.",
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_NOT_EDITABLE)
       }
 
       const nextRoundId = data.roundId ?? existing.roundId
@@ -242,18 +245,21 @@ export const gameRouter = router({
       return game
     }),
 
-  complete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  complete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const game = await ctx.db.game.findUnique({
       where: { id: input.id },
     })
     if (!game) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
     }
+
+    // game_manager: check for either team
+    if (!ctx.hasRole("game_manager", game.homeTeamId) && !ctx.hasRole("game_manager", game.awayTeamId)) {
+      requireRole(ctx, "game_manager")
+    }
+
     if (game.status === "completed" || game.status === "cancelled") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Spiel ist bereits abgeschlossen oder abgesagt.",
-      })
+      throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_ALREADY_FINALIZED)
     }
 
     // Validate both teams have at least 1 player in lineups
@@ -263,10 +269,7 @@ export const gameRouter = router({
     const homeLineup = lineups.filter((l: any) => l.teamId === game.homeTeamId)
     const awayLineup = lineups.filter((l: any) => l.teamId === game.awayTeamId)
     if (homeLineup.length === 0 || awayLineup.length === 0) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Beide Teams müssen eine Aufstellung haben.",
-      })
+      throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_LINEUPS_MISSING)
     }
 
     const updated = await ctx.db.game.update({
@@ -333,18 +336,21 @@ export const gameRouter = router({
     return updated
   }),
 
-  cancel: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  cancel: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const game = await ctx.db.game.findUnique({
       where: { id: input.id },
     })
     if (!game) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
     }
+
+    // game_manager: check for either team
+    if (!ctx.hasRole("game_manager", game.homeTeamId) && !ctx.hasRole("game_manager", game.awayTeamId)) {
+      requireRole(ctx, "game_manager")
+    }
+
     if (game.status !== "scheduled") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Nur geplante Spiele können abgesagt werden.",
-      })
+      throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_CANNOT_CANCEL)
     }
 
     // Remove all game report data (lineups, events, suspensions) and reset scores
@@ -366,18 +372,21 @@ export const gameRouter = router({
     return updated
   }),
 
-  reopen: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  reopen: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const game = await ctx.db.game.findUnique({
       where: { id: input.id },
     })
     if (!game) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
     }
+
+    // game_manager: check for either team
+    if (!ctx.hasRole("game_manager", game.homeTeamId) && !ctx.hasRole("game_manager", game.awayTeamId)) {
+      requireRole(ctx, "game_manager")
+    }
+
     if (game.status !== "completed" && game.status !== "cancelled") {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "Nur abgeschlossene oder abgesagte Spiele können wieder geöffnet werden.",
-      })
+      throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_CANNOT_REOPEN)
     }
 
     const wasCompleted = game.status === "completed"
@@ -415,7 +424,7 @@ export const gameRouter = router({
     return updated
   }),
 
-  generateDoubleRoundRobin: orgAdminProcedure
+  generateDoubleRoundRobin: orgProcedure
     .input(
       z.object({
         seasonId: z.string().uuid(),
@@ -430,25 +439,21 @@ export const gameRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "game_manager")
+
       const division = await ctx.db.division.findUnique({
         where: { id: input.divisionId },
       })
 
       if (!division || division.seasonId !== input.seasonId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Division does not belong to the selected season.",
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_DIVISION_SEASON_MISMATCH)
       }
 
       const round = await ctx.db.round.findUnique({
         where: { id: input.roundId },
       })
       if (!round || round.divisionId !== input.divisionId) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Round does not belong to the selected division.",
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_ROUND_DIVISION_MISMATCH)
       }
 
       const assignments = await ctx.db.teamDivision.findMany({
@@ -458,10 +463,7 @@ export const gameRouter = router({
 
       const teamIds = Array.from(new Set(assignments.map((a: any) => a.teamId)))
       if (teamIds.length < 2) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "At least two teams are required to generate fixtures.",
-        })
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_INSUFFICIENT_TEAMS)
       }
 
       const fixtures = generateRoundRobin(teamIds)
@@ -501,9 +503,7 @@ export const gameRouter = router({
       // Prisma createMany doesn't return created records, so we use a transaction with individual creates
       let created: any[] = []
       if (values.length > 0) {
-        created = await ctx.db.$transaction(
-          values.map((v: any) => ctx.db.game.create({ data: v })),
-        )
+        created = await ctx.db.$transaction(values.map((v: any) => ctx.db.game.create({ data: v })))
       }
 
       return {
@@ -514,14 +514,16 @@ export const gameRouter = router({
       }
     }),
 
-  deleteMany: orgAdminProcedure
+  deleteMany: orgProcedure
     .input(z.object({ ids: z.array(z.string().uuid()).min(1) }))
     .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "game_manager")
       await ctx.db.game.deleteMany({ where: { id: { in: input.ids } } })
       return { success: true }
     }),
 
-  delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+  delete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    requireRole(ctx, "game_manager")
     await ctx.db.game.delete({ where: { id: input.id } })
   }),
 })

@@ -9,7 +9,9 @@ import { GameSuspensionList } from "~/components/gameReport/gameSuspensionList"
 import { GameTimeline } from "~/components/gameReport/gameTimeline"
 import { LineupEditor } from "~/components/gameReport/lineupEditor"
 import { SuspensionWarnings } from "~/components/gameReport/suspensionWarnings"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/games/$gameId/report")({
   loader: async ({ context, params }) => {
@@ -21,7 +23,9 @@ export const Route = createFileRoute("/_authed/games/$gameId/report")({
 type Tab = "lineup" | "report"
 
 function GameReportPage() {
+  usePermissionGuard("games")
   const { t, i18n } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { gameId } = Route.useParams()
   const utils = trpc.useUtils()
   const [activeTab, setActiveTab] = useState<Tab>("report")
@@ -43,7 +47,7 @@ function GameReportPage() {
       setShowCompleteConfirm(false)
       toast.success(t("gameReport.toast.gameCompleted"))
     },
-    onError: (e) => toast.error(t("gameReport.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
   const reopenGame = trpc.game.reopen.useMutation({
@@ -53,7 +57,7 @@ function GameReportPage() {
       setShowReopenConfirm(false)
       toast.success(t("gameReport.toast.gameReopened"))
     },
-    onError: (e) => toast.error(t("gameReport.toast.error"), { description: e.message }),
+    onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
   const rostersQuery = trpc.gameReport.getRosters.useQuery(

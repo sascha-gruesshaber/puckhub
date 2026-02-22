@@ -12,7 +12,9 @@ import { RosterTable } from "~/components/roster/rosterTable"
 import { SignPlayerDialog } from "~/components/roster/signPlayerDialog"
 import { TransferDialog } from "~/components/roster/transferDialog"
 import { TeamFilterPills } from "~/components/teamFilterPills"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/seasons/$seasonId/roster")({
   validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
@@ -26,7 +28,9 @@ export const Route = createFileRoute("/_authed/seasons/$seasonId/roster")({
 })
 
 function RosterPage() {
+  usePermissionGuard("roster")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
   const { seasonId } = Route.useParams()
 
   // State
@@ -100,7 +104,7 @@ function RosterPage() {
       toast.success(t("rosterPage.toast.released"))
     },
     onError: (err) => {
-      toast.error(t("rosterPage.toast.releaseError"), { description: err.message })
+      toast.error(t("rosterPage.toast.releaseError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 

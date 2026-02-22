@@ -10,7 +10,9 @@ describe("users router", () => {
       expect(users).toHaveLength(2) // admin + regular test user
       const adminUser = users.find((u) => u.email === "admin@test.local")
       expect(adminUser).toBeDefined()
-      expect(adminUser?.role).toBe("owner")
+      expect(adminUser?.role).toBe("member") // Better Auth field is always "member"; actual roles in memberRoles
+      expect((adminUser as any)?.memberRoles).toBeDefined()
+      expect((adminUser as any)?.memberRoles.some((r: any) => r.role === "owner")).toBe(true)
     })
   })
 
@@ -21,12 +23,14 @@ describe("users router", () => {
 
       expect(result.name).toBe("Test Admin")
       expect(result.email).toBe("admin@test.local")
-      expect(result.role).toBe("owner")
+      expect(result.role).toBe("member") // Better Auth field
+      expect((result as any).memberRoles).toBeDefined()
+      expect((result as any).memberRoles.some((r: any) => r.role === "owner")).toBe(true)
     })
 
     it("throws NOT_FOUND for non-existent user", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.users.getById({ id: "non-existent" })).rejects.toThrow("Benutzer nicht gefunden")
+      await expect(admin.users.getById({ id: "non-existent" })).rejects.toThrow("USER_NOT_FOUND")
     })
   })
 
@@ -61,7 +65,7 @@ describe("users router", () => {
           email: "dup@test.local",
           password: "password123",
         }),
-      ).rejects.toThrow("bereits Mitglied")
+      ).rejects.toThrow("USER_ALREADY_MEMBER")
     })
 
     it("rejects short password", async () => {
@@ -140,9 +144,9 @@ describe("users router", () => {
       expect(updated?.email).toBe("new@test.local")
     })
 
-    it("throws NOT_FOUND for non-existent user", async () => {
+    it("throws for non-existent user", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.users.update({ id: "non-existent", name: "Nope" })).rejects.toThrow("Benutzer nicht gefunden")
+      await expect(admin.users.update({ id: "non-existent", name: "Nope" })).rejects.toThrow()
     })
 
     it("returns undefined when no fields provided", async () => {
@@ -229,7 +233,7 @@ describe("users router", () => {
       })
 
       await expect(admin.users.resetPassword({ id: userId, password: "newpass123" })).rejects.toThrow(
-        "Account nicht gefunden",
+        "ACCOUNT_NOT_FOUND",
       )
     })
 

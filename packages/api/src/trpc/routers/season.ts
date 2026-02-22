@@ -1,6 +1,7 @@
-import { TRPCError } from '@trpc/server'
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const dateInputRegex = /^\d{4}-\d{2}-\d{2}$/
 const seasonDateSchema = z.string().regex(dateInputRegex)
@@ -26,7 +27,7 @@ async function resolveCurrentSeason(db: any, organizationId: string) {
       seasonStart: { lte: now },
       seasonEnd: { gte: now },
     },
-    orderBy: { seasonStart: 'desc' },
+    orderBy: { seasonStart: "desc" },
   })
   if (inRange) return inRange
 
@@ -35,13 +36,13 @@ async function resolveCurrentSeason(db: any, organizationId: string) {
       organizationId,
       seasonEnd: { lte: now },
     },
-    orderBy: { seasonEnd: 'desc' },
+    orderBy: { seasonEnd: "desc" },
   })
   if (latestPast) return latestPast
 
   return db.season.findFirst({
     where: { organizationId },
-    orderBy: { seasonStart: 'asc' },
+    orderBy: { seasonStart: "asc" },
   })
 }
 
@@ -49,7 +50,7 @@ export const seasonRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.season.findMany({
       where: { organizationId: ctx.organizationId },
-      orderBy: { seasonStart: 'desc' },
+      orderBy: { seasonStart: "desc" },
     })
   }),
 
@@ -72,8 +73,8 @@ export const seasonRouter = router({
           seasonEnd: seasonDateSchema,
         })
         .refine((v) => validateSeasonRange(v.seasonStart, v.seasonEnd), {
-          message: 'seasonStart must be before or equal to seasonEnd',
-          path: ['seasonEnd'],
+          message: "seasonStart must be before or equal to seasonEnd",
+          path: ["seasonEnd"],
         }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -103,8 +104,8 @@ export const seasonRouter = router({
             return validateSeasonRange(v.seasonStart, v.seasonEnd)
           },
           {
-            message: 'seasonStart must be before or equal to seasonEnd',
-            path: ['seasonEnd'],
+            message: "seasonStart must be before or equal to seasonEnd",
+            path: ["seasonEnd"],
           },
         ),
     )
@@ -123,10 +124,7 @@ export const seasonRouter = router({
         const start = data.seasonStart ? toSeasonStart(data.seasonStart) : existing.seasonStart
         const end = data.seasonEnd ? toSeasonEnd(data.seasonEnd) : existing.seasonEnd
         if (start.getTime() > end.getTime()) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'seasonStart must be before or equal to seasonEnd',
-          })
+          throw createAppError("BAD_REQUEST", APP_ERROR_CODES.SEASON_INVALID_RANGE)
         }
       }
 
@@ -148,7 +146,7 @@ export const seasonRouter = router({
 
   structureCounts: orgProcedure.query(async ({ ctx }) => {
     const rows = await ctx.db.division.groupBy({
-      by: ['seasonId'],
+      by: ["seasonId"],
       where: { organizationId: ctx.organizationId },
       _count: { id: true },
     })
@@ -163,18 +161,18 @@ export const seasonRouter = router({
     .input(
       z.object({
         seasonId: z.string().uuid(),
-        template: z.enum(['standard', 'copy']),
+        template: z.enum(["standard", "copy"]),
         sourceSeasonId: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.template === 'standard') {
+      if (input.template === "standard") {
         // Create one division "Hauptrunde" with one regular round, assign all teams
         const division = await ctx.db.division.create({
           data: {
             organizationId: ctx.organizationId,
             seasonId: input.seasonId,
-            name: 'Liga',
+            name: "Liga",
             sortOrder: 0,
           },
         })
@@ -183,8 +181,8 @@ export const seasonRouter = router({
           data: {
             organizationId: ctx.organizationId,
             divisionId: division.id,
-            name: 'Hauptrunde',
-            roundType: 'regular',
+            name: "Hauptrunde",
+            roundType: "regular",
             sortOrder: 0,
             pointsWin: 2,
             pointsDraw: 1,
@@ -209,14 +207,14 @@ export const seasonRouter = router({
         return { divisionsCreated: 1, roundsCreated: 1, teamsAssigned: allTeams.length }
       }
 
-      if (input.template === 'copy' && input.sourceSeasonId) {
+      if (input.template === "copy" && input.sourceSeasonId) {
         // Copy structure from another season
         const sourceDivisions = await ctx.db.division.findMany({
           where: {
             seasonId: input.sourceSeasonId,
             organizationId: ctx.organizationId,
           },
-          orderBy: { sortOrder: 'asc' },
+          orderBy: { sortOrder: "asc" },
         })
 
         let divisionsCreated = 0
@@ -240,7 +238,7 @@ export const seasonRouter = router({
               divisionId: srcDiv.id,
               organizationId: ctx.organizationId,
             },
-            orderBy: { sortOrder: 'asc' },
+            orderBy: { sortOrder: "asc" },
           })
 
           for (const srcRound of srcRounds) {
@@ -297,7 +295,7 @@ export const seasonRouter = router({
         seasonId: input.id,
         organizationId: ctx.organizationId,
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sortOrder: "asc" },
     })
 
     const divisionIds = divisions.map((d: any) => d.id)
@@ -327,7 +325,7 @@ export const seasonRouter = router({
           divisionId: { in: divisionIds },
           organizationId: ctx.organizationId,
         },
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { sortOrder: "asc" },
       })
 
       const rawAssignments = await ctx.db.teamDivision.findMany({

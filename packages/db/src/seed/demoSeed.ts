@@ -1,22 +1,15 @@
-import { dirname, resolve } from "node:path"
-import * as readline from "node:readline"
-import { fileURLToPath } from "node:url"
-import { config } from "dotenv"
-
-const seedDir = dirname(fileURLToPath(import.meta.url))
-config({ path: resolve(seedDir, "../../../../.env") })
-
 import { hashPassword } from "better-auth/crypto"
-import { PrismaClient } from "@prisma/client"
+import type { Database } from "../index"
+import type { OrgRole } from "../generated/prisma/enums"
 import { recalculateStandings } from "../services/standingsService"
 import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
-import { cleanUploads, generateSeedImages } from "./seedImages"
+import { cleanOrgUploads, generateSeedImages } from "./seedImages"
 
 // ---------------------------------------------------------------------------
-// Organization IDs
+// Constants
 // ---------------------------------------------------------------------------
-const DEMO_ORG_1_ID = "demo-org-1"
-const DEMO_ORG_2_ID = "demo-org-2"
+export const DEMO_ORG_ID = "demo-league"
+const DEMO_EMAIL_DOMAIN = "@demo.puckhub.local"
 
 // ---------------------------------------------------------------------------
 // Team data
@@ -202,7 +195,6 @@ type RoundDef = {
 }
 type DivisionDef = { name: string; rounds: RoundDef[]; teamIndices: number[] }
 type SeasonDef = { name: string; year: number; divisions: DivisionDef[] }
-type DemoLang = "en" | "de"
 const GAMES_PER_ROUND = 20
 const SEASONS_BACK = 15
 const TOTAL_SEASONS = SEASONS_BACK + 1
@@ -361,8 +353,6 @@ const TEAM_COLORS: [string, string, string, string][] = [
 
 // ---------------------------------------------------------------------------
 // Transfer & retirement config
-// Transfers: player index within a team, from team -> to team, after season year
-// Retirements: player index within a team, after season year
 // ---------------------------------------------------------------------------
 const TRANSFERS: { teamIdx: number; playerIdx: number; toTeamIdx: number; afterSeasonOffset: number }[] = [
   { teamIdx: 0, playerIdx: 2, toTeamIdx: 4, afterSeasonOffset: 5 },
@@ -380,17 +370,24 @@ const RETIREMENTS: { teamIdx: number; playerIdx: number; afterSeasonOffset: numb
   { teamIdx: 9, playerIdx: 8, afterSeasonOffset: 2 },
 ]
 
-function parseDemoLang(args: string[]): DemoLang {
-  const inline = args.find((a) => a.startsWith("--lang=") || a.startsWith("--locale="))
-  const pairIdx = args.findIndex((a) => a === "--lang" || a === "--locale")
-  const pairValue = pairIdx >= 0 ? args[pairIdx + 1] : undefined
-  const raw = (inline?.split("=")[1] ?? pairValue ?? "en").toLowerCase()
-  return raw.startsWith("de") ? "de" : "en"
-}
+const TRIKOT_TEMPLATE_SVG_EINFARBIG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+  <path id="brust" fill="{{color_brust}}" stroke="#000" stroke-width="3" d="m 10,46.999995 15,40 40,-25 0.7722,133.202495 121.2752,0.25633 -2.04741,-133.458825 40,25 15,-40 -50,-34.999995 h -28 C 139.83336,27.705749 110.16663,27.705749 88,12 H 60 Z" />
+</svg>`
 
-function getSeasonStructure(lang: DemoLang): SeasonDef[] {
+const TRIKOT_TEMPLATE_SVG_ZWEIFARBIG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
+  <path id="brust" fill="{{color_brust}}" stroke="#000" stroke-width="3" d="m 10,46.999995 15,40 40,-25 0.7722,133.202495 121.2752,0.25633 -2.04741,-133.458825 40,25 15,-40 -50,-34.999995 h -28 C 139.83336,27.705749 110.16663,27.705749 88,12 H 60 Z" />
+  <path id="schulter" fill="{{color_schulter}}" stroke="#000" stroke-width="0" d="m 11.281638,47.768982 14.298956,37.743671 c 0,0 0.07017,0.05963 40.892953,-26.364418 44.282223,-11.865387 74.894513,-11.712062 117.051423,-0.115073 40.82279,26.424051 40.70605,26.428872 40.70605,26.428872 l 14.23102,-37.693051 -48.97471,-34.6076 -27.231,0.376583 C 140.0897,29.243719 108.88499,28.731064 86.718361,13.025311 H 60.512656 Z"/>
+</svg>`
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getSeasonStructure(): SeasonDef[] {
   const firstSeasonYear = CURRENT_SEASON_START_YEAR - SEASONS_BACK
-  const englishSeasons: SeasonDef[] = Array.from({ length: TOTAL_SEASONS }, (_, idx) => {
+  return Array.from({ length: TOTAL_SEASONS }, (_, idx) => {
     const year = firstSeasonYear + idx
     const template = SEASON_STRUCTURE_TEMPLATES[idx % SEASON_STRUCTURE_TEMPLATES.length]!
     return {
@@ -403,47 +400,16 @@ function getSeasonStructure(lang: DemoLang): SeasonDef[] {
       })),
     }
   })
-
-  if (lang === "en") return englishSeasons
-
-  return englishSeasons.map((season) => ({
-    ...season,
-    divisions: season.divisions.map((division) => ({
-      ...division,
-      name:
-        division.name === "Recreational League"
-          ? "Hobbyliga"
-          : division.name.startsWith("Group ")
-            ? division.name.replace("Group", "Gruppe")
-            : division.name,
-      rounds: division.rounds.map((round) => ({
-        ...round,
-        name: round.name === "Regular Season" ? "Hauptrunde" : round.name,
-      })),
-    })),
-  }))
 }
 
-function getPenaltyTypes(lang: DemoLang) {
-  if (lang === "de") {
-    return [
-      { code: "MINOR", name: "Kleine Strafe", shortName: "2min", defaultMinutes: 2 },
-      { code: "DOUBLE_MINOR", name: "Doppelte Kleine Strafe", shortName: "2+2min", defaultMinutes: 4 },
-      { code: "MAJOR", name: "Große Strafe", shortName: "5min", defaultMinutes: 5 },
-      { code: "MISCONDUCT", name: "Disziplinarstrafe", shortName: "10min", defaultMinutes: 10 },
-      { code: "GAME_MISCONDUCT", name: "Spieldauer-Disziplinarstrafe", shortName: "SD", defaultMinutes: 20 },
-      { code: "MATCH_PENALTY", name: "Matchstrafe", shortName: "MS", defaultMinutes: 25 },
-    ]
-  }
-  return [
-    { code: "MINOR", name: "Minor Penalty", shortName: "2min", defaultMinutes: 2 },
-    { code: "DOUBLE_MINOR", name: "Double Minor", shortName: "2+2min", defaultMinutes: 4 },
-    { code: "MAJOR", name: "Major Penalty", shortName: "5min", defaultMinutes: 5 },
-    { code: "MISCONDUCT", name: "Misconduct", shortName: "10min", defaultMinutes: 10 },
-    { code: "GAME_MISCONDUCT", name: "Game Misconduct", shortName: "GM", defaultMinutes: 20 },
-    { code: "MATCH_PENALTY", name: "Match Penalty", shortName: "MP", defaultMinutes: 25 },
-  ]
-}
+const PENALTY_TYPES = [
+  { code: "MINOR", name: "Minor Penalty", shortName: "2min", defaultMinutes: 2 },
+  { code: "DOUBLE_MINOR", name: "Double Minor", shortName: "2+2min", defaultMinutes: 4 },
+  { code: "MAJOR", name: "Major Penalty", shortName: "5min", defaultMinutes: 5 },
+  { code: "MISCONDUCT", name: "Misconduct", shortName: "10min", defaultMinutes: 10 },
+  { code: "GAME_MISCONDUCT", name: "Game Misconduct", shortName: "GM", defaultMinutes: 20 },
+  { code: "MATCH_PENALTY", name: "Match Penalty", shortName: "MP", defaultMinutes: 25 },
+]
 
 function seededFraction(seed: number): number {
   const x = Math.sin(seed) * 10000
@@ -518,66 +484,136 @@ function generateFixtures(
   return fixtures
 }
 
-const TRIKOT_TEMPLATE_SVG_EINFARBIG = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
-  <path id="brust" fill="{{color_brust}}" stroke="#000" stroke-width="3" d="m 10,46.999995 15,40 40,-25 0.7722,133.202495 121.2752,0.25633 -2.04741,-133.458825 40,25 15,-40 -50,-34.999995 h -28 C 139.83336,27.705749 110.16663,27.705749 88,12 H 60 Z" />
-</svg>`
+// ---------------------------------------------------------------------------
+// Demo users
+// ---------------------------------------------------------------------------
 
-const TRIKOT_TEMPLATE_SVG_ZWEIFARBIG = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="250" height="200">
-  <path id="brust" fill="{{color_brust}}" stroke="#000" stroke-width="3" d="m 10,46.999995 15,40 40,-25 0.7722,133.202495 121.2752,0.25633 -2.04741,-133.458825 40,25 15,-40 -50,-34.999995 h -28 C 139.83336,27.705749 110.16663,27.705749 88,12 H 60 Z" />
-  <path id="schulter" fill="{{color_schulter}}" stroke="#000" stroke-width="0" d="m 11.281638,47.768982 14.298956,37.743671 c 0,0 0.07017,0.05963 40.892953,-26.364418 44.282223,-11.865387 74.894513,-11.712062 117.051423,-0.115073 40.82279,26.424051 40.70605,26.428872 40.70605,26.428872 l 14.23102,-37.693051 -48.97471,-34.6076 -27.231,0.376583 C 140.0897,29.243719 108.88499,28.731064 86.718361,13.025311 H 60.512656 Z"/>
-</svg>`
+const DEMO_USERS = [
+  {
+    email: `admin${DEMO_EMAIL_DOMAIN}`,
+    name: "Demo Admin",
+    password: "demo1234",
+    platformRole: "user" as const,
+    memberRole: "owner" as const,
+    memberRoles: ["owner"] as OrgRole[],
+  },
+  {
+    email: `editor${DEMO_EMAIL_DOMAIN}`,
+    name: "Demo Editor",
+    password: "demo1234",
+    platformRole: "user" as const,
+    memberRole: "member" as const,
+    memberRoles: ["editor"] as OrgRole[],
+  },
+  {
+    email: `reporter${DEMO_EMAIL_DOMAIN}`,
+    name: "Demo Reporter",
+    password: "demo1234",
+    platformRole: "user" as const,
+    memberRole: "member" as const,
+    memberRoles: ["game_reporter"] as OrgRole[],
+  },
+]
+
+async function createDemoUsers(
+  db: Database,
+): Promise<Array<{ userId: string; email: string; name: string; memberId: string }>> {
+  const results: Array<{ userId: string; email: string; name: string; memberId: string }> = []
+
+  for (const userDef of DEMO_USERS) {
+    const userId = crypto.randomUUID()
+    const hashedPw = await hashPassword(userDef.password)
+
+    await db.user.create({
+      data: {
+        id: userId,
+        email: userDef.email,
+        name: userDef.name,
+        emailVerified: true,
+        role: userDef.platformRole,
+      },
+    })
+
+    await db.account.create({
+      data: {
+        id: crypto.randomUUID(),
+        accountId: userId,
+        providerId: "credential",
+        password: hashedPw,
+        userId,
+      },
+    })
+
+    const memberId = crypto.randomUUID()
+    await db.member.create({
+      data: {
+        id: memberId,
+        userId,
+        organizationId: DEMO_ORG_ID,
+        role: userDef.memberRole,
+        createdAt: new Date(),
+      },
+    })
+
+    for (const role of userDef.memberRoles) {
+      await db.memberRole.create({
+        data: { memberId, role },
+      })
+    }
+
+    results.push({ userId, email: userDef.email, name: userDef.name, memberId })
+  }
+
+  return results
+}
+
+// ---------------------------------------------------------------------------
+// Org deletion and cleanup
+// ---------------------------------------------------------------------------
+
+/** Delete the demo organization. CASCADE deletes all org-scoped data. */
+export async function deleteDemoOrg(db: Database): Promise<void> {
+  await db.organization.deleteMany({ where: { id: DEMO_ORG_ID } })
+}
+
+/** Delete orphaned demo users who have no remaining memberships. */
+export async function cleanupDemoUsers(db: Database): Promise<number> {
+  const demoUsers = await db.user.findMany({
+    where: { email: { endsWith: DEMO_EMAIL_DOMAIN } },
+    select: { id: true, _count: { select: { members: true } } },
+  })
+
+  let deleted = 0
+  for (const user of demoUsers) {
+    if (user._count.members === 0) {
+      await db.account.deleteMany({ where: { userId: user.id } })
+      await db.session.deleteMany({ where: { userId: user.id } })
+      await db.user.delete({ where: { id: user.id } })
+      deleted++
+    }
+  }
+  return deleted
+}
 
 // ---------------------------------------------------------------------------
 // Main seed function
 // ---------------------------------------------------------------------------
-async function seedDemo() {
-  const force = process.argv.includes("--force")
-  const demoLang = parseDemoLang(process.argv)
-  const seasonStructure = getSeasonStructure(demoLang)
-  console.log(`Seeding demo dataset language: ${demoLang}`)
 
-  if (!force) {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-    const answer = await new Promise<string>((resolve) => {
-      rl.question("⚠️  This will TRUNCATE ALL TABLES and re-seed with demo data.\n   Continue? (y/N) ", resolve)
-    })
-    rl.close()
-    if (answer.toLowerCase() !== "y") {
-      console.log("Aborted.")
-      process.exit(0)
-    }
-  }
+export async function seedDemoOrg(db: Database): Promise<void> {
+  const seasonStructure = getSeasonStructure()
+  console.log("[demo-seed] Seeding demo dataset...")
 
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is required")
-  }
+  // ── 1. Delete existing demo org (CASCADE cleans all related data) ────
+  console.log("[demo-seed] Deleting existing demo org (if any)...")
+  await deleteDemoOrg(db)
+  await cleanupDemoUsers(db)
 
-  const db = new PrismaClient()
-
-  // ── 1. Truncate all public tables ──────────────────────────────────────
-  console.log("Truncating all tables...")
-  await db.$executeRawUnsafe(`
-    DO $$ DECLARE
-      r RECORD;
-    BEGIN
-      SET client_min_messages TO WARNING;
-      FOR r IN (
-        SELECT tablename FROM pg_tables
-        WHERE schemaname = 'public'
-      ) LOOP
-        EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
-      END LOOP;
-    END $$;
-  `)
-
-  // ── 1b. Generate seed images ─────────────────────────────────────────
-  console.log("Cleaning uploads directory...")
-  await cleanUploads()
+  // ── 1b. Clean and regenerate seed images ─────────────────────────────
+  console.log("[demo-seed] Cleaning uploads directory...")
+  await cleanOrgUploads(DEMO_ORG_ID)
 
   const seedImages = await generateSeedImages({
+    orgId: DEMO_ORG_ID,
     teams: TEAMS.map((t, i) => ({
       shortName: t.shortName,
       primaryColor: TEAM_COLORS[i]?.[0] ?? "#333333",
@@ -592,133 +628,85 @@ async function seedDemo() {
         position: p.position,
       })),
     ),
-    sponsors:
-      demoLang === "de"
-        ? [
-            { name: "Stadtwerke Karlsruhe" },
-            { name: "Autohaus Mueller" },
-            { name: "Brauerei Schwaben" },
-            { name: "SportShop24" },
-            { name: "Alte Apotheke" },
-          ]
-        : [
-            { name: "Karlsruhe Utilities" },
-            { name: "Mueller Auto Group" },
-            { name: "Swabian Brewery" },
-            { name: "SportShop24" },
-            { name: "Old Town Pharmacy" },
-          ],
+    sponsors: [
+      { name: "Karlsruhe Utilities" },
+      { name: "Mueller Auto Group" },
+      { name: "Swabian Brewery" },
+      { name: "SportShop24" },
+      { name: "Old Town Pharmacy" },
+    ],
   })
 
-  // ── 1c. Organizations ─────────────────────────────────────────────────
-  console.log("Seeding organizations...")
-  await db.organization.createMany({ data: [
-    {
-      id: DEMO_ORG_1_ID,
-      name: demoLang === "de" ? "Oberliga Baden-Württemberg" : "Oberliga Baden-Württemberg",
-      slug: "obwl",
+  // ── 1c. Organization ─────────────────────────────────────────────────
+  console.log("[demo-seed] Creating organization...")
+  await db.organization.create({
+    data: {
+      id: DEMO_ORG_ID,
+      name: "Demo League",
       createdAt: new Date(),
     },
-    {
-      id: DEMO_ORG_2_ID,
-      name: demoLang === "de" ? "Bezirksliga Nordbaden" : "Bezirksliga Nordbaden",
-      slug: "blnb",
-      createdAt: new Date(),
-    },
-  ] })
+  })
 
-  // ── 2. Reference data ─────────────────────────────────────────────────
-  console.log("Seeding penalty types...")
-  const insertedPenaltyTypes = await db.penaltyType.createManyAndReturn({ data: getPenaltyTypes(demoLang) })
+  // ── 2. Reference data ────────────────────────────────────────────────
+  console.log("[demo-seed] Ensuring penalty types exist...")
+  await db.penaltyType.createMany({ data: PENALTY_TYPES, skipDuplicates: true })
+  const insertedPenaltyTypes = await db.penaltyType.findMany()
 
-  console.log("Seeding trikot templates...")
-  const insertedTemplates = await db.trikotTemplate.createManyAndReturn({ data: [
+  console.log("[demo-seed] Ensuring trikot templates exist...")
+  await db.trikotTemplate.createMany({
+    data: [
       { name: "One-color", templateType: "one_color", colorCount: 1, svg: TRIKOT_TEMPLATE_SVG_EINFARBIG },
       { name: "Two-color", templateType: "two_color", colorCount: 2, svg: TRIKOT_TEMPLATE_SVG_ZWEIFARBIG },
-    ] })
+    ],
+    skipDuplicates: true,
+  })
+  const insertedTemplates = await db.trikotTemplate.findMany()
 
   const oneColorTemplate = insertedTemplates.find((t) => t.templateType === "one_color")!
   const twoColorTemplate = insertedTemplates.find((t) => t.templateType === "two_color")!
 
-  // ── 2b. System settings ─────────────────────────────────────────────
-  console.log("Seeding system settings...")
-  await db.systemSettings.create({ data: {
-    organizationId: DEMO_ORG_1_ID,
-    leagueName: demoLang === "de" ? "PuckHub Demo Liga" : "PuckHub Demo League",
-    leagueShortName: "PDL",
-    locale: demoLang === "de" ? "de-DE" : "en-US",
-    timezone: "Europe/Berlin",
-    pointsWin: 2,
-    pointsDraw: 1,
-    pointsLoss: 0,
-  } })
-
-  // ── 2c. Demo admin user ─────────────────────────────────────────────
-  console.log("Seeding demo admin user...")
-  const adminUserId = crypto.randomUUID()
-  const adminEmail = "admin@demo.local"
-  const adminPassword = "demo1234"
-  const hashedPw = await hashPassword(adminPassword)
-
-  await db.user.create({ data: {
-    id: adminUserId,
-    email: adminEmail,
-    name: "Demo Admin",
-    emailVerified: true,
-    role: "admin",
-  } })
-
-  await db.account.create({ data: {
-    id: crypto.randomUUID(),
-    accountId: adminUserId,
-    providerId: "credential",
-    password: hashedPw,
-    userId: adminUserId,
-  } })
-
-  // ── 2d. Member records for admin in both orgs ────────────────────────
-  console.log("Seeding organization members...")
-  await db.member.createMany({ data: [
-    {
-      id: crypto.randomUUID(),
-      userId: adminUserId,
-      organizationId: DEMO_ORG_1_ID,
-      role: "owner",
-      createdAt: new Date(),
+  // ── 2b. System settings ──────────────────────────────────────────────
+  console.log("[demo-seed] Seeding system settings...")
+  await db.systemSettings.create({
+    data: {
+      organizationId: DEMO_ORG_ID,
+      leagueName: "PuckHub Demo League",
+      leagueShortName: "PDL",
+      locale: "en-US",
+      timezone: "Europe/Berlin",
+      pointsWin: 2,
+      pointsDraw: 1,
+      pointsLoss: 0,
     },
-    {
-      id: crypto.randomUUID(),
-      userId: adminUserId,
-      organizationId: DEMO_ORG_2_ID,
-      role: "owner",
-      createdAt: new Date(),
-    },
-  ] })
-
-  // ── 3. Seasons ────────────────────────────────────────────────────────
-  console.log(`Seeding ${seasonStructure.length} seasons...`)
-  const insertedSeasons = await db.season.createManyAndReturn({ data:
-      seasonStructure.map((s) => ({
-        organizationId: DEMO_ORG_1_ID,
-        name: s.name,
-        seasonStart: new Date(Date.UTC(s.year, 8, 1, 0, 0, 0)),
-        seasonEnd: new Date(Date.UTC(s.year + 1, 3, 30, 23, 59, 59)),
-      })),
   })
 
-  // Map by year for easy lookup
+  // ── 2c. Demo users ───────────────────────────────────────────────────
+  console.log("[demo-seed] Creating demo users...")
+  const demoUsers = await createDemoUsers(db)
+  const adminUserId = demoUsers.find((u) => u.email === `admin${DEMO_EMAIL_DOMAIN}`)!.userId
+
+  // ── 3. Seasons ───────────────────────────────────────────────────────
+  console.log(`[demo-seed] Seeding ${seasonStructure.length} seasons...`)
+  const insertedSeasons = await db.season.createManyAndReturn({
+    data: seasonStructure.map((s) => ({
+      organizationId: DEMO_ORG_ID,
+      name: s.name,
+      seasonStart: new Date(Date.UTC(s.year, 8, 1, 0, 0, 0)),
+      seasonEnd: new Date(Date.UTC(s.year + 1, 3, 30, 23, 59, 59)),
+    })),
+  })
+
   const seasonByYear = new Map(seasonStructure.map((s, i) => [s.year, insertedSeasons[i]!]))
 
-  // ── 4. Divisions ──────────────────────────────────────────────────────
-  console.log("Seeding divisions...")
-  type DivisionRow = any & { id?: string }
-  const divisionValues: DivisionRow[] = []
+  // ── 4. Divisions ─────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding divisions...")
+  const divisionValues: any[] = []
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
     for (let i = 0; i < seasonDef.divisions.length; i++) {
       const div = seasonDef.divisions[i]!
       divisionValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         seasonId: season.id,
         name: div.name,
         sortOrder: i,
@@ -728,12 +716,11 @@ async function seedDemo() {
   }
   const insertedDivisions = await db.division.createManyAndReturn({ data: divisionValues })
 
-  // Build a lookup: "seasonId:divName" -> division row
   const divisionLookup = new Map(insertedDivisions.map((d) => [`${d.seasonId}:${d.name}`, d]))
 
-  // ── 5. Rounds ─────────────────────────────────────────────────────────
-  console.log("Seeding rounds...")
-  const roundValues: (any)[] = []
+  // ── 5. Rounds ────────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding rounds...")
+  const roundValues: any[] = []
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
     for (const divDef of seasonDef.divisions) {
@@ -741,7 +728,7 @@ async function seedDemo() {
       for (let i = 0; i < divDef.rounds.length; i++) {
         const round = divDef.rounds[i]!
         roundValues.push({
-          organizationId: DEMO_ORG_1_ID,
+          organizationId: DEMO_ORG_ID,
           divisionId: division.id,
           name: round.name,
           roundType: round.roundType,
@@ -754,32 +741,32 @@ async function seedDemo() {
   }
   const insertedRounds = await db.round.createManyAndReturn({ data: roundValues })
 
-  // ── 6. Teams ──────────────────────────────────────────────────────────
-  console.log("Seeding 10 teams...")
-  const insertedTeams = await db.team.createManyAndReturn({ data:
-      TEAMS.map((t, i) => ({
-        organizationId: DEMO_ORG_1_ID,
-        name: t.name,
-        shortName: t.shortName,
-        city: t.city,
-        logoUrl: seedImages.teamLogoUrls[i],
-      })),
+  // ── 6. Teams ─────────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding 10 teams...")
+  const insertedTeams = await db.team.createManyAndReturn({
+    data: TEAMS.map((t, i) => ({
+      organizationId: DEMO_ORG_ID,
+      name: t.name,
+      shortName: t.shortName,
+      city: t.city,
+      logoUrl: seedImages.teamLogoUrls[i],
+    })),
   })
 
-  // ── 7. Venues ─────────────────────────────────────────────────────────
-  console.log("Seeding 10 venues...")
-  const insertedVenues = await db.venue.createManyAndReturn({ data:
-      VENUES.map((v) => ({
-        organizationId: DEMO_ORG_1_ID,
-        name: v.name,
-        city: v.city,
-        address: v.address,
-      })),
+  // ── 7. Venues ────────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding 10 venues...")
+  const insertedVenues = await db.venue.createManyAndReturn({
+    data: VENUES.map((v) => ({
+      organizationId: DEMO_ORG_ID,
+      name: v.name,
+      city: v.city,
+      address: v.address,
+    })),
   })
 
-  // ── 8. Team-Division assignments ──────────────────────────────────────
-  console.log("Seeding team-division assignments...")
-  const tdValues: (any)[] = []
+  // ── 8. Team-Division assignments ─────────────────────────────────────
+  console.log("[demo-seed] Seeding team-division assignments...")
+  const tdValues: any[] = []
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
     for (const divDef of seasonDef.divisions) {
@@ -788,7 +775,7 @@ async function seedDemo() {
         const team = insertedTeams[teamIdx]
         if (!team) continue
         tdValues.push({
-          organizationId: DEMO_ORG_1_ID,
+          organizationId: DEMO_ORG_ID,
           teamId: team.id,
           divisionId: division.id,
         })
@@ -797,9 +784,9 @@ async function seedDemo() {
   }
   await db.teamDivision.createMany({ data: tdValues })
 
-  // ── 9. Games ──────────────────────────────────────────────────────────
-  console.log(`Seeding ~${GAMES_PER_ROUND} games per round...`)
-  const gamesValues: (any)[] = []
+  // ── 9. Games ─────────────────────────────────────────────────────────
+  console.log(`[demo-seed] Seeding ~${GAMES_PER_ROUND} games per round...`)
+  const gamesValues: any[] = []
   const seasonYearById = new Map(seasonStructure.map((s, i) => [insertedSeasons[i]?.id, s.year]))
 
   for (let seasonIdx = 0; seasonIdx < seasonStructure.length; seasonIdx++) {
@@ -820,8 +807,8 @@ async function seedDemo() {
 
         const fixtures = generateFixtures(teamIds, GAMES_PER_ROUND, seasonYear * 100 + roundIdx * 7 + seasonIdx)
         const gamesPerMatchday = Math.max(1, Math.floor(teamIds.length / 2))
-        const seasonStart = new Date(Date.UTC(seasonYear, 8, 1, 18, 0, 0)) // Sep 1
-        const seasonEnd = new Date(Date.UTC(seasonYear + 1, 3, 30, 22, 0, 0)) // Apr 30 next year
+        const seasonStart = new Date(Date.UTC(seasonYear, 8, 1, 18, 0, 0))
+        const seasonEnd = new Date(Date.UTC(seasonYear + 1, 3, 30, 22, 0, 0))
         const dayMs = 24 * 60 * 60 * 1000
         const seasonDaySpan = Math.max(1, Math.floor((seasonEnd.getTime() - seasonStart.getTime()) / dayMs))
         const roundCount = Math.max(1, divDef.rounds.length)
@@ -859,7 +846,7 @@ async function seedDemo() {
           const scoreSeed = seasonIdx * 10000 + roundIdx * 1000 + gameIdx * 10
 
           gamesValues.push({
-            organizationId: DEMO_ORG_1_ID,
+            organizationId: DEMO_ORG_ID,
             roundId: round.id,
             homeTeamId: fixture.homeTeamId,
             awayTeamId: fixture.awayTeamId,
@@ -880,8 +867,8 @@ async function seedDemo() {
   }
   const insertedGames = await db.game.createManyAndReturn({ data: gamesValues })
 
-  // ── 10. Players ───────────────────────────────────────────────────────
-  console.log("Seeding 100 players...")
+  // ── 10. Players ──────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding 100 players...")
   const allPlayerDefs: { teamIdx: number; playerIdx: number; def: PlayerDef }[] = []
   for (let t = 0; t < PLAYERS_PER_TEAM.length; t++) {
     const teamPlayers = PLAYERS_PER_TEAM[t]
@@ -892,40 +879,37 @@ async function seedDemo() {
       allPlayerDefs.push({ teamIdx: t, playerIdx: p, def: playerDef })
     }
   }
-  const insertedPlayers = await db.player.createManyAndReturn({ data:
-      allPlayerDefs.map((pd, i) => ({
-        organizationId: DEMO_ORG_1_ID,
-        firstName: pd.def.firstName,
-        lastName: pd.def.lastName,
-        dateOfBirth: new Date(pd.def.dob),
-        nationality: "DE",
-        photoUrl: seedImages.playerPhotoUrls[i],
-      })),
+  const insertedPlayers = await db.player.createManyAndReturn({
+    data: allPlayerDefs.map((pd, i) => ({
+      organizationId: DEMO_ORG_ID,
+      firstName: pd.def.firstName,
+      lastName: pd.def.lastName,
+      dateOfBirth: new Date(pd.def.dob),
+      nationality: "DE",
+      photoUrl: seedImages.playerPhotoUrls[i],
+    })),
   })
 
-  // Build a quick lookup: "teamIdx:playerIdx" -> player row
   const playerLookup = new Map(allPlayerDefs.map((pd, i) => [`${pd.teamIdx}:${pd.playerIdx}`, insertedPlayers[i]!]))
 
-  // ── 11. Contracts ─────────────────────────────────────────────────────
-  console.log("Seeding contracts...")
+  // ── 11. Contracts ────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding contracts...")
   const firstSeasonYear = Math.min(...seasonStructure.map((s) => s.year))
   const firstSeason = seasonByYear.get(firstSeasonYear)!
-  const contractValues: (any)[] = []
+  const contractValues: any[] = []
 
   for (const pd of allPlayerDefs) {
     const player = playerLookup.get(`${pd.teamIdx}:${pd.playerIdx}`)!
     const team = insertedTeams[pd.teamIdx]!
 
-    // Check if this player transfers or retires
     const transfer = TRANSFERS.find((tr) => tr.teamIdx === pd.teamIdx && tr.playerIdx === pd.playerIdx)
     const retirement = RETIREMENTS.find((rt) => rt.teamIdx === pd.teamIdx && rt.playerIdx === pd.playerIdx)
 
     if (transfer) {
-      // Original contract: first season -> season of transfer (inclusive)
       const endSeasonYear = firstSeasonYear + transfer.afterSeasonOffset
       const endSeason = seasonByYear.get(endSeasonYear)!
       contractValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         playerId: player.id,
         teamId: team.id,
         position: pd.def.position,
@@ -933,12 +917,11 @@ async function seedDemo() {
         startSeasonId: firstSeason.id,
         endSeasonId: endSeason.id,
       })
-      // New contract: season after transfer -> open-ended (null endSeasonId)
       const newTeam = insertedTeams[transfer.toTeamIdx]!
       const nextYear = endSeasonYear + 1
       const startSeason = seasonByYear.get(nextYear)!
       contractValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         playerId: player.id,
         teamId: newTeam.id,
         position: pd.def.position,
@@ -947,11 +930,10 @@ async function seedDemo() {
         endSeasonId: undefined,
       })
     } else if (retirement) {
-      // Contract with end date
       const endSeasonYear = firstSeasonYear + retirement.afterSeasonOffset
       const endSeason = seasonByYear.get(endSeasonYear)!
       contractValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         playerId: player.id,
         teamId: team.id,
         position: pd.def.position,
@@ -960,9 +942,8 @@ async function seedDemo() {
         endSeasonId: endSeason.id,
       })
     } else {
-      // Regular active contract: first season -> open-ended
       contractValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         playerId: player.id,
         teamId: team.id,
         position: pd.def.position,
@@ -974,10 +955,9 @@ async function seedDemo() {
   }
   await db.contract.createMany({ data: contractValues })
 
-  // ── 11b. Game Reports (lineups, events, suspensions) ───────────────────
-  console.log("Seeding game reports for completed games...")
+  // ── 11b. Game Reports (lineups, events, suspensions) ─────────────────
+  console.log("[demo-seed] Seeding game reports for completed games...")
 
-  // Build player roster per team: teamId -> array of { playerId, position, jerseyNumber }
   const rosterByTeamId = new Map<
     string,
     Array<{ playerId: string; position: "forward" | "defense" | "goalie"; jerseyNumber: number }>
@@ -997,13 +977,11 @@ async function seedDemo() {
   const penaltyTypeDoubleMinor = insertedPenaltyTypes.find((pt) => pt.code === "DOUBLE_MINOR")!
   const penaltyTypeMajor = insertedPenaltyTypes.find((pt) => pt.code === "MAJOR")!
   const penaltyTypeMisconduct = insertedPenaltyTypes.find((pt) => pt.code === "MISCONDUCT")!
-  const _penaltyTypeGameMisconduct = insertedPenaltyTypes.find((pt) => pt.code === "GAME_MISCONDUCT")!
-  const _penaltyTypeMatchPenalty = insertedPenaltyTypes.find((pt) => pt.code === "MATCH_PENALTY")!
   const penaltyPool = [
     penaltyTypeMinor,
     penaltyTypeMinor,
     penaltyTypeMinor,
-    penaltyTypeMinor, // weighted toward minors
+    penaltyTypeMinor,
     penaltyTypeMinor,
     penaltyTypeMinor,
     penaltyTypeDoubleMinor,
@@ -1011,27 +989,26 @@ async function seedDemo() {
     penaltyTypeMisconduct,
   ]
   const penaltyReasons = [
-    "Beinstellen",
-    "Haken",
-    "Halten",
-    "Hoher Stock",
-    "Behinderung",
-    "Bandencheck",
-    "Ellbogencheck",
-    "Stockschlag",
-    "Spielverzögerung",
-    "Zu viele Spieler",
+    "Tripping",
+    "Hooking",
+    "Holding",
+    "High-sticking",
+    "Interference",
+    "Boarding",
+    "Elbowing",
+    "Slashing",
+    "Delay of game",
+    "Too many men",
   ]
 
-  // Seed reports for ALL completed games
   const reportGames = insertedGames.filter(
     (g) => g.status === "completed" && g.homeScore != null && g.awayScore != null,
   )
 
-  const lineupValues: (any)[] = []
-  const eventValues: (any & { _tempId?: string })[] = []
-  const suspensionValues: (any)[] = []
-  const goalieGameStatsValues: (any)[] = []
+  const lineupValues: any[] = []
+  const eventValues: any[] = []
+  const suspensionValues: any[] = []
+  const goalieGameStatsValues: any[] = []
 
   let totalGoals = 0
   let totalPenalties = 0
@@ -1046,10 +1023,10 @@ async function seedDemo() {
 
     const gameSeed = gi * 137 + 42
 
-    // ── Lineups: add all roster players
+    // Lineups
     for (const rp of homeRoster) {
       lineupValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         gameId: game.id,
         playerId: rp.playerId,
         teamId: game.homeTeamId,
@@ -1061,7 +1038,7 @@ async function seedDemo() {
     }
     for (const rp of awayRoster) {
       lineupValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         gameId: game.id,
         playerId: rp.playerId,
         teamId: game.awayTeamId,
@@ -1072,7 +1049,7 @@ async function seedDemo() {
       })
     }
 
-    // ── Goal events: generate goals to match the score
+    // Goal events
     const homeGoals = game.homeScore!
     const awayGoals = game.awayScore!
     const homeSkaters = homeRoster.filter((r) => r.position !== "goalie")
@@ -1080,7 +1057,6 @@ async function seedDemo() {
     const homeGoalies = homeRoster.filter((r) => r.position === "goalie")
     const awayGoalies = awayRoster.filter((r) => r.position === "goalie")
 
-    // Generate goals chronologically across 3 periods
     const allGoals: Array<{ teamId: string; isHome: boolean; period: number; min: number; sec: number }> = []
     for (let g = 0; g < homeGoals; g++) {
       const period = seededInt(gameSeed + g * 3, 1, 3)
@@ -1113,7 +1089,6 @@ async function seedDemo() {
       const scorerIdx = seededInt(gameSeed + g * 11, 0, skaters.length - 1)
       const scorer = skaters[scorerIdx]!
 
-      // Assist 1 (70% chance)
       let assist1Id: string | null = null
       if (seededFraction(gameSeed + g * 13) < 0.7 && skaters.length > 1) {
         let a1Idx = seededInt(gameSeed + g * 17, 0, skaters.length - 1)
@@ -1121,7 +1096,6 @@ async function seedDemo() {
         assist1Id = skaters[a1Idx]?.playerId ?? null
       }
 
-      // Assist 2 (40% chance, only if assist 1 exists)
       let assist2Id: string | null = null
       if (assist1Id && seededFraction(gameSeed + g * 19) < 0.4 && skaters.length > 2) {
         let a2Idx = seededInt(gameSeed + g * 23, 0, skaters.length - 1)
@@ -1131,11 +1105,10 @@ async function seedDemo() {
         assist2Id = skaters[a2Idx]?.playerId ?? null
       }
 
-      // Goalie scored on
       const goalieId = opposingGoalies.length > 0 ? opposingGoalies[0]?.playerId : null
 
       eventValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         gameId: game.id,
         eventType: "goal",
         teamId: goal.teamId,
@@ -1150,7 +1123,7 @@ async function seedDemo() {
       totalGoals++
     }
 
-    // ── Penalty events: 2-5 per game
+    // Penalty events
     const numPenalties = seededInt(gameSeed + 900, 2, 5)
     for (let p = 0; p < numPenalties; p++) {
       const isHome = seededFraction(gameSeed + 1000 + p * 7) < 0.5
@@ -1165,7 +1138,7 @@ async function seedDemo() {
       const period = seededInt(gameSeed + 1000 + p * 19, 1, 3)
 
       eventValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         gameId: game.id,
         eventType: "penalty",
         teamId,
@@ -1180,7 +1153,7 @@ async function seedDemo() {
       totalPenalties++
     }
 
-    // ── Suspension: ~10% chance per game (for the last penalty if it's a major+)
+    // Suspensions
     if (seededFraction(gameSeed + 2000) < 0.1 && numPenalties > 0) {
       const isHome = seededFraction(gameSeed + 2001) < 0.5
       const teamId = isHome ? game.homeTeamId : game.awayTeamId
@@ -1188,27 +1161,28 @@ async function seedDemo() {
       if (roster.length > 0) {
         const playerIdx = seededInt(gameSeed + 2002, 0, roster.length - 1)
         const suspendedPlayer = roster[playerIdx]
-        if (!suspendedPlayer) continue
-        suspensionValues.push({
-          organizationId: DEMO_ORG_1_ID,
-          gameId: game.id,
-          playerId: suspendedPlayer.playerId,
-          teamId,
-          suspensionType: seededFraction(gameSeed + 2003) < 0.6 ? "match_penalty" : "game_misconduct",
-          suspendedGames: seededInt(gameSeed + 2004, 1, 3),
-          servedGames: seededInt(gameSeed + 2005, 0, 1), // may have served some already
-          reason: penaltyReasons[seededInt(gameSeed + 2006, 0, penaltyReasons.length - 1)],
-        })
-        totalSuspensions++
+        if (suspendedPlayer) {
+          suspensionValues.push({
+            organizationId: DEMO_ORG_ID,
+            gameId: game.id,
+            playerId: suspendedPlayer.playerId,
+            teamId,
+            suspensionType: seededFraction(gameSeed + 2003) < 0.6 ? "match_penalty" : "game_misconduct",
+            suspendedGames: seededInt(gameSeed + 2004, 1, 3),
+            servedGames: seededInt(gameSeed + 2005, 0, 1),
+            reason: penaltyReasons[seededInt(gameSeed + 2006, 0, penaltyReasons.length - 1)],
+          })
+          totalSuspensions++
+        }
       }
     }
 
-    // ── Goalie game stats: starting goalie of each team gets goals-against = opponent score
+    // Goalie game stats
     const homeStartingGoalie = homeGoalies[0]
     const awayStartingGoalie = awayGoalies[0]
     if (homeStartingGoalie) {
       goalieGameStatsValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         gameId: game.id,
         playerId: homeStartingGoalie.playerId,
         teamId: game.homeTeamId,
@@ -1217,7 +1191,7 @@ async function seedDemo() {
     }
     if (awayStartingGoalie) {
       goalieGameStatsValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         gameId: game.id,
         playerId: awayStartingGoalie.playerId,
         teamId: game.awayTeamId,
@@ -1226,7 +1200,7 @@ async function seedDemo() {
     }
   }
 
-  // Insert in batches to avoid parameter limits
+  // Insert in batches
   if (lineupValues.length > 0) {
     const BATCH = 500
     for (let i = 0; i < lineupValues.length; i += BATCH) {
@@ -1250,41 +1224,32 @@ async function seedDemo() {
   }
 
   console.log(
-    `   → ${reportGames.length} games with reports (${totalGoals} goals, ${totalPenalties} penalties, ${totalSuspensions} suspensions)`,
+    `[demo-seed]    → ${reportGames.length} games with reports (${totalGoals} goals, ${totalPenalties} penalties, ${totalSuspensions} suspensions)`,
   )
-  console.log(`   → ${lineupValues.length} lineup entries, ${goalieGameStatsValues.length} goalie game stats`)
+  console.log(
+    `[demo-seed]    → ${lineupValues.length} lineup entries, ${goalieGameStatsValues.length} goalie game stats`,
+  )
 
-  // ── 11c. Recalculate player + goalie season stats ──────────────────────
-  console.log("Recalculating player and goalie season stats...")
+  // ── 11c. Recalculate player + goalie season stats ────────────────────
+  console.log("[demo-seed] Recalculating player and goalie season stats...")
   for (const season of insertedSeasons) {
     await recalculatePlayerStats(db, season.id)
     await recalculateGoalieStats(db, season.id)
   }
-  console.log("   → Player and goalie season stats recalculated")
+  console.log("[demo-seed]    → Player and goalie season stats recalculated")
 
-  // ── 11d. Seed bonus points for some rounds ───────────────────────────
-  console.log("Seeding bonus points...")
-  const bonusReasons =
-    demoLang === "de"
-      ? [
-          "Fairplay-Auszeichnung",
-          "Verspäteter Spielbeginn",
-          "Regelverstoß Aufstellung",
-          "Sonderpunkte Jugendförderung",
-          "Strafpunkte unsportliches Verhalten",
-          "Nichtantritt Pflichtspiel",
-        ]
-      : [
-          "Fair play award",
-          "Delayed game start",
-          "Lineup rule violation",
-          "Youth development bonus",
-          "Unsportsmanlike conduct penalty",
-          "Forfeit of mandatory game",
-        ]
+  // ── 11d. Seed bonus points ───────────────────────────────────────────
+  console.log("[demo-seed] Seeding bonus points...")
+  const bonusReasons = [
+    "Fair play award",
+    "Delayed game start",
+    "Lineup rule violation",
+    "Youth development bonus",
+    "Unsportsmanlike conduct penalty",
+    "Forfeit of mandatory game",
+  ]
 
-  const bonusValues: (any)[] = []
-  // Build a lookup: roundId -> teamIds that play in that round's division
+  const bonusValues: any[] = []
   const roundTeamsMap = new Map<string, string[]>()
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
@@ -1299,22 +1264,19 @@ async function seedDemo() {
 
   let bonusSeed = 42
   for (let i = 0; i < insertedRounds.length; i++) {
-    // Add bonus points to roughly every 3rd round
     if (i % 3 !== 0) continue
     const round = insertedRounds[i]!
     const teamIds = roundTeamsMap.get(round.id)
     if (!teamIds || teamIds.length < 2) continue
 
-    // Pick 1-2 bonus point entries per qualifying round
     const count = (bonusSeed % 2) + 1
     for (let j = 0; j < count; j++) {
       const teamIdx = (bonusSeed + j * 3) % teamIds.length
       const reasonIdx = (bonusSeed + j) % bonusReasons.length
-      // Positive bonus (1-3) for awards, negative (-1 to -2) for penalties
       const isPositive = reasonIdx < 4
       const pts = isPositive ? (bonusSeed % 3) + 1 : -(bonusSeed % 2) - 1
       bonusValues.push({
-        organizationId: DEMO_ORG_1_ID,
+        organizationId: DEMO_ORG_ID,
         teamId: teamIds[teamIdx]!,
         roundId: round.id,
         points: pts,
@@ -1326,33 +1288,31 @@ async function seedDemo() {
   if (bonusValues.length > 0) {
     await db.bonusPoint.createMany({ data: bonusValues })
   }
-  console.log(`   → ${bonusValues.length} bonus point entries`)
+  console.log(`[demo-seed]    → ${bonusValues.length} bonus point entries`)
 
-  // ── 11e. Recalculate standings per round ──────────────────────────────
-  console.log("Recalculating standings...")
+  // ── 11e. Recalculate standings ───────────────────────────────────────
+  console.log("[demo-seed] Recalculating standings...")
   for (const round of insertedRounds) {
     await recalculateStandings(db, round.id)
   }
-  console.log(`   → Standings recalculated for ${insertedRounds.length} rounds`)
+  console.log(`[demo-seed]    → Standings recalculated for ${insertedRounds.length} rounds`)
 
-  // ── 12. Trikots + Team-Trikots ────────────────────────────────────────
-  console.log("Seeding trikots...")
-  const trikotValues: (any)[] = []
+  // ── 12. Trikots + Team-Trikots ───────────────────────────────────────
+  console.log("[demo-seed] Seeding trikots...")
+  const trikotValues: any[] = []
   for (let t = 0; t < insertedTeams.length; t++) {
     const team = insertedTeams[t]!
     const colors = TEAM_COLORS[t]!
-    // Home trikot (two-color)
     trikotValues.push({
-      organizationId: DEMO_ORG_1_ID,
-      name: `${team.name} Heim`,
+      organizationId: DEMO_ORG_ID,
+      name: `${team.name} Home`,
       templateId: twoColorTemplate.id,
       primaryColor: colors[0],
       secondaryColor: colors[1],
     })
-    // Away trikot (one-color)
     trikotValues.push({
-      organizationId: DEMO_ORG_1_ID,
-      name: `${team.name} Auswärts`,
+      organizationId: DEMO_ORG_ID,
+      name: `${team.name} Away`,
       templateId: oneColorTemplate.id,
       primaryColor: colors[2],
       secondaryColor: colors[3],
@@ -1360,468 +1320,254 @@ async function seedDemo() {
   }
   const insertedTrikots = await db.trikot.createManyAndReturn({ data: trikotValues })
 
-  console.log("Seeding team-trikots...")
-  const teamTrikotValues: (any)[] = []
+  console.log("[demo-seed] Seeding team-trikots...")
+  const teamTrikotValues: any[] = []
   for (let t = 0; t < insertedTeams.length; t++) {
     const team = insertedTeams[t]!
     const homeTrikot = insertedTrikots[t * 2]!
     const awayTrikot = insertedTrikots[t * 2 + 1]!
     teamTrikotValues.push({
-      organizationId: DEMO_ORG_1_ID,
+      organizationId: DEMO_ORG_ID,
       teamId: team.id,
       trikotId: homeTrikot.id,
-      name: demoLang === "de" ? "Heim" : "Home",
+      name: "Home",
     })
     teamTrikotValues.push({
-      organizationId: DEMO_ORG_1_ID,
+      organizationId: DEMO_ORG_ID,
       teamId: team.id,
       trikotId: awayTrikot.id,
-      name: demoLang === "de" ? "Auswaerts" : "Away",
+      name: "Away",
     })
   }
   await db.teamTrikot.createMany({ data: teamTrikotValues })
 
-  // ── 13. Sponsors ──────────────────────────────────────────────────────
-  console.log("Seeding sponsors...")
-  const sponsorValues: (any)[] =
-    demoLang === "de"
-      ? [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Stadtwerke Karlsruhe",
-            websiteUrl: "https://www.stadtwerke-karlsruhe.de",
-            hoverText: "Offizieller Energiepartner",
-            sortOrder: 1,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[0],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Autohaus Mueller",
-            websiteUrl: "https://www.autohaus-mueller.de",
-            hoverText: "Ihr Autohaus in der Region",
-            teamId: insertedTeams[0]?.id,
-            sortOrder: 2,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[1],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Brauerei Schwaben",
-            websiteUrl: "https://www.brauerei-schwaben.de",
-            hoverText: "Erfrischung fuer Champions",
-            teamId: insertedTeams[1]?.id,
-            sortOrder: 3,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[2],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "SportShop24",
-            websiteUrl: "https://www.sportshop24.de",
-            hoverText: "Ausruestungspartner",
-            sortOrder: 4,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[3],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Alte Apotheke",
-            hoverText: "Ehemaliger Sponsor",
-            sortOrder: 5,
-            isActive: false,
-            logoUrl: seedImages.sponsorLogoUrls[4],
-          },
-        ]
-      : [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Karlsruhe Utilities",
-            websiteUrl: "https://www.stadtwerke-karlsruhe.de",
-            hoverText: "Official energy partner",
-            sortOrder: 1,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[0],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Mueller Auto Group",
-            websiteUrl: "https://www.autohaus-mueller.de",
-            hoverText: "Local mobility partner",
-            teamId: insertedTeams[0]?.id,
-            sortOrder: 2,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[1],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Swabian Brewery",
-            websiteUrl: "https://www.brauerei-schwaben.de",
-            hoverText: "Refreshment partner",
-            teamId: insertedTeams[1]?.id,
-            sortOrder: 3,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[2],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "SportShop24",
-            websiteUrl: "https://www.sportshop24.de",
-            hoverText: "Equipment partner",
-            sortOrder: 4,
-            isActive: true,
-            logoUrl: seedImages.sponsorLogoUrls[3],
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            name: "Old Town Pharmacy",
-            hoverText: "Former sponsor",
-            sortOrder: 5,
-            isActive: false,
-            logoUrl: seedImages.sponsorLogoUrls[4],
-          },
-        ]
+  // ── 13. Sponsors ─────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding sponsors...")
+  const sponsorValues: any[] = [
+    {
+      organizationId: DEMO_ORG_ID,
+      name: "Karlsruhe Utilities",
+      websiteUrl: "https://www.stadtwerke-karlsruhe.de",
+      hoverText: "Official energy partner",
+      sortOrder: 1,
+      isActive: true,
+      logoUrl: seedImages.sponsorLogoUrls[0],
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      name: "Mueller Auto Group",
+      websiteUrl: "https://www.autohaus-mueller.de",
+      hoverText: "Local mobility partner",
+      teamId: insertedTeams[0]?.id,
+      sortOrder: 2,
+      isActive: true,
+      logoUrl: seedImages.sponsorLogoUrls[1],
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      name: "Swabian Brewery",
+      websiteUrl: "https://www.brauerei-schwaben.de",
+      hoverText: "Refreshment partner",
+      teamId: insertedTeams[1]?.id,
+      sortOrder: 3,
+      isActive: true,
+      logoUrl: seedImages.sponsorLogoUrls[2],
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      name: "SportShop24",
+      websiteUrl: "https://www.sportshop24.de",
+      hoverText: "Equipment partner",
+      sortOrder: 4,
+      isActive: true,
+      logoUrl: seedImages.sponsorLogoUrls[3],
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      name: "Old Town Pharmacy",
+      hoverText: "Former sponsor",
+      sortOrder: 5,
+      isActive: false,
+      logoUrl: seedImages.sponsorLogoUrls[4],
+    },
+  ]
   await db.sponsor.createMany({ data: sponsorValues })
 
-  // ── 14. News ──────────────────────────────────────────────────────────
-  console.log("Seeding news...")
-  const newsValues: (any)[] =
-    demoLang === "de"
-      ? [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Saisonstart 2024/25: Spielplan ist online",
-            shortText: "Alle Termine fuer die 10 Teams sind jetzt verfuegbar.",
-            content:
-              "<h2>Die neue Saison startet</h2><p>Nach der Sommerpause geht es wieder aufs Eis. Der komplette Spielplan ist jetzt verfuegbar.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-09-15T10:00:00Z"),
-            createdAt: new Date("2024-09-15T10:00:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Karlsruhe verstaerkt den Sturm",
-            shortText: "Zwei neue Angreifer stoessen zum Kader.",
-            content:
-              "<h2>Kaderupdate</h2><p>Das Team verstaerkt die Offensive mit zwei erfahrenen Spielern aus der Region.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-10-01T14:30:00Z"),
-            createdAt: new Date("2024-10-01T14:30:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Liga beschliesst neues Playoff-Format",
-            shortText: "Best-of-Three und neue Overtime-Regel kommen.",
-            content: "<h2>Playoff-Update</h2><p>Die Liga fuehrt ein angepasstes Playoff-Format ein.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-11-20T09:00:00Z"),
-            createdAt: new Date("2024-11-20T09:00:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Winterpause: Anpassung der Eiszeiten",
-            shortText: "Zwischen Feiertagen gelten geaenderte Hallenzeiten.",
-            content:
-              "<h2>Hinweis zum Spielbetrieb</h2><p>Der Ligabetrieb setzt vom 23. Dezember bis 6. Januar aus.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-12-18T16:00:00Z"),
-            createdAt: new Date("2024-12-18T16:00:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Ausblick auf die Rueckrunde",
-            shortText: "Der Kampf um die Playoff-Plaetze ist offen.",
-            content:
-              "<h2>Spannende zweite Saisonhaelfte</h2><p>Mehrere Teams liegen eng zusammen. Jeder Punkt zaehlt.</p>",
-            status: "draft",
-            authorId: adminUserId,
-            createdAt: new Date("2025-01-05T11:00:00Z"),
-          },
-        ]
-      : [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "2024/25 season kickoff: schedule is live",
-            shortText: "The full fixture list is now available for all 10 teams.",
-            content:
-              "<h2>The new season starts now</h2><p>After the summer break, all teams return to the ice with a packed schedule.</p><p>Opening night begins on <strong>October 15, 2024</strong>. Playoffs and playdowns follow in spring 2025.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-09-15T10:00:00Z"),
-            createdAt: new Date("2024-09-15T10:00:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Karlsruhe signs two forwards",
-            shortText: "The club adds depth and speed up front.",
-            content:
-              "<h2>Roster update</h2><p>Karlsruhe added two experienced forwards from the region to strengthen the top six.</p><p>The coaching staff expects immediate impact in transition and special teams.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-10-01T14:30:00Z"),
-            createdAt: new Date("2024-10-01T14:30:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "League confirms playoff format changes",
-            shortText: "Best-of-three and updated overtime rules are approved.",
-            content:
-              "<h2>Playoff update</h2><p>The board approved key format changes for postseason play.</p><ul><li>Best-of-three in the first round</li><li>Home-ice advantage for higher seed</li><li>5-minute 3-on-3 overtime before shootout</li></ul>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-11-20T09:00:00Z"),
-            createdAt: new Date("2024-11-20T09:00:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Holiday break schedule update",
-            shortText: "Adjusted ice times apply from late December to early January.",
-            content:
-              "<h2>Holiday operations</h2><p>Training schedules are adjusted between <strong>December 23 and January 6</strong>.</p><p>League play resumes on <strong>January 11, 2025</strong>.</p>",
-            status: "published",
-            authorId: adminUserId,
-            publishedAt: new Date("2024-12-18T16:00:00Z"),
-            createdAt: new Date("2024-12-18T16:00:00Z"),
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Second half preview: race to playoffs",
-            shortText: "The table is tight and every point matters.",
-            content:
-              "<h2>Mid-season outlook</h2><p>Five teams are within striking distance at the top, setting up a competitive run-in.</p><p>Expect decisive games through January and February as playoff positions are finalized.</p>",
-            status: "draft",
-            authorId: adminUserId,
-            createdAt: new Date("2025-01-05T11:00:00Z"),
-          },
-        ]
+  // ── 14. News ─────────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding news...")
+  const newsValues: any[] = [
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "2024/25 season kickoff: schedule is live",
+      shortText: "The full fixture list is now available for all 10 teams.",
+      content:
+        "<h2>The new season starts now</h2><p>After the summer break, all teams return to the ice with a packed schedule.</p><p>Opening night begins on <strong>October 15, 2024</strong>. Playoffs and playdowns follow in spring 2025.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-09-15T10:00:00Z"),
+      createdAt: new Date("2024-09-15T10:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Karlsruhe signs two forwards",
+      shortText: "The club adds depth and speed up front.",
+      content:
+        "<h2>Roster update</h2><p>Karlsruhe added two experienced forwards from the region to strengthen the top six.</p><p>The coaching staff expects immediate impact in transition and special teams.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-10-01T14:30:00Z"),
+      createdAt: new Date("2024-10-01T14:30:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "League confirms playoff format changes",
+      shortText: "Best-of-three and updated overtime rules are approved.",
+      content:
+        "<h2>Playoff update</h2><p>The board approved key format changes for postseason play.</p><ul><li>Best-of-three in the first round</li><li>Home-ice advantage for higher seed</li><li>5-minute 3-on-3 overtime before shootout</li></ul>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-11-20T09:00:00Z"),
+      createdAt: new Date("2024-11-20T09:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Holiday break schedule update",
+      shortText: "Adjusted ice times apply from late December to early January.",
+      content:
+        "<h2>Holiday operations</h2><p>Training schedules are adjusted between <strong>December 23 and January 6</strong>.</p><p>League play resumes on <strong>January 11, 2025</strong>.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-12-18T16:00:00Z"),
+      createdAt: new Date("2024-12-18T16:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Second half preview: race to playoffs",
+      shortText: "The table is tight and every point matters.",
+      content:
+        "<h2>Mid-season outlook</h2><p>Five teams are within striking distance at the top, setting up a competitive run-in.</p><p>Expect decisive games through January and February as playoff positions are finalized.</p>",
+      status: "draft",
+      authorId: adminUserId,
+      createdAt: new Date("2025-01-05T11:00:00Z"),
+    },
+  ]
   await db.news.createMany({ data: newsValues })
 
-  // ── 15. Pages ──────────────────────────────────────────────────────────
-  console.log("Seeding pages...")
+  // ── 15. Pages ────────────────────────────────────────────────────────
+  console.log("[demo-seed] Seeding pages...")
 
-  const topLevelPages: (any)[] =
-    demoLang === "de"
-      ? [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Impressum",
-            slug: "legal-notice",
-            content:
-              "<h2>Impressum</h2><p>PuckHub Demo Liga e.V.<br/>Musterstrasse 1<br/>76131 Karlsruhe</p><p>E-Mail: info@puckhub-demo.de</p>",
-            status: "published",
-            isStatic: true,
-            menuLocations: ["footer"],
-            sortOrder: 100,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Datenschutz",
-            slug: "privacy-policy",
-            content:
-              "<h2>Datenschutz</h2><p>Hier finden Sie Informationen zur Verarbeitung personenbezogener Daten.</p>",
-            status: "published",
-            isStatic: true,
-            menuLocations: ["footer"],
-            sortOrder: 101,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Kontakt",
-            slug: "contact",
-            content:
-              '<h2>Kontakt</h2><p>PuckHub Demo Liga e.V.<br/>Musterstrasse 1<br/>76131 Karlsruhe</p><p>E-Mail: <a href="mailto:info@puckhub-demo.de">info@puckhub-demo.de</a></p>',
-            status: "published",
-            isStatic: true,
-            menuLocations: ["footer", "main_nav"],
-            sortOrder: 102,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Ueber die Liga",
-            slug: "about-the-league",
-            content:
-              "<h2>Ueber die Liga</h2><p>Die PuckHub Demo Liga wurde 2015 gegruendet und umfasst heute 10 Teams.</p>",
-            status: "published",
-            isStatic: false,
-            menuLocations: ["main_nav"],
-            sortOrder: 1,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Regeln und Hinweise",
-            slug: "rules-and-guidance",
-            content:
-              "<h2>Regeln und Hinweise</h2><p>Es gelten IIHF-Regeln mit ligaweiten Anpassungen fuer den Freizeitbetrieb.</p>",
-            status: "published",
-            isStatic: false,
-            menuLocations: ["main_nav", "footer"],
-            sortOrder: 2,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Schnuppertraining",
-            slug: "tryout-registration",
-            content: "<h2>Schnuppertraining</h2><p>Teams bieten regelmaessig offene Einheiten fuer Einsteiger an.</p>",
-            status: "draft",
-            isStatic: false,
-            menuLocations: [],
-            sortOrder: 3,
-          },
-        ]
-      : [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Legal Notice",
-            slug: "legal-notice",
-            content:
-              "<h2>Legal Notice</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Represented by: Max Mustermann (President)</p><h3>Contact</h3><p>Email: info@puckhub-demo.de<br/>Phone: +49 721 12345678</p>",
-            status: "published",
-            isStatic: true,
-            menuLocations: ["footer"],
-            sortOrder: 100,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Privacy Policy",
-            slug: "privacy-policy",
-            content:
-              "<h2>Privacy Policy</h2><p>This page explains what personal data is collected when using this website and how it is processed.</p><p>We handle personal data confidentially and in accordance with applicable regulations.</p>",
-            status: "published",
-            isStatic: true,
-            menuLocations: ["footer"],
-            sortOrder: 101,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Contact",
-            slug: "contact",
-            content:
-              '<h2>Contact</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Email: <a href="mailto:info@puckhub-demo.de">info@puckhub-demo.de</a><br/>Phone: +49 721 12345678</p><h3>Office hours</h3><p>Mon-Fri: 9:00 AM - 5:00 PM</p>',
-            status: "published",
-            isStatic: true,
-            menuLocations: ["footer", "main_nav"],
-            sortOrder: 102,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "About The League",
-            slug: "about-the-league",
-            content:
-              "<h2>About PuckHub Demo League</h2><p>The demo league was founded in 2015 and has grown into a stable regional competition.</p><p>Today, <strong>10 teams</strong> compete across regular season and postseason rounds.</p><h3>Core values</h3><ul><li>Fair play on and off the ice</li><li>Community and team spirit</li><li>Accessible hockey for everyone</li></ul>",
-            status: "published",
-            isStatic: false,
-            menuLocations: ["main_nav"],
-            sortOrder: 1,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Rules And Guidance",
-            slug: "rules-and-guidance",
-            content:
-              "<h2>Rules and guidance</h2><p>IIHF rules apply with local recreational adjustments.</p><h3>Game format</h3><ul><li>3 x 15-minute periods</li><li>5-minute intermissions</li></ul><h3>Safety rules</h3><ul><li>No full body checking</li><li>Protective equipment is mandatory</li></ul>",
-            status: "published",
-            isStatic: false,
-            menuLocations: ["main_nav", "footer"],
-            sortOrder: 2,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Tryout Registration",
-            slug: "tryout-registration",
-            content:
-              "<h2>Tryout sessions</h2><p>Interested in playing? Teams regularly host beginner-friendly tryout sessions.</p><p>Basic gear can be rented at most arenas. Contact your preferred team by email to register.</p>",
-            status: "draft",
-            isStatic: false,
-            menuLocations: [],
-            sortOrder: 3,
-          },
-        ]
+  const topLevelPages: any[] = [
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Legal Notice",
+      slug: "legal-notice",
+      content:
+        "<h2>Legal Notice</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Represented by: Max Mustermann (President)</p><h3>Contact</h3><p>Email: info@puckhub-demo.de<br/>Phone: +49 721 12345678</p>",
+      status: "published",
+      isStatic: true,
+      menuLocations: ["footer"],
+      sortOrder: 100,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Privacy Policy",
+      slug: "privacy-policy",
+      content:
+        "<h2>Privacy Policy</h2><p>This page explains what personal data is collected when using this website and how it is processed.</p><p>We handle personal data confidentially and in accordance with applicable regulations.</p>",
+      status: "published",
+      isStatic: true,
+      menuLocations: ["footer"],
+      sortOrder: 101,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Contact",
+      slug: "contact",
+      content:
+        '<h2>Contact</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Email: <a href="mailto:info@puckhub-demo.de">info@puckhub-demo.de</a><br/>Phone: +49 721 12345678</p><h3>Office hours</h3><p>Mon-Fri: 9:00 AM - 5:00 PM</p>',
+      status: "published",
+      isStatic: true,
+      menuLocations: ["footer", "main_nav"],
+      sortOrder: 102,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "About The League",
+      slug: "about-the-league",
+      content:
+        "<h2>About PuckHub Demo League</h2><p>The demo league was founded in 2015 and has grown into a stable regional competition.</p><p>Today, <strong>10 teams</strong> compete across regular season and postseason rounds.</p><h3>Core values</h3><ul><li>Fair play on and off the ice</li><li>Community and team spirit</li><li>Accessible hockey for everyone</li></ul>",
+      status: "published",
+      isStatic: false,
+      menuLocations: ["main_nav"],
+      sortOrder: 1,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Rules And Guidance",
+      slug: "rules-and-guidance",
+      content:
+        "<h2>Rules and guidance</h2><p>IIHF rules apply with local recreational adjustments.</p><h3>Game format</h3><ul><li>3 x 15-minute periods</li><li>5-minute intermissions</li></ul><h3>Safety rules</h3><ul><li>No full body checking</li><li>Protective equipment is mandatory</li></ul>",
+      status: "published",
+      isStatic: false,
+      menuLocations: ["main_nav", "footer"],
+      sortOrder: 2,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Tryout Registration",
+      slug: "tryout-registration",
+      content:
+        "<h2>Tryout sessions</h2><p>Interested in playing? Teams regularly host beginner-friendly tryout sessions.</p><p>Basic gear can be rented at most arenas. Contact your preferred team by email to register.</p>",
+      status: "draft",
+      isStatic: false,
+      menuLocations: [],
+      sortOrder: 3,
+    },
+  ]
 
   const insertedPages = await db.page.createManyAndReturn({ data: topLevelPages })
 
   const aboutLeague = insertedPages.find((p) => p.slug === "about-the-league")!
   const rulesPage = insertedPages.find((p) => p.slug === "rules-and-guidance")!
 
-  const subPages: (any)[] =
-    demoLang === "de"
-      ? [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Vorstand und Organisation",
-            slug: "board-and-operations",
-            content:
-              "<h2>Vorstand und Organisation</h2><p>Praesident: Max Mustermann</p><p>Vizepraesident: Thomas Schmidt</p>",
-            status: "published",
-            isStatic: false,
-            parentId: aboutLeague.id,
-            menuLocations: [],
-            sortOrder: 1,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Ligageschichte",
-            slug: "league-history",
-            content: "<h2>Ligageschichte</h2><p>Von 4 auf 10 Teams in weniger als 10 Jahren.</p>",
-            status: "published",
-            isStatic: false,
-            parentId: aboutLeague.id,
-            menuLocations: [],
-            sortOrder: 2,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Strafenkatalog",
-            slug: "penalty-guide",
-            content: "<h2>Strafenkatalog</h2><p>Uebersicht ueber kleine, grosse und Disziplinarstrafen.</p>",
-            status: "published",
-            isStatic: false,
-            parentId: rulesPage.id,
-            menuLocations: [],
-            sortOrder: 1,
-          },
-        ]
-      : [
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Board And Operations",
-            slug: "board-and-operations",
-            content:
-              "<h2>Board and operations</h2><p><strong>President:</strong> Max Mustermann</p><p><strong>Vice President:</strong> Thomas Schmidt</p><p><strong>Treasurer:</strong> Sandra Weber</p>",
-            status: "published",
-            isStatic: false,
-            parentId: aboutLeague.id,
-            menuLocations: [],
-            sortOrder: 1,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "League History",
-            slug: "league-history",
-            content:
-              "<h2>League history</h2><p>Founded in 2015 with four teams, the league expanded to ten teams by 2024 and now runs full seasonal operations.</p>",
-            status: "published",
-            isStatic: false,
-            parentId: aboutLeague.id,
-            menuLocations: [],
-            sortOrder: 2,
-          },
-          {
-            organizationId: DEMO_ORG_1_ID,
-            title: "Penalty Guide",
-            slug: "penalty-guide",
-            content:
-              "<h2>Penalty guide</h2><p>In addition to IIHF rules, recreational safety standards are strictly enforced.</p><ul><li>Minor penalties: 2 minutes</li><li>Major penalties: 5 minutes</li><li>Misconduct penalties as applicable</li></ul>",
-            status: "published",
-            isStatic: false,
-            parentId: rulesPage.id,
-            menuLocations: [],
-            sortOrder: 1,
-          },
-        ]
+  const subPages: any[] = [
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Board And Operations",
+      slug: "board-and-operations",
+      content:
+        "<h2>Board and operations</h2><p><strong>President:</strong> Max Mustermann</p><p><strong>Vice President:</strong> Thomas Schmidt</p><p><strong>Treasurer:</strong> Sandra Weber</p>",
+      status: "published",
+      isStatic: false,
+      parentId: aboutLeague.id,
+      menuLocations: [],
+      sortOrder: 1,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "League History",
+      slug: "league-history",
+      content:
+        "<h2>League history</h2><p>Founded in 2015 with four teams, the league expanded to ten teams by 2024 and now runs full seasonal operations.</p>",
+      status: "published",
+      isStatic: false,
+      parentId: aboutLeague.id,
+      menuLocations: [],
+      sortOrder: 2,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Penalty Guide",
+      slug: "penalty-guide",
+      content:
+        "<h2>Penalty guide</h2><p>In addition to IIHF rules, recreational safety standards are strictly enforced.</p><ul><li>Minor penalties: 2 minutes</li><li>Major penalties: 5 minutes</li><li>Misconduct penalties as applicable</li></ul>",
+      status: "published",
+      isStatic: false,
+      parentId: rulesPage.id,
+      menuLocations: [],
+      sortOrder: 1,
+    },
+  ]
 
   await db.page.createMany({ data: subPages })
 
@@ -1829,29 +1575,30 @@ async function seedDemo() {
   const contactPage = insertedPages.find((p) => p.slug === "contact")!
   const privacyPage = insertedPages.find((p) => p.slug === "privacy-policy")!
 
-  console.log("Seeding page aliases...")
-  const aliasValues: (any)[] = [
-    { organizationId: DEMO_ORG_1_ID, slug: "kontakt", targetPageId: contactPage.id },
+  console.log("[demo-seed] Seeding page aliases...")
+  const aliasValues: any[] = [
+    { organizationId: DEMO_ORG_ID, slug: "kontakt", targetPageId: contactPage.id },
     {
-      organizationId: DEMO_ORG_1_ID,
+      organizationId: DEMO_ORG_ID,
       slug: "impressum",
       targetPageId: insertedPages.find((p) => p.slug === "legal-notice")!.id,
     },
-    { organizationId: DEMO_ORG_1_ID, slug: "privacy", targetPageId: privacyPage.id },
-    { organizationId: DEMO_ORG_1_ID, slug: "datenschutz", targetPageId: privacyPage.id },
+    { organizationId: DEMO_ORG_ID, slug: "privacy", targetPageId: privacyPage.id },
+    { organizationId: DEMO_ORG_ID, slug: "datenschutz", targetPageId: privacyPage.id },
   ]
   await db.pageAlias.createMany({ data: aliasValues })
 
-  // ── Done ──────────────────────────────────────────────────────────────
-  await db.$disconnect()
-
-  console.log("\n✅ Demo seed complete!")
+  // ── Done ─────────────────────────────────────────────────────────────
+  console.log("\n[demo-seed] Demo seed complete!")
   console.log(
     `   • ${seedImages.teamLogoUrls.length + seedImages.playerPhotoUrls.length + seedImages.sponsorLogoUrls.length} generated images (${seedImages.teamLogoUrls.length} team logos, ${seedImages.playerPhotoUrls.length} player avatars, ${seedImages.sponsorLogoUrls.length} sponsor logos)`,
   )
-  console.log(`   • 2 organizations (${DEMO_ORG_1_ID}, ${DEMO_ORG_2_ID})`)
-  console.log(`   • 1 admin user (${adminEmail} / ${adminPassword}) — platform admin, owner of both orgs`)
-  console.log(`   • 1 system settings row (${demoLang === "de" ? "PuckHub Demo Liga" : "PuckHub Demo League"})`)
+  console.log(`   • 1 organization (${DEMO_ORG_ID})`)
+  console.log(`   • ${demoUsers.length} demo users:`)
+  for (const u of demoUsers) {
+    console.log(`     - ${u.name} (${u.email} / demo1234)`)
+  }
+  console.log(`   • 1 system settings row (PuckHub Demo League)`)
   console.log(`   • ${insertedSeasons.length} seasons`)
   console.log(`   • ${insertedDivisions.length} divisions`)
   console.log(`   • ${roundValues.length} rounds`)
@@ -1865,17 +1612,12 @@ async function seedDemo() {
   console.log(`   • ${teamTrikotValues.length} team-trikots`)
   console.log(`   • ${sponsorValues.length} sponsors`)
   console.log(
-    `   • ${newsValues.length} news (${newsValues.filter((n) => n.status === "published").length} published, ${newsValues.filter((n) => n.status === "draft").length} draft)`,
+    `   • ${newsValues.length} news (${newsValues.filter((n: any) => n.status === "published").length} published, ${newsValues.filter((n: any) => n.status === "draft").length} draft)`,
   )
   console.log(
-    `   • ${topLevelPages.length + subPages.length} pages (${topLevelPages.filter((p) => p.isStatic).length} static, ${subPages.length} sub-pages, ${aliasValues.length} aliases)`,
+    `   • ${topLevelPages.length + subPages.length} pages (${topLevelPages.filter((p: any) => p.isStatic).length} static, ${subPages.length} sub-pages, ${aliasValues.length} aliases)`,
   )
   console.log(
     `   • ${reportGames.length} game reports (${totalGoals} goals, ${totalPenalties} penalties, ${totalSuspensions} suspensions, ${lineupValues.length} lineup entries)`,
   )
 }
-
-seedDemo().catch((err) => {
-  console.error("Demo seed failed:", err)
-  process.exit(1)
-})

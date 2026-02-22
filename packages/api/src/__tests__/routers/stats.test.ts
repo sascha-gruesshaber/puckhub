@@ -146,7 +146,7 @@ describe("stats router", () => {
     it("returns divisions with rounds for a season", async () => {
       const { season, division, round } = await setupSeasonWithGame()
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.seasonRoundInfo({ seasonId: season.id })
 
       expect(result).toHaveLength(1)
@@ -166,7 +166,7 @@ describe("stats router", () => {
         seasonEnd: "2026-04-30",
       }))!
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.seasonRoundInfo({ seasonId: season.id })
       expect(result).toEqual([])
     })
@@ -192,7 +192,7 @@ describe("stats router", () => {
         countsForGoalieStats: true,
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.seasonRoundInfo({ seasonId: season.id })
       const rounds = result[0]!.rounds
       expect(rounds).toHaveLength(2)
@@ -218,7 +218,7 @@ describe("stats router", () => {
         seasonEnd: "2026-04-30",
       }))!
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.playerStats({ seasonId: season.id })
       expect(result).toEqual([])
     })
@@ -235,32 +235,34 @@ describe("stats router", () => {
       const player2 = (await admin.player.create({ firstName: "Other", lastName: "Player" }))!
 
       const db = getTestDb()
-      await db.playerSeasonStat.createMany({ data: [
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: player1.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 10,
-          goals: 15,
-          assists: 20,
-          totalPoints: 35,
-          penaltyMinutes: 4,
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: player2.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 10,
-          goals: 5,
-          assists: 8,
-          totalPoints: 13,
-          penaltyMinutes: 10,
-        },
-      ] })
+      await db.playerSeasonStat.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: player1.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 10,
+            goals: 15,
+            assists: 20,
+            totalPoints: 35,
+            penaltyMinutes: 4,
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: player2.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 10,
+            goals: 5,
+            assists: 8,
+            totalPoints: 13,
+            penaltyMinutes: 10,
+          },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.playerStats({ seasonId: season.id })
       expect(result).toHaveLength(2)
       expect(result[0]?.totalPoints).toBe(35)
@@ -280,32 +282,34 @@ describe("stats router", () => {
       const player2 = (await admin.player.create({ firstName: "Player", lastName: "B" }))!
 
       const db = getTestDb()
-      await db.playerSeasonStat.createMany({ data: [
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: player1.id,
-          seasonId: season.id,
-          teamId: teamA.id,
-          gamesPlayed: 10,
-          goals: 10,
-          assists: 10,
-          totalPoints: 20,
-          penaltyMinutes: 0,
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: player2.id,
-          seasonId: season.id,
-          teamId: teamB.id,
-          gamesPlayed: 10,
-          goals: 5,
-          assists: 5,
-          totalPoints: 10,
-          penaltyMinutes: 0,
-        },
-      ] })
+      await db.playerSeasonStat.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: player1.id,
+            seasonId: season.id,
+            teamId: teamA.id,
+            gamesPlayed: 10,
+            goals: 10,
+            assists: 10,
+            totalPoints: 20,
+            penaltyMinutes: 0,
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: player2.id,
+            seasonId: season.id,
+            teamId: teamB.id,
+            gamesPlayed: 10,
+            goals: 5,
+            assists: 5,
+            totalPoints: 10,
+            penaltyMinutes: 0,
+          },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.playerStats({ seasonId: season.id, teamId: teamA.id })
       expect(result).toHaveLength(1)
       expect(result[0]?.playerId).toBe(player1.id)
@@ -336,32 +340,34 @@ describe("stats router", () => {
       })
 
       const db = getTestDb()
-      await db.playerSeasonStat.createMany({ data: [
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: forward.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 10,
-          goals: 15,
-          assists: 10,
-          totalPoints: 25,
-          penaltyMinutes: 2,
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: defender.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 10,
-          goals: 3,
-          assists: 12,
-          totalPoints: 15,
-          penaltyMinutes: 6,
-        },
-      ] })
+      await db.playerSeasonStat.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: forward.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 10,
+            goals: 15,
+            assists: 10,
+            totalPoints: 25,
+            penaltyMinutes: 2,
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: defender.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 10,
+            goals: 3,
+            assists: 12,
+            totalPoints: 15,
+            penaltyMinutes: 6,
+          },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
 
       const forwards = await caller.stats.playerStats({ seasonId: season.id, position: "forward" })
       expect(forwards).toHaveLength(1)
@@ -383,19 +389,21 @@ describe("stats router", () => {
       const player = (await admin.player.create({ firstName: "Top", lastName: "Scorer" }))!
 
       const db = getTestDb()
-      await db.playerSeasonStat.create({ data: {
-        organizationId: TEST_ORG_ID,
-        playerId: player.id,
-        seasonId: season.id,
-        teamId: team.id,
-        gamesPlayed: 5,
-        goals: 3,
-        assists: 2,
-        totalPoints: 5,
-        penaltyMinutes: 0,
-      } })
+      await db.playerSeasonStat.create({
+        data: {
+          organizationId: TEST_ORG_ID,
+          playerId: player.id,
+          seasonId: season.id,
+          teamId: team.id,
+          gamesPlayed: 5,
+          goals: 3,
+          assists: 2,
+          totalPoints: 5,
+          penaltyMinutes: 0,
+        },
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.playerStats({ seasonId: season.id })
       expect(result).toHaveLength(1)
       expect(result[0]?.player?.firstName).toBe("Top")
@@ -415,7 +423,7 @@ describe("stats router", () => {
         seasonEnd: "2026-04-30",
       }))!
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.goalieStats({ seasonId: season.id })
       expect(result.qualified).toEqual([])
       expect(result.belowThreshold).toEqual([])
@@ -442,28 +450,30 @@ describe("stats router", () => {
       const belowGoalie = (await admin.player.create({ firstName: "Below", lastName: "Goalie" }))!
 
       const db = getTestDb()
-      await db.goalieSeasonStat.createMany({ data: [
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: qualifiedGoalie.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 5,
-          goalsAgainst: 10,
-          gaa: "2.00",
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: belowGoalie.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 1,
-          goalsAgainst: 4,
-          gaa: "4.00",
-        },
-      ] })
+      await db.goalieSeasonStat.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: qualifiedGoalie.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 5,
+            goalsAgainst: 10,
+            gaa: "2.00",
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: belowGoalie.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 1,
+            goalsAgainst: 4,
+            gaa: "4.00",
+          },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.goalieStats({ seasonId: season.id })
 
       expect(result.minGames).toBe(3)
@@ -496,28 +506,30 @@ describe("stats router", () => {
       const worstGoalie = (await admin.player.create({ firstName: "Worst", lastName: "Goalie" }))!
 
       const db = getTestDb()
-      await db.goalieSeasonStat.createMany({ data: [
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: worstGoalie.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 5,
-          goalsAgainst: 25,
-          gaa: "5.00",
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: bestGoalie.id,
-          seasonId: season.id,
-          teamId: team.id,
-          gamesPlayed: 5,
-          goalsAgainst: 5,
-          gaa: "1.00",
-        },
-      ] })
+      await db.goalieSeasonStat.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: worstGoalie.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 5,
+            goalsAgainst: 25,
+            gaa: "5.00",
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: bestGoalie.id,
+            seasonId: season.id,
+            teamId: team.id,
+            gamesPlayed: 5,
+            goalsAgainst: 5,
+            gaa: "1.00",
+          },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.goalieStats({ seasonId: season.id })
 
       expect(result.qualified).toHaveLength(2)
@@ -546,28 +558,30 @@ describe("stats router", () => {
       const goalieB = (await admin.player.create({ firstName: "Goalie", lastName: "B" }))!
 
       const db = getTestDb()
-      await db.goalieSeasonStat.createMany({ data: [
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: goalieA.id,
-          seasonId: season.id,
-          teamId: teamA.id,
-          gamesPlayed: 5,
-          goalsAgainst: 10,
-          gaa: "2.00",
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          playerId: goalieB.id,
-          seasonId: season.id,
-          teamId: teamB.id,
-          gamesPlayed: 5,
-          goalsAgainst: 15,
-          gaa: "3.00",
-        },
-      ] })
+      await db.goalieSeasonStat.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: goalieA.id,
+            seasonId: season.id,
+            teamId: teamA.id,
+            gamesPlayed: 5,
+            goalsAgainst: 10,
+            gaa: "2.00",
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            playerId: goalieB.id,
+            seasonId: season.id,
+            teamId: teamB.id,
+            gamesPlayed: 5,
+            goalsAgainst: 15,
+            gaa: "3.00",
+          },
+        ],
+      })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.goalieStats({ seasonId: season.id, teamId: teamA.id })
       expect(result.qualified).toHaveLength(1)
       expect(result.qualified[0]?.player?.firstName).toBe("Goalie")
@@ -586,7 +600,7 @@ describe("stats router", () => {
         seasonEnd: "2026-04-30",
       }))!
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.penaltyStats({ seasonId: season.id })
       expect(result).toEqual([])
     })
@@ -606,7 +620,7 @@ describe("stats router", () => {
         ],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.penaltyStats({ seasonId: season.id })
       expect(result.length).toBeGreaterThan(0)
       expect(result[0]?.totalMinutes).toBe(7)
@@ -628,7 +642,7 @@ describe("stats router", () => {
         ],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.penaltyStats({ seasonId: season.id, teamId: teamB.id })
       expect(result).toHaveLength(1)
       expect(result[0]?.totalMinutes).toBe(4)
@@ -641,7 +655,7 @@ describe("stats router", () => {
       const { round } = await (async () => {
         // The round from setupSeasonWithGame has countsForPlayerStats=false
         // We need to get it
-        const caller = createTestCaller()
+        const caller = createTestCaller({ asAdmin: true })
         const info = await caller.stats.seasonRoundInfo({ seasonId: season.id })
         const round = info[0]!.rounds[0]!
         return { round }
@@ -656,7 +670,7 @@ describe("stats router", () => {
         penalties: [{ teamId: teamA.id, playerId: playerA1.id, minutes: 10 }],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.penaltyStats({ seasonId: season.id })
       // Round doesn't count for stats, so penalties should be empty
       expect(result).toEqual([])
@@ -674,7 +688,7 @@ describe("stats router", () => {
         seasonEnd: "2026-04-30",
       }))!
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.teamPenaltyStats({ seasonId: season.id })
       expect(result).toEqual([])
     })
@@ -695,7 +709,7 @@ describe("stats router", () => {
         ],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.teamPenaltyStats({ seasonId: season.id })
 
       // Sorted by totalMinutes desc, so teamB (10) first, then teamA (7)
@@ -717,7 +731,7 @@ describe("stats router", () => {
       const { admin, season, round, teamA, teamB, playerA1, playerA2, playerB1 } = await setupSeasonWithGame()
 
       // Before completing any game, stats should be empty
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const before = await caller.stats.playerStats({ seasonId: season.id })
       expect(before).toEqual([])
 
@@ -771,7 +785,7 @@ describe("stats router", () => {
         goalieMinGames: 1,
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const before = await caller.stats.goalieStats({ seasonId: season.id })
       expect(before.qualified).toEqual([])
 
@@ -873,7 +887,7 @@ describe("stats router", () => {
         goals: [{ teamId: teamA.id, scorerId: playerA.id }],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const stats = await caller.stats.playerStats({ seasonId: season.id })
 
       // Only the counting round's goal should be counted
@@ -903,7 +917,7 @@ describe("stats router", () => {
         ],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       const stats = await caller.stats.playerStats({ seasonId: season.id })
 
       // playerA1: 1 goal + 1 assist = 2 points
@@ -961,7 +975,7 @@ describe("stats router", () => {
       })
 
       // Verify stats exist after game.complete
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
       let playerStats = await caller.stats.playerStats({ seasonId: season.id })
       expect(playerStats.length).toBeGreaterThan(0)
 
@@ -1002,7 +1016,7 @@ describe("stats router", () => {
         goals: [{ teamId: teamA.id, scorerId: playerA1.id }],
       })
 
-      const caller = createTestCaller()
+      const caller = createTestCaller({ asAdmin: true })
 
       // Stats should exist
       let stats = await caller.stats.playerStats({ seasonId: season.id })

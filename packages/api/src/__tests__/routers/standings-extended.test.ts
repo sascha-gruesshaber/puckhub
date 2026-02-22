@@ -185,8 +185,7 @@ describe("standings router — extended", () => {
         playerBId: playerB.id,
       })
 
-      const caller = createTestCaller()
-      const form = await caller.standings.teamForm({ roundId: round.id })
+      const form = await admin.standings.teamForm({ roundId: round.id })
 
       expect(form).toHaveLength(2)
 
@@ -222,18 +221,16 @@ describe("standings router — extended", () => {
         })
       }
 
-      const caller = createTestCaller()
-      const form = await caller.standings.teamForm({ roundId: round.id, limit: 2 })
+      const form = await admin.standings.teamForm({ roundId: round.id, limit: 2 })
 
       const teamAForm = form.find((f) => f.teamId === teamA.id)!
       expect(teamAForm.form).toHaveLength(2)
     })
 
     it("returns empty array for round with no completed games", async () => {
-      const { round } = await setupWithGame()
+      const { admin, round } = await setupWithGame()
 
-      const caller = createTestCaller()
-      const form = await caller.standings.teamForm({ roundId: round.id })
+      const form = await admin.standings.teamForm({ roundId: round.id })
 
       expect(form).toHaveLength(0)
     })
@@ -247,12 +244,11 @@ describe("standings router — extended", () => {
       await expect(user.standings.recalculate({ roundId: round.id })).rejects.toThrow()
     })
 
-    it("allows public access to teamForm", async () => {
+    it("rejects unauthenticated access to teamForm", async () => {
       const { round } = await setupWithGame()
       const publicCaller = createTestCaller()
 
-      const form = await publicCaller.standings.teamForm({ roundId: round.id })
-      expect(form).toBeDefined()
+      await expect(publicCaller.standings.teamForm({ roundId: round.id })).rejects.toThrow("Not authenticated")
     })
   })
 })

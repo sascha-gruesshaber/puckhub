@@ -14,17 +14,9 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import {
-  Crown,
-  KeyRound,
-  Pencil,
-  Plus,
-  Shield,
-  Trash2,
-  User,
-  Users,
-} from "lucide-react"
+import { Crown, KeyRound, Pencil, Plus, Shield, Trash2, User, Users } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
+import { useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
@@ -34,7 +26,9 @@ import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
+import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/users/")({
@@ -49,9 +43,9 @@ export const Route = createFileRoute("/_authed/users/")({
 })
 
 // ---------------------------------------------------------------------------
-// Role definitions (Better Auth org roles)
+// Role definitions
 // ---------------------------------------------------------------------------
-type OrgRole = "owner" | "admin" | "member"
+type OrgRole = "owner" | "admin" | "game_manager" | "game_reporter" | "team_manager" | "editor"
 
 interface RoleMeta {
   color: string
@@ -72,14 +66,38 @@ const ROLE_META: Record<OrgRole, RoleMeta> = {
     bgColor: "hsl(25 95% 53% / 0.1)",
     icon: <Shield {...iconProps} />,
   },
-  member: {
-    color: "hsl(221 83% 53%)",
-    bgColor: "hsl(221 83% 53% / 0.1)",
+  game_manager: {
+    color: "hsl(142 72% 42%)",
+    bgColor: "hsl(142 72% 42% / 0.1)",
+    icon: <Users {...iconProps} />,
+  },
+  game_reporter: {
+    color: "hsl(198 93% 45%)",
+    bgColor: "hsl(198 93% 45% / 0.1)",
+    icon: <KeyRound {...iconProps} />,
+  },
+  team_manager: {
+    color: "hsl(262 83% 58%)",
+    bgColor: "hsl(262 83% 58% / 0.1)",
+    icon: <Shield {...iconProps} />,
+  },
+  editor: {
+    color: "hsl(330 81% 60%)",
+    bgColor: "hsl(330 81% 60% / 0.1)",
     icon: <User {...iconProps} />,
   },
 }
 
-const ORG_ROLES: OrgRole[] = ["owner", "admin", "member"]
+const ORG_ROLES: OrgRole[] = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"]
+
+/** Roles that can be scoped to a specific team */
+const TEAM_SCOPEABLE_ROLES: OrgRole[] = ["game_manager", "game_reporter", "team_manager"]
+
+interface MemberRoleEntry {
+  id: string
+  role: OrgRole
+  teamId: string | null
+}
 
 // ---------------------------------------------------------------------------
 // Form types
@@ -91,13 +109,17 @@ interface UserForm {
   role: OrgRole
 }
 
-const emptyForm: UserForm = { name: "", email: "", password: "", role: "member" }
+const emptyForm: UserForm = { name: "", email: "", password: "", role: "admin" }
 
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 function UsersPage() {
+  usePermissionGuard("users")
   const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id
   const { search: searchParam, role } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -117,11 +139,14 @@ function UsersPage() {
   const [form, setForm] = useState<UserForm>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof UserForm, string>>>({})
 
-  // Role change
+  // Role management
   const [roleDialogOpen, setRoleDialogOpen] = useState(false)
   const [roleUserId, setRoleUserId] = useState<string | null>(null)
+  const [roleMemberId, setRoleMemberId] = useState<string | null>(null)
   const [roleUserName, setRoleUserName] = useState("")
-  const [selectedRole, setSelectedRole] = useState<OrgRole>("member")
+  const [roleUserRoles, setRoleUserRoles] = useState<MemberRoleEntry[]>([])
+  const [addRoleValue, setAddRoleValue] = useState<OrgRole>("game_manager")
+  const [addRoleTeamId, setAddRoleTeamId] = useState<string | null>(null)
 
   // Password reset
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
@@ -139,7 +164,7 @@ function UsersPage() {
       closeDialog()
       toast.success(t("usersPage.toast.created"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.createError"), { description: err.message }),
+    onError: (err) => toast.error(t("usersPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateMutation = trpc.users.update.useMutation({
@@ -148,7 +173,7 @@ function UsersPage() {
       closeDialog()
       toast.success(t("usersPage.toast.updated"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.saveError"), { description: err.message }),
+    onError: (err) => toast.error(t("usersPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.users.delete.useMutation({
@@ -158,17 +183,32 @@ function UsersPage() {
       setDeletingUser(null)
       toast.success(t("usersPage.toast.deleted"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.deleteError"), { description: err.message }),
+    onError: (err) => toast.error(t("usersPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
-  const updateRoleMutation = trpc.users.updateRole.useMutation({
+  const addRoleMutation = trpc.organization.addMemberRole.useMutation({
     onSuccess: () => {
       utils.users.list.invalidate()
-      setRoleDialogOpen(false)
-      toast.success(t("usersPage.toast.roleUpdated"))
+      if (roleMemberId) {
+        utils.organization.getMemberRoles.invalidate({ memberId: roleMemberId })
+      }
+      toast.success(t("usersPage.toast.roleAdded"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("usersPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
+
+  const removeRoleMutation = trpc.organization.removeMemberRole.useMutation({
+    onSuccess: () => {
+      utils.users.list.invalidate()
+      if (roleMemberId) {
+        utils.organization.getMemberRoles.invalidate({ memberId: roleMemberId })
+      }
+      toast.success(t("usersPage.toast.roleRemoved"))
+    },
+    onError: (err) => toast.error(t("usersPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+  })
+
+  const { data: teams } = trpc.team.list.useQuery()
 
   const resetPasswordMutation = trpc.users.resetPassword.useMutation({
     onSuccess: () => {
@@ -177,19 +217,27 @@ function UsersPage() {
       setNewPassword("")
       toast.success(t("usersPage.toast.passwordReset"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.error"), { description: err.message }),
+    onError: (err) => toast.error(t("usersPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const getRoleLabel = (key: OrgRole) => t(`usersPage.orgRoles.${key}.label`)
   const getRoleDescription = (key: OrgRole) => t(`usersPage.orgRoles.${key}.description`)
 
-  // Count by role
+  // Count by role (from memberRoles)
   const roleCounts = useMemo(() => {
     if (!users) return new Map<OrgRole, number>()
     const counts = new Map<OrgRole, number>()
     for (const u of users) {
-      const r = u.role as OrgRole
-      counts.set(r, (counts.get(r) || 0) + 1)
+      const roles = (u as any).memberRoles as MemberRoleEntry[] | undefined
+      if (roles) {
+        const seen = new Set<OrgRole>()
+        for (const r of roles) {
+          if (!seen.has(r.role)) {
+            seen.add(r.role)
+            counts.set(r.role, (counts.get(r.role) || 0) + 1)
+          }
+        }
+      }
     }
     return counts
   }, [users])
@@ -198,19 +246,18 @@ function UsersPage() {
     if (!users) return []
     let result = users
 
-    // Role filter
+    // Role filter (check memberRoles)
     if (roleFilter !== FILTER_ALL) {
-      result = result.filter((u) => u.role === roleFilter)
+      result = result.filter((u) => {
+        const roles = (u as any).memberRoles as MemberRoleEntry[] | undefined
+        return roles?.some((r) => r.role === roleFilter) ?? false
+      })
     }
 
     // Search
     if (search.trim()) {
       const q = search.toLowerCase()
-      result = result.filter(
-        (u) =>
-          u.name.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q),
-      )
+      result = result.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
     }
 
     return result
@@ -230,7 +277,7 @@ function UsersPage() {
 
   function openEdit(user: { id: string; name: string; email: string }) {
     setEditingUser({ id: user.id })
-    setForm({ name: user.name, email: user.email, password: "", role: "member" })
+    setForm({ name: user.name, email: user.email, password: "", role: "admin" })
     setErrors({})
     setDialogOpen(true)
   }
@@ -240,10 +287,13 @@ function UsersPage() {
     setDeleteDialogOpen(true)
   }
 
-  function openRoleDialog(user: { id: string; name: string; role: string }) {
+  function openRoleDialog(user: { id: string; name: string; memberId: string; memberRoles: MemberRoleEntry[] }) {
     setRoleUserId(user.id)
+    setRoleMemberId(user.memberId)
     setRoleUserName(user.name)
-    setSelectedRole(user.role as OrgRole)
+    setRoleUserRoles(user.memberRoles)
+    setAddRoleValue("game_manager")
+    setAddRoleTeamId(null)
     setRoleDialogOpen(true)
   }
 
@@ -288,15 +338,45 @@ function UsersPage() {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
-        role: (form.role === "owner" ? "admin" : form.role) as "admin" | "member",
+        role: form.role,
       })
     }
   }
 
-  function handleUpdateRole(e: React.FormEvent) {
+  function handleAddRole(e: React.FormEvent) {
     e.preventDefault()
-    if (!roleUserId) return
-    updateRoleMutation.mutate({ userId: roleUserId, role: selectedRole })
+    if (!roleMemberId) return
+    addRoleMutation.mutate(
+      {
+        memberId: roleMemberId,
+        role: addRoleValue,
+        teamId: TEAM_SCOPEABLE_ROLES.includes(addRoleValue) ? addRoleTeamId ?? undefined : undefined,
+      },
+      {
+        onSuccess: () => {
+          // Update local state
+          const newEntry: MemberRoleEntry = {
+            id: crypto.randomUUID(),
+            role: addRoleValue,
+            teamId: TEAM_SCOPEABLE_ROLES.includes(addRoleValue) ? addRoleTeamId : null,
+          }
+          setRoleUserRoles((prev) => [...prev, newEntry])
+          setAddRoleValue("game_manager")
+          setAddRoleTeamId(null)
+        },
+      },
+    )
+  }
+
+  function handleRemoveRole(memberRoleId: string) {
+    removeRoleMutation.mutate(
+      { memberRoleId },
+      {
+        onSuccess: () => {
+          setRoleUserRoles((prev) => prev.filter((r) => r.id !== memberRoleId))
+        },
+      },
+    )
   }
 
   function handleResetPassword(e: React.FormEvent) {
@@ -393,9 +473,10 @@ function UsersPage() {
                 user={user}
                 rowIndex={i}
                 isLast={i === filtered.length - 1}
+                isSelf={user.id === currentUserId}
                 onEdit={() => openEdit(user)}
                 onDelete={() => openDelete({ id: user.id, name: user.name })}
-                onChangeRole={() => openRoleDialog({ id: user.id, name: user.name, role: user.role })}
+                onChangeRole={() => openRoleDialog({ id: user.id, name: user.name, memberId: user.memberId, memberRoles: (user as any).memberRoles ?? [] })}
                 onResetPassword={() => openPasswordDialog({ id: user.id, name: user.name })}
                 t={t}
               />
@@ -448,14 +529,38 @@ function UsersPage() {
 
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1 block">{t("usersPage.fields.role")}</Label>
-                  <select
-                    value={form.role}
-                    onChange={(e) => setField("role", e.target.value as OrgRole)}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="member">{t("usersPage.orgRoles.member.label")}</option>
-                    <option value="admin">{t("usersPage.orgRoles.admin.label")}</option>
-                  </select>
+                  <div className="space-y-2">
+                    {ORG_ROLES.map((r) => {
+                      const meta = ROLE_META[r]
+                      return (
+                        <label
+                          key={r}
+                          className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                            form.role === r ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="createRole"
+                            value={r}
+                            checked={form.role === r}
+                            onChange={() => setField("role", r)}
+                            className="sr-only"
+                          />
+                          <div
+                            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
+                            style={{ background: meta.bgColor, color: meta.color }}
+                          >
+                            {meta.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{getRoleLabel(r)}</p>
+                            <p className="text-xs text-muted-foreground">{getRoleDescription(r)}</p>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
               </>
             )}
@@ -486,58 +591,112 @@ function UsersPage() {
         }}
       />
 
-      {/* Role Change Dialog */}
+      {/* Manage Roles Dialog */}
       <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogClose onClick={() => setRoleDialogOpen(false)} />
           <DialogHeader>
-            <DialogTitle>{t("usersPage.dialogs.changeRoleTitle", { name: roleUserName })}</DialogTitle>
-            <DialogDescription>{t("usersPage.dialogs.changeRoleDescription")}</DialogDescription>
+            <DialogTitle>{t("usersPage.dialogs.manageRolesTitle", { name: roleUserName })}</DialogTitle>
+            <DialogDescription>{t("usersPage.dialogs.manageRolesDescription")}</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleUpdateRole} className="space-y-4 p-6 pt-2">
-            <div className="space-y-2">
-              {ORG_ROLES.map((r) => {
-                const meta = ROLE_META[r]
-                return (
-                  <label
-                    key={r}
-                    className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                      selectedRole === r ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="role"
-                      value={r}
-                      checked={selectedRole === r}
-                      onChange={() => setSelectedRole(r)}
-                      className="sr-only"
-                    />
-                    <div
-                      className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-                      style={{ background: meta.bgColor, color: meta.color }}
-                    >
-                      {meta.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{getRoleLabel(r)}</p>
-                      <p className="text-xs text-muted-foreground">{getRoleDescription(r)}</p>
-                    </div>
-                  </label>
-                )
-              })}
+          <div className="space-y-4 p-6 pt-2">
+            {/* Current roles */}
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">{t("usersPage.roles.currentRoles")}</Label>
+              {roleUserRoles.length === 0 ? (
+                <p className="text-sm text-muted-foreground italic">{t("usersPage.roles.noRoles")}</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {roleUserRoles.map((entry) => {
+                    const meta = ROLE_META[entry.role] ?? ROLE_META.admin
+                    const teamName = entry.teamId
+                      ? teams?.find((t2: any) => t2.id === entry.teamId)?.name ?? entry.teamId
+                      : null
+                    return (
+                      <div
+                        key={entry.id}
+                        className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2"
+                      >
+                        <div
+                          className="flex h-6 w-6 items-center justify-center rounded shrink-0"
+                          style={{ background: meta.bgColor, color: meta.color }}
+                        >
+                          {meta.icon}
+                        </div>
+                        <span className="text-sm font-medium flex-1 min-w-0 truncate">
+                          {getRoleLabel(entry.role)}
+                          {teamName && (
+                            <span className="text-muted-foreground font-normal"> — {teamName}</span>
+                          )}
+                          {TEAM_SCOPEABLE_ROLES.includes(entry.role) && !entry.teamId && (
+                            <span className="text-muted-foreground font-normal"> — {t("usersPage.roles.allTeams")}</span>
+                          )}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 shrink-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemoveRole(entry.id)}
+                          disabled={removeRoleMutation.isPending}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
-            <DialogFooter className="p-0 pt-2">
-              <Button type="button" variant="outline" onClick={() => setRoleDialogOpen(false)}>
-                {t("cancel")}
-              </Button>
-              <Button type="submit" variant="accent" disabled={updateRoleMutation.isPending}>
-                {updateRoleMutation.isPending ? t("saving") : t("save")}
-              </Button>
-            </DialogFooter>
-          </form>
+            {/* Add role */}
+            <div className="border-t border-border/40 pt-4">
+              <Label className="text-xs text-muted-foreground mb-2 block">{t("usersPage.roles.addRole")}</Label>
+              <form onSubmit={handleAddRole} className="space-y-3">
+                <div>
+                  <select
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    value={addRoleValue}
+                    onChange={(e) => {
+                      setAddRoleValue(e.target.value as OrgRole)
+                      setAddRoleTeamId(null)
+                    }}
+                  >
+                    {ORG_ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {getRoleLabel(r)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {TEAM_SCOPEABLE_ROLES.includes(addRoleValue) && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1 block">
+                      {t("usersPage.roles.teamScope")}
+                    </Label>
+                    <select
+                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      value={addRoleTeamId ?? ""}
+                      onChange={(e) => setAddRoleTeamId(e.target.value || null)}
+                    >
+                      <option value="">{t("usersPage.roles.allTeams")}</option>
+                      {teams?.map((team: any) => (
+                        <option key={team.id} value={team.id}>
+                          {team.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <Button type="submit" variant="accent" size="sm" disabled={addRoleMutation.isPending}>
+                  <Plus className="mr-1.5 h-3.5 w-3.5" />
+                  {addRoleMutation.isPending ? t("saving") : t("usersPage.roles.addRole")}
+                </Button>
+              </form>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -586,6 +745,7 @@ function MemberRow({
   user,
   rowIndex,
   isLast,
+  isSelf,
   onEdit,
   onDelete,
   onChangeRole,
@@ -598,19 +758,21 @@ function MemberRow({
     email: string
     role: string
     memberId: string
+    memberRoles?: MemberRoleEntry[]
     createdAt: Date
   }
   rowIndex: number
   isLast: boolean
+  isSelf: boolean
   onEdit: () => void
   onDelete: () => void
   onChangeRole: () => void
   onResetPassword: () => void
   t: (key: string, options?: Record<string, string | number | undefined>) => string
 }) {
-  const role = user.role as OrgRole
-  const meta = ROLE_META[role] ?? ROLE_META.member
-  const roleLabel = t(`usersPage.orgRoles.${role}.label`)
+  const memberRoles = user.memberRoles ?? []
+  const primaryRole = memberRoles[0]?.role as OrgRole | undefined
+  const isOwner = memberRoles.some((r) => r.role === "owner")
 
   const initials = user.name
     ? user.name
@@ -620,8 +782,6 @@ function MemberRow({
         .toUpperCase()
         .substring(0, 2)
     : user.email.substring(0, 2).toUpperCase()
-
-  const isOwner = role === "owner"
 
   return (
     <div
@@ -654,19 +814,34 @@ function MemberRow({
       {/* Spacer */}
       <div className="flex-1 min-w-0" />
 
-      {/* Role Badge */}
-      <Badge
-        variant="outline"
-        className="text-[10px] gap-1 shrink-0"
-        style={{
-          color: meta.color,
-          borderColor: `${meta.color}40`,
-          background: meta.bgColor,
-        }}
-      >
-        {meta.icon}
-        {roleLabel}
-      </Badge>
+      {/* Role Badges */}
+      <div className="flex items-center gap-1 flex-wrap shrink-0 max-w-[280px] justify-end">
+        {memberRoles.length === 0 ? (
+          <Badge variant="outline" className="text-[10px] gap-1 shrink-0 text-muted-foreground">
+            {t("usersPage.roles.noRoles")}
+          </Badge>
+        ) : (
+          memberRoles.map((entry) => {
+            const meta = ROLE_META[entry.role] ?? ROLE_META.admin
+            const roleLabel = t(`usersPage.orgRoles.${entry.role}.label`)
+            return (
+              <Badge
+                key={entry.id}
+                variant="outline"
+                className="text-[10px] gap-1 shrink-0"
+                style={{
+                  color: meta.color,
+                  borderColor: `${meta.color}40`,
+                  background: meta.bgColor,
+                }}
+              >
+                {meta.icon}
+                {roleLabel}
+              </Badge>
+            )
+          })
+        )}
+      </div>
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
@@ -675,11 +850,11 @@ function MemberRow({
           size="sm"
           onClick={onChangeRole}
           className="text-xs h-8 px-2 md:px-3"
-          title={t("usersPage.actions.changeRole")}
-          aria-label={t("usersPage.actions.changeRole")}
+          title={t("usersPage.actions.manageRoles")}
+          aria-label={t("usersPage.actions.manageRoles")}
         >
           <Shield className="h-3.5 w-3.5 md:mr-1.5" />
-          <span className="hidden md:inline">{t("usersPage.actions.changeRole")}</span>
+          <span className="hidden md:inline">{t("usersPage.actions.manageRoles")}</span>
         </Button>
         <Button
           variant="ghost"
@@ -703,17 +878,19 @@ function MemberRow({
           <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
           <span className="hidden md:inline">{t("usersPage.actions.edit")}</span>
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onDelete}
-          className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-          title={t("usersPage.actions.remove")}
-          aria-label={t("usersPage.actions.remove")}
-        >
-          <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
-          <span className="hidden md:inline">{t("usersPage.actions.remove")}</span>
-        </Button>
+        {!isSelf && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onDelete}
+            className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
+            title={t("usersPage.actions.remove")}
+            aria-label={t("usersPage.actions.remove")}
+          >
+            <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
+            <span className="hidden md:inline">{t("usersPage.actions.remove")}</span>
+          </Button>
+        )}
       </div>
     </div>
   )

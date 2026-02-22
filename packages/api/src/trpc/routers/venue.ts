@@ -1,6 +1,7 @@
-import { TRPCError } from '@trpc/server'
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const venueRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -13,11 +14,11 @@ export const venueRouter = router({
             name: true,
             shortName: true,
           },
-          orderBy: { name: 'asc' },
+          orderBy: { name: "asc" },
           take: 1,
         },
       },
-      orderBy: [{ name: 'asc' }, { city: 'asc' }],
+      orderBy: [{ name: "asc" }, { city: "asc" }],
     })
 
     return venues.map((venue) => ({
@@ -47,7 +48,7 @@ export const venueRouter = router({
         })
 
         if (!venue) {
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to create venue.' })
+          throw createAppError("INTERNAL_SERVER_ERROR", APP_ERROR_CODES.VENUE_CREATE_FAILED)
         }
 
         if (input.defaultTeamId) {
@@ -114,10 +115,7 @@ export const venueRouter = router({
     })
 
     if (usageCount > 0) {
-      throw new TRPCError({
-        code: 'CONFLICT',
-        message: `Venue cannot be deleted (${usageCount} assigned games).`,
-      })
+      throw createAppError("CONFLICT", APP_ERROR_CODES.VENUE_IN_USE)
     }
 
     await ctx.db.team.updateMany({

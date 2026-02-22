@@ -1,5 +1,5 @@
-import { z } from 'zod'
-import { orgAdminProcedure, orgProcedure, router } from '../init'
+import { z } from "zod"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 async function resolveCurrentSeason(db: any, organizationId: string) {
   const now = new Date()
@@ -10,7 +10,7 @@ async function resolveCurrentSeason(db: any, organizationId: string) {
       seasonStart: { lte: now },
       seasonEnd: { gte: now },
     },
-    orderBy: { seasonStart: 'desc' },
+    orderBy: { seasonStart: "desc" },
   })
   if (inRange) return inRange
 
@@ -19,13 +19,13 @@ async function resolveCurrentSeason(db: any, organizationId: string) {
       organizationId,
       seasonEnd: { lte: now },
     },
-    orderBy: { seasonEnd: 'desc' },
+    orderBy: { seasonEnd: "desc" },
   })
   if (latestPast) return latestPast
 
   return db.season.findFirst({
     where: { organizationId },
-    orderBy: { seasonStart: 'asc' },
+    orderBy: { seasonStart: "asc" },
   })
 }
 
@@ -33,7 +33,7 @@ export const playerRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
     return ctx.db.player.findMany({
       where: { organizationId: ctx.organizationId },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     })
   }),
 
@@ -45,7 +45,7 @@ export const playerRouter = router({
 
     const players = await ctx.db.player.findMany({
       where: { organizationId: ctx.organizationId },
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       include: {
         contracts: {
           include: { team: true, startSeason: true, endSeason: true },
@@ -104,8 +104,13 @@ export const playerRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const { dateOfBirth, ...rest } = input
       const player = await ctx.db.player.create({
-        data: { ...input, organizationId: ctx.organizationId },
+        data: {
+          ...rest,
+          dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+          organizationId: ctx.organizationId,
+        },
       })
       return player
     }),
@@ -122,10 +127,14 @@ export const playerRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input
+      const { id, dateOfBirth, ...data } = input
       await ctx.db.player.updateMany({
         where: { id, organizationId: ctx.organizationId },
-        data: { ...data, updatedAt: new Date() },
+        data: {
+          ...data,
+          ...(dateOfBirth !== undefined ? { dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null } : {}),
+          updatedAt: new Date(),
+        },
       })
       const player = await ctx.db.player.findFirst({
         where: { id, organizationId: ctx.organizationId },

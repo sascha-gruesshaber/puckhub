@@ -17,7 +17,9 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
   },
-  trustedOrigins: (process.env.TRUSTED_ORIGINS ?? "http://localhost:3000,http://localhost:3002").split(",").map((o) => o.trim()),
+  trustedOrigins: (process.env.TRUSTED_ORIGINS ?? "http://localhost:3000,http://localhost:3002")
+    .split(",")
+    .map((o) => o.trim()),
   plugins: [
     passkey({
       rpID: process.env.PASSKEY_RP_ID ?? "localhost",
