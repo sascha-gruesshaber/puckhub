@@ -1,6 +1,6 @@
 # @puckhub/db
 
-Drizzle ORM with PostgreSQL. Schema definitions, migrations, seeds, and services.
+Prisma ORM with PostgreSQL. Schema definitions, migrations, seeds, and services.
 
 ## Schema Organization (34 files in `src/schema/`)
 
@@ -14,7 +14,7 @@ Drizzle ORM with PostgreSQL. Schema definitions, migrations, seeds, and services
 **System**: `organization.ts` · `member.ts` · `invitation.ts` · `system-settings.ts`
 **Shared**: `enums.ts` · `relations.ts` · `index.ts` (re-exports all)
 
-## Enums (`src/schema/enums.ts`) — 8 enums
+## Enums (`prisma/schema.prisma`) - 9 enums
 
 - `roundTypeEnum`: regular, preround, playoffs, playdowns, relegation, placement, final, playups
 - `positionEnum`: forward, defense, goalie
@@ -24,6 +24,7 @@ Drizzle ORM with PostgreSQL. Schema definitions, migrations, seeds, and services
 - `pageStatusEnum`: draft, published
 - `menuLocationEnum`: main_nav, footer
 - `trikotTemplateTypeEnum`: one_color, two_color
+- `orgRoleEnum`: owner, admin, game_manager, game_reporter, team_manager, editor
 
 ## Key Patterns
 
@@ -47,12 +48,13 @@ Exports: `recalculateStandings`, `recalculatePlayerStats`, `recalculateGoalieSta
 
 ```bash
 # After changing schema files:
-pnpm db:generate          # Generate SQL migration in packages/db/drizzle/
-pnpm db:migrate           # Push to dev DB (drizzle-kit push)
-pnpm db:migrate:prod      # Run migrations (drizzle-kit migrate)
+pnpm db:generate          # Generate Prisma Client in packages/db/src/generated/prisma/
+pnpm db:migrate           # Push schema to dev DB (prisma db push)
+pnpm db:migrate:create    # Create and apply a new migration locally (prisma migrate dev)
+pnpm db:migrate:prod      # Run committed migrations (prisma migrate deploy)
 ```
 
-Migrations are in `drizzle/` (7 migration files) with journal tracking. Auto-migrate on API startup when `AUTO_MIGRATE=true`.
+Migrations are in `prisma/migrations/` (2 migration directories + `migration_lock.toml`). Auto-migrate on API startup when `AUTO_MIGRATE=true`.
 
 ## Seed System
 
