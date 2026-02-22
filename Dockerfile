@@ -17,14 +17,17 @@ RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 
 # ============================================================================
-# Builder stage - install all dependencies and build apps
-# Dependencies are installed in the same stage to preserve pnpm symlinks
+# Builder stage - install dependencies and build apps
 # ============================================================================
 FROM base AS builder
+
+ARG VITE_API_URL=
+ARG PLATFORM_BASE_PATH=/platform
 
 # Copy package manifests first (Docker layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
+COPY apps/platform/package.json ./apps/platform/
 COPY apps/web/package.json ./apps/web/
 COPY packages/api/package.json ./packages/api/
 COPY packages/db/package.json ./packages/db/
@@ -37,17 +40,17 @@ RUN pnpm install --frozen-lockfile
 # Copy source code (.dockerignore excludes node_modules, dist, .output at all depths)
 COPY . .
 
-# Build the admin app (Vite resolves workspace TS sources directly)
-# Package type-checking is handled by CI lint step, not Docker build
-RUN pnpm --filter @puckhub/admin run build
+# Build frontends with production base/API settings
+RUN VITE_API_URL="${VITE_API_URL}" pnpm --filter @puckhub/admin run build
+RUN VITE_API_URL="${VITE_API_URL}" VITE_BASE_PATH="${PLATFORM_BASE_PATH}" pnpm --filter @puckhub/platform run build
 
-# Remove turbo cache (not needed at runtime)
+# Remove caches not needed at runtime
 RUN rm -rf .turbo node_modules/.cache
 
 # ============================================================================
-# Production runner stage
+# Runtime base stage shared by API/Admin/Platform runners
 # ============================================================================
-FROM base AS runner
+FROM base AS runner-base
 
 # Set production environment
 ENV NODE_ENV=production
@@ -60,39 +63,20 @@ RUN addgroup --system --gid 1001 nodejs && \
 RUN mkdir -p /app/uploads && \
     chown -R puckhub:nodejs /app
 
-# Copy pruned node_modules and root manifests from builder
+# Copy workspace runtime files
 COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=puckhub:nodejs /app/package.json ./
 COPY --from=builder --chown=puckhub:nodejs /app/pnpm-lock.yaml ./
 COPY --from=builder --chown=puckhub:nodejs /app/pnpm-workspace.yaml ./
 COPY --from=builder --chown=puckhub:nodejs /app/tsconfig.base.json ./
-
-# Copy all workspace packages (source, tsconfig, node_modules, migrations)
 COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-
-# Copy app package.json files (pnpm workspace needs these)
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/package.json ./apps/admin/
+COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/package.json ./apps/platform/
 COPY --from=builder --chown=puckhub:nodejs /app/apps/web/package.json ./apps/web/
-
-# Copy built admin app (Vite/TanStack Start output)
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
+COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/dist ./apps/platform/dist
 
-# Switch to non-root user
-USER puckhub
-
-# Expose ports
-EXPOSE 3000 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-# Start the API server using tsx (runs TypeScript directly)
-# WORKDIR must be the API package for pnpm's strict node_modules to resolve tsx
-WORKDIR /app/packages/api
-CMD ["node", "--import", "tsx", "src/index.ts"]
-
-# Build metadata (for container labels)
+# Shared OCI labels
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
@@ -107,3 +91,44 @@ LABEL org.opencontainers.image.title="PuckHub" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.documentation="https://github.com/sascha-gruesshaber/puckhub#readme"
+
+# Switch to non-root user
+USER puckhub
+
+# ============================================================================
+# API runtime image
+# ============================================================================
+FROM runner-base AS api-runner
+
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
+
+WORKDIR /app/packages/api
+CMD ["node", "--import", "tsx", "src/index.ts"]
+
+# ============================================================================
+# Admin runtime image
+# ============================================================================
+FROM runner-base AS admin-runner
+
+ENV PORT=3000
+EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+
+WORKDIR /app/apps/admin
+CMD ["node", "dist/server/server.js"]
+
+# ============================================================================
+# Platform runtime image
+# ============================================================================
+FROM runner-base AS platform-runner
+
+ENV PORT=3002
+EXPOSE 3002
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3002/platform', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+
+WORKDIR /app/apps/platform
+CMD ["node", "dist/server/server.js"]

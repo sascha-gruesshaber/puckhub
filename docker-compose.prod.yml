@@ -4,6 +4,26 @@
 version: '3.9'
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: puckhub-edge
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+    networks:
+      - puckhub
+
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
@@ -25,7 +45,7 @@ services:
 
   # PuckHub API Server
   api:
-    image: ghcr.io/sascha-gruesshaber/puckhub:latest
+    image: ghcr.io/sascha-gruesshaber/puckhub-api:latest
     container_name: puckhub-api
     restart: unless-stopped
     depends_on:
@@ -35,15 +55,13 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://${POSTGRES_USER:-puckhub}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-puckhub}
       AUTH_SECRET: ${AUTH_SECRET}
-      AUTH_URL: ${AUTH_URL:-http://localhost:3001}
+      AUTH_URL: ${AUTH_URL:-http://localhost}
       API_PORT: 3001
       AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
       UPLOAD_DIR: /app/uploads
-      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:3000}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost}
     volumes:
       - uploads:/app/uploads
-    ports:
-      - "${API_PORT:-3001}:3001"
     networks:
       - puckhub
     healthcheck:
@@ -53,25 +71,52 @@ services:
       retries: 3
       start_period: 40s
 
-  # PuckHub Admin UI (optional - for production you might use a separate deployment)
-  # admin:
-  #   image: ghcr.io/sascha-gruesshaber/puckhub:latest
-  #   container_name: puckhub-admin
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - api
-  #   environment:
-  #     NODE_ENV: production
-  #     VITE_API_URL: http://api:3001
-  #   ports:
-  #     - "${ADMIN_PORT:-3000}:3000"
-  #   networks:
-  #     - puckhub
+  # PuckHub Admin UI
+  admin:
+    image: ghcr.io/sascha-gruesshaber/puckhub-admin:latest
+    container_name: puckhub-admin
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    networks:
+      - puckhub
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PuckHub Platform UI
+  platform:
+    image: ghcr.io/sascha-gruesshaber/puckhub-platform:latest
+    container_name: puckhub-platform
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+    networks:
+      - puckhub
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/platform"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:
     driver: local
   uploads:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
 
 networks:

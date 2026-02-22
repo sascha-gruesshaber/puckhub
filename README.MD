@@ -36,6 +36,7 @@ Ice hockey league management platform. Built for regional ice hockey leagues to 
 puckhub.cms/
 ├── apps/
 │   ├── admin/          # TanStack Start admin CMS (27 routes, ~65 components)
+│   ├── platform/       # TanStack Start platform app (served at /platform in production)
 │   └── web/            # Future public-facing site
 ├── packages/
 │   ├── api/            # Hono + tRPC server, 25 routers, 3 services (@puckhub/api)
@@ -89,6 +90,19 @@ pnpm db:reset           # Reset database via @puckhub/db seed reset utility
 pnpm dev:docker:up      # Start Docker containers only
 pnpm dev:docker:down    # Stop Docker containers only
 ```
+
+## Production Containers
+
+- **App images**:
+- `ghcr.io/sascha-gruesshaber/puckhub-api`
+- `ghcr.io/sascha-gruesshaber/puckhub-admin`
+- `ghcr.io/sascha-gruesshaber/puckhub-platform`
+- **Edge**: Caddy routes traffic on one host:
+- `/` -> admin
+- `/platform` -> platform
+- `/api` -> api
+
+Note: CI currently builds all three images but temporarily does **not** push them to GHCR.
 
 ## Settings
 
