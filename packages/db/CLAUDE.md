@@ -1,6 +1,6 @@
 # @puckhub/db
 
-Drizzle ORM with PostgreSQL. Schema definitions, migrations, and seed data.
+Drizzle ORM with PostgreSQL. Schema definitions, migrations, seeds, and services.
 
 ## Schema Organization (34 files in `src/schema/`)
 
@@ -32,7 +32,16 @@ Drizzle ORM with PostgreSQL. Schema definitions, migrations, and seed data.
 - **Cascade rules**: Foreign keys use `onDelete: 'cascade'` or `onDelete: 'set null'` as appropriate
 - **Singleton**: `system_settings` uses `check(eq(id, 1))` constraint
 - **Self-joins**: Use `aliasedTable()` from `drizzle-orm/alias` — never use `sql` template as join target
-- **Relations**: All defined in `relations.ts` (~190 lines), required for `db.query.*.findMany({ with: {} })`
+- **Relations**: All defined in `relations.ts` (287 lines), required for `db.query.*.findMany({ with: {} })`
+
+## Services (`src/services/`)
+
+| Service | Purpose |
+|---------|---------|
+| `standingsService.ts` | Recalculate standings from game results, bonus points |
+| `statsService.ts` | Recalculate player and goalie statistics |
+
+Exports: `recalculateStandings`, `recalculatePlayerStats`, `recalculateGoalieStats`
 
 ## Migration Workflow
 
@@ -47,9 +56,11 @@ Migrations are in `drizzle/` (7 migration files) with journal tracking. Auto-mig
 
 ## Seed System
 
-- `src/seed/index.ts` — **Reference data**: penalty types (6), trikot templates (2). Safe to re-run (`onConflictDoNothing`)
+- `src/seed/index.ts` — **Reference data**: penalty types (6), trikot templates (2), static pages (3: Impressum, Datenschutz, Kontakt). Safe to re-run (`onConflictDoNothing`)
 - `src/seed/demo.ts` — **Demo data**: 10 teams, 100 players, 16 seasons (15 past + 1 current), venues, contracts, game reports (lineups/events/suspensions), news, sponsors, pages, admin user (`admin@demo.local` / `demo1234`). Truncates all tables first
 - `src/seed/run.ts` — Entry point for reference seed
+- `src/seed/reset.ts` — Database reset utility (truncates all tables with CASCADE, interactive prompt unless `--force`)
+- `src/seed/seedImages.ts` — Image generation utilities for seed data
 
 ## Adding a New Table
 
@@ -63,4 +74,5 @@ Migrations are in `drizzle/` (7 migration files) with journal tracking. Auto-mig
 ```ts
 import { db, schema, runMigrations, runSeed } from '@puckhub/db'
 import { seasons, teams, ... } from '@puckhub/db/schema'
+import { recalculateStandings, recalculatePlayerStats, recalculateGoalieStats } from '@puckhub/db/services'
 ```
