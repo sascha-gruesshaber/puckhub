@@ -66,17 +66,15 @@ Pattern:
 ```ts
 import { z } from 'zod'
 import { router, adminProcedure } from '../init'
-import { schema } from '@puckhub/db'
-import { eq } from 'drizzle-orm'
 
 export const myRouter = router({
   list: adminProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.myTable.findMany()
+    return ctx.db.team.findMany({ orderBy: { name: 'asc' } })
   }),
   create: adminProcedure
     .input(z.object({ name: z.string().min(1) }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.db.insert(schema.myTable).values(input).returning()
+      return ctx.db.team.create({ data: input })
     }),
 })
 ```

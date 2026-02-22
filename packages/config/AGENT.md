@@ -8,6 +8,6 @@ The `src/index.ts` file is intentionally empty. All runtime configuration (leagu
 
 ## Related
 
-- **DB schema**: `packages/db/src/schema/system-settings.ts` — singleton table with `id=1` constraint
+- **DB schema**: `packages/db/prisma/schema.prisma` (`model SystemSettings`) — one row per organization (`organizationId` is unique)
 - **API router**: `packages/api/src/trpc/routers/settings.ts` — `get` (public) / `update` (admin)
 - **Admin UI**: `apps/admin/src/routes/_authed/settings.tsx` — settings form
