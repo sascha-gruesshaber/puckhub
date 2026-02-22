@@ -34,6 +34,9 @@ COPY packages/db/package.json ./packages/db/
 COPY packages/config/package.json ./packages/config/
 COPY packages/ui/package.json ./packages/ui/
 
+# Copy Prisma schema (needed by @puckhub/db postinstall → prisma generate)
+COPY packages/db/prisma ./packages/db/prisma
+
 # Install all dependencies (dev + prod)
 RUN pnpm install --frozen-lockfile
 
