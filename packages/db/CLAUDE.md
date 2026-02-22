@@ -1,38 +1,39 @@
 # @puckhub/db
 
-Drizzle ORM with PostgreSQL. Schema definitions, migrations, seeds, and services.
+Prisma ORM with PostgreSQL. Schema definitions, migrations, seeds, and services.
 
-## Schema Organization (34 files in `src/schema/`)
+## Schema Organization (`prisma/schema.prisma`)
 
-**Auth**: `auth.ts` (user, session, account, verification) · `passkey.ts` · `twoFactor.ts`
-**Core**: `seasons.ts` · `divisions.ts` · `rounds.ts` · `teams.ts` · `team-divisions.ts` · `venues.ts`
-**Players**: `players.ts` · `contracts.ts` (player-team-season links)
-**Games**: `games.ts` · `game-events.ts` (goals/penalties) · `game-lineups.ts` (player participation) · `game-suspensions.ts` (multi-game suspensions) · `penalty-types.ts`
-**Stats**: `standings.ts` · `bonus-points.ts` · `player-season-stats.ts` · `goalie-season-stats.ts` · `goalie-game-stats.ts`
-**Trikots**: `trikot-templates.ts` · `trikots.ts` · `team-trikots.ts`
-**Content**: `news.ts` · `pages.ts` (CMS pages with menu locations) · `page-aliases.ts` · `documents.ts` · `sponsors.ts`
-**System**: `organization.ts` · `member.ts` · `invitation.ts` · `system-settings.ts`
-**Shared**: `enums.ts` · `relations.ts` · `index.ts` (re-exports all)
+All 37 models and 9 enums are defined in a single Prisma schema file with `@@map` annotations to preserve existing table/column names.
 
-## Enums (`src/schema/enums.ts`) — 8 enums
+**Auth**: `User` · `Session` · `Account` · `Verification` · `TwoFactor` · `Passkey`
+**Core**: `Season` · `Division` · `Round` · `Team` · `TeamDivision` · `Venue`
+**Players**: `Player` · `Contract` (player-team-season links)
+**Games**: `Game` · `GameEvent` (goals/penalties) · `GameLineup` (player participation) · `GameSuspension` (multi-game suspensions) · `PenaltyType`
+**Stats**: `Standing` · `BonusPoint` · `PlayerSeasonStat` · `GoalieSeasonStat` · `GoalieGameStat`
+**Trikots**: `TrikotTemplate` · `Trikot` · `TeamTrikot`
+**Content**: `News` · `Page` (CMS pages with menu locations) · `PageAlias` · `Document` · `Sponsor`
+**System**: `Organization` · `Member` · `MemberRole` · `Invitation` · `SystemSettings`
 
-- `roundTypeEnum`: regular, preround, playoffs, playdowns, relegation, placement, final, playups
-- `positionEnum`: forward, defense, goalie
-- `gameStatusEnum`: scheduled, in_progress, completed, postponed, cancelled
-- `gameEventTypeEnum`: goal, penalty
-- `newsStatusEnum`: draft, published
-- `pageStatusEnum`: draft, published
-- `menuLocationEnum`: main_nav, footer
-- `trikotTemplateTypeEnum`: one_color, two_color
+## Enums (`prisma/schema.prisma`) — 9 enums
+
+- `RoundType`: regular, preround, playoffs, playdowns, relegation, placement, final, playups
+- `Position`: forward, defense, goalie
+- `GameStatus`: scheduled, in_progress, completed, postponed, cancelled
+- `GameEventType`: goal, penalty
+- `NewsStatus`: draft, published
+- `PageStatus`: draft, published
+- `MenuLocation`: main_nav, footer
+- `TrikotTemplateType`: one_color, two_color
+- `OrgRole`: owner, admin, member, viewer
 
 ## Key Patterns
 
-- **Primary keys**: UUID with `defaultRandom()`
-- **Timestamps**: `createdAt` / `updatedAt` with timezone (`timestamp({ withTimezone: true })`)
-- **Cascade rules**: Foreign keys use `onDelete: 'cascade'` or `onDelete: 'set null'` as appropriate
-- **Singleton**: `system_settings` uses `check(eq(id, 1))` constraint
-- **Self-joins**: Use `aliasedTable()` from `drizzle-orm/alias` — never use `sql` template as join target
-- **Relations**: All defined in `relations.ts` (287 lines), required for `db.query.*.findMany({ with: {} })`
+- **Primary keys**: UUID with `@default(uuid())`
+- **Timestamps**: `createdAt` / `updatedAt` with `@default(now())` and `@updatedAt`
+- **Cascade rules**: Relations use `onDelete: Cascade` or `onDelete: SetNull` as appropriate
+- **Singleton**: `system_settings` enforced via application logic
+- **Relations**: All defined inline in `prisma/schema.prisma` with Prisma relation fields
 
 ## Services (`src/services/`)
 
@@ -46,33 +47,33 @@ Exports: `recalculateStandings`, `recalculatePlayerStats`, `recalculateGoalieSta
 ## Migration Workflow
 
 ```bash
-# After changing schema files:
-pnpm db:generate          # Generate SQL migration in packages/db/drizzle/
-pnpm db:migrate           # Push to dev DB (drizzle-kit push)
-pnpm db:migrate:prod      # Run migrations (drizzle-kit migrate)
+# After changing prisma/schema.prisma:
+pnpm db:generate          # Regenerate Prisma Client in src/generated/prisma/
+pnpm db:migrate:create    # Create a new migration file (prisma migrate dev)
+pnpm db:migrate           # Push schema to dev DB (prisma db push, no migration file)
+pnpm db:migrate:prod      # Apply pending migrations (prisma migrate deploy)
 ```
 
-Migrations are in `drizzle/` (7 migration files) with journal tracking. Auto-migrate on API startup when `AUTO_MIGRATE=true`.
+Migrations are in `prisma/migrations/` with a `migration_lock.toml` tracking file. Auto-migrate on API startup when `AUTO_MIGRATE=true` (runs `prisma migrate deploy`).
 
 ## Seed System
 
 - `src/seed/index.ts` — **Reference data**: penalty types (6), trikot templates (2), static pages (3: Impressum, Datenschutz, Kontakt). Safe to re-run (`onConflictDoNothing`)
-- `src/seed/demo.ts` — **Demo data**: 10 teams, 100 players, 16 seasons (15 past + 1 current), venues, contracts, game reports (lineups/events/suspensions), news, sponsors, pages, admin user (`admin@demo.local` / `demo1234`). Truncates all tables first
+- `src/seed/demoSeed.ts` — **Demo data**: 10 teams, 100 players, 16 seasons (15 past + 1 current), venues, contracts, game reports (lineups/events/suspensions), news, sponsors, pages, admin user (`admin@demo.local` / `demo1234`). Truncates all tables first
 - `src/seed/run.ts` — Entry point for reference seed
 - `src/seed/reset.ts` — Database reset utility (truncates all tables with CASCADE, interactive prompt unless `--force`)
 - `src/seed/seedImages.ts` — Image generation utilities for seed data
 
 ## Adding a New Table
 
-1. Create `src/schema/{name}.ts` with table definition
-2. Export from `src/schema/index.ts`
-3. Add relations in `src/schema/relations.ts` if needed
-4. Run `pnpm db:generate` then `pnpm db:migrate`
+1. Add a new `model` block in `prisma/schema.prisma` with `@@map("table_name")`
+2. Add relations to other models as needed
+3. Run `pnpm db:migrate:create` (dev) or `pnpm db:migrate` (push without migration file)
+4. Run `pnpm db:generate` to regenerate the Prisma Client
 
 ## Main Exports
 
 ```ts
-import { db, schema, runMigrations, runSeed } from '@puckhub/db'
-import { seasons, teams, ... } from '@puckhub/db/schema'
-import { recalculateStandings, recalculatePlayerStats, recalculateGoalieStats } from '@puckhub/db/services'
+import { db, runMigrations, runSeed } from '@puckhub/db'
+import type { Database, Prisma } from '@puckhub/db'
 ```
