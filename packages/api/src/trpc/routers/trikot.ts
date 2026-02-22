@@ -1,23 +1,21 @@
-import * as schema from "@puckhub/db/schema"
-import { and, eq } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 export const trikotRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.trikots.findMany({
-      with: { template: true },
-      where: eq(schema.trikots.organizationId, ctx.organizationId),
-      orderBy: (t, { asc }) => [asc(t.name)],
+    return ctx.db.trikot.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: { template: true },
+      orderBy: { name: 'asc' },
     })
   }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.trikots.findFirst({
-      where: and(eq(schema.trikots.id, input.id), eq(schema.trikots.organizationId, ctx.organizationId)),
-      with: {
+    return ctx.db.trikot.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      include: {
         template: true,
-        teamTrikots: { with: { team: true } },
+        teamTrikots: { include: { team: true } },
       },
     })
   }),
@@ -32,16 +30,15 @@ export const trikotRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [trikot] = await ctx.db
-        .insert(schema.trikots)
-        .values({
+      const trikot = await ctx.db.trikot.create({
+        data: {
           organizationId: ctx.organizationId,
           name: input.name,
           templateId: input.templateId,
           primaryColor: input.primaryColor,
           secondaryColor: input.secondaryColor ?? null,
-        })
-        .returning()
+        },
+      })
       return trikot
     }),
 
@@ -57,17 +54,19 @@ export const trikotRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
-      const [trikot] = await ctx.db
-        .update(schema.trikots)
-        .set({ ...data, updatedAt: new Date() })
-        .where(and(eq(schema.trikots.id, id), eq(schema.trikots.organizationId, ctx.organizationId)))
-        .returning()
+      await ctx.db.trikot.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: { ...data, updatedAt: new Date() },
+      })
+      const trikot = await ctx.db.trikot.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+      })
       return trikot
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.trikots)
-      .where(and(eq(schema.trikots.id, input.id), eq(schema.trikots.organizationId, ctx.organizationId)))
+    await ctx.db.trikot.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

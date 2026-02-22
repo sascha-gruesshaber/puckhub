@@ -1,17 +1,15 @@
-import * as schema from "@puckhub/db/schema"
 import { TRPCError } from "@trpc/server"
 import { hashPassword } from "better-auth/crypto"
-import { and, eq, ne } from "drizzle-orm"
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, router } from "../init"
 
 export const usersRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    const members = await ctx.db.query.member.findMany({
-      where: eq(schema.member.organizationId, ctx.organizationId),
-      with: {
+    const members = await ctx.db.member.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: {
         user: {
-          columns: {
+          select: {
             id: true,
             name: true,
             email: true,
@@ -23,7 +21,7 @@ export const usersRouter = router({
       },
     })
 
-    return members.map((m) => ({
+    return members.map((m: any) => ({
       id: m.user.id,
       name: m.user.name,
       email: m.user.email,
@@ -37,9 +35,9 @@ export const usersRouter = router({
   }),
 
   listAll: platformAdminProcedure.query(async ({ ctx }) => {
-    const allUsers = await ctx.db.query.user.findMany({
-      orderBy: (u, { asc }) => [asc(u.name)],
-      columns: {
+    const allUsers = await ctx.db.user.findMany({
+      orderBy: { name: "asc" },
+      select: {
         id: true,
         name: true,
         email: true,
@@ -51,10 +49,10 @@ export const usersRouter = router({
       },
     })
 
-    const allMembers = await ctx.db.query.member.findMany({
-      with: {
+    const allMembers = await ctx.db.member.findMany({
+      include: {
         organization: {
-          columns: { id: true, name: true, slug: true },
+          select: { id: true, name: true, slug: true },
         },
       },
     })
@@ -71,18 +69,21 @@ export const usersRouter = router({
       membersByUser.set(m.userId, list)
     }
 
-    return allUsers.map((u) => ({
+    return allUsers.map((u: any) => ({
       ...u,
       organizations: membersByUser.get(u.id) ?? [],
     }))
   }),
 
   getById: orgAdminProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    const memberRecord = await ctx.db.query.member.findFirst({
-      where: and(eq(schema.member.userId, input.id), eq(schema.member.organizationId, ctx.organizationId)),
-      with: {
+    const memberRecord = await ctx.db.member.findFirst({
+      where: {
+        userId: input.id,
+        organizationId: ctx.organizationId,
+      },
+      include: {
         user: {
-          columns: {
+          select: {
             id: true,
             name: true,
             email: true,
@@ -116,17 +117,17 @@ export const usersRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [existing] = await ctx.db
-        .select({ id: schema.user.id })
-        .from(schema.user)
-        .where(eq(schema.user.email, input.email))
+      const existing = await ctx.db.user.findFirst({
+        where: { email: input.email },
+        select: { id: true },
+      })
 
       let userId: string
 
       if (existing) {
         // User exists — check if already a member of this org
-        const existingMember = await ctx.db.query.member.findFirst({
-          where: and(eq(schema.member.userId, existing.id), eq(schema.member.organizationId, ctx.organizationId)),
+        const existingMember = await ctx.db.member.findFirst({
+          where: { userId: existing.id, organizationId: ctx.organizationId },
         })
         if (existingMember) {
           throw new TRPCError({
@@ -138,29 +139,35 @@ export const usersRouter = router({
       } else {
         // Create new user
         userId = crypto.randomUUID()
-        await ctx.db.insert(schema.user).values({
-          id: userId,
-          email: input.email,
-          name: input.name,
-          emailVerified: true,
+        await ctx.db.user.create({
+          data: {
+            id: userId,
+            email: input.email,
+            name: input.name,
+            emailVerified: true,
+          },
         })
 
         const hashedPw = await hashPassword(input.password)
-        await ctx.db.insert(schema.account).values({
-          id: crypto.randomUUID(),
-          accountId: userId,
-          providerId: "credential",
-          password: hashedPw,
-          userId,
+        await ctx.db.account.create({
+          data: {
+            id: crypto.randomUUID(),
+            accountId: userId,
+            providerId: "credential",
+            password: hashedPw,
+            userId,
+          },
         })
       }
 
       // Add as member to org
-      await ctx.db.insert(schema.member).values({
-        id: crypto.randomUUID(),
-        userId,
-        organizationId: ctx.organizationId,
-        role: input.role,
+      await ctx.db.member.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId,
+          organizationId: ctx.organizationId,
+          role: input.role,
+        },
       })
 
       return { userId }
@@ -179,10 +186,13 @@ export const usersRouter = router({
       if (Object.keys(data).length === 0) return
 
       if (data.email) {
-        const [existing] = await ctx.db
-          .select({ id: schema.user.id })
-          .from(schema.user)
-          .where(and(eq(schema.user.email, data.email), ne(schema.user.id, id)))
+        const existing = await ctx.db.user.findFirst({
+          where: {
+            email: data.email,
+            id: { not: id },
+          },
+          select: { id: true },
+        })
 
         if (existing) {
           throw new TRPCError({
@@ -192,11 +202,10 @@ export const usersRouter = router({
         }
       }
 
-      const [updated] = await ctx.db
-        .update(schema.user)
-        .set({ ...data, updatedAt: new Date() })
-        .where(eq(schema.user.id, id))
-        .returning()
+      const updated = await ctx.db.user.update({
+        where: { id },
+        data: { ...data, updatedAt: new Date() },
+      })
 
       if (!updated) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Benutzer nicht gefunden" })
@@ -214,9 +223,9 @@ export const usersRouter = router({
     }
 
     // Remove member record from this org (don't delete the user globally)
-    await ctx.db
-      .delete(schema.member)
-      .where(and(eq(schema.member.userId, input.id), eq(schema.member.organizationId, ctx.organizationId)))
+    await ctx.db.member.deleteMany({
+      where: { userId: input.id, organizationId: ctx.organizationId },
+    })
   }),
 
   resetPassword: orgAdminProcedure
@@ -229,17 +238,20 @@ export const usersRouter = router({
     .mutation(async ({ ctx, input }) => {
       const hashedPw = await hashPassword(input.password)
 
-      const [updated] = await ctx.db
-        .update(schema.account)
-        .set({ password: hashedPw, updatedAt: new Date() })
-        .where(and(eq(schema.account.userId, input.id), eq(schema.account.providerId, "credential")))
-        .returning()
+      const existing = await ctx.db.account.findFirst({
+        where: { userId: input.id, providerId: "credential" },
+      })
 
-      if (!updated) {
+      if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Account nicht gefunden" })
       }
 
-      await ctx.db.delete(schema.session).where(eq(schema.session.userId, input.id))
+      await ctx.db.account.update({
+        where: { id: existing.id },
+        data: { password: hashedPw, updatedAt: new Date() },
+      })
+
+      await ctx.db.session.deleteMany({ where: { userId: input.id } })
     }),
 
   updateRole: orgAdminProcedure
@@ -250,19 +262,18 @@ export const usersRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const memberRecord = await ctx.db.query.member.findFirst({
-        where: and(eq(schema.member.userId, input.userId), eq(schema.member.organizationId, ctx.organizationId)),
+      const memberRecord = await ctx.db.member.findFirst({
+        where: { userId: input.userId, organizationId: ctx.organizationId },
       })
 
       if (!memberRecord) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Mitglied nicht gefunden" })
       }
 
-      const [updated] = await ctx.db
-        .update(schema.member)
-        .set({ role: input.role })
-        .where(eq(schema.member.id, memberRecord.id))
-        .returning()
+      const updated = await ctx.db.member.update({
+        where: { id: memberRecord.id },
+        data: { role: input.role },
+      })
 
       return updated
     }),

@@ -1,5 +1,3 @@
-import * as schema from "@puckhub/db/schema"
-import { and, eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
@@ -95,17 +93,21 @@ describe("users router", () => {
       const db = getTestDb()
 
       const userId = "update-target"
-      await db.insert(schema.user).values({
-        id: userId,
-        name: "Old Name",
-        email: "update@test.local",
-        emailVerified: false,
+      await db.user.create({
+        data: {
+          id: userId,
+          name: "Old Name",
+          email: "update@test.local",
+          emailVerified: false,
+        },
       })
-      await db.insert(schema.member).values({
-        id: "update-target-member",
-        userId,
-        organizationId: TEST_ORG_ID,
-        role: "member",
+      await db.member.create({
+        data: {
+          id: "update-target-member",
+          userId,
+          organizationId: TEST_ORG_ID,
+          role: "member",
+        },
       })
 
       const updated = await admin.users.update({ id: userId, name: "New Name" })
@@ -117,17 +119,21 @@ describe("users router", () => {
       const db = getTestDb()
 
       const userId = "update-email-target"
-      await db.insert(schema.user).values({
-        id: userId,
-        name: "User",
-        email: "old@test.local",
-        emailVerified: false,
+      await db.user.create({
+        data: {
+          id: userId,
+          name: "User",
+          email: "old@test.local",
+          emailVerified: false,
+        },
       })
-      await db.insert(schema.member).values({
-        id: "update-email-target-member",
-        userId,
-        organizationId: TEST_ORG_ID,
-        role: "member",
+      await db.member.create({
+        data: {
+          id: "update-email-target-member",
+          userId,
+          organizationId: TEST_ORG_ID,
+          role: "member",
+        },
       })
 
       const updated = await admin.users.update({ id: userId, email: "new@test.local" })
@@ -153,26 +159,30 @@ describe("users router", () => {
 
       // Create a user to delete
       const userId = "delete-target"
-      await db.insert(schema.user).values({
-        id: userId,
-        name: "To Delete",
-        email: "delete@test.local",
-        emailVerified: false,
+      await db.user.create({
+        data: {
+          id: userId,
+          name: "To Delete",
+          email: "delete@test.local",
+          emailVerified: false,
+        },
       })
-      await db.insert(schema.member).values({
-        id: "delete-target-member",
-        userId,
-        organizationId: TEST_ORG_ID,
-        role: "member",
+      await db.member.create({
+        data: {
+          id: "delete-target-member",
+          userId,
+          organizationId: TEST_ORG_ID,
+          role: "member",
+        },
       })
 
       await admin.users.delete({ id: userId })
 
       // Verify member record is gone
-      const memberRecord = await db.query.member.findFirst({
-        where: and(eq(schema.member.userId, userId), eq(schema.member.organizationId, TEST_ORG_ID)),
+      const memberRecord = await db.member.findFirst({
+        where: { userId, organizationId: TEST_ORG_ID },
       })
-      expect(memberRecord).toBeUndefined()
+      expect(memberRecord).toBeNull()
     })
 
     it("prevents deleting yourself", async () => {
@@ -201,17 +211,21 @@ describe("users router", () => {
       const db = getTestDb()
 
       const userId = "no-account"
-      await db.insert(schema.user).values({
-        id: userId,
-        name: "No Account",
-        email: "noaccount@test.local",
-        emailVerified: false,
+      await db.user.create({
+        data: {
+          id: userId,
+          name: "No Account",
+          email: "noaccount@test.local",
+          emailVerified: false,
+        },
       })
-      await db.insert(schema.member).values({
-        id: "no-account-member",
-        userId,
-        organizationId: TEST_ORG_ID,
-        role: "member",
+      await db.member.create({
+        data: {
+          id: "no-account-member",
+          userId,
+          organizationId: TEST_ORG_ID,
+          role: "member",
+        },
       })
 
       await expect(admin.users.resetPassword({ id: userId, password: "newpass123" })).rejects.toThrow(
@@ -231,17 +245,21 @@ describe("users router", () => {
       const db = getTestDb()
 
       const userId = "role-target"
-      await db.insert(schema.user).values({
-        id: userId,
-        name: "Role User",
-        email: "role@test.local",
-        emailVerified: false,
+      await db.user.create({
+        data: {
+          id: userId,
+          name: "Role User",
+          email: "role@test.local",
+          emailVerified: false,
+        },
       })
-      await db.insert(schema.member).values({
-        id: "role-target-member",
-        userId,
-        organizationId: TEST_ORG_ID,
-        role: "member",
+      await db.member.create({
+        data: {
+          id: "role-target-member",
+          userId,
+          organizationId: TEST_ORG_ID,
+          role: "member",
+        },
       })
 
       const updated = await admin.users.updateRole({

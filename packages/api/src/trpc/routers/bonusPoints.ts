@@ -1,18 +1,16 @@
-import * as schema from "@puckhub/db/schema"
-import { recalculateStandings } from "@puckhub/db/services"
-import { and, eq } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { recalculateStandings } from '@puckhub/db/services'
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 export const bonusPointsRouter = router({
   listByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.bonusPoints.findMany({
-      where: and(
-        eq(schema.bonusPoints.roundId, input.roundId),
-        eq(schema.bonusPoints.organizationId, ctx.organizationId),
-      ),
-      with: { team: true },
-      orderBy: (bp, { desc }) => [desc(bp.createdAt)],
+    return ctx.db.bonusPoint.findMany({
+      where: {
+        roundId: input.roundId,
+        organizationId: ctx.organizationId,
+      },
+      include: { team: true },
+      orderBy: { createdAt: 'desc' },
     })
   }),
 
@@ -26,10 +24,9 @@ export const bonusPointsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [bp] = await ctx.db
-        .insert(schema.bonusPoints)
-        .values({ ...input, organizationId: ctx.organizationId })
-        .returning()
+      const bp = await ctx.db.bonusPoint.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       await recalculateStandings(ctx.db, input.roundId)
       return bp
     }),
@@ -44,7 +41,10 @@ export const bonusPointsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
-      const [bp] = await ctx.db.update(schema.bonusPoints).set(data).where(eq(schema.bonusPoints.id, id)).returning()
+      const bp = await ctx.db.bonusPoint.update({
+        where: { id },
+        data,
+      })
       if (bp) {
         await recalculateStandings(ctx.db, bp.roundId)
       }
@@ -53,11 +53,13 @@ export const bonusPointsRouter = router({
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     // Fetch before deleting to get roundId for recalculation
-    const bp = await ctx.db.query.bonusPoints.findFirst({
-      where: eq(schema.bonusPoints.id, input.id),
-      columns: { roundId: true },
+    const bp = await ctx.db.bonusPoint.findUnique({
+      where: { id: input.id },
+      select: { roundId: true },
     })
-    await ctx.db.delete(schema.bonusPoints).where(eq(schema.bonusPoints.id, input.id))
+    await ctx.db.bonusPoint.delete({
+      where: { id: input.id },
+    })
     if (bp) {
       await recalculateStandings(ctx.db, bp.roundId)
     }

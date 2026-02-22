@@ -1,4 +1,3 @@
-import * as schema from "@puckhub/db/schema"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb } from "../testUtils"
 
@@ -62,11 +61,11 @@ describe("gameReport router", () => {
 
     it("returns penalty types ordered by code", async () => {
       const db = getTestDb()
-      await db.insert(schema.penaltyTypes).values([
+      await db.penaltyType.createMany({ data: [
         { code: "MINOR", name: "Kleine Strafe", shortName: "2min", defaultMinutes: 2 },
         { code: "DOUBLE_MINOR", name: "Doppelte Kleine Strafe", shortName: "2+2min", defaultMinutes: 4 },
         { code: "MAJOR", name: "Große Strafe", shortName: "5min", defaultMinutes: 5 },
-      ])
+      ] })
 
       const caller = createTestCaller()
       const result = await caller.gameReport.getPenaltyTypes()

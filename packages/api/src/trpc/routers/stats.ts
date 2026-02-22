@@ -1,6 +1,4 @@
-import * as schema from "@puckhub/db/schema"
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
-import { and, eq, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
@@ -12,19 +10,26 @@ async function getEligibleGameIds(
   seasonId: string,
   toggle: "countsForPlayerStats" | "countsForGoalieStats",
 ): Promise<string[]> {
-  const eligibleRounds = await db
-    .select({ id: schema.rounds.id })
-    .from(schema.rounds)
-    .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
-    .where(and(eq(schema.divisions.seasonId, seasonId), eq(schema.rounds[toggle], true)))
+  const eligibleRounds = await db.round.findMany({
+    where: {
+      [toggle]: true,
+      division: {
+        seasonId,
+      },
+    },
+    select: { id: true },
+  })
 
   const roundIds = eligibleRounds.map((r: any) => r.id) as string[]
   if (roundIds.length === 0) return []
 
-  const completedGames = await db
-    .select({ id: schema.games.id })
-    .from(schema.games)
-    .where(and(inArray(schema.games.roundId, roundIds), eq(schema.games.status, "completed")))
+  const completedGames = await db.game.findMany({
+    where: {
+      roundId: { in: roundIds },
+      status: "completed",
+    },
+    select: { id: true },
+  })
 
   return completedGames.map((g: any) => g.id) as string[]
 }
@@ -35,28 +40,34 @@ async function getEligibleGameIds(
  */
 async function backfillGoalieGameStats(db: any, seasonId: string, organizationId: string): Promise<void> {
   // Get all completed games for this season (across all rounds)
-  const allRounds = await db
-    .select({ id: schema.rounds.id })
-    .from(schema.rounds)
-    .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
-    .where(eq(schema.divisions.seasonId, seasonId))
+  const allRounds = await db.round.findMany({
+    where: {
+      division: {
+        seasonId,
+      },
+    },
+    select: { id: true },
+  })
 
   const roundIds = allRounds.map((r: any) => r.id) as string[]
   if (roundIds.length === 0) return
 
-  const completedGames = await db.query.games.findMany({
-    where: and(inArray(schema.games.roundId, roundIds), eq(schema.games.status, "completed")),
-    columns: { id: true, homeTeamId: true, awayTeamId: true },
+  const completedGames = await db.game.findMany({
+    where: {
+      roundId: { in: roundIds },
+      status: "completed",
+    },
+    select: { id: true, homeTeamId: true, awayTeamId: true },
   })
   if (completedGames.length === 0) return
 
   const gameIds = completedGames.map((g: any) => g.id) as string[]
 
   // Find games that already have goalie stats
-  const existingStats = await db
-    .select({ gameId: schema.goalieGameStats.gameId })
-    .from(schema.goalieGameStats)
-    .where(inArray(schema.goalieGameStats.gameId, gameIds))
+  const existingStats = await db.goalieGameStat.findMany({
+    where: { gameId: { in: gameIds } },
+    select: { gameId: true },
+  })
   const gamesWithStats = new Set(existingStats.map((s: any) => s.gameId))
 
   const gamesToBackfill = completedGames.filter((g: any) => !gamesWithStats.has(g.id))
@@ -65,25 +76,27 @@ async function backfillGoalieGameStats(db: any, seasonId: string, organizationId
   const backfillGameIds = gamesToBackfill.map((g: any) => g.id) as string[]
 
   // Get starting goalies for these games
-  const goalieLineups = await db.query.gameLineups.findMany({
-    where: and(inArray(schema.gameLineups.gameId, backfillGameIds), eq(schema.gameLineups.isStartingGoalie, true)),
-    columns: { gameId: true, playerId: true, teamId: true },
+  const goalieLineups = await db.gameLineup.findMany({
+    where: {
+      gameId: { in: backfillGameIds },
+      isStartingGoalie: true,
+    },
+    select: { gameId: true, playerId: true, teamId: true },
   })
 
-  // Count goals per game+team from events
-  const goalEvents = await db
-    .select({
-      gameId: schema.gameEvents.gameId,
-      teamId: schema.gameEvents.teamId,
-      count: sql<number>`count(*)`,
-    })
-    .from(schema.gameEvents)
-    .where(and(inArray(schema.gameEvents.gameId, backfillGameIds), eq(schema.gameEvents.eventType, "goal")))
-    .groupBy(schema.gameEvents.gameId, schema.gameEvents.teamId)
+  // Count goals per game+team from events using groupBy
+  const goalEvents = await db.gameEvent.groupBy({
+    by: ["gameId", "teamId"],
+    where: {
+      gameId: { in: backfillGameIds },
+      eventType: "goal",
+    },
+    _count: { id: true },
+  })
 
   const goalsByGameTeam = new Map<string, number>()
   for (const row of goalEvents) {
-    goalsByGameTeam.set(`${row.gameId}:${row.teamId}`, Number(row.count))
+    goalsByGameTeam.set(`${row.gameId}:${row.teamId}`, row._count.id)
   }
 
   const gameMap = new Map(gamesToBackfill.map((g: any) => [g.id, g]))
@@ -104,19 +117,19 @@ async function backfillGoalieGameStats(db: any, seasonId: string, organizationId
     .filter((v: any): v is NonNullable<typeof v> => v !== null)
 
   if (values.length > 0) {
-    await db.insert(schema.goalieGameStats).values(values)
+    await db.goalieGameStat.createMany({ data: values })
   }
 }
 
 export const statsRouter = router({
   seasonRoundInfo: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    const divisions = await ctx.db.query.divisions.findMany({
-      where: and(
-        eq(schema.divisions.seasonId, input.seasonId),
-        eq(schema.divisions.organizationId, ctx.organizationId),
-      ),
-      with: { rounds: true },
-      orderBy: (d, { asc }) => [asc(d.sortOrder)],
+    const divisions = await ctx.db.division.findMany({
+      where: {
+        seasonId: input.seasonId,
+        organizationId: ctx.organizationId,
+      },
+      include: { rounds: true },
+      orderBy: { sortOrder: "asc" },
     })
     return divisions
   }),
@@ -130,36 +143,36 @@ export const statsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [
-        eq(schema.playerSeasonStats.seasonId, input.seasonId),
-        eq(schema.playerSeasonStats.organizationId, ctx.organizationId),
-      ]
+      const where: any = {
+        seasonId: input.seasonId,
+        organizationId: ctx.organizationId,
+      }
       if (input.teamId) {
-        conditions.push(eq(schema.playerSeasonStats.teamId, input.teamId))
+        where.teamId = input.teamId
       }
 
-      const stats = await ctx.db.query.playerSeasonStats.findMany({
-        where: and(...conditions),
-        with: {
+      const stats = await ctx.db.playerSeasonStat.findMany({
+        where,
+        include: {
           player: true,
-          team: { columns: { id: true, name: true, shortName: true, logoUrl: true } },
+          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
         },
-        orderBy: (s, { desc }) => [desc(s.totalPoints), desc(s.goals), desc(s.assists)],
+        orderBy: [{ totalPoints: "desc" }, { goals: "desc" }, { assists: "desc" }],
       })
 
       // Filter by position if requested — look up position from contracts matching player+team
       if (input.position) {
-        const playerIds = [...new Set(stats.map((s) => s.playerId))]
+        const playerIds = [...new Set(stats.map((s: any) => s.playerId))]
         if (playerIds.length === 0) return []
 
-        const contracts = await ctx.db.query.contracts.findMany({
-          where: inArray(schema.contracts.playerId, playerIds),
-          columns: { playerId: true, teamId: true, position: true },
+        const contracts = await ctx.db.contract.findMany({
+          where: { playerId: { in: playerIds } },
+          select: { playerId: true, teamId: true, position: true },
         })
         // Key by player+team since a player's position depends on which team they play for
-        const positionMap = new Map(contracts.map((c) => [`${c.playerId}:${c.teamId}`, c.position]))
+        const positionMap = new Map(contracts.map((c: any) => [`${c.playerId}:${c.teamId}`, c.position]))
 
-        return stats.filter((s) => positionMap.get(`${s.playerId}:${s.teamId}`) === input.position)
+        return stats.filter((s: any) => positionMap.get(`${s.playerId}:${s.teamId}`) === input.position)
       }
 
       return stats
@@ -173,36 +186,36 @@ export const statsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const conditions = [
-        eq(schema.goalieSeasonStats.seasonId, input.seasonId),
-        eq(schema.goalieSeasonStats.organizationId, ctx.organizationId),
-      ]
+      const where: any = {
+        seasonId: input.seasonId,
+        organizationId: ctx.organizationId,
+      }
       if (input.teamId) {
-        conditions.push(eq(schema.goalieSeasonStats.teamId, input.teamId))
+        where.teamId = input.teamId
       }
 
-      const stats = await ctx.db.query.goalieSeasonStats.findMany({
-        where: and(...conditions),
-        with: {
+      const stats = await ctx.db.goalieSeasonStat.findMany({
+        where,
+        include: {
           player: true,
-          team: { columns: { id: true, name: true, shortName: true, logoUrl: true } },
+          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
         },
-        orderBy: (s, { asc, desc }) => [asc(s.gaa), desc(s.gamesPlayed)],
+        orderBy: [{ gaa: "asc" }, { gamesPlayed: "desc" }],
       })
 
       // Get goalie_min_games from divisions in this season
-      const divisions = await ctx.db.query.divisions.findMany({
-        where: and(
-          eq(schema.divisions.seasonId, input.seasonId),
-          eq(schema.divisions.organizationId, ctx.organizationId),
-        ),
-        columns: { goalieMinGames: true },
+      const divisions = await ctx.db.division.findMany({
+        where: {
+          seasonId: input.seasonId,
+          organizationId: ctx.organizationId,
+        },
+        select: { goalieMinGames: true },
       })
       // Use the minimum threshold across all divisions in the season
-      const minGames = divisions.length > 0 ? Math.min(...divisions.map((d) => d.goalieMinGames)) : 7
+      const minGames = divisions.length > 0 ? Math.min(...divisions.map((d: any) => d.goalieMinGames)) : 7
 
-      const qualified = stats.filter((s) => s.gamesPlayed >= minGames)
-      const belowThreshold = stats.filter((s) => s.gamesPlayed < minGames)
+      const qualified = stats.filter((s: any) => s.gamesPlayed >= minGames)
+      const belowThreshold = stats.filter((s: any) => s.gamesPlayed < minGames)
 
       return { qualified, belowThreshold, minGames }
     }),
@@ -218,25 +231,23 @@ export const statsRouter = router({
       const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
 
-      const teamCondition = input.teamId ? eq(schema.gameEvents.teamId, input.teamId) : undefined
+      const penaltyWhere: any = {
+        gameId: { in: gameIds },
+        organizationId: ctx.organizationId,
+        eventType: "penalty",
+        penaltyPlayerId: { not: null },
+      }
+      if (input.teamId) penaltyWhere.teamId = input.teamId
 
-      const penaltyAgg = await ctx.db
-        .select({
-          playerId: schema.gameEvents.penaltyPlayerId,
-          teamId: schema.gameEvents.teamId,
-          penaltyMinutes: sql<number>`coalesce(${schema.gameEvents.penaltyMinutes}, 0)`,
-          penaltyTypeId: schema.gameEvents.penaltyTypeId,
-        })
-        .from(schema.gameEvents)
-        .where(
-          and(
-            inArray(schema.gameEvents.gameId, gameIds),
-            eq(schema.gameEvents.organizationId, ctx.organizationId),
-            eq(schema.gameEvents.eventType, "penalty"),
-            sql`${schema.gameEvents.penaltyPlayerId} IS NOT NULL`,
-            teamCondition,
-          ),
-        )
+      const penaltyAgg = await ctx.db.gameEvent.findMany({
+        where: penaltyWhere,
+        select: {
+          penaltyPlayerId: true,
+          teamId: true,
+          penaltyMinutes: true,
+          penaltyTypeId: true,
+        },
+      })
 
       // Group by player+team, then breakdown by penalty type
       type PlayerPenalty = {
@@ -250,14 +261,14 @@ export const statsRouter = router({
       const playerMap = new Map<string, PlayerPenalty>()
 
       for (const row of penaltyAgg) {
-        if (!row.playerId) continue
-        const key = `${row.playerId}:${row.teamId}`
+        if (!row.penaltyPlayerId) continue
+        const key = `${row.penaltyPlayerId}:${row.teamId}`
         let entry = playerMap.get(key)
         if (!entry) {
-          entry = { playerId: row.playerId, teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
+          entry = { playerId: row.penaltyPlayerId, teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
           playerMap.set(key, entry)
         }
-        const mins = Number(row.penaltyMinutes)
+        const mins = Number(row.penaltyMinutes ?? 0)
         entry.totalMinutes += mins
         entry.totalCount++
         const typeId = row.penaltyTypeId ?? "unknown"
@@ -271,26 +282,26 @@ export const statsRouter = router({
       }
 
       // Fetch penalty types for names
-      const penaltyTypes = await ctx.db.query.penaltyTypes.findMany()
-      const typeMap = new Map(penaltyTypes.map((pt) => [pt.id, pt]))
+      const penaltyTypes = await ctx.db.penaltyType.findMany()
+      const typeMap = new Map(penaltyTypes.map((pt: any) => [pt.id, pt]))
 
       // Fetch player and team names
       const playerIds = [...new Set(Array.from(playerMap.values()).map((p) => p.playerId))]
       const players =
         playerIds.length > 0
-          ? await ctx.db.query.players.findMany({ where: inArray(schema.players.id, playerIds) })
+          ? await ctx.db.player.findMany({ where: { id: { in: playerIds } } })
           : []
-      const playerLookup = new Map(players.map((p) => [p.id, p]))
+      const playerLookup = new Map(players.map((p: any) => [p.id, p]))
 
       const teamIds = [...new Set(Array.from(playerMap.values()).map((p) => p.teamId))]
       const teams =
         teamIds.length > 0
-          ? await ctx.db.query.teams.findMany({
-              where: inArray(schema.teams.id, teamIds),
-              columns: { id: true, name: true, shortName: true, logoUrl: true },
+          ? await ctx.db.team.findMany({
+              where: { id: { in: teamIds } },
+              select: { id: true, name: true, shortName: true, logoUrl: true },
             })
           : []
-      const teamLookup = new Map(teams.map((t) => [t.id, t]))
+      const teamLookup = new Map(teams.map((t: any) => [t.id, t]))
 
       const results = Array.from(playerMap.values())
         .map((entry) => ({
@@ -319,20 +330,18 @@ export const statsRouter = router({
       const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
 
-      const penaltyAgg = await ctx.db
-        .select({
-          teamId: schema.gameEvents.teamId,
-          penaltyMinutes: sql<number>`coalesce(${schema.gameEvents.penaltyMinutes}, 0)`,
-          penaltyTypeId: schema.gameEvents.penaltyTypeId,
-        })
-        .from(schema.gameEvents)
-        .where(
-          and(
-            inArray(schema.gameEvents.gameId, gameIds),
-            eq(schema.gameEvents.organizationId, ctx.organizationId),
-            eq(schema.gameEvents.eventType, "penalty"),
-          ),
-        )
+      const penaltyAgg = await ctx.db.gameEvent.findMany({
+        where: {
+          gameId: { in: gameIds },
+          organizationId: ctx.organizationId,
+          eventType: "penalty",
+        },
+        select: {
+          teamId: true,
+          penaltyMinutes: true,
+          penaltyTypeId: true,
+        },
+      })
 
       type TeamPenalty = {
         teamId: string
@@ -349,7 +358,7 @@ export const statsRouter = router({
           entry = { teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
           teamMap.set(row.teamId, entry)
         }
-        const mins = Number(row.penaltyMinutes)
+        const mins = Number(row.penaltyMinutes ?? 0)
         entry.totalMinutes += mins
         entry.totalCount++
         const typeId = row.penaltyTypeId ?? "unknown"
@@ -363,18 +372,18 @@ export const statsRouter = router({
       }
 
       // Fetch penalty types and teams
-      const penaltyTypes = await ctx.db.query.penaltyTypes.findMany()
-      const typeMapLookup = new Map(penaltyTypes.map((pt) => [pt.id, pt]))
+      const penaltyTypes = await ctx.db.penaltyType.findMany()
+      const typeMapLookup = new Map(penaltyTypes.map((pt: any) => [pt.id, pt]))
 
       const teamIds = Array.from(teamMap.keys())
       const teams =
         teamIds.length > 0
-          ? await ctx.db.query.teams.findMany({
-              where: inArray(schema.teams.id, teamIds),
-              columns: { id: true, name: true, shortName: true, logoUrl: true },
+          ? await ctx.db.team.findMany({
+              where: { id: { in: teamIds } },
+              select: { id: true, name: true, shortName: true, logoUrl: true },
             })
           : []
-      const teamLookup = new Map(teams.map((t) => [t.id, t]))
+      const teamLookup = new Map(teams.map((t: any) => [t.id, t]))
 
       const results = Array.from(teamMap.values())
         .map((entry) => ({
@@ -400,11 +409,14 @@ export const statsRouter = router({
     await recalculateGoalieStats(ctx.db, input.seasonId)
 
     // Recalculate standings for all rounds in this season
-    const rounds = await ctx.db
-      .select({ id: schema.rounds.id })
-      .from(schema.rounds)
-      .innerJoin(schema.divisions, eq(schema.rounds.divisionId, schema.divisions.id))
-      .where(eq(schema.divisions.seasonId, input.seasonId))
+    const rounds = await ctx.db.round.findMany({
+      where: {
+        division: {
+          seasonId: input.seasonId,
+        },
+      },
+      select: { id: true },
+    })
     for (const round of rounds) {
       await recalculateStandings(ctx.db, round.id)
     }

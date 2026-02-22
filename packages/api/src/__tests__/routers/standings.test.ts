@@ -1,5 +1,3 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
@@ -34,40 +32,42 @@ describe("standings router", () => {
 
       // Insert standings directly since there's no tRPC mutation for it
       const db = getTestDb()
-      await db.insert(schema.standings).values([
-        {
-          organizationId: TEST_ORG_ID,
-          teamId: teamA.id,
-          roundId: round.id,
-          gamesPlayed: 5,
-          wins: 3,
-          draws: 1,
-          losses: 1,
-          goalsFor: 15,
-          goalsAgainst: 8,
-          goalDifference: 7,
-          points: 7,
-          bonusPoints: 0,
-          totalPoints: 7,
-          rank: 1,
-        },
-        {
-          organizationId: TEST_ORG_ID,
-          teamId: teamB.id,
-          roundId: round.id,
-          gamesPlayed: 5,
-          wins: 1,
-          draws: 1,
-          losses: 3,
-          goalsFor: 8,
-          goalsAgainst: 15,
-          goalDifference: -7,
-          points: 3,
-          bonusPoints: 0,
-          totalPoints: 3,
-          rank: 2,
-        },
-      ])
+      await db.standing.createMany({
+        data: [
+          {
+            organizationId: TEST_ORG_ID,
+            teamId: teamA.id,
+            roundId: round.id,
+            gamesPlayed: 5,
+            wins: 3,
+            draws: 1,
+            losses: 1,
+            goalsFor: 15,
+            goalsAgainst: 8,
+            goalDifference: 7,
+            points: 7,
+            bonusPoints: 0,
+            totalPoints: 7,
+            rank: 1,
+          },
+          {
+            organizationId: TEST_ORG_ID,
+            teamId: teamB.id,
+            roundId: round.id,
+            gamesPlayed: 5,
+            wins: 1,
+            draws: 1,
+            losses: 3,
+            goalsFor: 8,
+            goalsAgainst: 15,
+            goalDifference: -7,
+            points: 3,
+            bonusPoints: 0,
+            totalPoints: 3,
+            rank: 2,
+          },
+        ],
+      })
 
       const caller = createTestCaller()
       const result = await caller.standings.getByRound({ roundId: round.id })
@@ -135,10 +135,9 @@ describe("standings router", () => {
 
       // Fetch system settings to know win points (default: 2)
       const db = getTestDb()
-      const [settings] = await db
-        .select()
-        .from(schema.systemSettings)
-        .where(eq(schema.systemSettings.organizationId, TEST_ORG_ID))
+      const settings = await db.systemSettings.findFirst({
+        where: { organizationId: TEST_ORG_ID },
+      })
       const pointsWin = settings?.pointsWin ?? 2
 
       const caller = createTestCaller()

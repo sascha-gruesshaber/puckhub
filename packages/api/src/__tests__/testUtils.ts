@@ -1,23 +1,19 @@
-import * as schema from "@puckhub/db/schema"
-import { drizzle } from "drizzle-orm/postgres-js"
-import postgres from "postgres"
+import { PrismaClient } from "@prisma/client"
 import { appRouter } from "../trpc"
 import type { Context } from "../trpc/context"
 
-let client: ReturnType<typeof postgres> | null = null
-let testDb: ReturnType<typeof drizzle<typeof schema>> | null = null
+let testDb: PrismaClient | null = null
 
 /**
  * Initializes a test DB connection for the current test.
  * Called by beforeEach in setup.ts after creating a per-test database.
  */
 export function initTestDb(url: string) {
-  client = postgres(url)
-  testDb = drizzle(client, { schema })
+  testDb = new PrismaClient({ datasourceUrl: url })
 }
 
 /**
- * Returns the current per-test Drizzle DB instance.
+ * Returns the current per-test Prisma DB instance.
  */
 export function getTestDb() {
   if (!testDb) {
@@ -30,9 +26,8 @@ export function getTestDb() {
  * Closes the per-test DB connection. Called in afterEach.
  */
 export async function closeTestDb() {
-  if (client) {
-    await client.end()
-    client = null
+  if (testDb) {
+    await testDb.$disconnect()
     testDb = null
   }
 }
@@ -95,29 +90,35 @@ const testRegularSession = {
  *
  * Returns the org id for convenience.
  */
-export async function seedTestOrg(db?: ReturnType<typeof getTestDb>) {
+export async function seedTestOrg(db?: PrismaClient) {
   const d = db ?? getTestDb()
 
-  await d.insert(schema.organization).values({
-    id: TEST_ORG_ID,
-    name: TEST_ORG_NAME,
-    slug: TEST_ORG_SLUG,
+  await d.organization.create({
+    data: {
+      id: TEST_ORG_ID,
+      name: TEST_ORG_NAME,
+      slug: TEST_ORG_SLUG,
+    },
   })
 
   // Admin user is "owner" of the org
-  await d.insert(schema.member).values({
-    id: "test-admin-member-id",
-    userId: "test-admin-id",
-    organizationId: TEST_ORG_ID,
-    role: "owner",
+  await d.member.create({
+    data: {
+      id: "test-admin-member-id",
+      userId: "test-admin-id",
+      organizationId: TEST_ORG_ID,
+      role: "owner",
+    },
   })
 
   // Regular user is "member" of the org
-  await d.insert(schema.member).values({
-    id: "test-user-member-id",
-    userId: "test-user-id",
-    organizationId: TEST_ORG_ID,
-    role: "member",
+  await d.member.create({
+    data: {
+      id: "test-user-member-id",
+      userId: "test-user-id",
+      organizationId: TEST_ORG_ID,
+      role: "member",
+    },
   })
 
   return TEST_ORG_ID

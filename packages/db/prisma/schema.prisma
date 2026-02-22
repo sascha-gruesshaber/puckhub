@@ -1,0 +1,848 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum RoundType {
+  regular
+  preround
+  playoffs
+  playdowns
+  playups
+  relegation
+  placement
+  final
+
+  @@map("round_type")
+}
+
+enum Position {
+  forward
+  defense
+  goalie
+
+  @@map("position")
+}
+
+enum GameStatus {
+  scheduled
+  in_progress
+  completed
+  postponed
+  cancelled
+
+  @@map("game_status")
+}
+
+enum GameEventType {
+  goal
+  penalty
+
+  @@map("game_event_type")
+}
+
+enum NewsStatus {
+  draft
+  published
+
+  @@map("news_status")
+}
+
+enum PageStatus {
+  draft
+  published
+
+  @@map("page_status")
+}
+
+enum MenuLocation {
+  main_nav
+  footer
+
+  @@map("menu_location")
+}
+
+enum TrikotTemplateType {
+  one_color
+  two_color
+
+  @@map("trikot_template_type")
+}
+
+// ─── Auth Models (Better Auth managed) ──────────────────────────────────────
+
+model User {
+  id               String    @id
+  name             String
+  email            String    @unique
+  locale           String?
+  emailVerified    Boolean   @default(false)
+  image            String?
+  twoFactorEnabled Boolean?  @default(false)
+  role             String?
+  banned           Boolean?  @default(false)
+  banReason        String?
+  banExpires       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  sessions   Session[]
+  accounts   Account[]
+  twoFactors TwoFactor[]
+  passkeys   Passkey[]
+  members    Member[]
+  news       News[]
+  invitations Invitation[]
+
+  @@map("user")
+}
+
+model Session {
+  id                   String   @id
+  expiresAt            DateTime
+  token                String   @unique
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  activeOrganizationId String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @default(now())
+
+  @@map("verification")
+}
+
+model TwoFactor {
+  id          String   @id
+  secret      String
+  backupCodes String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("twoFactor")
+}
+
+model Passkey {
+  id           String    @id
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String    @unique
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  aaguid       String?
+  createdAt    DateTime? @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("passkey")
+}
+
+// ─── Organization / Multi-tenant ────────────────────────────────────────────
+
+model Organization {
+  id        String   @id
+  name      String
+  slug      String   @unique
+  logo      String?
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  members        Member[]
+  invitations    Invitation[]
+  seasons        Season[]
+  teams          Team[]
+  players        Player[]
+  venues         Venue[]
+  news           News[]
+  pages          Page[]
+  sponsors       Sponsor[]
+  documents      Document[]
+  trikots        Trikot[]
+  systemSettings SystemSettings[]
+  divisions      Division[]
+  rounds         Round[]
+  contracts      Contract[]
+  games          Game[]
+  gameEvents     GameEvent[]
+  gameLineups    GameLineup[]
+  gameSuspensions GameSuspension[]
+  standings      Standing[]
+  bonusPoints    BonusPoint[]
+  playerSeasonStats PlayerSeasonStat[]
+  goalieSeasonStats GoalieSeasonStat[]
+  goalieGameStats   GoalieGameStat[]
+  teamDivisions  TeamDivision[]
+  teamTrikots    TeamTrikot[]
+  pageAliases    PageAlias[]
+
+  @@map("organization")
+}
+
+model Member {
+  id             String   @id
+  userId         String
+  organizationId String
+  role           String
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("member")
+}
+
+model Invitation {
+  id             String    @id
+  email          String
+  organizationId String
+  role           String?
+  inviterId      String
+  status         String
+  expiresAt      DateTime
+  createdAt      DateTime? @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@map("invitation")
+}
+
+// ─── Core Domain Models ─────────────────────────────────────────────────────
+
+model Season {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  name           String
+  seasonStart    DateTime @map("season_start") @db.Timestamptz
+  seasonEnd      DateTime @map("season_end") @db.Timestamptz
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  divisions         Division[]
+  contractsStarted  Contract[]         @relation("contractStartSeason")
+  contractsEnded    Contract[]         @relation("contractEndSeason")
+  playerSeasonStats PlayerSeasonStat[]
+  goalieSeasonStats GoalieSeasonStat[]
+
+  @@index([organizationId], map: "seasons_org_id_idx")
+  @@map("seasons")
+}
+
+model Division {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  seasonId       String   @map("season_id") @db.Uuid
+  name           String
+  sortOrder      Int      @default(0) @map("sort_order")
+  goalieMinGames Int      @default(7) @map("goalie_min_games")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization  Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  season        Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  rounds        Round[]
+  teamDivisions TeamDivision[]
+
+  @@index([seasonId], map: "divisions_season_id_idx")
+  @@index([organizationId], map: "divisions_org_id_idx")
+  @@map("divisions")
+}
+
+model Round {
+  id                   String    @id @default(uuid()) @db.Uuid
+  organizationId       String    @map("organization_id")
+  divisionId           String    @map("division_id") @db.Uuid
+  name                 String
+  roundType            RoundType @default(regular) @map("round_type")
+  sortOrder            Int       @default(0) @map("sort_order")
+  pointsWin            Int       @default(2) @map("points_win")
+  pointsDraw           Int       @default(1) @map("points_draw")
+  pointsLoss           Int       @default(0) @map("points_loss")
+  countsForPlayerStats Boolean   @default(true) @map("counts_for_player_stats")
+  countsForGoalieStats Boolean   @default(true) @map("counts_for_goalie_stats")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  division     Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+  games        Game[]
+  standings    Standing[]
+  bonusPoints  BonusPoint[]
+
+  @@index([divisionId], map: "rounds_division_id_idx")
+  @@index([organizationId], map: "rounds_org_id_idx")
+  @@map("rounds")
+}
+
+model Team {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  name           String
+  shortName      String   @map("short_name")
+  city           String?
+  logoUrl        String?  @map("logo_url")
+  teamPhotoUrl   String?  @map("team_photo_url")
+  primaryColor   String?  @map("primary_color")
+  contactName    String?  @map("contact_name")
+  contactEmail   String?  @map("contact_email")
+  contactPhone   String?  @map("contact_phone")
+  website        String?
+  defaultVenueId String?  @map("default_venue_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  defaultVenue      Venue?             @relation("teamDefaultVenue", fields: [defaultVenueId], references: [id], onDelete: SetNull)
+  contracts         Contract[]
+  teamDivisions     TeamDivision[]
+  homeGames         Game[]             @relation("homeTeam")
+  awayGames         Game[]             @relation("awayTeam")
+  gameEvents        GameEvent[]
+  standings         Standing[]
+  bonusPoints       BonusPoint[]
+  playerSeasonStats PlayerSeasonStat[]
+  goalieSeasonStats GoalieSeasonStat[]
+  goalieGameStats   GoalieGameStat[]
+  teamTrikots       TeamTrikot[]
+  sponsors          Sponsor[]
+  gameLineups       GameLineup[]
+  gameSuspensions   GameSuspension[]
+
+  @@index([organizationId], map: "teams_org_id_idx")
+  @@map("teams")
+}
+
+model Player {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  dateOfBirth    DateTime?  @map("date_of_birth") @db.Date
+  nationality    String?
+  photoUrl       String?  @map("photo_url")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contracts         Contract[]
+  scorerEvents      GameEvent[]        @relation("eventScorer")
+  assist1Events     GameEvent[]        @relation("eventAssist1")
+  assist2Events     GameEvent[]        @relation("eventAssist2")
+  goalieEvents      GameEvent[]        @relation("eventGoalie")
+  penaltyEvents     GameEvent[]        @relation("eventPenaltyPlayer")
+  gameLineups       GameLineup[]
+  gameSuspensions   GameSuspension[]
+  playerSeasonStats PlayerSeasonStat[]
+  goalieSeasonStats GoalieSeasonStat[]
+  goalieGameStats   GoalieGameStat[]
+
+  @@index([organizationId], map: "players_org_id_idx")
+  @@map("players")
+}
+
+model Contract {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  playerId       String   @map("player_id") @db.Uuid
+  teamId         String   @map("team_id") @db.Uuid
+  position       Position
+  jerseyNumber   Int?     @map("jersey_number")
+  startSeasonId  String   @map("start_season_id") @db.Uuid
+  endSeasonId    String?  @map("end_season_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  startSeason  Season       @relation("contractStartSeason", fields: [startSeasonId], references: [id], onDelete: Cascade)
+  endSeason    Season?      @relation("contractEndSeason", fields: [endSeasonId], references: [id], onDelete: SetNull)
+
+  @@unique([playerId, teamId, startSeasonId])
+  @@index([playerId], map: "contracts_player_id_idx")
+  @@index([teamId], map: "contracts_team_id_idx")
+  @@index([startSeasonId], map: "contracts_start_season_id_idx")
+  @@index([organizationId], map: "contracts_org_id_idx")
+  @@map("contracts")
+}
+
+model Venue {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  name           String
+  city           String?
+  address        String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  games           Game[]
+  defaultForTeams Team[]       @relation("teamDefaultVenue")
+
+  @@index([organizationId], map: "venues_org_id_idx")
+  @@map("venues")
+}
+
+model Game {
+  id             String     @id @default(uuid()) @db.Uuid
+  organizationId String     @map("organization_id")
+  roundId        String     @map("round_id") @db.Uuid
+  homeTeamId     String     @map("home_team_id") @db.Uuid
+  awayTeamId     String     @map("away_team_id") @db.Uuid
+  venueId        String?    @map("venue_id") @db.Uuid
+  scheduledAt    DateTime?  @map("scheduled_at") @db.Timestamptz
+  status         GameStatus @default(scheduled)
+  homeScore      Int?       @map("home_score")
+  awayScore      Int?       @map("away_score")
+  gameNumber     Int?       @map("game_number")
+  notes          String?
+  finalizedAt    DateTime?  @map("finalized_at") @db.Timestamptz
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  round           Round            @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  homeTeam        Team             @relation("homeTeam", fields: [homeTeamId], references: [id])
+  awayTeam        Team             @relation("awayTeam", fields: [awayTeamId], references: [id])
+  venue           Venue?           @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  events          GameEvent[]
+  lineups         GameLineup[]
+  suspensions     GameSuspension[]
+  goalieGameStats GoalieGameStat[]
+
+  @@index([roundId], map: "games_round_id_idx")
+  @@index([homeTeamId], map: "games_home_team_id_idx")
+  @@index([awayTeamId], map: "games_away_team_id_idx")
+  @@index([venueId], map: "games_venue_id_idx")
+  @@index([scheduledAt], map: "games_scheduled_at_idx")
+  @@index([organizationId], map: "games_org_id_idx")
+  @@map("games")
+}
+
+model GameEvent {
+  id                 String        @id @default(uuid()) @db.Uuid
+  organizationId     String        @map("organization_id")
+  gameId             String        @map("game_id") @db.Uuid
+  eventType          GameEventType @map("event_type")
+  teamId             String        @map("team_id") @db.Uuid
+  period             Int
+  timeMinutes        Int           @map("time_minutes")
+  timeSeconds        Int           @map("time_seconds")
+  scorerId           String?       @map("scorer_id") @db.Uuid
+  assist1Id          String?       @map("assist1_id") @db.Uuid
+  assist2Id          String?       @map("assist2_id") @db.Uuid
+  goalieId           String?       @map("goalie_id") @db.Uuid
+  penaltyPlayerId    String?       @map("penalty_player_id") @db.Uuid
+  penaltyTypeId      String?       @map("penalty_type_id") @db.Uuid
+  penaltyMinutes     Int?          @map("penalty_minutes")
+  penaltyDescription String?       @map("penalty_description")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  organization  Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  game          Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  team          Team            @relation(fields: [teamId], references: [id])
+  scorer        Player?         @relation("eventScorer", fields: [scorerId], references: [id], onDelete: SetNull)
+  assist1       Player?         @relation("eventAssist1", fields: [assist1Id], references: [id], onDelete: SetNull)
+  assist2       Player?         @relation("eventAssist2", fields: [assist2Id], references: [id], onDelete: SetNull)
+  goalie        Player?         @relation("eventGoalie", fields: [goalieId], references: [id], onDelete: SetNull)
+  penaltyPlayer Player?         @relation("eventPenaltyPlayer", fields: [penaltyPlayerId], references: [id], onDelete: SetNull)
+  penaltyType   PenaltyType?    @relation(fields: [penaltyTypeId], references: [id], onDelete: SetNull)
+  suspension    GameSuspension?
+
+  @@index([gameId], map: "game_events_game_id_idx")
+  @@index([organizationId], map: "game_events_org_id_idx")
+  @@map("game_events")
+}
+
+model GameLineup {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @map("organization_id")
+  gameId          String   @map("game_id") @db.Uuid
+  playerId        String   @map("player_id") @db.Uuid
+  teamId          String   @map("team_id") @db.Uuid
+  position        Position
+  jerseyNumber    Int?     @map("jersey_number")
+  isStartingGoalie Boolean @default(false) @map("is_starting_goalie")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id])
+
+  @@unique([gameId, playerId])
+  @@index([gameId], map: "game_lineups_game_id_idx")
+  @@index([organizationId], map: "game_lineups_org_id_idx")
+  @@map("game_lineups")
+}
+
+model GameSuspension {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  gameId         String   @map("game_id") @db.Uuid
+  gameEventId    String?  @unique @map("game_event_id") @db.Uuid
+  playerId       String   @map("player_id") @db.Uuid
+  teamId         String   @map("team_id") @db.Uuid
+  suspensionType String   @map("suspension_type")
+  suspendedGames Int      @default(1) @map("suspended_games")
+  servedGames    Int      @default(0) @map("served_games")
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameEvent    GameEvent?   @relation(fields: [gameEventId], references: [id], onDelete: SetNull)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id])
+
+  @@index([gameId], map: "game_suspensions_game_id_idx")
+  @@index([teamId], map: "game_suspensions_team_id_idx")
+  @@index([organizationId], map: "game_suspensions_org_id_idx")
+  @@map("game_suspensions")
+}
+
+model PenaltyType {
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @unique
+  name           String
+  shortName      String   @map("short_name")
+  defaultMinutes Int      @map("default_minutes")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  gameEvents GameEvent[]
+
+  @@map("penalty_types")
+}
+
+model Standing {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  teamId         String   @map("team_id") @db.Uuid
+  roundId        String   @map("round_id") @db.Uuid
+  gamesPlayed    Int      @default(0) @map("games_played")
+  wins           Int      @default(0)
+  draws          Int      @default(0)
+  losses         Int      @default(0)
+  goalsFor       Int      @default(0) @map("goals_for")
+  goalsAgainst   Int      @default(0) @map("goals_against")
+  goalDifference Int      @default(0) @map("goal_difference")
+  points         Int      @default(0)
+  bonusPoints    Int      @default(0) @map("bonus_points")
+  totalPoints    Int      @default(0) @map("total_points")
+  rank           Int?
+  previousRank   Int?     @map("previous_rank")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round        Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId], map: "standings_round_id_idx")
+  @@index([organizationId], map: "standings_org_id_idx")
+  @@map("standings")
+}
+
+model BonusPoint {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  teamId         String   @map("team_id") @db.Uuid
+  roundId        String   @map("round_id") @db.Uuid
+  points         Int
+  reason         String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  round        Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "bonus_points_org_id_idx")
+  @@map("bonus_points")
+}
+
+model TeamDivision {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  teamId         String   @map("team_id") @db.Uuid
+  divisionId     String   @map("division_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  division     Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
+
+  @@index([teamId], map: "team_divisions_team_id_idx")
+  @@index([divisionId], map: "team_divisions_division_id_idx")
+  @@index([organizationId], map: "team_divisions_org_id_idx")
+  @@map("team_divisions")
+}
+
+model PlayerSeasonStat {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  playerId       String   @map("player_id") @db.Uuid
+  seasonId       String   @map("season_id") @db.Uuid
+  teamId         String   @map("team_id") @db.Uuid
+  gamesPlayed    Int      @default(0) @map("games_played")
+  goals          Int      @default(0)
+  assists        Int      @default(0)
+  totalPoints    Int      @default(0) @map("total_points")
+  penaltyMinutes Int      @default(0) @map("penalty_minutes")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "player_season_stats_org_id_idx")
+  @@map("player_season_stats")
+}
+
+model GoalieSeasonStat {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  playerId       String   @map("player_id") @db.Uuid
+  seasonId       String   @map("season_id") @db.Uuid
+  teamId         String   @map("team_id") @db.Uuid
+  gamesPlayed    Int      @default(0) @map("games_played")
+  goalsAgainst   Int      @default(0) @map("goals_against")
+  gaa            Decimal? @db.Decimal(5, 2)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "goalie_season_stats_org_id_idx")
+  @@map("goalie_season_stats")
+}
+
+model GoalieGameStat {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  gameId         String   @map("game_id") @db.Uuid
+  playerId       String   @map("player_id") @db.Uuid
+  teamId         String   @map("team_id") @db.Uuid
+  goalsAgainst   Int      @default(0) @map("goals_against")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id])
+
+  @@index([organizationId], map: "goalie_game_stats_org_id_idx")
+  @@map("goalie_game_stats")
+}
+
+// ─── Content / CMS ──────────────────────────────────────────────────────────
+
+model Sponsor {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  name           String
+  logoUrl        String?  @map("logo_url")
+  websiteUrl     String?  @map("website_url")
+  hoverText      String?  @map("hover_text")
+  teamId         String?  @map("team_id") @db.Uuid
+  sortOrder      Int      @default(0) @map("sort_order")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team?        @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId], map: "sponsors_org_id_idx")
+  @@map("sponsors")
+}
+
+model News {
+  id                 String     @id @default(uuid()) @db.Uuid
+  organizationId     String     @map("organization_id")
+  title              String
+  shortText          String?    @map("short_text")
+  content            String
+  status             NewsStatus @default(draft)
+  authorId           String?    @map("author_id")
+  publishedAt        DateTime?  @map("published_at") @db.Timestamptz
+  scheduledPublishAt DateTime?  @map("scheduled_publish_at") @db.Timestamptz
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId], map: "news_org_id_idx")
+  @@map("news")
+}
+
+model Page {
+  id            String         @id @default(uuid()) @db.Uuid
+  organizationId String        @map("organization_id")
+  title         String
+  slug          String
+  content       String         @default("")
+  status        PageStatus     @default(draft)
+  isStatic      Boolean        @default(false) @map("is_static")
+  parentId      String?        @map("parent_id") @db.Uuid
+  menuLocations MenuLocation[] @map("menu_locations")
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent       Page?        @relation("pageChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Page[]       @relation("pageChildren")
+  aliases      PageAlias[]
+
+  @@unique([slug, parentId, organizationId], map: "pages_slug_parent_org_unique")
+  @@index([organizationId], map: "pages_org_id_idx")
+  @@map("pages")
+}
+
+model PageAlias {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  slug           String
+  targetPageId   String   @map("target_page_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  targetPage   Page         @relation(fields: [targetPageId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "page_aliases_org_id_idx")
+  @@map("page_aliases")
+}
+
+model Document {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  title          String
+  description    String?
+  fileUrl        String   @map("file_url")
+  mimeType       String?  @map("mime_type")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "documents_org_id_idx")
+  @@map("documents")
+}
+
+model SystemSettings {
+  id               String   @id @default(uuid()) @db.Uuid
+  organizationId   String   @unique @map("organization_id")
+  leagueName       String   @map("league_name")
+  leagueShortName  String   @map("league_short_name")
+  locale           String   @default("de-DE")
+  timezone         String   @default("Europe/Berlin")
+  pointsWin        Int      @default(2) @map("points_win")
+  pointsDraw       Int      @default(1) @map("points_draw")
+  pointsLoss       Int      @default(0) @map("points_loss")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "system_settings_org_id_idx")
+  @@map("system_settings")
+}
+
+// ─── Trikot / Jersey ────────────────────────────────────────────────────────
+
+model TrikotTemplate {
+  id           String             @id @default(uuid()) @db.Uuid
+  name         String             @unique
+  templateType TrikotTemplateType @unique @map("template_type")
+  svg          String
+  colorCount   Int                @default(1) @map("color_count")
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  trikots Trikot[]
+
+  @@map("trikot_templates")
+}
+
+model Trikot {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  name           String
+  templateId     String   @map("template_id") @db.Uuid
+  primaryColor   String   @map("primary_color")
+  secondaryColor String?  @map("secondary_color")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  template     TrikotTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  teamTrikots  TeamTrikot[]
+
+  @@index([organizationId], map: "trikots_org_id_idx")
+  @@map("trikots")
+}
+
+model TeamTrikot {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  teamId         String   @map("team_id") @db.Uuid
+  trikotId       String   @map("trikot_id") @db.Uuid
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  trikot       Trikot       @relation(fields: [trikotId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, trikotId, name])
+  @@index([organizationId], map: "team_trikots_org_id_idx")
+  @@map("team_trikots")
+}

@@ -6,9 +6,7 @@ import { config } from "dotenv"
 const seedDir = dirname(fileURLToPath(import.meta.url))
 config({ path: resolve(seedDir, "../../../../.env") })
 
-import { sql } from "drizzle-orm"
-import { drizzle } from "drizzle-orm/postgres-js"
-import postgres from "postgres"
+import { PrismaClient } from "@prisma/client"
 
 async function reset() {
   const force = process.argv.includes("--force")
@@ -16,7 +14,7 @@ async function reset() {
   if (!force) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
     const answer = await new Promise<string>((resolve) => {
-      rl.question("⚠️  This will TRUNCATE ALL TABLES. All data will be lost.\n   Continue? (y/N) ", resolve)
+      rl.question("This will TRUNCATE ALL TABLES. All data will be lost.\n   Continue? (y/N) ", resolve)
     })
     rl.close()
     if (answer.toLowerCase() !== "y") {
@@ -25,16 +23,10 @@ async function reset() {
     }
   }
 
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error("DATABASE_URL environment variable is required")
-  }
-
-  const client = postgres(connectionString)
-  const db = drizzle(client)
+  const db = new PrismaClient()
 
   console.log("Truncating all tables...")
-  await db.execute(sql`
+  await db.$executeRawUnsafe(`
     DO $$ DECLARE
       r RECORD;
     BEGIN
@@ -48,8 +40,8 @@ async function reset() {
     END $$;
   `)
 
-  await client.end()
-  console.log("✅ All tables truncated.")
+  await db.$disconnect()
+  console.log("All tables truncated.")
 }
 
 reset().catch((err) => {

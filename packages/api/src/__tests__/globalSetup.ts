@@ -55,60 +55,67 @@ export default async function globalSetup() {
     // Create template DB
     await maintenanceSql.unsafe(`CREATE DATABASE ${TEMPLATE_DB}`)
 
-    // Push schema to template DB using drizzle-kit
+    // Push schema to template DB using prisma db push
     const dbPkgDir = resolve(monorepoRoot, "packages/db")
-    const drizzleKitBin = resolve(dbPkgDir, "node_modules/.bin/drizzle-kit")
-    execSync(`${drizzleKitBin} push --force`, {
+    execSync("npx prisma db push --skip-generate --accept-data-loss", {
       cwd: dbPkgDir,
       env: { ...process.env, DATABASE_URL: templateUrl },
       stdio: "pipe",
     })
 
-    // Seed template with admin user + role
-    const templateSql = postgres(templateUrl, { max: 1 })
-    const { drizzle } = await import("drizzle-orm/postgres-js")
-    const schemaModule = await import("@puckhub/db/schema")
-    const db = drizzle(templateSql, { schema: schemaModule })
+    // Seed template with admin user + role using Prisma
+    const { PrismaClient } = await import("@prisma/client")
+    const db = new PrismaClient({ datasourceUrl: templateUrl })
 
-    await db.insert(schemaModule.user).values({
-      id: "test-admin-id",
-      name: "Test Admin",
-      email: "admin@test.local",
-      emailVerified: true,
+    await db.user.create({
+      data: {
+        id: "test-admin-id",
+        name: "Test Admin",
+        email: "admin@test.local",
+        emailVerified: true,
+      },
     })
 
     // Seed a regular (non-admin) user for protectedProcedure tests
-    await db.insert(schemaModule.user).values({
-      id: "test-user-id",
-      name: "Test User",
-      email: "user@test.local",
-      emailVerified: true,
+    await db.user.create({
+      data: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "user@test.local",
+        emailVerified: true,
+      },
     })
 
     // Seed test organization + member records
-    await db.insert(schemaModule.organization).values({
-      id: "test-org-id",
-      name: "Test League",
-      slug: "test-league",
+    await db.organization.create({
+      data: {
+        id: "test-org-id",
+        name: "Test League",
+        slug: "test-league",
+      },
     })
 
     // Admin user is org owner
-    await db.insert(schemaModule.member).values({
-      id: "test-admin-member-id",
-      userId: "test-admin-id",
-      organizationId: "test-org-id",
-      role: "owner",
+    await db.member.create({
+      data: {
+        id: "test-admin-member-id",
+        userId: "test-admin-id",
+        organizationId: "test-org-id",
+        role: "owner",
+      },
     })
 
     // Regular user is org member
-    await db.insert(schemaModule.member).values({
-      id: "test-user-member-id",
-      userId: "test-user-id",
-      organizationId: "test-org-id",
-      role: "member",
+    await db.member.create({
+      data: {
+        id: "test-user-member-id",
+        userId: "test-user-id",
+        organizationId: "test-org-id",
+        role: "member",
+      },
     })
 
-    await templateSql.end()
+    await db.$disconnect()
   } finally {
     await maintenanceSql.end()
   }
