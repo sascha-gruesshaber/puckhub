@@ -1,28 +1,26 @@
-import * as schema from "@puckhub/db/schema"
-import { and, eq } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 export const teamTrikotRouter = router({
   listByTeam: orgProcedure.input(z.object({ teamId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.teamTrikots.findMany({
-      where: and(
-        eq(schema.teamTrikots.teamId, input.teamId),
-        eq(schema.teamTrikots.organizationId, ctx.organizationId),
-      ),
-      with: { trikot: { with: { template: true } } },
-      orderBy: (t, { asc }) => [asc(t.name)],
+    return ctx.db.teamTrikot.findMany({
+      where: {
+        teamId: input.teamId,
+        organizationId: ctx.organizationId,
+      },
+      include: { trikot: { include: { template: true } } },
+      orderBy: { name: 'asc' },
     })
   }),
 
   listByTrikot: orgProcedure.input(z.object({ trikotId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.teamTrikots.findMany({
-      where: and(
-        eq(schema.teamTrikots.trikotId, input.trikotId),
-        eq(schema.teamTrikots.organizationId, ctx.organizationId),
-      ),
-      with: { team: true },
-      orderBy: (t, { asc }) => [asc(t.name)],
+    return ctx.db.teamTrikot.findMany({
+      where: {
+        trikotId: input.trikotId,
+        organizationId: ctx.organizationId,
+      },
+      include: { team: true },
+      orderBy: { name: 'asc' },
     })
   }),
 
@@ -35,10 +33,9 @@ export const teamTrikotRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [assignment] = await ctx.db
-        .insert(schema.teamTrikots)
-        .values({ ...input, organizationId: ctx.organizationId })
-        .returning()
+      const assignment = await ctx.db.teamTrikot.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return assignment
     }),
 
@@ -50,17 +47,19 @@ export const teamTrikotRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [assignment] = await ctx.db
-        .update(schema.teamTrikots)
-        .set({ name: input.name, updatedAt: new Date() })
-        .where(and(eq(schema.teamTrikots.id, input.id), eq(schema.teamTrikots.organizationId, ctx.organizationId)))
-        .returning()
+      await ctx.db.teamTrikot.updateMany({
+        where: { id: input.id, organizationId: ctx.organizationId },
+        data: { name: input.name, updatedAt: new Date() },
+      })
+      const assignment = await ctx.db.teamTrikot.findFirst({
+        where: { id: input.id, organizationId: ctx.organizationId },
+      })
       return assignment
     }),
 
   remove: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.teamTrikots)
-      .where(and(eq(schema.teamTrikots.id, input.id), eq(schema.teamTrikots.organizationId, ctx.organizationId)))
+    await ctx.db.teamTrikot.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

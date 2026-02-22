@@ -1,38 +1,39 @@
-import * as schema from "@puckhub/db/schema"
-import { and, asc, desc, eq, gte, lte } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 async function resolveCurrentSeason(db: any, organizationId: string) {
   const now = new Date()
 
-  const inRange = await db.query.seasons.findFirst({
-    where: and(
-      eq(schema.seasons.organizationId, organizationId),
-      lte(schema.seasons.seasonStart, now),
-      gte(schema.seasons.seasonEnd, now),
-    ),
-    orderBy: [desc(schema.seasons.seasonStart)],
+  const inRange = await db.season.findFirst({
+    where: {
+      organizationId,
+      seasonStart: { lte: now },
+      seasonEnd: { gte: now },
+    },
+    orderBy: { seasonStart: 'desc' },
   })
   if (inRange) return inRange
 
-  const latestPast = await db.query.seasons.findFirst({
-    where: and(eq(schema.seasons.organizationId, organizationId), lte(schema.seasons.seasonEnd, now)),
-    orderBy: [desc(schema.seasons.seasonEnd)],
+  const latestPast = await db.season.findFirst({
+    where: {
+      organizationId,
+      seasonEnd: { lte: now },
+    },
+    orderBy: { seasonEnd: 'desc' },
   })
   if (latestPast) return latestPast
 
-  return db.query.seasons.findFirst({
-    where: eq(schema.seasons.organizationId, organizationId),
-    orderBy: [asc(schema.seasons.seasonStart)],
+  return db.season.findFirst({
+    where: { organizationId },
+    orderBy: { seasonStart: 'asc' },
   })
 }
 
 export const playerRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.players.findMany({
-      where: eq(schema.players.organizationId, ctx.organizationId),
-      orderBy: (players, { asc }) => [asc(players.lastName), asc(players.firstName)],
+    return ctx.db.player.findMany({
+      where: { organizationId: ctx.organizationId },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     })
   }),
 
@@ -42,12 +43,12 @@ export const playerRouter = router({
   listWithCurrentTeam: orgProcedure.query(async ({ ctx }) => {
     const currentSeason = await resolveCurrentSeason(ctx.db, ctx.organizationId)
 
-    const players = await ctx.db.query.players.findMany({
-      where: eq(schema.players.organizationId, ctx.organizationId),
-      orderBy: (p, { asc }) => [asc(p.lastName), asc(p.firstName)],
-      with: {
+    const players = await ctx.db.player.findMany({
+      where: { organizationId: ctx.organizationId },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      include: {
         contracts: {
-          with: { team: true, startSeason: true, endSeason: true },
+          include: { team: true, startSeason: true, endSeason: true },
         },
       },
     })
@@ -87,8 +88,8 @@ export const playerRouter = router({
   }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.players.findFirst({
-      where: and(eq(schema.players.id, input.id), eq(schema.players.organizationId, ctx.organizationId)),
+    return ctx.db.player.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
   }),
 
@@ -103,10 +104,9 @@ export const playerRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [player] = await ctx.db
-        .insert(schema.players)
-        .values({ ...input, organizationId: ctx.organizationId })
-        .returning()
+      const player = await ctx.db.player.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return player
     }),
 
@@ -123,17 +123,19 @@ export const playerRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
-      const [player] = await ctx.db
-        .update(schema.players)
-        .set({ ...data, updatedAt: new Date() })
-        .where(and(eq(schema.players.id, id), eq(schema.players.organizationId, ctx.organizationId)))
-        .returning()
+      await ctx.db.player.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: { ...data, updatedAt: new Date() },
+      })
+      const player = await ctx.db.player.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+      })
       return player
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.players)
-      .where(and(eq(schema.players.id, input.id), eq(schema.players.organizationId, ctx.organizationId)))
+    await ctx.db.player.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

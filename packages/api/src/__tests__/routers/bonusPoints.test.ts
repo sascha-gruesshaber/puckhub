@@ -1,5 +1,3 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb } from "../testUtils"
 
@@ -28,16 +26,18 @@ describe("bonusPoints router", () => {
       // Create a game with lineups and complete it to have standings
       const playerA = (await admin.player.create({ firstName: "A", lastName: "One" }))!
       const playerB = (await admin.player.create({ firstName: "B", lastName: "One" }))!
+
+      const firstSeason = await db.season.findFirst()
       await admin.contract.signPlayer({
         playerId: playerA.id,
         teamId: teamA.id,
-        seasonId: (await db.query.seasons.findFirst())!.id,
+        seasonId: firstSeason!.id,
         position: "forward",
       })
       await admin.contract.signPlayer({
         playerId: playerB.id,
         teamId: teamB.id,
-        seasonId: (await db.query.seasons.findFirst())!.id,
+        seasonId: firstSeason!.id,
         position: "forward",
       })
 
@@ -56,8 +56,8 @@ describe("bonusPoints router", () => {
       await admin.game.complete({ id: game.id })
 
       // Standings should exist now (0-0 draw)
-      const standingsBefore = await db.query.standings.findMany({
-        where: eq(schema.standings.roundId, round.id),
+      const standingsBefore = await db.standing.findMany({
+        where: { roundId: round.id },
       })
       expect(standingsBefore).toHaveLength(2)
       // Both teams should have 1 point each (draw)
@@ -74,9 +74,9 @@ describe("bonusPoints router", () => {
       expect(bp!.points).toBe(3)
 
       // Standings should be recalculated
-      const standingsAfter = await db.query.standings.findMany({
-        where: eq(schema.standings.roundId, round.id),
-        orderBy: (s, { desc }) => [desc(s.totalPoints)],
+      const standingsAfter = await db.standing.findMany({
+        where: { roundId: round.id },
+        orderBy: { totalPoints: "desc" },
       })
       const teamAStanding = standingsAfter.find((s) => s.teamId === teamA.id)
       expect(teamAStanding!.bonusPoints).toBe(3)

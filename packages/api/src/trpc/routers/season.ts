@@ -1,8 +1,6 @@
-import * as schema from "@puckhub/db/schema"
-import { TRPCError } from "@trpc/server"
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { TRPCError } from '@trpc/server'
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 const dateInputRegex = /^\d{4}-\d{2}-\d{2}$/
 const seasonDateSchema = z.string().regex(dateInputRegex)
@@ -22,39 +20,42 @@ function validateSeasonRange(start: string, end: string) {
 async function resolveCurrentSeason(db: any, organizationId: string) {
   const now = new Date()
 
-  const inRange = await db.query.seasons.findFirst({
-    where: and(
-      eq(schema.seasons.organizationId, organizationId),
-      lte(schema.seasons.seasonStart, now),
-      gte(schema.seasons.seasonEnd, now),
-    ),
-    orderBy: [desc(schema.seasons.seasonStart)],
+  const inRange = await db.season.findFirst({
+    where: {
+      organizationId,
+      seasonStart: { lte: now },
+      seasonEnd: { gte: now },
+    },
+    orderBy: { seasonStart: 'desc' },
   })
   if (inRange) return inRange
 
-  const latestPast = await db.query.seasons.findFirst({
-    where: and(eq(schema.seasons.organizationId, organizationId), lte(schema.seasons.seasonEnd, now)),
-    orderBy: [desc(schema.seasons.seasonEnd)],
+  const latestPast = await db.season.findFirst({
+    where: {
+      organizationId,
+      seasonEnd: { lte: now },
+    },
+    orderBy: { seasonEnd: 'desc' },
   })
   if (latestPast) return latestPast
 
-  return db.query.seasons.findFirst({
-    where: eq(schema.seasons.organizationId, organizationId),
-    orderBy: [asc(schema.seasons.seasonStart)],
+  return db.season.findFirst({
+    where: { organizationId },
+    orderBy: { seasonStart: 'asc' },
   })
 }
 
 export const seasonRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.seasons.findMany({
-      where: eq(schema.seasons.organizationId, ctx.organizationId),
-      orderBy: (seasons, { desc }) => [desc(seasons.seasonStart)],
+    return ctx.db.season.findMany({
+      where: { organizationId: ctx.organizationId },
+      orderBy: { seasonStart: 'desc' },
     })
   }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.seasons.findFirst({
-      where: and(eq(schema.seasons.id, input.id), eq(schema.seasons.organizationId, ctx.organizationId)),
+    return ctx.db.season.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
   }),
 
@@ -71,20 +72,19 @@ export const seasonRouter = router({
           seasonEnd: seasonDateSchema,
         })
         .refine((v) => validateSeasonRange(v.seasonStart, v.seasonEnd), {
-          message: "seasonStart must be before or equal to seasonEnd",
-          path: ["seasonEnd"],
+          message: 'seasonStart must be before or equal to seasonEnd',
+          path: ['seasonEnd'],
         }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [season] = await ctx.db
-        .insert(schema.seasons)
-        .values({
+      const season = await ctx.db.season.create({
+        data: {
           organizationId: ctx.organizationId,
           name: input.name,
           seasonStart: toSeasonStart(input.seasonStart),
           seasonEnd: toSeasonEnd(input.seasonEnd),
-        })
-        .returning()
+        },
+      })
       return season
     }),
 
@@ -103,8 +103,8 @@ export const seasonRouter = router({
             return validateSeasonRange(v.seasonStart, v.seasonEnd)
           },
           {
-            message: "seasonStart must be before or equal to seasonEnd",
-            path: ["seasonEnd"],
+            message: 'seasonStart must be before or equal to seasonEnd',
+            path: ['seasonEnd'],
           },
         ),
     )
@@ -116,46 +116,45 @@ export const seasonRouter = router({
       if (data.seasonEnd !== undefined) updateData.seasonEnd = toSeasonEnd(data.seasonEnd)
 
       if (data.seasonStart !== undefined || data.seasonEnd !== undefined) {
-        const existing = await ctx.db.query.seasons.findFirst({
-          where: and(eq(schema.seasons.id, id), eq(schema.seasons.organizationId, ctx.organizationId)),
+        const existing = await ctx.db.season.findFirst({
+          where: { id, organizationId: ctx.organizationId },
         })
         if (!existing) return undefined
         const start = data.seasonStart ? toSeasonStart(data.seasonStart) : existing.seasonStart
         const end = data.seasonEnd ? toSeasonEnd(data.seasonEnd) : existing.seasonEnd
         if (start.getTime() > end.getTime()) {
           throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "seasonStart must be before or equal to seasonEnd",
+            code: 'BAD_REQUEST',
+            message: 'seasonStart must be before or equal to seasonEnd',
           })
         }
       }
 
-      const [season] = await ctx.db
-        .update(schema.seasons)
-        .set(updateData)
-        .where(and(eq(schema.seasons.id, id), eq(schema.seasons.organizationId, ctx.organizationId)))
-        .returning()
-      return season
+      const season = await ctx.db.season.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: updateData,
+      })
+
+      // Return the updated record if it was found
+      if (season.count === 0) return undefined
+      return ctx.db.season.findFirst({ where: { id, organizationId: ctx.organizationId } })
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.seasons)
-      .where(and(eq(schema.seasons.id, input.id), eq(schema.seasons.organizationId, ctx.organizationId)))
+    await ctx.db.season.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 
   structureCounts: orgProcedure.query(async ({ ctx }) => {
-    const rows = await ctx.db
-      .select({
-        seasonId: schema.divisions.seasonId,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(schema.divisions)
-      .where(eq(schema.divisions.organizationId, ctx.organizationId))
-      .groupBy(schema.divisions.seasonId)
+    const rows = await ctx.db.division.groupBy({
+      by: ['seasonId'],
+      where: { organizationId: ctx.organizationId },
+      _count: { id: true },
+    })
     const map: Record<string, number> = {}
     for (const row of rows) {
-      map[row.seasonId] = row.count
+      map[row.seasonId] = row._count.id
     }
     return map
   }),
@@ -164,59 +163,60 @@ export const seasonRouter = router({
     .input(
       z.object({
         seasonId: z.string().uuid(),
-        template: z.enum(["standard", "copy"]),
+        template: z.enum(['standard', 'copy']),
         sourceSeasonId: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      if (input.template === "standard") {
+      if (input.template === 'standard') {
         // Create one division "Hauptrunde" with one regular round, assign all teams
-        const [division] = await ctx.db
-          .insert(schema.divisions)
-          .values({
+        const division = await ctx.db.division.create({
+          data: {
             organizationId: ctx.organizationId,
             seasonId: input.seasonId,
-            name: "Liga",
+            name: 'Liga',
             sortOrder: 0,
-          })
-          .returning()
+          },
+        })
 
-        await ctx.db.insert(schema.rounds).values({
-          organizationId: ctx.organizationId,
-          divisionId: division!.id,
-          name: "Hauptrunde",
-          roundType: "regular",
-          sortOrder: 0,
-          pointsWin: 2,
-          pointsDraw: 1,
-          pointsLoss: 0,
+        await ctx.db.round.create({
+          data: {
+            organizationId: ctx.organizationId,
+            divisionId: division.id,
+            name: 'Hauptrunde',
+            roundType: 'regular',
+            sortOrder: 0,
+            pointsWin: 2,
+            pointsDraw: 1,
+            pointsLoss: 0,
+          },
         })
 
         // Assign all teams belonging to this org
-        const allTeams = await ctx.db.query.teams.findMany({
-          where: eq(schema.teams.organizationId, ctx.organizationId),
+        const allTeams = await ctx.db.team.findMany({
+          where: { organizationId: ctx.organizationId },
         })
         if (allTeams.length > 0) {
-          await ctx.db.insert(schema.teamDivisions).values(
-            allTeams.map((t) => ({
+          await ctx.db.teamDivision.createMany({
+            data: allTeams.map((t: any) => ({
               organizationId: ctx.organizationId,
               teamId: t.id,
-              divisionId: division!.id,
+              divisionId: division.id,
             })),
-          )
+          })
         }
 
         return { divisionsCreated: 1, roundsCreated: 1, teamsAssigned: allTeams.length }
       }
 
-      if (input.template === "copy" && input.sourceSeasonId) {
+      if (input.template === 'copy' && input.sourceSeasonId) {
         // Copy structure from another season
-        const sourceDivisions = await ctx.db.query.divisions.findMany({
-          where: and(
-            eq(schema.divisions.seasonId, input.sourceSeasonId),
-            eq(schema.divisions.organizationId, ctx.organizationId),
-          ),
-          orderBy: [asc(schema.divisions.sortOrder)],
+        const sourceDivisions = await ctx.db.division.findMany({
+          where: {
+            seasonId: input.sourceSeasonId,
+            organizationId: ctx.organizationId,
+          },
+          orderBy: { sortOrder: 'asc' },
         })
 
         let divisionsCreated = 0
@@ -224,59 +224,58 @@ export const seasonRouter = router({
         let teamsAssigned = 0
 
         for (const srcDiv of sourceDivisions) {
-          const [newDiv] = await ctx.db
-            .insert(schema.divisions)
-            .values({
+          const newDiv = await ctx.db.division.create({
+            data: {
               organizationId: ctx.organizationId,
               seasonId: input.seasonId,
               name: srcDiv.name,
               sortOrder: srcDiv.sortOrder,
-            })
-            .returning()
+            },
+          })
           divisionsCreated++
 
           // Copy rounds
-          const srcRounds = await ctx.db.query.rounds.findMany({
-            where: and(
-              eq(schema.rounds.divisionId, srcDiv.id),
-              eq(schema.rounds.organizationId, ctx.organizationId),
-            ),
-            orderBy: [asc(schema.rounds.sortOrder)],
+          const srcRounds = await ctx.db.round.findMany({
+            where: {
+              divisionId: srcDiv.id,
+              organizationId: ctx.organizationId,
+            },
+            orderBy: { sortOrder: 'asc' },
           })
 
           for (const srcRound of srcRounds) {
-            await ctx.db.insert(schema.rounds).values({
-              organizationId: ctx.organizationId,
-              divisionId: newDiv!.id,
-              name: srcRound.name,
-              roundType: srcRound.roundType,
-              sortOrder: srcRound.sortOrder,
-              pointsWin: srcRound.pointsWin,
-              pointsDraw: srcRound.pointsDraw,
-              pointsLoss: srcRound.pointsLoss,
+            await ctx.db.round.create({
+              data: {
+                organizationId: ctx.organizationId,
+                divisionId: newDiv.id,
+                name: srcRound.name,
+                roundType: srcRound.roundType,
+                sortOrder: srcRound.sortOrder,
+                pointsWin: srcRound.pointsWin,
+                pointsDraw: srcRound.pointsDraw,
+                pointsLoss: srcRound.pointsLoss,
+              },
             })
             roundsCreated++
           }
 
           // Copy team assignments
-          const srcAssignments = await ctx.db
-            .select({ teamId: schema.teamDivisions.teamId })
-            .from(schema.teamDivisions)
-            .where(
-              and(
-                eq(schema.teamDivisions.divisionId, srcDiv.id),
-                eq(schema.teamDivisions.organizationId, ctx.organizationId),
-              ),
-            )
+          const srcAssignments = await ctx.db.teamDivision.findMany({
+            where: {
+              divisionId: srcDiv.id,
+              organizationId: ctx.organizationId,
+            },
+            select: { teamId: true },
+          })
 
           if (srcAssignments.length > 0) {
-            await ctx.db.insert(schema.teamDivisions).values(
-              srcAssignments.map((a) => ({
+            await ctx.db.teamDivision.createMany({
+              data: srcAssignments.map((a: any) => ({
                 organizationId: ctx.organizationId,
                 teamId: a.teamId,
-                divisionId: newDiv!.id,
+                divisionId: newDiv.id,
               })),
-            )
+            })
             teamsAssigned += srcAssignments.length
           }
         }
@@ -288,22 +287,22 @@ export const seasonRouter = router({
     }),
 
   getFullStructure: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    const season = await ctx.db.query.seasons.findFirst({
-      where: and(eq(schema.seasons.id, input.id), eq(schema.seasons.organizationId, ctx.organizationId)),
+    const season = await ctx.db.season.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
     if (!season) return null
 
-    const divisions = await ctx.db.query.divisions.findMany({
-      where: and(
-        eq(schema.divisions.seasonId, input.id),
-        eq(schema.divisions.organizationId, ctx.organizationId),
-      ),
-      orderBy: [asc(schema.divisions.sortOrder)],
+    const divisions = await ctx.db.division.findMany({
+      where: {
+        seasonId: input.id,
+        organizationId: ctx.organizationId,
+      },
+      orderBy: { sortOrder: 'asc' },
     })
 
-    const divisionIds = divisions.map((d) => d.id)
+    const divisionIds = divisions.map((d: any) => d.id)
 
-    let rounds: (typeof schema.rounds.$inferSelect)[] = []
+    let rounds: any[] = []
     let teamAssignments: {
       id: string
       teamId: string
@@ -323,40 +322,43 @@ export const seasonRouter = router({
     }[] = []
 
     if (divisionIds.length > 0) {
-      rounds = await ctx.db.query.rounds.findMany({
-        where: and(
-          inArray(schema.rounds.divisionId, divisionIds),
-          eq(schema.rounds.organizationId, ctx.organizationId),
-        ),
-        orderBy: [asc(schema.rounds.sortOrder)],
+      rounds = await ctx.db.round.findMany({
+        where: {
+          divisionId: { in: divisionIds },
+          organizationId: ctx.organizationId,
+        },
+        orderBy: { sortOrder: 'asc' },
       })
 
-      teamAssignments = await ctx.db
-        .select({
-          id: schema.teamDivisions.id,
-          teamId: schema.teamDivisions.teamId,
-          divisionId: schema.teamDivisions.divisionId,
-          createdAt: schema.teamDivisions.createdAt,
+      const rawAssignments = await ctx.db.teamDivision.findMany({
+        where: {
+          divisionId: { in: divisionIds },
+          organizationId: ctx.organizationId,
+        },
+        include: {
           team: {
-            id: schema.teams.id,
-            name: schema.teams.name,
-            shortName: schema.teams.shortName,
-            city: schema.teams.city,
-            logoUrl: schema.teams.logoUrl,
-            primaryColor: schema.teams.primaryColor,
-            contactName: schema.teams.contactName,
-            website: schema.teams.website,
-            defaultVenueId: schema.teams.defaultVenueId,
+            select: {
+              id: true,
+              name: true,
+              shortName: true,
+              city: true,
+              logoUrl: true,
+              primaryColor: true,
+              contactName: true,
+              website: true,
+              defaultVenueId: true,
+            },
           },
-        })
-        .from(schema.teamDivisions)
-        .innerJoin(schema.teams, eq(schema.teamDivisions.teamId, schema.teams.id))
-        .where(
-          and(
-            inArray(schema.teamDivisions.divisionId, divisionIds),
-            eq(schema.teamDivisions.organizationId, ctx.organizationId),
-          ),
-        )
+        },
+      })
+
+      teamAssignments = rawAssignments.map((a: any) => ({
+        id: a.id,
+        teamId: a.teamId,
+        divisionId: a.divisionId,
+        createdAt: a.createdAt,
+        team: a.team,
+      }))
     }
 
     return { season, divisions, rounds, teamAssignments }

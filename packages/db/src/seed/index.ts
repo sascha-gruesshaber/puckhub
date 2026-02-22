@@ -1,9 +1,8 @@
 import type { Database } from "../index"
-import * as schema from "../schema"
 
 /**
  * Seed reference data (penalty types, trikot templates).
- * Uses onConflictDoNothing() so it's safe to run repeatedly.
+ * Uses skipDuplicates so it's safe to run repeatedly.
  *
  * Note: static pages are NOT seeded here because the pages table requires
  * an organizationId. Static pages must be created per-organization, either
@@ -11,22 +10,21 @@ import * as schema from "../schema"
  */
 export async function runSeed(db: Database) {
   console.log("Seeding penalty types...")
-  await db
-    .insert(schema.penaltyTypes)
-    .values([
+  await db.penaltyType.createMany({
+    data: [
       { code: "MINOR", name: "Kleine Strafe", shortName: "2min", defaultMinutes: 2 },
       { code: "DOUBLE_MINOR", name: "Doppelte Kleine Strafe", shortName: "2+2min", defaultMinutes: 4 },
       { code: "MAJOR", name: "Große Strafe", shortName: "5min", defaultMinutes: 5 },
       { code: "MISCONDUCT", name: "Disziplinarstrafe", shortName: "10min", defaultMinutes: 10 },
       { code: "GAME_MISCONDUCT", name: "Spieldauer-Disziplinarstrafe", shortName: "SD", defaultMinutes: 20 },
       { code: "MATCH_PENALTY", name: "Matchstrafe", shortName: "MS", defaultMinutes: 25 },
-    ])
-    .onConflictDoNothing()
+    ],
+    skipDuplicates: true,
+  })
 
   console.log("Seeding trikot templates...")
-  await db
-    .insert(schema.trikotTemplates)
-    .values([
+  await db.trikotTemplate.createMany({
+    data: [
       {
         name: "One-color",
         templateType: "one_color",
@@ -46,8 +44,9 @@ export async function runSeed(db: Database) {
   <path id="schulter" fill="{{color_schulter}}" stroke="#000" stroke-width="0" d="m 11.281638,47.768982 14.298956,37.743671 c 0,0 0.07017,0.05963 40.892953,-26.364418 44.282223,-11.865387 74.894513,-11.712062 117.051423,-0.115073 40.82279,26.424051 40.70605,26.428872 40.70605,26.428872 l 14.23102,-37.693051 -48.97471,-34.6076 -27.231,0.376583 C 140.0897,29.243719 108.88499,28.731064 86.718361,13.025311 H 60.512656 Z"/>
 </svg>`,
       },
-    ])
-    .onConflictDoNothing()
+    ],
+    skipDuplicates: true,
+  })
 
   console.log("Seed complete.")
 }

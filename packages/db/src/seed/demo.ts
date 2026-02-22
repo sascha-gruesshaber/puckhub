@@ -7,10 +7,7 @@ const seedDir = dirname(fileURLToPath(import.meta.url))
 config({ path: resolve(seedDir, "../../../../.env") })
 
 import { hashPassword } from "better-auth/crypto"
-import { sql } from "drizzle-orm"
-import { drizzle } from "drizzle-orm/postgres-js"
-import postgres from "postgres"
-import * as schema from "../schema"
+import { PrismaClient } from "@prisma/client"
 import { recalculateStandings } from "../services/standingsService"
 import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
 import { cleanUploads, generateSeedImages } from "./seedImages"
@@ -558,12 +555,11 @@ async function seedDemo() {
     throw new Error("DATABASE_URL environment variable is required")
   }
 
-  const client = postgres(connectionString)
-  const db = drizzle(client, { schema })
+  const db = new PrismaClient()
 
   // ── 1. Truncate all public tables ──────────────────────────────────────
   console.log("Truncating all tables...")
-  await db.execute(sql`
+  await db.$executeRawUnsafe(`
     DO $$ DECLARE
       r RECORD;
     BEGIN
@@ -616,7 +612,7 @@ async function seedDemo() {
 
   // ── 1c. Organizations ─────────────────────────────────────────────────
   console.log("Seeding organizations...")
-  await db.insert(schema.organization).values([
+  await db.organization.createMany({ data: [
     {
       id: DEMO_ORG_1_ID,
       name: demoLang === "de" ? "Oberliga Baden-Württemberg" : "Oberliga Baden-Württemberg",
@@ -629,27 +625,24 @@ async function seedDemo() {
       slug: "blnb",
       createdAt: new Date(),
     },
-  ])
+  ] })
 
   // ── 2. Reference data ─────────────────────────────────────────────────
   console.log("Seeding penalty types...")
-  const insertedPenaltyTypes = await db.insert(schema.penaltyTypes).values(getPenaltyTypes(demoLang)).returning()
+  const insertedPenaltyTypes = await db.penaltyType.createManyAndReturn({ data: getPenaltyTypes(demoLang) })
 
   console.log("Seeding trikot templates...")
-  const insertedTemplates = await db
-    .insert(schema.trikotTemplates)
-    .values([
+  const insertedTemplates = await db.trikotTemplate.createManyAndReturn({ data: [
       { name: "One-color", templateType: "one_color", colorCount: 1, svg: TRIKOT_TEMPLATE_SVG_EINFARBIG },
       { name: "Two-color", templateType: "two_color", colorCount: 2, svg: TRIKOT_TEMPLATE_SVG_ZWEIFARBIG },
-    ])
-    .returning()
+    ] })
 
   const oneColorTemplate = insertedTemplates.find((t) => t.templateType === "one_color")!
   const twoColorTemplate = insertedTemplates.find((t) => t.templateType === "two_color")!
 
   // ── 2b. System settings ─────────────────────────────────────────────
   console.log("Seeding system settings...")
-  await db.insert(schema.systemSettings).values({
+  await db.systemSettings.create({ data: {
     organizationId: DEMO_ORG_1_ID,
     leagueName: demoLang === "de" ? "PuckHub Demo Liga" : "PuckHub Demo League",
     leagueShortName: "PDL",
@@ -658,7 +651,7 @@ async function seedDemo() {
     pointsWin: 2,
     pointsDraw: 1,
     pointsLoss: 0,
-  })
+  } })
 
   // ── 2c. Demo admin user ─────────────────────────────────────────────
   console.log("Seeding demo admin user...")
@@ -667,25 +660,25 @@ async function seedDemo() {
   const adminPassword = "demo1234"
   const hashedPw = await hashPassword(adminPassword)
 
-  await db.insert(schema.user).values({
+  await db.user.create({ data: {
     id: adminUserId,
     email: adminEmail,
     name: "Demo Admin",
     emailVerified: true,
     role: "admin",
-  })
+  } })
 
-  await db.insert(schema.account).values({
+  await db.account.create({ data: {
     id: crypto.randomUUID(),
     accountId: adminUserId,
     providerId: "credential",
     password: hashedPw,
     userId: adminUserId,
-  })
+  } })
 
   // ── 2d. Member records for admin in both orgs ────────────────────────
   console.log("Seeding organization members...")
-  await db.insert(schema.member).values([
+  await db.member.createMany({ data: [
     {
       id: crypto.randomUUID(),
       userId: adminUserId,
@@ -700,28 +693,25 @@ async function seedDemo() {
       role: "owner",
       createdAt: new Date(),
     },
-  ])
+  ] })
 
   // ── 3. Seasons ────────────────────────────────────────────────────────
   console.log(`Seeding ${seasonStructure.length} seasons...`)
-  const insertedSeasons = await db
-    .insert(schema.seasons)
-    .values(
+  const insertedSeasons = await db.season.createManyAndReturn({ data:
       seasonStructure.map((s) => ({
         organizationId: DEMO_ORG_1_ID,
         name: s.name,
         seasonStart: new Date(Date.UTC(s.year, 8, 1, 0, 0, 0)),
         seasonEnd: new Date(Date.UTC(s.year + 1, 3, 30, 23, 59, 59)),
       })),
-    )
-    .returning()
+  })
 
   // Map by year for easy lookup
   const seasonByYear = new Map(seasonStructure.map((s, i) => [s.year, insertedSeasons[i]!]))
 
   // ── 4. Divisions ──────────────────────────────────────────────────────
   console.log("Seeding divisions...")
-  type DivisionRow = typeof schema.divisions.$inferInsert & { id?: string }
+  type DivisionRow = any & { id?: string }
   const divisionValues: DivisionRow[] = []
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
@@ -736,14 +726,14 @@ async function seedDemo() {
       })
     }
   }
-  const insertedDivisions = await db.insert(schema.divisions).values(divisionValues).returning()
+  const insertedDivisions = await db.division.createManyAndReturn({ data: divisionValues })
 
   // Build a lookup: "seasonId:divName" -> division row
   const divisionLookup = new Map(insertedDivisions.map((d) => [`${d.seasonId}:${d.name}`, d]))
 
   // ── 5. Rounds ─────────────────────────────────────────────────────────
   console.log("Seeding rounds...")
-  const roundValues: (typeof schema.rounds.$inferInsert)[] = []
+  const roundValues: (any)[] = []
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
     for (const divDef of seasonDef.divisions) {
@@ -762,13 +752,11 @@ async function seedDemo() {
       }
     }
   }
-  const insertedRounds = await db.insert(schema.rounds).values(roundValues).returning()
+  const insertedRounds = await db.round.createManyAndReturn({ data: roundValues })
 
   // ── 6. Teams ──────────────────────────────────────────────────────────
   console.log("Seeding 10 teams...")
-  const insertedTeams = await db
-    .insert(schema.teams)
-    .values(
+  const insertedTeams = await db.team.createManyAndReturn({ data:
       TEAMS.map((t, i) => ({
         organizationId: DEMO_ORG_1_ID,
         name: t.name,
@@ -776,26 +764,22 @@ async function seedDemo() {
         city: t.city,
         logoUrl: seedImages.teamLogoUrls[i],
       })),
-    )
-    .returning()
+  })
 
   // ── 7. Venues ─────────────────────────────────────────────────────────
   console.log("Seeding 10 venues...")
-  const insertedVenues = await db
-    .insert(schema.venues)
-    .values(
+  const insertedVenues = await db.venue.createManyAndReturn({ data:
       VENUES.map((v) => ({
         organizationId: DEMO_ORG_1_ID,
         name: v.name,
         city: v.city,
         address: v.address,
       })),
-    )
-    .returning()
+  })
 
   // ── 8. Team-Division assignments ──────────────────────────────────────
   console.log("Seeding team-division assignments...")
-  const tdValues: (typeof schema.teamDivisions.$inferInsert)[] = []
+  const tdValues: (any)[] = []
   for (const seasonDef of seasonStructure) {
     const season = seasonByYear.get(seasonDef.year)!
     for (const divDef of seasonDef.divisions) {
@@ -811,11 +795,11 @@ async function seedDemo() {
       }
     }
   }
-  await db.insert(schema.teamDivisions).values(tdValues)
+  await db.teamDivision.createMany({ data: tdValues })
 
   // ── 9. Games ──────────────────────────────────────────────────────────
   console.log(`Seeding ~${GAMES_PER_ROUND} games per round...`)
-  const gamesValues: (typeof schema.games.$inferInsert)[] = []
+  const gamesValues: (any)[] = []
   const seasonYearById = new Map(seasonStructure.map((s, i) => [insertedSeasons[i]?.id, s.year]))
 
   for (let seasonIdx = 0; seasonIdx < seasonStructure.length; seasonIdx++) {
@@ -894,7 +878,7 @@ async function seedDemo() {
       }
     }
   }
-  const insertedGames = await db.insert(schema.games).values(gamesValues).returning()
+  const insertedGames = await db.game.createManyAndReturn({ data: gamesValues })
 
   // ── 10. Players ───────────────────────────────────────────────────────
   console.log("Seeding 100 players...")
@@ -908,19 +892,16 @@ async function seedDemo() {
       allPlayerDefs.push({ teamIdx: t, playerIdx: p, def: playerDef })
     }
   }
-  const insertedPlayers = await db
-    .insert(schema.players)
-    .values(
+  const insertedPlayers = await db.player.createManyAndReturn({ data:
       allPlayerDefs.map((pd, i) => ({
         organizationId: DEMO_ORG_1_ID,
         firstName: pd.def.firstName,
         lastName: pd.def.lastName,
-        dateOfBirth: pd.def.dob,
+        dateOfBirth: new Date(pd.def.dob),
         nationality: "DE",
         photoUrl: seedImages.playerPhotoUrls[i],
       })),
-    )
-    .returning()
+  })
 
   // Build a quick lookup: "teamIdx:playerIdx" -> player row
   const playerLookup = new Map(allPlayerDefs.map((pd, i) => [`${pd.teamIdx}:${pd.playerIdx}`, insertedPlayers[i]!]))
@@ -929,7 +910,7 @@ async function seedDemo() {
   console.log("Seeding contracts...")
   const firstSeasonYear = Math.min(...seasonStructure.map((s) => s.year))
   const firstSeason = seasonByYear.get(firstSeasonYear)!
-  const contractValues: (typeof schema.contracts.$inferInsert)[] = []
+  const contractValues: (any)[] = []
 
   for (const pd of allPlayerDefs) {
     const player = playerLookup.get(`${pd.teamIdx}:${pd.playerIdx}`)!
@@ -991,7 +972,7 @@ async function seedDemo() {
       })
     }
   }
-  await db.insert(schema.contracts).values(contractValues)
+  await db.contract.createMany({ data: contractValues })
 
   // ── 11b. Game Reports (lineups, events, suspensions) ───────────────────
   console.log("Seeding game reports for completed games...")
@@ -1047,10 +1028,10 @@ async function seedDemo() {
     (g) => g.status === "completed" && g.homeScore != null && g.awayScore != null,
   )
 
-  const lineupValues: (typeof schema.gameLineups.$inferInsert)[] = []
-  const eventValues: (typeof schema.gameEvents.$inferInsert & { _tempId?: string })[] = []
-  const suspensionValues: (typeof schema.gameSuspensions.$inferInsert)[] = []
-  const goalieGameStatsValues: (typeof schema.goalieGameStats.$inferInsert)[] = []
+  const lineupValues: (any)[] = []
+  const eventValues: (any & { _tempId?: string })[] = []
+  const suspensionValues: (any)[] = []
+  const goalieGameStatsValues: (any)[] = []
 
   let totalGoals = 0
   let totalPenalties = 0
@@ -1249,22 +1230,22 @@ async function seedDemo() {
   if (lineupValues.length > 0) {
     const BATCH = 500
     for (let i = 0; i < lineupValues.length; i += BATCH) {
-      await db.insert(schema.gameLineups).values(lineupValues.slice(i, i + BATCH))
+      await db.gameLineup.createMany({ data: lineupValues.slice(i, i + BATCH) })
     }
   }
   if (eventValues.length > 0) {
     const BATCH = 500
     for (let i = 0; i < eventValues.length; i += BATCH) {
-      await db.insert(schema.gameEvents).values(eventValues.slice(i, i + BATCH))
+      await db.gameEvent.createMany({ data: eventValues.slice(i, i + BATCH) })
     }
   }
   if (suspensionValues.length > 0) {
-    await db.insert(schema.gameSuspensions).values(suspensionValues)
+    await db.gameSuspension.createMany({ data: suspensionValues })
   }
   if (goalieGameStatsValues.length > 0) {
     const BATCH = 500
     for (let i = 0; i < goalieGameStatsValues.length; i += BATCH) {
-      await db.insert(schema.goalieGameStats).values(goalieGameStatsValues.slice(i, i + BATCH))
+      await db.goalieGameStat.createMany({ data: goalieGameStatsValues.slice(i, i + BATCH) })
     }
   }
 
@@ -1302,7 +1283,7 @@ async function seedDemo() {
           "Forfeit of mandatory game",
         ]
 
-  const bonusValues: (typeof schema.bonusPoints.$inferInsert)[] = []
+  const bonusValues: (any)[] = []
   // Build a lookup: roundId -> teamIds that play in that round's division
   const roundTeamsMap = new Map<string, string[]>()
   for (const seasonDef of seasonStructure) {
@@ -1343,7 +1324,7 @@ async function seedDemo() {
     }
   }
   if (bonusValues.length > 0) {
-    await db.insert(schema.bonusPoints).values(bonusValues)
+    await db.bonusPoint.createMany({ data: bonusValues })
   }
   console.log(`   → ${bonusValues.length} bonus point entries`)
 
@@ -1356,7 +1337,7 @@ async function seedDemo() {
 
   // ── 12. Trikots + Team-Trikots ────────────────────────────────────────
   console.log("Seeding trikots...")
-  const trikotValues: (typeof schema.trikots.$inferInsert)[] = []
+  const trikotValues: (any)[] = []
   for (let t = 0; t < insertedTeams.length; t++) {
     const team = insertedTeams[t]!
     const colors = TEAM_COLORS[t]!
@@ -1377,10 +1358,10 @@ async function seedDemo() {
       secondaryColor: colors[3],
     })
   }
-  const insertedTrikots = await db.insert(schema.trikots).values(trikotValues).returning()
+  const insertedTrikots = await db.trikot.createManyAndReturn({ data: trikotValues })
 
   console.log("Seeding team-trikots...")
-  const teamTrikotValues: (typeof schema.teamTrikots.$inferInsert)[] = []
+  const teamTrikotValues: (any)[] = []
   for (let t = 0; t < insertedTeams.length; t++) {
     const team = insertedTeams[t]!
     const homeTrikot = insertedTrikots[t * 2]!
@@ -1398,11 +1379,11 @@ async function seedDemo() {
       name: demoLang === "de" ? "Auswaerts" : "Away",
     })
   }
-  await db.insert(schema.teamTrikots).values(teamTrikotValues)
+  await db.teamTrikot.createMany({ data: teamTrikotValues })
 
   // ── 13. Sponsors ──────────────────────────────────────────────────────
   console.log("Seeding sponsors...")
-  const sponsorValues: (typeof schema.sponsors.$inferInsert)[] =
+  const sponsorValues: (any)[] =
     demoLang === "de"
       ? [
           {
@@ -1500,11 +1481,11 @@ async function seedDemo() {
             logoUrl: seedImages.sponsorLogoUrls[4],
           },
         ]
-  await db.insert(schema.sponsors).values(sponsorValues)
+  await db.sponsor.createMany({ data: sponsorValues })
 
   // ── 14. News ──────────────────────────────────────────────────────────
   console.log("Seeding news...")
-  const newsValues: (typeof schema.news.$inferInsert)[] =
+  const newsValues: (any)[] =
     demoLang === "de"
       ? [
           {
@@ -1617,12 +1598,12 @@ async function seedDemo() {
             createdAt: new Date("2025-01-05T11:00:00Z"),
           },
         ]
-  await db.insert(schema.news).values(newsValues)
+  await db.news.createMany({ data: newsValues })
 
   // ── 15. Pages ──────────────────────────────────────────────────────────
   console.log("Seeding pages...")
 
-  const topLevelPages: (typeof schema.pages.$inferInsert)[] =
+  const topLevelPages: (any)[] =
     demoLang === "de"
       ? [
           {
@@ -1760,12 +1741,12 @@ async function seedDemo() {
           },
         ]
 
-  const insertedPages = await db.insert(schema.pages).values(topLevelPages).returning()
+  const insertedPages = await db.page.createManyAndReturn({ data: topLevelPages })
 
   const aboutLeague = insertedPages.find((p) => p.slug === "about-the-league")!
   const rulesPage = insertedPages.find((p) => p.slug === "rules-and-guidance")!
 
-  const subPages: (typeof schema.pages.$inferInsert)[] =
+  const subPages: (any)[] =
     demoLang === "de"
       ? [
           {
@@ -1842,14 +1823,14 @@ async function seedDemo() {
           },
         ]
 
-  await db.insert(schema.pages).values(subPages)
+  await db.page.createMany({ data: subPages })
 
   // Page aliases
   const contactPage = insertedPages.find((p) => p.slug === "contact")!
   const privacyPage = insertedPages.find((p) => p.slug === "privacy-policy")!
 
   console.log("Seeding page aliases...")
-  const aliasValues: (typeof schema.pageAliases.$inferInsert)[] = [
+  const aliasValues: (any)[] = [
     { organizationId: DEMO_ORG_1_ID, slug: "kontakt", targetPageId: contactPage.id },
     {
       organizationId: DEMO_ORG_1_ID,
@@ -1859,10 +1840,10 @@ async function seedDemo() {
     { organizationId: DEMO_ORG_1_ID, slug: "privacy", targetPageId: privacyPage.id },
     { organizationId: DEMO_ORG_1_ID, slug: "datenschutz", targetPageId: privacyPage.id },
   ]
-  await db.insert(schema.pageAliases).values(aliasValues)
+  await db.pageAlias.createMany({ data: aliasValues })
 
   // ── Done ──────────────────────────────────────────────────────────────
-  await client.end()
+  await db.$disconnect()
 
   console.log("\n✅ Demo seed complete!")
   console.log(

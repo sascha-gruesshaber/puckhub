@@ -1,5 +1,3 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb } from "../testUtils"
 
@@ -81,8 +79,8 @@ describe("standings router — extended", () => {
       })
 
       // Verify standings exist
-      const before = await db.query.standings.findMany({
-        where: eq(schema.standings.roundId, round.id),
+      const before = await db.standing.findMany({
+        where: { roundId: round.id },
       })
       expect(before).toHaveLength(2)
 
@@ -91,9 +89,9 @@ describe("standings router — extended", () => {
       expect(result.success).toBe(true)
 
       // Verify standings still correct after recalculation
-      const after = await db.query.standings.findMany({
-        where: eq(schema.standings.roundId, round.id),
-        orderBy: (s, { desc }) => [desc(s.totalPoints)],
+      const after = await db.standing.findMany({
+        where: { roundId: round.id },
+        orderBy: { totalPoints: "desc" },
       })
       expect(after).toHaveLength(2)
       expect(after[0]!.teamId).toBe(teamA.id)
@@ -118,9 +116,9 @@ describe("standings router — extended", () => {
       // Recalculate → now previousRank should be set from the first calculation
       await admin.standings.recalculate({ roundId: round.id })
 
-      const standings = await db.query.standings.findMany({
-        where: eq(schema.standings.roundId, round.id),
-        orderBy: (s, { asc }) => [asc(s.rank)],
+      const standings = await db.standing.findMany({
+        where: { roundId: round.id },
+        orderBy: { rank: "asc" },
       })
 
       // After first game + recalc, previousRank should reflect the earlier rank

@@ -1,6 +1,4 @@
-import { and, eq, sql } from "drizzle-orm"
 import type { Database } from "../index"
-import * as schema from "../schema"
 
 /**
  * Recalculates standings for a given round after a game result changes.
@@ -8,17 +6,15 @@ import * as schema from "../schema"
  */
 export async function recalculateStandings(db: Database, roundId: string, organizationId?: string): Promise<void> {
   // 1. Fetch the round to get point rules
-  const round = await db.query.rounds.findFirst({
-    where: eq(schema.rounds.id, roundId),
-  })
+  const round = await db.round.findUnique({ where: { id: roundId } })
   if (!round) return
 
   const { pointsWin, pointsDraw, pointsLoss } = round
 
   // 2. Fetch all completed games for the round
-  const completedGames = await db.query.games.findMany({
-    where: and(eq(schema.games.roundId, roundId), eq(schema.games.status, "completed")),
-    columns: { id: true, homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
+  const completedGames = await db.game.findMany({
+    where: { roundId, status: "completed" },
+    select: { id: true, homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
   })
 
   // 3. Aggregate per team
@@ -69,16 +65,13 @@ export async function recalculateStandings(db: Database, roundId: string, organi
   }
 
   // 4. Add bonus points
-  const bonusPointRows = await db
-    .select({
-      teamId: schema.bonusPoints.teamId,
-      total: sql<number>`coalesce(sum(${schema.bonusPoints.points}), 0)`.as("total"),
-    })
-    .from(schema.bonusPoints)
-    .where(eq(schema.bonusPoints.roundId, roundId))
-    .groupBy(schema.bonusPoints.teamId)
+  const bonusPointRows = await db.bonusPoint.groupBy({
+    by: ["teamId"],
+    where: { roundId },
+    _sum: { points: true },
+  })
 
-  const bonusMap = new Map(bonusPointRows.map((r) => [r.teamId, Number(r.total)]))
+  const bonusMap = new Map(bonusPointRows.map((r) => [r.teamId, r._sum.points ?? 0]))
 
   // 5. Build standings entries and sort
   type StandingEntry = {
@@ -122,19 +115,19 @@ export async function recalculateStandings(db: Database, roundId: string, organi
   })
 
   // 6. Read current ranks before deleting (for previousRank tracking)
-  const existing = await db.query.standings.findMany({
-    where: eq(schema.standings.roundId, roundId),
-    columns: { teamId: true, rank: true },
+  const existing = await db.standing.findMany({
+    where: { roundId },
+    select: { teamId: true, rank: true },
   })
   const previousRankMap = new Map(existing.map((s) => [s.teamId, s.rank]))
 
   // 7. Delete existing standings and insert fresh with ranks
-  await db.delete(schema.standings).where(eq(schema.standings.roundId, roundId))
+  await db.standing.deleteMany({ where: { roundId } })
 
   if (entries.length > 0) {
     const orgId = organizationId ?? round.organizationId
-    await db.insert(schema.standings).values(
-      entries.map((e, idx) => ({
+    await db.standing.createMany({
+      data: entries.map((e, idx) => ({
         organizationId: orgId,
         teamId: e.teamId,
         roundId,
@@ -152,6 +145,6 @@ export async function recalculateStandings(db: Database, roundId: string, organi
         previousRank: previousRankMap.get(e.teamId) ?? null,
         updatedAt: new Date(),
       })),
-    )
+    })
   }
 }

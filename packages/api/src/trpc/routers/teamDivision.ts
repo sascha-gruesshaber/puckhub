@@ -1,31 +1,28 @@
-import * as schema from "@puckhub/db/schema"
-import { and, eq } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 export const teamDivisionRouter = router({
   listByDivision: orgProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    const rows = await ctx.db
-      .select({
-        id: schema.teamDivisions.id,
-        teamId: schema.teamDivisions.teamId,
-        divisionId: schema.teamDivisions.divisionId,
-        createdAt: schema.teamDivisions.createdAt,
+    const rows = await ctx.db.teamDivision.findMany({
+      where: {
+        divisionId: input.divisionId,
+        organizationId: ctx.organizationId,
+      },
+      select: {
+        id: true,
+        teamId: true,
+        divisionId: true,
+        createdAt: true,
         team: {
-          id: schema.teams.id,
-          name: schema.teams.name,
-          shortName: schema.teams.shortName,
-          logoUrl: schema.teams.logoUrl,
+          select: {
+            id: true,
+            name: true,
+            shortName: true,
+            logoUrl: true,
+          },
         },
-      })
-      .from(schema.teamDivisions)
-      .innerJoin(schema.teams, eq(schema.teamDivisions.teamId, schema.teams.id))
-      .where(
-        and(
-          eq(schema.teamDivisions.divisionId, input.divisionId),
-          eq(schema.teamDivisions.organizationId, ctx.organizationId),
-        ),
-      )
+      },
+    })
     return rows
   }),
 
@@ -37,29 +34,24 @@ export const teamDivisionRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [existing] = await ctx.db
-        .select()
-        .from(schema.teamDivisions)
-        .where(
-          and(
-            eq(schema.teamDivisions.teamId, input.teamId),
-            eq(schema.teamDivisions.divisionId, input.divisionId),
-            eq(schema.teamDivisions.organizationId, ctx.organizationId),
-          ),
-        )
-        .limit(1)
+      const existing = await ctx.db.teamDivision.findFirst({
+        where: {
+          teamId: input.teamId,
+          divisionId: input.divisionId,
+          organizationId: ctx.organizationId,
+        },
+      })
       if (existing) return existing
 
-      const [row] = await ctx.db
-        .insert(schema.teamDivisions)
-        .values({ ...input, organizationId: ctx.organizationId })
-        .returning()
+      const row = await ctx.db.teamDivision.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return row
     }),
 
   remove: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.teamDivisions)
-      .where(and(eq(schema.teamDivisions.id, input.id), eq(schema.teamDivisions.organizationId, ctx.organizationId)))
+    await ctx.db.teamDivision.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

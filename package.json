@@ -24,7 +24,10 @@
     "onlyBuiltDependencies": [
       "esbuild",
       "@parcel/watcher",
-      "sharp"
+      "sharp",
+      "@prisma/engines",
+      "@prisma/client",
+      "prisma"
     ]
   },
   "devDependencies": {

@@ -1,6 +1,4 @@
-import * as schema from "@puckhub/db/schema"
 import { initTRPC, TRPCError } from "@trpc/server"
-import { and, eq } from "drizzle-orm"
 import superjson from "superjson"
 import { createAppError, inferAppErrorCode } from "../errors/appError"
 import { APP_ERROR_CODES } from "../errors/codes"
@@ -53,13 +51,12 @@ const isOrgMember = middleware(async ({ ctx, next }) => {
   // Platform admins bypass membership check
   const isPlatformAdmin = (ctx.user as any).role === "admin"
   if (!isPlatformAdmin) {
-    const membership = await ctx.db
-      .select({ role: schema.member.role })
-      .from(schema.member)
-      .where(and(eq(schema.member.userId, ctx.user.id), eq(schema.member.organizationId, organizationId)))
-      .limit(1)
+    const membership = await ctx.db.member.findFirst({
+      where: { userId: ctx.user.id, organizationId },
+      select: { role: true },
+    })
 
-    if (membership.length === 0) {
+    if (!membership) {
       throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_MEMBER, "Kein Mitglied dieser Organisation")
     }
 
@@ -69,7 +66,7 @@ const isOrgMember = middleware(async ({ ctx, next }) => {
         user: ctx.user,
         session: ctx.session!,
         organizationId,
-        orgRole: membership[0]!.role,
+        orgRole: membership.role,
       },
     })
   }
@@ -101,17 +98,16 @@ const isOrgAdmin = middleware(async ({ ctx, next }) => {
   // Platform admins bypass org role check
   const isPlatformAdmin = (ctx.user as any).role === "admin"
   if (!isPlatformAdmin) {
-    const membership = await ctx.db
-      .select({ role: schema.member.role })
-      .from(schema.member)
-      .where(and(eq(schema.member.userId, ctx.user.id), eq(schema.member.organizationId, organizationId)))
-      .limit(1)
+    const membership = await ctx.db.member.findFirst({
+      where: { userId: ctx.user.id, organizationId },
+      select: { role: true },
+    })
 
-    if (membership.length === 0) {
+    if (!membership) {
       throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_MEMBER, "Kein Mitglied dieser Organisation")
     }
 
-    const role = membership[0]!.role
+    const role = membership.role
     if (role !== "owner" && role !== "admin") {
       throw createAppError("FORBIDDEN", APP_ERROR_CODES.AUTH_NOT_ADMIN, "Keine Administratorrechte")
     }

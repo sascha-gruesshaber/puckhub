@@ -1,5 +1,3 @@
-import * as schema from "@puckhub/db/schema"
-import { eq } from "drizzle-orm"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb } from "../testUtils"
 
@@ -237,10 +235,10 @@ describe("news router", () => {
 
       // Manually set scheduledPublishAt to the past via DB
       const db = getTestDb()
-      await db
-        .update(schema.news)
-        .set({ scheduledPublishAt: new Date(Date.now() - 60000) })
-        .where(eq(schema.news.id, draft?.id))
+      await db.news.update({
+        where: { id: draft?.id },
+        data: { scheduledPublishAt: new Date(Date.now() - 60000) },
+      })
 
       const result = await admin.news.list()
       const found = result.find((n) => n.id === draft?.id)
@@ -258,10 +256,10 @@ describe("news router", () => {
       })
 
       const db = getTestDb()
-      await db
-        .update(schema.news)
-        .set({ scheduledPublishAt: new Date(Date.now() - 60000) })
-        .where(eq(schema.news.id, draft?.id))
+      await db.news.update({
+        where: { id: draft?.id },
+        data: { scheduledPublishAt: new Date(Date.now() - 60000) },
+      })
 
       const result = await admin.news.getById({ id: draft?.id })
       expect(result.status).toBe("published")

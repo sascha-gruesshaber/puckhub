@@ -1,1 +1,0 @@
-ALTER TABLE "standings" ADD COLUMN "previous_rank" integer;

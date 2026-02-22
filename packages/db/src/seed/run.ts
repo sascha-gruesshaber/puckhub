@@ -5,22 +5,15 @@ import { config } from "dotenv"
 const seedDir = dirname(fileURLToPath(import.meta.url))
 config({ path: resolve(seedDir, "../../../../.env") })
 
-import { drizzle } from "drizzle-orm/postgres-js"
-import postgres from "postgres"
-import * as schema from "../schema"
+import { PrismaClient } from "@prisma/client"
 import { runSeed } from "./index"
 
-const connectionString = process.env.DATABASE_URL
-if (!connectionString) {
-  throw new Error("DATABASE_URL environment variable is required")
-}
-
-const client = postgres(connectionString)
-const db = drizzle(client, { schema })
+const db = new PrismaClient()
 
 runSeed(db)
-  .then(() => client.end())
+  .then(() => db.$disconnect())
   .catch((err) => {
     console.error("Seed failed:", err)
+    db.$disconnect()
     process.exit(1)
   })

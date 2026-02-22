@@ -1,4 +1,3 @@
-import * as schema from "@puckhub/db/schema"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
@@ -125,15 +124,15 @@ async function createAndCompleteGame(
   // Insert goalie game stats directly (no tRPC endpoint for this)
   if (opts.goalieStats?.length) {
     const db = getTestDb()
-    await db.insert(schema.goalieGameStats).values(
-      opts.goalieStats.map((gs) => ({
+    await db.goalieGameStat.createMany({
+      data: opts.goalieStats.map((gs) => ({
         organizationId: TEST_ORG_ID,
         gameId: game.id,
         playerId: gs.playerId,
         teamId: gs.teamId,
         goalsAgainst: gs.goalsAgainst,
       })),
-    )
+    })
   }
 
   await admin.game.complete({ id: game.id })
@@ -236,7 +235,7 @@ describe("stats router", () => {
       const player2 = (await admin.player.create({ firstName: "Other", lastName: "Player" }))!
 
       const db = getTestDb()
-      await db.insert(schema.playerSeasonStats).values([
+      await db.playerSeasonStat.createMany({ data: [
         {
           organizationId: TEST_ORG_ID,
           playerId: player1.id,
@@ -259,7 +258,7 @@ describe("stats router", () => {
           totalPoints: 13,
           penaltyMinutes: 10,
         },
-      ])
+      ] })
 
       const caller = createTestCaller()
       const result = await caller.stats.playerStats({ seasonId: season.id })
@@ -281,7 +280,7 @@ describe("stats router", () => {
       const player2 = (await admin.player.create({ firstName: "Player", lastName: "B" }))!
 
       const db = getTestDb()
-      await db.insert(schema.playerSeasonStats).values([
+      await db.playerSeasonStat.createMany({ data: [
         {
           organizationId: TEST_ORG_ID,
           playerId: player1.id,
@@ -304,7 +303,7 @@ describe("stats router", () => {
           totalPoints: 10,
           penaltyMinutes: 0,
         },
-      ])
+      ] })
 
       const caller = createTestCaller()
       const result = await caller.stats.playerStats({ seasonId: season.id, teamId: teamA.id })
@@ -337,7 +336,7 @@ describe("stats router", () => {
       })
 
       const db = getTestDb()
-      await db.insert(schema.playerSeasonStats).values([
+      await db.playerSeasonStat.createMany({ data: [
         {
           organizationId: TEST_ORG_ID,
           playerId: forward.id,
@@ -360,7 +359,7 @@ describe("stats router", () => {
           totalPoints: 15,
           penaltyMinutes: 6,
         },
-      ])
+      ] })
 
       const caller = createTestCaller()
 
@@ -384,7 +383,7 @@ describe("stats router", () => {
       const player = (await admin.player.create({ firstName: "Top", lastName: "Scorer" }))!
 
       const db = getTestDb()
-      await db.insert(schema.playerSeasonStats).values({
+      await db.playerSeasonStat.create({ data: {
         organizationId: TEST_ORG_ID,
         playerId: player.id,
         seasonId: season.id,
@@ -394,7 +393,7 @@ describe("stats router", () => {
         assists: 2,
         totalPoints: 5,
         penaltyMinutes: 0,
-      })
+      } })
 
       const caller = createTestCaller()
       const result = await caller.stats.playerStats({ seasonId: season.id })
@@ -443,7 +442,7 @@ describe("stats router", () => {
       const belowGoalie = (await admin.player.create({ firstName: "Below", lastName: "Goalie" }))!
 
       const db = getTestDb()
-      await db.insert(schema.goalieSeasonStats).values([
+      await db.goalieSeasonStat.createMany({ data: [
         {
           organizationId: TEST_ORG_ID,
           playerId: qualifiedGoalie.id,
@@ -462,7 +461,7 @@ describe("stats router", () => {
           goalsAgainst: 4,
           gaa: "4.00",
         },
-      ])
+      ] })
 
       const caller = createTestCaller()
       const result = await caller.stats.goalieStats({ seasonId: season.id })
@@ -497,7 +496,7 @@ describe("stats router", () => {
       const worstGoalie = (await admin.player.create({ firstName: "Worst", lastName: "Goalie" }))!
 
       const db = getTestDb()
-      await db.insert(schema.goalieSeasonStats).values([
+      await db.goalieSeasonStat.createMany({ data: [
         {
           organizationId: TEST_ORG_ID,
           playerId: worstGoalie.id,
@@ -516,7 +515,7 @@ describe("stats router", () => {
           goalsAgainst: 5,
           gaa: "1.00",
         },
-      ])
+      ] })
 
       const caller = createTestCaller()
       const result = await caller.stats.goalieStats({ seasonId: season.id })
@@ -547,7 +546,7 @@ describe("stats router", () => {
       const goalieB = (await admin.player.create({ firstName: "Goalie", lastName: "B" }))!
 
       const db = getTestDb()
-      await db.insert(schema.goalieSeasonStats).values([
+      await db.goalieSeasonStat.createMany({ data: [
         {
           organizationId: TEST_ORG_ID,
           playerId: goalieA.id,
@@ -566,7 +565,7 @@ describe("stats router", () => {
           goalsAgainst: 15,
           gaa: "3.00",
         },
-      ])
+      ] })
 
       const caller = createTestCaller()
       const result = await caller.stats.goalieStats({ seasonId: season.id, teamId: teamA.id })
@@ -968,8 +967,8 @@ describe("stats router", () => {
 
       // Delete all stats manually to simulate stale state
       const db = getTestDb()
-      await db.delete(schema.playerSeasonStats)
-      await db.delete(schema.goalieSeasonStats)
+      await db.playerSeasonStat.deleteMany()
+      await db.goalieSeasonStat.deleteMany()
 
       // Verify stats are gone
       playerStats = await caller.stats.playerStats({ seasonId: season.id })

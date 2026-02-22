@@ -1,4 +1,3 @@
-import * as schema from "@puckhub/db/schema"
 import { describe, expect, it } from "vitest"
 import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
@@ -268,11 +267,10 @@ describe("page router", () => {
   })
 
   describe("static pages", () => {
-    async function insertStaticPage(overrides: Partial<typeof schema.pages.$inferInsert> = {}) {
+    async function insertStaticPage(overrides: Record<string, unknown> = {}) {
       const db = getTestDb()
-      const [page] = await db
-        .insert(schema.pages)
-        .values({
+      const page = await db.page.create({
+        data: {
           organizationId: TEST_ORG_ID,
           title: "Impressum",
           slug: "test-impressum",
@@ -281,9 +279,9 @@ describe("page router", () => {
           isStatic: true,
           menuLocations: ["footer"],
           ...overrides,
-        })
-        .returning()
-      return page!
+        },
+      })
+      return page
     }
 
     it("allows updating content of static pages", async () => {

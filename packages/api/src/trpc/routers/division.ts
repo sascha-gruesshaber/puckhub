@@ -1,22 +1,20 @@
-import * as schema from "@puckhub/db/schema"
-import { and, eq } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 export const divisionRouter = router({
   listBySeason: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.divisions.findMany({
-      where: and(
-        eq(schema.divisions.seasonId, input.seasonId),
-        eq(schema.divisions.organizationId, ctx.organizationId),
-      ),
-      orderBy: (divisions, { asc }) => [asc(divisions.sortOrder)],
+    return ctx.db.division.findMany({
+      where: {
+        seasonId: input.seasonId,
+        organizationId: ctx.organizationId,
+      },
+      orderBy: { sortOrder: 'asc' },
     })
   }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.divisions.findFirst({
-      where: and(eq(schema.divisions.id, input.id), eq(schema.divisions.organizationId, ctx.organizationId)),
+    return ctx.db.division.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
   }),
 
@@ -30,10 +28,9 @@ export const divisionRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [division] = await ctx.db
-        .insert(schema.divisions)
-        .values({ ...input, organizationId: ctx.organizationId })
-        .returning()
+      const division = await ctx.db.division.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return division
     }),
 
@@ -48,17 +45,19 @@ export const divisionRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
-      const [division] = await ctx.db
-        .update(schema.divisions)
-        .set({ ...data, updatedAt: new Date() })
-        .where(and(eq(schema.divisions.id, id), eq(schema.divisions.organizationId, ctx.organizationId)))
-        .returning()
+      await ctx.db.division.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: { ...data, updatedAt: new Date() },
+      })
+      const division = await ctx.db.division.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+      })
       return division
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.divisions)
-      .where(and(eq(schema.divisions.id, input.id), eq(schema.divisions.organizationId, ctx.organizationId)))
+    await ctx.db.division.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

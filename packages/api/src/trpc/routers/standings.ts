@@ -1,21 +1,19 @@
-import * as schema from "@puckhub/db/schema"
 import { recalculateStandings } from "@puckhub/db/services"
-import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const standingsRouter = router({
   getByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.standings.findMany({
-      where: and(
-        eq(schema.standings.roundId, input.roundId),
-        eq(schema.standings.organizationId, ctx.organizationId),
-      ),
-      orderBy: (standings, { asc, desc }) => [
-        desc(standings.totalPoints),
-        asc(standings.gamesPlayed),
-        desc(standings.goalDifference),
-        desc(standings.goalsFor),
+    return ctx.db.standing.findMany({
+      where: {
+        roundId: input.roundId,
+        organizationId: ctx.organizationId,
+      },
+      orderBy: [
+        { totalPoints: "desc" },
+        { gamesPlayed: "asc" },
+        { goalDifference: "desc" },
+        { goalsFor: "desc" },
       ],
     })
   }),
@@ -28,10 +26,10 @@ export const standingsRouter = router({
   recalculateAll: orgAdminProcedure
     .input(z.object({ divisionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
-      const rounds = await ctx.db.query.rounds.findMany({
-        where: eq(schema.rounds.divisionId, input.divisionId),
-        columns: { id: true },
-        orderBy: (rounds, { asc }) => [asc(rounds.sortOrder)],
+      const rounds = await ctx.db.round.findMany({
+        where: { divisionId: input.divisionId },
+        select: { id: true },
+        orderBy: { sortOrder: "asc" },
       })
       for (const round of rounds) {
         await recalculateStandings(ctx.db, round.id)
@@ -47,20 +45,20 @@ export const standingsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const completedGames = await ctx.db.query.games.findMany({
-        where: and(
-          eq(schema.games.roundId, input.roundId),
-          eq(schema.games.organizationId, ctx.organizationId),
-          eq(schema.games.status, "completed"),
-        ),
-        columns: {
+      const completedGames = await ctx.db.game.findMany({
+        where: {
+          roundId: input.roundId,
+          organizationId: ctx.organizationId,
+          status: "completed",
+        },
+        select: {
           homeTeamId: true,
           awayTeamId: true,
           homeScore: true,
           awayScore: true,
           finalizedAt: true,
         },
-        orderBy: (games, { desc }) => [desc(games.finalizedAt)],
+        orderBy: { finalizedAt: "desc" },
       })
 
       type FormEntry = { result: "W" | "D" | "L"; opponentId: string; goalsFor: number; goalsAgainst: number }

@@ -1,15 +1,15 @@
 import { passkey } from "@better-auth/passkey"
 import { db } from "@puckhub/db"
 import { betterAuth } from "better-auth"
-import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { prismaAdapter } from "better-auth/adapters/prisma"
 import { admin } from "better-auth/plugins/admin"
 import { organization } from "better-auth/plugins/organization"
 import { twoFactor } from "better-auth/plugins/two-factor"
 
 export const auth: ReturnType<typeof betterAuth> = betterAuth({
   baseURL: process.env.BETTER_AUTH_BASE_URL ?? "http://localhost:3001",
-  database: drizzleAdapter(db, {
-    provider: "pg",
+  database: prismaAdapter(db, {
+    provider: "postgresql",
   }),
   emailAndPassword: {
     enabled: true,

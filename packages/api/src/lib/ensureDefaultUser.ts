@@ -1,6 +1,4 @@
-import * as schema from "@puckhub/db/schema"
 import { hashPassword } from "better-auth/crypto"
-import { sql } from "drizzle-orm"
 
 /**
  * Creates the initial admin user on first startup when the database has no users.
@@ -17,53 +15,63 @@ export async function ensureDefaultUser(): Promise<void> {
 
   const { db } = await import("@puckhub/db")
 
-  const [result] = await db.select({ count: sql<number>`count(*)::int` }).from(schema.user)
+  const userCount = await db.user.count()
 
-  if ((result?.count ?? 0) > 0) {
+  if (userCount > 0) {
     return
   }
 
   console.log(`Creating default admin user (${email})...`)
 
   const userId = crypto.randomUUID()
-  await db.insert(schema.user).values({
-    id: userId,
-    email,
-    name: "Admin",
-    emailVerified: true,
-    role: "admin",
+  await db.user.create({
+    data: {
+      id: userId,
+      email,
+      name: "Admin",
+      emailVerified: true,
+      role: "admin",
+    },
   })
 
   const hashedPw = await hashPassword(password)
-  await db.insert(schema.account).values({
-    id: crypto.randomUUID(),
-    accountId: userId,
-    providerId: "credential",
-    password: hashedPw,
-    userId,
+  await db.account.create({
+    data: {
+      id: crypto.randomUUID(),
+      accountId: userId,
+      providerId: "credential",
+      password: hashedPw,
+      userId,
+    },
   })
 
   // Create a default organization
   const orgId = crypto.randomUUID()
-  await db.insert(schema.organization).values({
-    id: orgId,
-    name: "Default",
-    slug: "default",
+  await db.organization.create({
+    data: {
+      id: orgId,
+      name: "Default",
+      slug: "default",
+    },
   })
 
   // Add admin as org owner
-  await db.insert(schema.member).values({
-    id: crypto.randomUUID(),
-    userId,
-    organizationId: orgId,
-    role: "owner",
+  await db.member.create({
+    data: {
+      id: crypto.randomUUID(),
+      userId,
+      organizationId: orgId,
+      role: "owner",
+    },
   })
 
   // Create default system settings
-  await db.insert(schema.systemSettings).values({
-    organizationId: orgId,
-    leagueName: "Default",
-    leagueShortName: "DEF",
+  await db.systemSettings.create({
+    data: {
+      organizationId: orgId,
+      leagueName: "Default",
+      leagueShortName: "DEF",
+    },
   })
 
   console.log("Default admin user created successfully.")

@@ -1,21 +1,19 @@
-import * as schema from "@puckhub/db/schema"
-import { and, eq } from "drizzle-orm"
-import { z } from "zod"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { z } from 'zod'
+import { orgAdminProcedure, orgProcedure, router } from '../init'
 
 export const sponsorRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
-    return ctx.db.query.sponsors.findMany({
-      with: { team: true },
-      where: eq(schema.sponsors.organizationId, ctx.organizationId),
-      orderBy: (sponsors, { asc }) => [asc(sponsors.sortOrder), asc(sponsors.name)],
+    return ctx.db.sponsor.findMany({
+      where: { organizationId: ctx.organizationId },
+      include: { team: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     })
   }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.sponsors.findFirst({
-      where: and(eq(schema.sponsors.id, input.id), eq(schema.sponsors.organizationId, ctx.organizationId)),
-      with: { team: true },
+    return ctx.db.sponsor.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      include: { team: true },
     })
   }),
 
@@ -32,10 +30,9 @@ export const sponsorRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const [sponsor] = await ctx.db
-        .insert(schema.sponsors)
-        .values({ ...input, organizationId: ctx.organizationId })
-        .returning()
+      const sponsor = await ctx.db.sponsor.create({
+        data: { ...input, organizationId: ctx.organizationId },
+      })
       return sponsor
     }),
 
@@ -54,17 +51,19 @@ export const sponsorRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
-      const [sponsor] = await ctx.db
-        .update(schema.sponsors)
-        .set({ ...data, updatedAt: new Date() })
-        .where(and(eq(schema.sponsors.id, id), eq(schema.sponsors.organizationId, ctx.organizationId)))
-        .returning()
+      await ctx.db.sponsor.updateMany({
+        where: { id, organizationId: ctx.organizationId },
+        data: { ...data, updatedAt: new Date() },
+      })
+      const sponsor = await ctx.db.sponsor.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+      })
       return sponsor
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db
-      .delete(schema.sponsors)
-      .where(and(eq(schema.sponsors.id, input.id), eq(schema.sponsors.organizationId, ctx.organizationId)))
+    await ctx.db.sponsor.deleteMany({
+      where: { id: input.id, organizationId: ctx.organizationId },
+    })
   }),
 })

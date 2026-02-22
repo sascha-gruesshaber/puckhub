@@ -7,7 +7,7 @@ interface Player {
   id: string
   firstName: string
   lastName: string
-  dateOfBirth?: string | null
+  dateOfBirth?: string | Date | null
   nationality?: string | null
   photoUrl?: string | null
   jerseyNumber?: number | null

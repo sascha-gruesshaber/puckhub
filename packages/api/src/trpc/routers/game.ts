@@ -1,7 +1,5 @@
-import * as schema from "@puckhub/db/schema"
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { TRPCError } from "@trpc/server"
-import { and, eq, gte, inArray, isNull, lte, ne, or, sql } from "drizzle-orm"
 import { z } from "zod"
 import { generateRoundRobin } from "../../services/schedulerService"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
@@ -10,14 +8,14 @@ const gameStatusValues = ["scheduled", "completed", "cancelled"] as const
 
 /** Resolve the seasonId from a roundId (round -> division -> season). */
 async function getSeasonIdFromRound(db: any, roundId: string): Promise<string | null> {
-  const round = await db.query.rounds.findFirst({
-    where: eq(schema.rounds.id, roundId),
-    columns: { divisionId: true },
+  const round = await db.round.findUnique({
+    where: { id: roundId },
+    select: { divisionId: true },
   })
   if (!round) return null
-  const division = await db.query.divisions.findFirst({
-    where: eq(schema.divisions.id, round.divisionId),
-    columns: { seasonId: true },
+  const division = await db.division.findUnique({
+    where: { id: round.divisionId },
+    select: { seasonId: true },
   })
   return division?.seasonId ?? null
 }
@@ -30,25 +28,23 @@ async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, hom
     })
   }
 
-  const round = await ctx.db.query.rounds.findFirst({
-    where: eq(schema.rounds.id, roundId),
+  const round = await ctx.db.round.findUnique({
+    where: { id: roundId },
   })
 
   if (!round) {
     throw new TRPCError({ code: "NOT_FOUND", message: "Runde nicht gefunden." })
   }
 
-  const rows: Array<{ teamId: string }> = await ctx.db
-    .select({ teamId: schema.teamDivisions.teamId })
-    .from(schema.teamDivisions)
-    .where(
-      and(
-        eq(schema.teamDivisions.divisionId, round.divisionId),
-        inArray(schema.teamDivisions.teamId, [homeTeamId, awayTeamId]),
-      ),
-    )
+  const rows = await ctx.db.teamDivision.findMany({
+    where: {
+      divisionId: round.divisionId,
+      teamId: { in: [homeTeamId, awayTeamId] },
+    },
+    select: { teamId: true },
+  })
 
-  const teamIds = new Set(rows.map((r) => r.teamId))
+  const teamIds = new Set(rows.map((r: any) => r.teamId))
   if (!teamIds.has(homeTeamId) || !teamIds.has(awayTeamId)) {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -59,12 +55,12 @@ async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, hom
 
 export const gameRouter = router({
   listByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.games.findMany({
-      where: and(
-        eq(schema.games.roundId, input.roundId),
-        eq(schema.games.organizationId, ctx.organizationId),
-      ),
-      orderBy: (games, { asc }) => [asc(games.scheduledAt), asc(games.gameNumber)],
+    return ctx.db.game.findMany({
+      where: {
+        roundId: input.roundId,
+        organizationId: ctx.organizationId,
+      },
+      orderBy: [{ scheduledAt: "asc" }, { gameNumber: "asc" }],
     })
   }),
 
@@ -82,64 +78,78 @@ export const gameRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const divisions = await ctx.db.query.divisions.findMany({
-        where: and(
-          eq(schema.divisions.seasonId, input.seasonId),
-          eq(schema.divisions.organizationId, ctx.organizationId),
-          input.divisionId ? eq(schema.divisions.id, input.divisionId) : undefined,
-        ),
+      const divisionWhere: any = {
+        seasonId: input.seasonId,
+        organizationId: ctx.organizationId,
+      }
+      if (input.divisionId) divisionWhere.id = input.divisionId
+
+      const divisions = await ctx.db.division.findMany({
+        where: divisionWhere,
       })
 
-      const divisionIds = divisions.map((d) => d.id)
+      const divisionIds = divisions.map((d: any) => d.id)
       if (divisionIds.length === 0) return []
 
-      const rounds = await ctx.db.query.rounds.findMany({
-        where: and(
-          inArray(schema.rounds.divisionId, divisionIds),
-          input.roundId ? eq(schema.rounds.id, input.roundId) : undefined,
-        ),
+      const roundWhere: any = {
+        divisionId: { in: divisionIds },
+      }
+      if (input.roundId) roundWhere.id = input.roundId
+
+      const rounds = await ctx.db.round.findMany({
+        where: roundWhere,
       })
-      const roundIds = rounds.map((r) => r.id)
+      const roundIds = rounds.map((r: any) => r.id)
       if (roundIds.length === 0) return []
 
-      const games = await ctx.db.query.games.findMany({
-        where: and(
-          inArray(schema.games.roundId, roundIds),
-          eq(schema.games.organizationId, ctx.organizationId),
-          input.teamId
-            ? or(eq(schema.games.homeTeamId, input.teamId), eq(schema.games.awayTeamId, input.teamId))
-            : undefined,
-          input.status ? eq(schema.games.status, input.status) : undefined,
-          input.unscheduledOnly ? isNull(schema.games.scheduledAt) : undefined,
-          input.from ? gte(schema.games.scheduledAt, new Date(input.from)) : undefined,
-          input.to ? lte(schema.games.scheduledAt, new Date(input.to)) : undefined,
-        ),
-        with: {
+      const gameWhere: any = {
+        roundId: { in: roundIds },
+        organizationId: ctx.organizationId,
+      }
+
+      if (input.teamId) {
+        gameWhere.OR = [{ homeTeamId: input.teamId }, { awayTeamId: input.teamId }]
+      }
+      if (input.status) gameWhere.status = input.status
+      if (input.unscheduledOnly) gameWhere.scheduledAt = null
+      if (input.from || input.to) {
+        gameWhere.scheduledAt = {}
+        if (input.from) gameWhere.scheduledAt.gte = new Date(input.from)
+        if (input.to) gameWhere.scheduledAt.lte = new Date(input.to)
+      }
+
+      const games = await ctx.db.game.findMany({
+        where: gameWhere,
+        include: {
           round: {
-            columns: { id: true, name: true, roundType: true, sortOrder: true, divisionId: true },
-            with: {
-              division: { columns: { id: true, name: true, sortOrder: true } },
+            select: {
+              id: true,
+              name: true,
+              roundType: true,
+              sortOrder: true,
+              divisionId: true,
+              division: { select: { id: true, name: true, sortOrder: true } },
             },
           },
-          homeTeam: { columns: { id: true, name: true, shortName: true, logoUrl: true } },
-          awayTeam: { columns: { id: true, name: true, shortName: true, logoUrl: true } },
-          venue: { columns: { id: true, name: true, city: true } },
+          homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+          awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+          venue: { select: { id: true, name: true, city: true } },
         },
-        orderBy: (game, { asc }) => [asc(game.scheduledAt), asc(game.gameNumber), asc(game.createdAt)],
+        orderBy: [{ scheduledAt: "asc" }, { gameNumber: "asc" }, { createdAt: "asc" }],
       })
 
       return games
     }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
-    return ctx.db.query.games.findFirst({
-      where: and(
-        eq(schema.games.id, input.id),
-        eq(schema.games.organizationId, ctx.organizationId),
-      ),
-      with: {
+    return ctx.db.game.findFirst({
+      where: {
+        id: input.id,
+        organizationId: ctx.organizationId,
+      },
+      include: {
         round: {
-          with: {
+          include: {
             division: true,
           },
         },
@@ -164,14 +174,13 @@ export const gameRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertTeamsAllowedForRound(ctx, input.roundId, input.homeTeamId, input.awayTeamId)
-      const homeTeam = await ctx.db.query.teams.findFirst({
-        where: eq(schema.teams.id, input.homeTeamId),
-        columns: { defaultVenueId: true },
+      const homeTeam = await ctx.db.team.findUnique({
+        where: { id: input.homeTeamId },
+        select: { defaultVenueId: true },
       })
 
-      const [game] = await ctx.db
-        .insert(schema.games)
-        .values({
+      const game = await ctx.db.game.create({
+        data: {
           organizationId: ctx.organizationId,
           roundId: input.roundId,
           homeTeamId: input.homeTeamId,
@@ -180,8 +189,8 @@ export const gameRouter = router({
           scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
           gameNumber: input.gameNumber,
           notes: input.notes,
-        })
-        .returning()
+        },
+      })
 
       return game
     }),
@@ -202,8 +211,8 @@ export const gameRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
 
-      const existing = await ctx.db.query.games.findFirst({
-        where: eq(schema.games.id, id),
+      const existing = await ctx.db.game.findUnique({
+        where: { id },
       })
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
@@ -220,23 +229,22 @@ export const gameRouter = router({
       const nextAwayTeamId = data.awayTeamId ?? existing.awayTeamId
       await assertTeamsAllowedForRound(ctx, nextRoundId, nextHomeTeamId, nextAwayTeamId)
 
-      const [game] = await ctx.db
-        .update(schema.games)
-        .set({
+      const game = await ctx.db.game.update({
+        where: { id },
+        data: {
           ...data,
           scheduledAt:
             data.scheduledAt === undefined ? undefined : data.scheduledAt ? new Date(data.scheduledAt) : null,
           updatedAt: new Date(),
-        })
-        .where(eq(schema.games.id, id))
-        .returning()
+        },
+      })
 
       return game
     }),
 
   complete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const game = await ctx.db.query.games.findFirst({
-      where: eq(schema.games.id, input.id),
+    const game = await ctx.db.game.findUnique({
+      where: { id: input.id },
     })
     if (!game) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
@@ -249,11 +257,11 @@ export const gameRouter = router({
     }
 
     // Validate both teams have at least 1 player in lineups
-    const lineups = await ctx.db.query.gameLineups.findMany({
-      where: eq(schema.gameLineups.gameId, input.id),
+    const lineups = await ctx.db.gameLineup.findMany({
+      where: { gameId: input.id },
     })
-    const homeLineup = lineups.filter((l) => l.teamId === game.homeTeamId)
-    const awayLineup = lineups.filter((l) => l.teamId === game.awayTeamId)
+    const homeLineup = lineups.filter((l: any) => l.teamId === game.homeTeamId)
+    const awayLineup = lineups.filter((l: any) => l.teamId === game.awayTeamId)
     if (homeLineup.length === 0 || awayLineup.length === 0) {
       throw new TRPCError({
         code: "BAD_REQUEST",
@@ -261,38 +269,32 @@ export const gameRouter = router({
       })
     }
 
-    const [updated] = await ctx.db
-      .update(schema.games)
-      .set({
+    const updated = await ctx.db.game.update({
+      where: { id: input.id },
+      data: {
         status: "completed",
         finalizedAt: new Date(),
         updatedAt: new Date(),
-      })
-      .where(eq(schema.games.id, input.id))
-      .returning()
+      },
+    })
 
     // Increment servedGames for active suspensions
     // Exclude suspensions from THIS game (they count starting from the next game)
-    await ctx.db
-      .update(schema.gameSuspensions)
-      .set({
-        servedGames: sql`${schema.gameSuspensions.servedGames} + 1`,
-      })
-      .where(
-        and(
-          ne(schema.gameSuspensions.gameId, input.id),
-          sql`${schema.gameSuspensions.servedGames} < ${schema.gameSuspensions.suspendedGames}`,
-          or(eq(schema.gameSuspensions.teamId, game.homeTeamId), eq(schema.gameSuspensions.teamId, game.awayTeamId)),
-        ),
-      )
+    await ctx.db.$executeRaw`
+      UPDATE game_suspensions
+      SET served_games = served_games + 1
+      WHERE game_id != ${input.id}
+        AND served_games < suspended_games
+        AND (team_id = ${game.homeTeamId} OR team_id = ${game.awayTeamId})
+    `
 
     // Generate goalie game stats from lineups + goals
-    const goalieLineups = lineups.filter((l) => l.isStartingGoalie)
+    const goalieLineups = lineups.filter((l: any) => l.isStartingGoalie)
     if (goalieLineups.length > 0) {
       // Count goals per team from game events
-      const goalEvents = await ctx.db.query.gameEvents.findMany({
-        where: and(eq(schema.gameEvents.gameId, input.id), eq(schema.gameEvents.eventType, "goal")),
-        columns: { teamId: true },
+      const goalEvents = await ctx.db.gameEvent.findMany({
+        where: { gameId: input.id, eventType: "goal" },
+        select: { teamId: true },
       })
       const goalsByTeam = new Map<string, number>()
       for (const e of goalEvents) {
@@ -300,9 +302,9 @@ export const gameRouter = router({
       }
 
       // Delete existing goalie stats for this game (in case of re-complete after reopen)
-      await ctx.db.delete(schema.goalieGameStats).where(eq(schema.goalieGameStats.gameId, input.id))
+      await ctx.db.goalieGameStat.deleteMany({ where: { gameId: input.id } })
 
-      const goalieStatsValues = goalieLineups.map((gl) => {
+      const goalieStatsValues = goalieLineups.map((gl: any) => {
         // Goals against = goals scored by the OTHER team
         const opponentTeamId = gl.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
         return {
@@ -314,7 +316,7 @@ export const gameRouter = router({
         }
       })
       if (goalieStatsValues.length > 0) {
-        await ctx.db.insert(schema.goalieGameStats).values(goalieStatsValues)
+        await ctx.db.goalieGameStat.createMany({ data: goalieStatsValues })
       }
     }
 
@@ -332,8 +334,8 @@ export const gameRouter = router({
   }),
 
   cancel: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const game = await ctx.db.query.games.findFirst({
-      where: eq(schema.games.id, input.id),
+    const game = await ctx.db.game.findUnique({
+      where: { id: input.id },
     })
     if (!game) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
@@ -346,28 +348,27 @@ export const gameRouter = router({
     }
 
     // Remove all game report data (lineups, events, suspensions) and reset scores
-    await ctx.db.delete(schema.gameSuspensions).where(eq(schema.gameSuspensions.gameId, input.id))
-    await ctx.db.delete(schema.gameEvents).where(eq(schema.gameEvents.gameId, input.id))
-    await ctx.db.delete(schema.gameLineups).where(eq(schema.gameLineups.gameId, input.id))
+    await ctx.db.gameSuspension.deleteMany({ where: { gameId: input.id } })
+    await ctx.db.gameEvent.deleteMany({ where: { gameId: input.id } })
+    await ctx.db.gameLineup.deleteMany({ where: { gameId: input.id } })
 
-    const [updated] = await ctx.db
-      .update(schema.games)
-      .set({
+    const updated = await ctx.db.game.update({
+      where: { id: input.id },
+      data: {
         status: "cancelled",
         homeScore: null,
         awayScore: null,
         finalizedAt: null,
         updatedAt: new Date(),
-      })
-      .where(eq(schema.games.id, input.id))
-      .returning()
+      },
+    })
 
     return updated
   }),
 
   reopen: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const game = await ctx.db.query.games.findFirst({
-      where: eq(schema.games.id, input.id),
+    const game = await ctx.db.game.findUnique({
+      where: { id: input.id },
     })
     if (!game) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Spiel nicht gefunden." })
@@ -383,29 +384,23 @@ export const gameRouter = router({
 
     // Only decrement suspensions if we're reopening a completed game
     if (wasCompleted) {
-      await ctx.db
-        .update(schema.gameSuspensions)
-        .set({
-          servedGames: sql`GREATEST(${schema.gameSuspensions.servedGames} - 1, 0)`,
-        })
-        .where(
-          and(
-            ne(schema.gameSuspensions.gameId, input.id),
-            sql`${schema.gameSuspensions.servedGames} > 0`,
-            or(eq(schema.gameSuspensions.teamId, game.homeTeamId), eq(schema.gameSuspensions.teamId, game.awayTeamId)),
-          ),
-        )
+      await ctx.db.$executeRaw`
+        UPDATE game_suspensions
+        SET served_games = GREATEST(served_games - 1, 0)
+        WHERE game_id != ${input.id}
+          AND served_games > 0
+          AND (team_id = ${game.homeTeamId} OR team_id = ${game.awayTeamId})
+      `
     }
 
-    const [updated] = await ctx.db
-      .update(schema.games)
-      .set({
+    const updated = await ctx.db.game.update({
+      where: { id: input.id },
+      data: {
         status: "scheduled",
         finalizedAt: null,
         updatedAt: new Date(),
-      })
-      .where(eq(schema.games.id, input.id))
-      .returning()
+      },
+    })
 
     // Recalculate standings and stats if reopening from completed
     if (wasCompleted) {
@@ -435,8 +430,8 @@ export const gameRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const division = await ctx.db.query.divisions.findFirst({
-        where: eq(schema.divisions.id, input.divisionId),
+      const division = await ctx.db.division.findUnique({
+        where: { id: input.divisionId },
       })
 
       if (!division || division.seasonId !== input.seasonId) {
@@ -446,8 +441,8 @@ export const gameRouter = router({
         })
       }
 
-      const round = await ctx.db.query.rounds.findFirst({
-        where: eq(schema.rounds.id, input.roundId),
+      const round = await ctx.db.round.findUnique({
+        where: { id: input.roundId },
       })
       if (!round || round.divisionId !== input.divisionId) {
         throw new TRPCError({
@@ -456,12 +451,12 @@ export const gameRouter = router({
         })
       }
 
-      const assignments = await ctx.db
-        .select({ teamId: schema.teamDivisions.teamId })
-        .from(schema.teamDivisions)
-        .where(eq(schema.teamDivisions.divisionId, input.divisionId))
+      const assignments = await ctx.db.teamDivision.findMany({
+        where: { divisionId: input.divisionId },
+        select: { teamId: true },
+      })
 
-      const teamIds = Array.from(new Set(assignments.map((a) => a.teamId)))
+      const teamIds = Array.from(new Set(assignments.map((a: any) => a.teamId)))
       if (teamIds.length < 2) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -471,18 +466,18 @@ export const gameRouter = router({
 
       const fixtures = generateRoundRobin(teamIds)
 
-      const existingGames = await ctx.db.query.games.findMany({
-        where: and(
-          eq(schema.games.roundId, input.roundId),
-          eq(schema.games.organizationId, ctx.organizationId),
-        ),
+      const existingGames = await ctx.db.game.findMany({
+        where: {
+          roundId: input.roundId,
+          organizationId: ctx.organizationId,
+        },
       })
-      const existingPairs = new Set(existingGames.map((g) => `${g.homeTeamId}::${g.awayTeamId}`))
+      const existingPairs = new Set(existingGames.map((g: any) => `${g.homeTeamId}::${g.awayTeamId}`))
 
       const startAt = input.schedulingTemplate?.startAt ? new Date(input.schedulingTemplate.startAt) : null
       const cadenceDays = input.schedulingTemplate?.cadenceDays ?? 7
 
-      const values: Array<typeof schema.games.$inferInsert> = []
+      const values: Array<any> = []
       let skippedExisting = 0
 
       for (let i = 0; i < fixtures.length; i++) {
@@ -503,7 +498,13 @@ export const gameRouter = router({
         })
       }
 
-      const created = values.length > 0 ? await ctx.db.insert(schema.games).values(values).returning() : []
+      // Prisma createMany doesn't return created records, so we use a transaction with individual creates
+      let created: any[] = []
+      if (values.length > 0) {
+        created = await ctx.db.$transaction(
+          values.map((v: any) => ctx.db.game.create({ data: v })),
+        )
+      }
 
       return {
         totalFixtures: fixtures.length,
@@ -516,11 +517,11 @@ export const gameRouter = router({
   deleteMany: orgAdminProcedure
     .input(z.object({ ids: z.array(z.string().uuid()).min(1) }))
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.delete(schema.games).where(inArray(schema.games.id, input.ids))
+      await ctx.db.game.deleteMany({ where: { id: { in: input.ids } } })
       return { success: true }
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await ctx.db.delete(schema.games).where(eq(schema.games.id, input.id))
+    await ctx.db.game.delete({ where: { id: input.id } })
   }),
 })
