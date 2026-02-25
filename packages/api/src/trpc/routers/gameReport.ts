@@ -74,7 +74,6 @@ export const gameReportRouter = router({
         round: { include: { division: true } },
         homeTeam: true,
         awayTeam: true,
-        venue: true,
         events: {
           include: {
             team: true,
@@ -233,7 +232,17 @@ export const gameReportRouter = router({
       const seasonStart = season.seasonStart.toISOString()
 
       const allContracts = (await ctx.db.$queryRaw`
-        SELECT c.*, row_to_json(p) as player
+        SELECT
+          c.id,
+          c.player_id AS "playerId",
+          c.team_id AS "teamId",
+          c.position,
+          c.jersey_number AS "jerseyNumber",
+          json_build_object(
+            'id', p.id,
+            'firstName', p.first_name,
+            'lastName', p.last_name
+          ) AS player
         FROM contracts c
         JOIN players p ON p.id = c.player_id
         WHERE c.organization_id = ${ctx.organizationId}
@@ -246,14 +255,8 @@ export const gameReportRouter = router({
           ))
       `) as any[]
 
-      // Normalize the raw results - parse the player JSON
-      const contracts = allContracts.map((c: any) => ({
-        ...c,
-        player: typeof c.player === "string" ? JSON.parse(c.player) : c.player,
-      }))
-
-      const home = contracts.filter((c: any) => c.team_id === input.homeTeamId || c.teamId === input.homeTeamId)
-      const away = contracts.filter((c: any) => c.team_id === input.awayTeamId || c.teamId === input.awayTeamId)
+      const home = allContracts.filter((c: any) => c.teamId === input.homeTeamId)
+      const away = allContracts.filter((c: any) => c.teamId === input.awayTeamId)
 
       return { home, away }
     }),

@@ -14,7 +14,7 @@ const statusStyles: Record<DisplayStatus, string> = {
 interface GameStatusBadgeProps {
   status: string
   scheduledAt?: string | Date | null
-  venueId?: string | null
+  location?: string | null
   className?: string
   t: (key: string) => string
 }
@@ -22,16 +22,16 @@ interface GameStatusBadgeProps {
 function deriveDisplayStatus(
   status: string,
   scheduledAt?: string | Date | null,
-  venueId?: string | null,
+  location?: string | null,
 ): DisplayStatus {
   if (status !== "scheduled") return status as DisplayStatus
-  if (!scheduledAt || !venueId) return "incomplete"
+  if (!scheduledAt || !location) return "incomplete"
   if (new Date(scheduledAt) < new Date()) return "report_pending"
   return "scheduled"
 }
 
-function GameStatusBadge({ status, scheduledAt, venueId, className, t }: GameStatusBadgeProps) {
-  const displayStatus = deriveDisplayStatus(status, scheduledAt, venueId)
+function GameStatusBadge({ status, scheduledAt, location, className, t }: GameStatusBadgeProps) {
+  const displayStatus = deriveDisplayStatus(status, scheduledAt, location)
   const styles = statusStyles[displayStatus] ?? statusStyles.scheduled
 
   return (
@@ -44,4 +44,4 @@ function GameStatusBadge({ status, scheduledAt, venueId, className, t }: GameSta
 }
 
 export { GameStatusBadge, deriveDisplayStatus }
-export type { GameStatus }
+export type { DisplayStatus, GameStatus }

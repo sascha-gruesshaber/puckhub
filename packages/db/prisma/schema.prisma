@@ -206,7 +206,6 @@ model Organization {
   seasons        Season[]
   teams          Team[]
   players        Player[]
-  venues         Venue[]
   news           News[]
   pages          Page[]
   sponsors       Sponsor[]
@@ -358,12 +357,11 @@ model Team {
   contactEmail   String?  @map("contact_email")
   contactPhone   String?  @map("contact_phone")
   website        String?
-  defaultVenueId String?  @map("default_venue_id") @db.Uuid
+  homeVenue      String?  @map("home_venue")
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  defaultVenue      Venue?             @relation("teamDefaultVenue", fields: [defaultVenueId], references: [id], onDelete: SetNull)
   contracts         Contract[]
   teamDivisions     TeamDivision[]
   homeGames         Game[]             @relation("homeTeam")
@@ -438,30 +436,13 @@ model Contract {
   @@map("contracts")
 }
 
-model Venue {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @map("organization_id")
-  name           String
-  city           String?
-  address        String?
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  games           Game[]
-  defaultForTeams Team[]       @relation("teamDefaultVenue")
-
-  @@index([organizationId], map: "venues_org_id_idx")
-  @@map("venues")
-}
-
 model Game {
   id             String     @id @default(uuid()) @db.Uuid
   organizationId String     @map("organization_id")
   roundId        String     @map("round_id") @db.Uuid
   homeTeamId     String     @map("home_team_id") @db.Uuid
   awayTeamId     String     @map("away_team_id") @db.Uuid
-  venueId        String?    @map("venue_id") @db.Uuid
+  location       String?    @map("location")
   scheduledAt    DateTime?  @map("scheduled_at") @db.Timestamptz
   status         GameStatus @default(scheduled)
   homeScore      Int?       @map("home_score")
@@ -476,7 +457,6 @@ model Game {
   round           Round            @relation(fields: [roundId], references: [id], onDelete: Cascade)
   homeTeam        Team             @relation("homeTeam", fields: [homeTeamId], references: [id])
   awayTeam        Team             @relation("awayTeam", fields: [awayTeamId], references: [id])
-  venue           Venue?           @relation(fields: [venueId], references: [id], onDelete: SetNull)
   events          GameEvent[]
   lineups         GameLineup[]
   suspensions     GameSuspension[]
@@ -485,7 +465,6 @@ model Game {
   @@index([roundId], map: "games_round_id_idx")
   @@index([homeTeamId], map: "games_home_team_id_idx")
   @@index([awayTeamId], map: "games_away_team_id_idx")
-  @@index([venueId], map: "games_venue_id_idx")
   @@index([scheduledAt], map: "games_scheduled_at_idx")
   @@index([organizationId], map: "games_org_id_idx")
   @@map("games")

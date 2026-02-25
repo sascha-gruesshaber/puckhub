@@ -341,20 +341,6 @@ describe("authorization", () => {
       })
     })
 
-    describe("venue", () => {
-      it("create requires auth", async () => {
-        await expect(caller.venue.create({ name: "Test Arena" })).rejects.toThrow("Not authenticated")
-      })
-
-      it("update requires auth", async () => {
-        await expect(caller.venue.update({ id: FAKE_ID, name: "Updated" })).rejects.toThrow("Not authenticated")
-      })
-
-      it("delete requires auth", async () => {
-        await expect(caller.venue.delete({ id: FAKE_ID })).rejects.toThrow("Not authenticated")
-      })
-    })
-
     describe("news", () => {
       it("create requires auth", async () => {
         await expect(caller.news.create({ title: "Test", content: "Body" })).rejects.toThrow("Not authenticated")
@@ -618,11 +604,6 @@ describe("authorization", () => {
       })
     })
 
-    describe("venue", () => {
-      it("list requires auth", async () => {
-        await expect(caller.venue.list()).rejects.toThrow("Not authenticated")
-      })
-    })
   })
 
   describe("public procedures remain accessible without auth", () => {

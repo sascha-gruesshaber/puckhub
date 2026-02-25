@@ -128,7 +128,6 @@ export const gameRouter = router({
           },
           homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
           awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-          venue: { select: { id: true, name: true, city: true } },
         },
         orderBy: [{ scheduledAt: "asc" }, { gameNumber: "asc" }, { createdAt: "asc" }],
       })
@@ -150,7 +149,6 @@ export const gameRouter = router({
         },
         homeTeam: true,
         awayTeam: true,
-        venue: true,
       },
     })
   }),
@@ -161,7 +159,7 @@ export const gameRouter = router({
         roundId: z.string().uuid(),
         homeTeamId: z.string().uuid(),
         awayTeamId: z.string().uuid(),
-        venueId: z.string().uuid().optional(),
+        location: z.string().optional(),
         scheduledAt: z.string().datetime().optional(),
         gameNumber: z.number().int().optional(),
         notes: z.string().optional(),
@@ -173,7 +171,7 @@ export const gameRouter = router({
       await assertTeamsAllowedForRound(ctx, input.roundId, input.homeTeamId, input.awayTeamId)
       const homeTeam = await ctx.db.team.findUnique({
         where: { id: input.homeTeamId },
-        select: { defaultVenueId: true },
+        select: { homeVenue: true },
       })
 
       const game = await ctx.db.game.create({
@@ -182,7 +180,7 @@ export const gameRouter = router({
           roundId: input.roundId,
           homeTeamId: input.homeTeamId,
           awayTeamId: input.awayTeamId,
-          venueId: input.venueId ?? homeTeam?.defaultVenueId ?? undefined,
+          location: input.location || homeTeam?.homeVenue || undefined,
           scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
           gameNumber: input.gameNumber,
           notes: input.notes,
@@ -199,7 +197,7 @@ export const gameRouter = router({
         roundId: z.string().uuid().optional(),
         homeTeamId: z.string().uuid().optional(),
         awayTeamId: z.string().uuid().optional(),
-        venueId: z.string().uuid().nullable().optional(),
+        location: z.string().nullable().optional(),
         scheduledAt: z.string().datetime().nullable().optional(),
         gameNumber: z.number().int().nullable().optional(),
         notes: z.string().nullable().optional(),
@@ -525,5 +523,23 @@ export const gameRouter = router({
   delete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     requireRole(ctx, "game_manager")
     await ctx.db.game.delete({ where: { id: input.id } })
+  }),
+
+  locationSuggestions: orgProcedure.query(async ({ ctx }) => {
+    const results = await ctx.db.game.findMany({
+      where: { organizationId: ctx.organizationId, location: { not: null } },
+      select: { location: true },
+      distinct: ["location"],
+      orderBy: { location: "asc" },
+    })
+    const teamVenues = await ctx.db.team.findMany({
+      where: { organizationId: ctx.organizationId, homeVenue: { not: null } },
+      select: { homeVenue: true },
+    })
+    const all = new Set([
+      ...results.map((r) => r.location!),
+      ...teamVenues.map((t) => t.homeVenue!),
+    ])
+    return [...all].sort()
   }),
 })

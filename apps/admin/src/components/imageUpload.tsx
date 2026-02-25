@@ -36,7 +36,7 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
         }
 
         const data = await res.json()
-        onChange(`${apiUrl}${data.url}`)
+        onChange(data.url)
       } catch (err) {
         console.error("Upload failed:", err)
       } finally {

@@ -17,7 +17,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { History, Pencil, Plus, Trash2, Users } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
-import { ConfirmDialog } from "~/components/confirmDialog"
+import { RemoveDialog } from "~/components/removeDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
@@ -26,6 +26,7 @@ import { PlayerHoverCard } from "~/components/playerHoverCard"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
+import { FilterPill } from "~/components/filterPill"
 import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -39,8 +40,8 @@ export const Route = createFileRoute("/_authed/players/")({
     ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
     ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
   }),
-  loader: ({ context }) => {
-    void context.trpcQueryUtils?.player.listWithCurrentTeam.ensureData()
+  loader: () => {
+    // Query key includes seasonId which isn't available at loader time
   },
   component: PlayersPage,
 })
@@ -64,8 +65,6 @@ const emptyForm: PlayerForm = {
   photoUrl: "",
 }
 
-const FILTER_UNASSIGNED = "__unassigned__"
-
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -88,33 +87,39 @@ function PlayersPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<{ id: string } | null>(null)
-  const [deletingPlayer, setDeletingPlayer] = useState<{ id: string; name: string } | null>(null)
+  const [deletingPlayer, setDeletingPlayer] = useState<{ id: string; name: string; hasContract: boolean } | null>(null)
   const [form, setForm] = useState<PlayerForm>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof PlayerForm, string>>>({})
 
+  const FILTER_UNASSIGNED = "__unassigned__"
+
   const { season: workingSeason } = useWorkingSeason()
   const utils = trpc.useUtils()
-  const { data, isLoading } = trpc.player.listWithCurrentTeam.useQuery()
+  const { data, isLoading } = trpc.player.listWithCurrentTeam.useQuery(
+    { seasonId: workingSeason?.id },
+    { enabled: !!workingSeason },
+  )
 
   const players = data?.players
-  const currentSeason = data?.currentSeason
 
-  // Build list of teams that actually have assigned players (for the filter)
-  // Derived directly from currentTeam in the player list — no extra query needed
-  const teamsInUse = useMemo(() => {
-    if (!players) return []
-    const seen = new Map<string, { id: string; name: string; shortName: string; logoUrl?: string | null }>()
-    for (const p of players) {
-      if (p.currentTeam && !seen.has(p.currentTeam.id)) {
-        seen.set(p.currentTeam.id, {
-          id: p.currentTeam.id,
-          name: p.currentTeam.name,
-          shortName: p.currentTeam.shortName,
-          logoUrl: p.currentTeam.logoUrl,
-        })
-      }
-    }
-    return [...seen.values()]
+  // Season-scoped teams for filter pills
+  const { data: seasonTeams } = trpc.team.list.useQuery(
+    { seasonId: workingSeason?.id },
+    { enabled: !!workingSeason?.id },
+  )
+
+  // Only show season teams that actually have players assigned
+  const teamsForFilter = useMemo(() => {
+    if (!players || !seasonTeams) return []
+    const teamIdsWithPlayers = new Set(players.filter((p) => p.currentTeam).map((p) => p.currentTeam!.id))
+    return seasonTeams
+      .filter((t) => teamIdsWithPlayers.has(t.id))
+      .map((t) => ({ id: t.id, name: t.name, shortName: t.shortName, logoUrl: t.logoUrl }))
+  }, [players, seasonTeams])
+
+  const unassignedCount = useMemo(() => {
+    if (!players) return 0
+    return players.filter((p) => !p.currentTeam).length
   }, [players])
 
   const createMutation = trpc.player.create.useMutation({
@@ -139,6 +144,18 @@ function PlayersPage() {
     },
   })
 
+  const deactivateMutation = trpc.player.deactivate.useMutation({
+    onSuccess: () => {
+      utils.player.listWithCurrentTeam.invalidate()
+      setDeleteDialogOpen(false)
+      setDeletingPlayer(null)
+      toast.success(t("playersPage.toast.deactivated"))
+    },
+    onError: (err) => {
+      toast.error(t("playersPage.toast.deactivateError"), { description: resolveTranslatedError(err, tErrors) })
+    },
+  })
+
   const deleteMutation = trpc.player.delete.useMutation({
     onSuccess: () => {
       utils.player.listWithCurrentTeam.invalidate()
@@ -156,11 +173,14 @@ function PlayersPage() {
 
     let result = players
 
-    // Team filter
+    // Team / contract filter
     if (teamFilter === FILTER_UNASSIGNED) {
       result = result.filter((p) => !p.currentTeam)
     } else if (teamFilter !== FILTER_ALL) {
       result = result.filter((p) => p.currentTeam?.id === teamFilter)
+    } else {
+      // "All" — only contracted players
+      result = result.filter((p) => p.currentTeam)
     }
 
     // Search filter
@@ -177,11 +197,6 @@ function PlayersPage() {
 
     return result
   }, [players, search, teamFilter])
-
-  const unassignedCount = useMemo(() => {
-    if (!players) return 0
-    return players.filter((p) => !p.currentTeam).length
-  }, [players])
 
   // Group by team when "All" is active
   const grouped = useMemo(() => {
@@ -243,8 +258,12 @@ function PlayersPage() {
     setDialogOpen(true)
   }
 
-  function openDelete(player: { id: string; firstName: string; lastName: string }) {
-    setDeletingPlayer({ id: player.id, name: `${player.firstName} ${player.lastName}` })
+  function openDelete(player: { id: string; firstName: string; lastName: string; currentTeam: unknown }) {
+    setDeletingPlayer({
+      id: player.id,
+      name: `${player.firstName} ${player.lastName}`,
+      hasContract: !!player.currentTeam,
+    })
     setDeleteDialogOpen(true)
   }
 
@@ -454,21 +473,26 @@ function PlayersPage() {
           isLoading ? (
             <FilterPillsSkeleton count={5} />
           ) : (
-            <TeamFilterPills
-              teams={teamsInUse}
-              activeFilter={teamFilter}
-              onFilterChange={setTeamFilter}
-              showAll
-              customFilters={[
-                {
-                  id: FILTER_UNASSIGNED,
-                  label: t("playersPage.filters.withoutTeam"),
-                  count: unassignedCount,
-                },
-              ]}
-              translationPrefix="playersPage.filters"
-              seasonId={workingSeason?.id}
-            />
+            <>
+              <TeamFilterPills
+                teams={teamsForFilter}
+                activeFilter={teamFilter}
+                onFilterChange={setTeamFilter}
+                showAll
+                translationPrefix="playersPage.filters"
+                seasonId={workingSeason?.id}
+              />
+              {unassignedCount > 0 && (
+                <>
+                  <div className="h-5 w-px bg-border mx-1" />
+                  <FilterPill
+                    label={`${t("playersPage.filters.unassigned")} (${unassignedCount})`}
+                    active={teamFilter === FILTER_UNASSIGNED}
+                    onClick={() => setTeamFilter(FILTER_UNASSIGNED)}
+                  />
+                </>
+              )}
+            </>
           )
         }
         search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
@@ -480,7 +504,7 @@ function PlayersPage() {
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
                   {teamFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-                  {players?.length ?? 0}
+                  {(players?.length ?? 0) - unassignedCount}
                 </span>{" "}
                 {t("playersPage.count.players")}
               </span>
@@ -501,16 +525,6 @@ function PlayersPage() {
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("playersPage.empty.createFirst")}
               </Button>
-            }
-          />
-        ) : filtered.length === 0 && teamFilter === FILTER_UNASSIGNED ? (
-          <EmptyState
-            icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-            title={t("playersPage.empty.allAssignedTitle")}
-            description={
-              currentSeason?.name
-                ? t("playersPage.empty.allAssignedDescriptionWithSeason", { season: currentSeason.name })
-                : t("playersPage.empty.allAssignedDescription")
             }
           />
         ) : filtered.length === 0 ? (
@@ -626,19 +640,55 @@ function PlayersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title={t("playersPage.deleteDialog.title")}
-        description={t("playersPage.deleteDialog.description", { name: deletingPlayer?.name ?? "" })}
-        confirmLabel={t("playersPage.actions.delete")}
-        variant="destructive"
-        isPending={deleteMutation.isPending}
-        onConfirm={() => {
-          if (deletingPlayer) deleteMutation.mutate({ id: deletingPlayer.id })
-        }}
-      />
+      {/* Remove / Deactivate / Delete Dialog */}
+      {deletingPlayer && (
+        <RemoveDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={t("playersPage.removeDialog.title", { name: deletingPlayer.name })}
+          subtitle={t("playersPage.removeDialog.subtitle")}
+          deactivate={{
+            title: t("playersPage.removeDialog.deactivate.title"),
+            description: t("playersPage.removeDialog.deactivate.description"),
+            preserved: [
+              t("playersPage.removeDialog.deactivate.preserved.stats"),
+              t("playersPage.removeDialog.deactivate.preserved.resign"),
+              t("playersPage.removeDialog.deactivate.preserved.events"),
+            ],
+            buttonLabel: t("playersPage.removeDialog.deactivate.button"),
+            available: deletingPlayer.hasContract,
+            unavailableReason: t("playersPage.removeDialog.deactivate.unavailable"),
+          }}
+          onDeactivate={() => {
+            if (workingSeason) {
+              deactivateMutation.mutate({ playerId: deletingPlayer.id, seasonId: workingSeason.id })
+            }
+          }}
+          isDeactivating={deactivateMutation.isPending}
+          permanentDelete={{
+            title: t("playersPage.removeDialog.delete.title"),
+            description: t("playersPage.removeDialog.delete.description"),
+            consequences: [
+              t("playersPage.removeDialog.delete.consequences.contracts"),
+              t("playersPage.removeDialog.delete.consequences.stats"),
+              t("playersPage.removeDialog.delete.consequences.lineups"),
+              t("playersPage.removeDialog.delete.consequences.events"),
+            ],
+            buttonLabel: t("playersPage.removeDialog.delete.button"),
+            confirmTitle: t("playersPage.removeDialog.delete.confirmTitle", { name: deletingPlayer.name }),
+            confirmWarning: t("playersPage.removeDialog.delete.confirmWarning"),
+            confirmButton: t("playersPage.removeDialog.delete.confirmButton"),
+          }}
+          onDelete={() => deleteMutation.mutate({ id: deletingPlayer.id })}
+          isDeleting={deleteMutation.isPending}
+          labels={{
+            recommended: t("playersPage.removeDialog.recommended"),
+            or: t("playersPage.removeDialog.or"),
+            back: t("playersPage.removeDialog.back"),
+            cancel: t("cancel"),
+          }}
+        />
+      )}
     </>
   )
 }

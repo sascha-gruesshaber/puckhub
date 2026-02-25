@@ -18,7 +18,6 @@
     },
     "items": {
       "games": "Spiele",
-      "venues": "Spielorte",
       "standings": "Tabelle",
       "stats": "Statistiken",
       "seasonStructure": "Saisonstruktur",
@@ -744,10 +743,11 @@
     "searchPlaceholder": "Spieler durchsuchen...",
     "filters": {
       "all": "Alle",
-      "allTeams": "Alle Teams",
+      "allTeams": "Alle aktiven",
       "fallback": "Filter",
       "withoutTeam": "Ohne Team",
-      "withoutTeamCount": "Ohne Team ({{count}})"
+      "withoutTeamCount": "Ohne Team ({{count}})",
+      "unassigned": "Ohne Zuordnung"
     },
     "count": {
       "players": "Spieler"
@@ -797,9 +797,37 @@
       "lastNameRequired": "Nachname ist erforderlich",
       "dateInvalid": "Ungültiges Datum"
     },
-    "deleteDialog": {
-      "title": "Spieler löschen",
-      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Alle zugehörigen Statistiken werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+    "removeDialog": {
+      "title": "{{name}} entfernen",
+      "subtitle": "Wähle, wie du mit diesem Spieler verfahren möchtest.",
+      "recommended": "Empfohlen",
+      "or": "oder",
+      "back": "Zurück",
+      "deactivate": {
+        "title": "Vertrag beenden",
+        "description": "Löse diesen Spieler von seinem aktuellen Team. Er bleibt im System und kann jederzeit einem anderen Team zugeordnet werden.",
+        "preserved": {
+          "stats": "Statistiken und Historie bleiben erhalten",
+          "resign": "Kann jederzeit neu verpflichtet werden",
+          "events": "Spielereignisse bleiben intakt"
+        },
+        "button": "Vertrag beenden",
+        "unavailable": "Dieser Spieler hat keinen aktiven Vertrag in der aktuellen Saison."
+      },
+      "delete": {
+        "title": "Endgültig löschen",
+        "description": "Diesen Spieler und alle zugehörigen Daten unwiderruflich aus dem System entfernen.",
+        "consequences": {
+          "contracts": "Alle Verträge gelöscht",
+          "stats": "Saisonstatistiken entfernt",
+          "lineups": "Spielaufstellungen und Sperren gelöscht",
+          "events": "Spielereignis-Referenzen gelöscht"
+        },
+        "button": "Endgültig löschen...",
+        "confirmTitle": "{{name}} endgültig löschen?",
+        "confirmWarning": "Diese Aktion ist unwiderruflich. Die folgenden Daten werden dauerhaft gelöscht:",
+        "confirmButton": "Unwiderruflich löschen"
+      }
     },
     "hoverCard": {
       "withoutTeam": "Ohne Team",
@@ -830,6 +858,8 @@
       "created": "Spieler erstellt",
       "updated": "Spieler aktualisiert",
       "deleted": "Spieler gelöscht",
+      "deactivated": "Spielervertrag beendet",
+      "deactivateError": "Vertrag konnte nicht beendet werden",
       "createError": "Fehler beim Erstellen",
       "saveError": "Fehler beim Speichern",
       "deleteError": "Fehler beim Löschen"
@@ -1024,7 +1054,8 @@
     "description": "Mannschaften der Liga verwalten",
     "searchPlaceholder": "Teams durchsuchen...",
     "filters": {
-      "all": "Alle",
+      "all": "Alle aktiven",
+      "unassigned": "Ohne Zuordnung",
       "fallback": "Filter"
     },
     "count": {
@@ -1041,7 +1072,11 @@
     "empty": {
       "title": "Noch keine Teams",
       "description": "Erstelle dein erstes Team, um mit der Ligaverwaltung zu beginnen.",
-      "action": "Erstes Team erstellen"
+      "action": "Erstes Team erstellen",
+      "noAssignmentsTitle": "Keine Teams in dieser Saison",
+      "noAssignmentsDescription": "Es sind noch keine Teams den Divisionen dieser Saison zugeordnet. Richte die Saisonstruktur in den Saison-Einstellungen ein, um Teams zuzuweisen.",
+      "noSeasonTitle": "Keine Saison ausgewählt",
+      "noSeasonDescription": "Wähle oder erstelle eine Saison, um zu sehen, welche Teams aktiv sind."
     },
     "fields": {
       "logo": "Team-Logo",
@@ -1054,6 +1089,8 @@
       "shortNamePlaceholder": "z.B. EVF",
       "city": "Stadt",
       "cityPlaceholder": "z.B. Füssen",
+      "homeVenue": "Heimspielstätte",
+      "homeVenuePlaceholder": "z.B. Eisstadion Musterstadt",
       "contactSection": "Kontaktdaten",
       "contactName": "Ansprechpartner",
       "contactNamePlaceholder": "Max Mustermann",
@@ -1081,9 +1118,37 @@
       "emailInvalid": "Ungültige E-Mail-Adresse",
       "websiteInvalid": "URL muss mit http:// oder https:// beginnen"
     },
-    "deleteDialog": {
-      "title": "Team löschen",
-      "description": "Bist du sicher, dass du {{name}} löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+    "removeDialog": {
+      "title": "{{name}} entfernen",
+      "subtitle": "Wähle, wie du mit diesem Team verfahren möchtest.",
+      "recommended": "Empfohlen",
+      "or": "oder",
+      "back": "Zurück",
+      "deactivate": {
+        "title": "Aus Saison entfernen",
+        "description": "Dieses Team aus allen Divisionen der aktuellen Saison entfernen. Das Team bleibt im System und kann jederzeit wieder zugeordnet werden.",
+        "preserved": {
+          "data": "Teamdaten und Historie bleiben erhalten",
+          "reassign": "Kann jederzeit wieder zugeordnet werden",
+          "contracts": "Spielerverträge bleiben aktiv"
+        },
+        "button": "Aus Saison entfernen",
+        "unavailable": "Dieses Team ist keiner Division in der aktuellen Saison zugeordnet."
+      },
+      "delete": {
+        "title": "Endgültig löschen",
+        "description": "Dieses Team und alle zugehörigen Daten unwiderruflich aus dem System entfernen.",
+        "consequences": {
+          "contracts": "Alle Spielerverträge gelöscht",
+          "standings": "Tabellen und Bonuspunkte entfernt",
+          "stats": "Alle Saisonstatistiken gelöscht",
+          "trikots": "Trikotzuordnungen entfernt"
+        },
+        "button": "Endgültig löschen...",
+        "confirmTitle": "{{name}} endgültig löschen?",
+        "confirmWarning": "Diese Aktion ist unwiderruflich. Die folgenden Daten werden dauerhaft gelöscht:",
+        "confirmButton": "Unwiderruflich löschen"
+      }
     },
     "trikots": {
       "title": "Trikots: {{team}}",
@@ -1111,6 +1176,8 @@
       "created": "Team erstellt",
       "updated": "Team aktualisiert",
       "deleted": "Team gelöscht",
+      "removedFromSeason": "Team aus Saison entfernt",
+      "removeFromSeasonError": "Team konnte nicht aus Saison entfernt werden",
       "error": "Fehler",
       "createError": "Fehler beim Erstellen",
       "saveError": "Fehler beim Speichern",
@@ -1330,8 +1397,7 @@
     },
     "views": {
       "list": "Liste",
-      "calendar": "Kalender",
-      "venues": "Spielorte"
+      "calendar": "Kalender"
     },
     "unscheduledSidebar": {
       "title": "Nicht terminiert",
@@ -1363,7 +1429,6 @@
     "actions": {
       "generate": "Spielplan erzeugen",
       "newGame": "Neues Spiel",
-      "newVenue": "Neuer Spielort",
       "edit": "Bearbeiten",
       "report": "Spielbericht",
       "delete": "Löschen",
@@ -1381,19 +1446,14 @@
       "eventCount_other": "{{count}} Spiele werden exportiert",
       "instructions": "Füge diese URL als Kalender-Abonnement in deiner Kalender-App hinzu."
     },
-    "venuesCount": "{{count}} Spielorte",
     "dialogs": {
       "gameEditTitle": "Spiel bearbeiten",
       "gameNewTitle": "Neues Spiel",
       "gameDescription": "Spieldetails verwalten.",
       "generateTitle": "Spielplan erzeugen",
       "generateDescription": "Erstellt Hin- und Rückspiele pro Team-Paar.",
-      "newVenueTitle": "Neuer Spielort",
-      "newVenueDescription": "Einen Spielort für die Spielauswahl anlegen.",
       "deleteGameTitle": "Spiel löschen",
       "deleteGameDescription": "Dieses Spiel löschen?",
-      "deleteVenueTitle": "Spielort löschen",
-      "deleteVenueDescription": "Diesen Spielort löschen?",
       "cancelGameTitle": "Spiel absagen",
       "cancelGameDescription": "Dieses Spiel wirklich absagen? Alle Spielbericht-Daten (Aufstellung, Ereignisse, Sperren) werden gelöscht.",
       "reopenGameTitle": "Spiel wieder öffnen",
@@ -1424,7 +1484,7 @@
       },
       "fields": {
         "round": "Runde",
-        "venue": "Spielort",
+        "location": "Spielort",
         "homeTeam": "Heimteam",
         "awayTeam": "Auswärtsteam",
         "scheduledAt": "Datum und Uhrzeit",
@@ -1454,64 +1514,7 @@
       "gameReopened": "Spiel wieder geöffnet",
       "scheduleGenerated": "Spielplan erzeugt",
       "scheduleGeneratedDescription": "{{created}} erstellt, {{skipped}} übersprungen.",
-      "venueCreated": "Spielort erstellt",
-      "venueDeleted": "Spielort gelöscht"
-    }
-  },
-  "venuesPage": {
-    "title": "Spielorte",
-    "description": "Spielorte und Standard-Heimspielorte verwalten",
-    "searchPlaceholder": "Spielorte suchen...",
-    "filters": {
-      "all": "Alle",
-      "allTeams": "Alle Teams",
-      "fallback": "Filter"
-    },
-    "count": "Spielorte",
-    "labels": {
-      "defaultTeam": "Standard-Heimteam: {{team}}",
-      "noDefaultTeam": "Kein Standard-Team"
-    },
-    "actions": {
-      "new": "Neuer Spielort",
-      "edit": "Bearbeiten",
-      "delete": "Löschen"
-    },
-    "form": {
-      "sections": {
-        "details": "Spielort-Details",
-        "assignment": "Heimzuordnung"
-      },
-      "fields": {
-        "name": "Spielort-Name",
-        "city": "Stadt",
-        "address": "Adresse",
-        "defaultTeam": "Standard-Heimteam"
-      }
-    },
-    "fields": {
-      "name": "Name des Spielorts",
-      "city": "Stadt",
-      "address": "Adresse",
-      "noDefaultTeam": "Kein Standard-Heimteam"
-    },
-    "dialogs": {
-      "newTitle": "Spielort erstellen",
-      "editTitle": "Spielort bearbeiten",
-      "description": "Details des Spielorts und optionales Standard-Team pflegen.",
-      "deleteTitle": "Spielort löschen",
-      "deleteDescription": "Diesen Spielort löschen?"
-    },
-    "empty": {
-      "title": "Noch keine Spielorte",
-      "description": "Erstelle den ersten Spielort für die Spielplanung.",
-      "action": "Ersten Spielort erstellen"
-    },
-    "toast": {
-      "error": "Fehler",
-      "created": "Spielort erstellt",
-      "updated": "Spielort aktualisiert",
-      "deleted": "Spielort gelöscht"
+      "locationCreated": "Spielort erstellt"
     }
   },
   "seasonsPage": {

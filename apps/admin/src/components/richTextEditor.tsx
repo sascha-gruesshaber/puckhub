@@ -125,7 +125,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       }
 
       const data = await res.json()
-      return `${apiUrl}${data.url}`
+      return data.url
     } catch (err) {
       console.error("Image upload failed:", err)
       return null

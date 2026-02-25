@@ -4,7 +4,6 @@ import {
   GitBranch,
   Handshake,
   LayoutDashboard,
-  MapPin,
   Newspaper,
   Settings,
   Shield,
@@ -64,7 +63,6 @@ const iconProps = { size: 18, strokeWidth: 1.5 } as const
 type RouteLink =
   | "/"
   | "/games"
-  | "/venues"
   | "/standings"
   | "/stats"
   | "/teams"
@@ -220,7 +218,6 @@ function SidebarLayout() {
       label: t("sidebar.groups.gameOperations"),
       items: [
         { to: "/games", label: t("sidebar.items.games"), icon: <IconPuck />, permission: "games" },
-        { to: "/venues", label: t("sidebar.items.venues"), icon: <MapPin {...iconProps} />, permission: "venues" },
         { to: "/standings", label: t("sidebar.items.standings"), icon: <Trophy {...iconProps} />, permission: "standings" },
         { to: "/stats", label: t("sidebar.items.stats"), icon: <TrendingUp {...iconProps} />, permission: "stats" },
       ],

@@ -1,4 +1,6 @@
 import { z } from "zod"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 async function resolveCurrentSeason(db: any, organizationId: string) {
@@ -38,30 +40,37 @@ export const playerRouter = router({
   }),
 
   /**
-   * List all players with their current team assignment for the current season.
+   * List all players with their current team assignment for a given season.
+   * When seasonId is provided, only players with an active contract are returned.
+   * When omitted, falls back to resolveCurrentSeason() and returns all players.
    */
-  listWithCurrentTeam: orgProcedure.query(async ({ ctx }) => {
-    const currentSeason = await resolveCurrentSeason(ctx.db, ctx.organizationId)
+  listWithCurrentTeam: orgProcedure
+    .input(z.object({ seasonId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const seasonId = input?.seasonId
 
-    const players = await ctx.db.player.findMany({
-      where: { organizationId: ctx.organizationId },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-      include: {
-        contracts: {
-          include: { team: true, startSeason: true, endSeason: true },
+      const currentSeason = seasonId
+        ? await ctx.db.season.findFirst({ where: { id: seasonId, organizationId: ctx.organizationId } })
+        : await resolveCurrentSeason(ctx.db, ctx.organizationId)
+
+      const players = await ctx.db.player.findMany({
+        where: { organizationId: ctx.organizationId },
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+        include: {
+          contracts: {
+            include: { team: true, startSeason: true, endSeason: true },
+          },
         },
-      },
-    })
+      })
 
-    if (!currentSeason) {
-      return {
-        players: players.map(({ contracts: _, ...p }) => ({ ...p, currentTeam: null })),
-        currentSeason: null,
+      if (!currentSeason) {
+        return {
+          players: players.map(({ contracts: _, ...p }) => ({ ...p, currentTeam: null })),
+          currentSeason: null,
+        }
       }
-    }
 
-    return {
-      players: players.map(({ contracts, ...p }) => {
+      const mapped = players.map(({ contracts, ...p }) => {
         // Find the active contract for the current season
         const active = contracts.find((c) => {
           const startsBeforeOrInSeason = c.startSeason.seasonStart <= currentSeason.seasonEnd
@@ -82,10 +91,13 @@ export const playerRouter = router({
               }
             : null,
         }
-      }),
-      currentSeason,
-    }
-  }),
+      })
+
+      return {
+        players: mapped,
+        currentSeason,
+      }
+    }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.player.findFirst({
@@ -140,6 +152,37 @@ export const playerRouter = router({
         where: { id, organizationId: ctx.organizationId },
       })
       return player
+    }),
+
+  /**
+   * Deactivate a player by ending their active contract for the given season.
+   * The player remains in the system but is no longer assigned to a team.
+   */
+  deactivate: orgAdminProcedure
+    .input(z.object({ playerId: z.string().uuid(), seasonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const season = await ctx.db.season.findFirst({
+        where: { id: input.seasonId, organizationId: ctx.organizationId },
+      })
+      if (!season) throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
+
+      const activeContract = await ctx.db.contract.findFirst({
+        where: {
+          playerId: input.playerId,
+          organizationId: ctx.organizationId,
+          startSeason: { seasonStart: { lte: season.seasonEnd } },
+          OR: [
+            { endSeasonId: null },
+            { endSeason: { seasonEnd: { gte: season.seasonStart } } },
+          ],
+        },
+      })
+      if (!activeContract) throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
+
+      await ctx.db.contract.update({
+        where: { id: activeContract.id },
+        data: { endSeasonId: input.seasonId, updatedAt: new Date() },
+      })
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {

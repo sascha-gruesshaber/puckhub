@@ -10,8 +10,7 @@ interface GameReportHeaderProps {
     awayScore: number | null
     status: string
     scheduledAt: string | Date | null
-    venueId: string | null
-    venue: { name: string } | null
+    location: string | null
     round: { name: string; division: { name: string } }
   }
 }
@@ -67,7 +66,7 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
           <GameStatusBadge
             status={game.status}
             scheduledAt={game.scheduledAt}
-            venueId={game.venueId}
+            location={game.location}
             className="mt-2"
             t={t}
           />
@@ -99,10 +98,10 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
       {/* Meta line */}
       <div className="mt-4 flex items-center justify-center gap-3 text-sm text-muted-foreground flex-wrap">
         {scheduledDate && <span>{scheduledDate}</span>}
-        {game.venue && (
+        {game.location && (
           <>
             <span className="text-border">|</span>
-            <span>{game.venue.name}</span>
+            <span>{game.location}</span>
           </>
         )}
         <span className="text-border">|</span>

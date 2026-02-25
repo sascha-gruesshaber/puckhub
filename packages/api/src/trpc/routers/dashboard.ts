@@ -135,9 +135,9 @@ export const dashboardRouter = router({
     let upcomingGames: Array<{
       id: string
       scheduledAt: Date | null
+      location: string | null
       homeTeam: { id: string; shortName: string; logoUrl: string | null }
       awayTeam: { id: string; shortName: string; logoUrl: string | null }
-      venue: { id: string; name: string } | null
     }> = []
     if (roundIds.length > 0) {
       upcomingGames = await db.game.findMany({
@@ -149,9 +149,9 @@ export const dashboardRouter = router({
         select: {
           id: true,
           scheduledAt: true,
+          location: true,
           homeTeam: { select: { id: true, shortName: true, logoUrl: true } },
           awayTeam: { select: { id: true, shortName: true, logoUrl: true } },
-          venue: { select: { id: true, name: true } },
         },
         orderBy: { scheduledAt: "asc" },
         take: 5,

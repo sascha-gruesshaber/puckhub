@@ -22,7 +22,6 @@ interface PermissionsContextValue {
 export type NavPermission =
   | "dashboard"
   | "games"
-  | "venues"
   | "standings"
   | "stats"
   | "seasonStructure"
@@ -40,7 +39,6 @@ export type NavPermission =
 const NAV_PERMISSIONS: Record<NavPermission, OrgRole[] | null> = {
   dashboard: null,
   games: ["game_manager", "game_reporter"],
-  venues: ["admin", "owner"],
   standings: null,
   stats: null,
   seasonStructure: ["admin", "owner"],

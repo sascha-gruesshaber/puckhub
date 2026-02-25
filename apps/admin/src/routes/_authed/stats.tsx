@@ -90,7 +90,7 @@ function StatsPage() {
   const { data: teamPenaltyStats } = trpc.stats.teamPenaltyStats.useQuery({ seasonId }, { enabled })
 
   // Teams — used for filter pills + teams tab
-  const { data: teams } = trpc.team.list.useQuery(undefined, { enabled })
+  const { data: teams } = trpc.team.list.useQuery({ seasonId: season?.id }, { enabled })
 
   // Standings for the selected round
   const { data: standings } = trpc.standings.getByRound.useQuery(

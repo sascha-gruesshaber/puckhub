@@ -242,10 +242,10 @@ describe("game router", () => {
       expect(game?.scheduledAt).toBeDefined()
     })
 
-    it("uses default home venue when venue is omitted", async () => {
+    it("uses team homeVenue when location is omitted", async () => {
       const { round, homeTeam, awayTeam } = await createGameFixtures()
       const admin = createTestCaller({ asAdmin: true })
-      const venue = await admin.venue.create({ name: "Home Arena", defaultTeamId: homeTeam.id })
+      await admin.team.update({ id: homeTeam.id, homeVenue: "Home Arena" })
 
       const game = await admin.game.create({
         roundId: round.id,
@@ -253,7 +253,7 @@ describe("game router", () => {
         awayTeamId: awayTeam.id,
       })
 
-      expect(game?.venueId).toBe(venue?.id)
+      expect(game?.location).toBe("Home Arena")
     })
 
     it("rejects unauthenticated calls", async () => {

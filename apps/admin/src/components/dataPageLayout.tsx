@@ -7,7 +7,7 @@ interface DataPageLayoutProps {
   description: string
   action?: ReactNode
   filters?: ReactNode
-  search: { value: string; onChange: (v: string) => void; placeholder?: string }
+  search?: { value: string; onChange: (v: string) => void; placeholder?: string }
   count?: ReactNode
   rightControls?: ReactNode
   children: ReactNode
@@ -30,16 +30,18 @@ function DataPageLayout({
       {/* Filter bar + search + stats */}
       <div className="space-y-3">
         {filters && <div className="filter-bar flex items-center gap-2 flex-wrap">{filters}</div>}
-        <div className="flex items-center gap-4 flex-wrap">
-          <SearchInput value={search.value} onChange={search.onChange} placeholder={search.placeholder} />
-          {count}
-          {rightControls && (
-            <>
-              <div className="flex-1" />
-              {rightControls}
-            </>
-          )}
-        </div>
+        {(search || count || rightControls) && (
+          <div className="flex items-center gap-4 flex-wrap">
+            {search && <SearchInput value={search.value} onChange={search.onChange} placeholder={search.placeholder} />}
+            {count}
+            {rightControls && (
+              <>
+                <div className="flex-1" />
+                {rightControls}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {children}

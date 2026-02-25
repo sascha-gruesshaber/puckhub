@@ -43,8 +43,6 @@
   "PAGE_NESTING_LIMIT": "Unterseiten können nur eine Ebene tief verschachtelt werden",
   "PAGE_STATIC_TITLE_LOCKED": "Der Titel einer statischen Seite kann nicht geändert werden",
   "PAGE_STATIC_CANNOT_DELETE": "Statische Seiten können nicht gelöscht werden",
-  "VENUE_CREATE_FAILED": "Spielstätte konnte nicht erstellt werden",
-  "VENUE_IN_USE": "Spielstätte kann nicht gelöscht werden (zugewiesene Spiele vorhanden)",
   "INSUFFICIENT_ROLE": "Unzureichende Berechtigungen",
   "SETUP_ALREADY_COMPLETED": "Setup wurde bereits abgeschlossen",
   "VALIDATION_REQUIRED": "Bitte alle Pflichtfelder ausfüllen",

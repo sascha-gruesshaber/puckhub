@@ -21,13 +21,16 @@
     "db:migrate:create": "prisma migrate dev",
     "db:seed": "tsx src/seed/run.ts",
     "db:reset": "tsx src/seed/reset.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:migrate:legacy": "tsx src/migration/run.ts",
+    "db:migrate:legacy:analyze": "tsx src/migration/run.ts --analyze-only"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
     "better-auth": "^1.4.18",
     "dotenv": "^16.5.0",
+    "mysql2": "^3.18.1",
     "sharp": "^0.34.5",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0"

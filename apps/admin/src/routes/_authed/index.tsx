@@ -118,9 +118,9 @@ function UpcomingGamesCard({
   games: Array<{
     id: string
     scheduledAt: Date | null
+    location: string | null
     homeTeam: { id: string; shortName: string; logoUrl: string | null }
     awayTeam: { id: string; shortName: string; logoUrl: string | null }
-    venue: { id: string; name: string } | null
   }>
   isLoading: boolean
   t: (key: string) => string
@@ -159,9 +159,9 @@ function UpcomingGamesCard({
                       })}
                     </span>
                   )}
-                  {game.venue && (
+                  {game.location && (
                     <span className="hidden sm:inline">
-                      {t("dashboard.upcomingGames.at")} {game.venue.name}
+                      {t("dashboard.upcomingGames.at")} {game.location}
                     </span>
                   )}
                 </div>

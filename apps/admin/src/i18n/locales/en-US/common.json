@@ -18,7 +18,6 @@
     },
     "items": {
       "games": "Games",
-      "venues": "Venues",
       "standings": "Standings",
       "stats": "Stats",
       "seasonStructure": "Season structure",
@@ -744,10 +743,11 @@
     "searchPlaceholder": "Search players...",
     "filters": {
       "all": "All",
-      "allTeams": "All teams",
+      "allTeams": "All active",
       "fallback": "Filter",
       "withoutTeam": "Without team",
-      "withoutTeamCount": "Without team ({{count}})"
+      "withoutTeamCount": "Without team ({{count}})",
+      "unassigned": "Unassigned"
     },
     "count": {
       "players": "Players"
@@ -797,9 +797,37 @@
       "lastNameRequired": "Last name is required",
       "dateInvalid": "Invalid date"
     },
-    "deleteDialog": {
-      "title": "Delete player",
-      "description": "Are you sure you want to delete {{name}}? All related stats will also be deleted. This action cannot be undone."
+    "removeDialog": {
+      "title": "Remove {{name}}",
+      "subtitle": "Choose how you'd like to handle this player.",
+      "recommended": "Recommended",
+      "or": "or",
+      "back": "Back",
+      "deactivate": {
+        "title": "End contract",
+        "description": "Release this player from their current team. They stay in the system and can be re-signed to any team later.",
+        "preserved": {
+          "stats": "Stats and history preserved",
+          "resign": "Can be re-signed anytime",
+          "events": "Game events remain intact"
+        },
+        "button": "End contract",
+        "unavailable": "This player has no active contract in the current season."
+      },
+      "delete": {
+        "title": "Delete permanently",
+        "description": "Permanently remove this player and all their data from the system.",
+        "consequences": {
+          "contracts": "All contracts deleted",
+          "stats": "Season statistics removed",
+          "lineups": "Game lineups and suspensions cleared",
+          "events": "Game event references cleared"
+        },
+        "button": "Delete permanently...",
+        "confirmTitle": "Delete {{name}} permanently?",
+        "confirmWarning": "This action is irreversible. The following data will be permanently deleted:",
+        "confirmButton": "Delete forever"
+      }
     },
     "hoverCard": {
       "withoutTeam": "Without team",
@@ -830,6 +858,8 @@
       "created": "Player created",
       "updated": "Player updated",
       "deleted": "Player deleted",
+      "deactivated": "Player contract ended",
+      "deactivateError": "Could not end player contract",
       "createError": "Could not create player",
       "saveError": "Could not save player",
       "deleteError": "Could not delete player"
@@ -1024,7 +1054,8 @@
     "description": "Manage league teams",
     "searchPlaceholder": "Search teams...",
     "filters": {
-      "all": "All",
+      "all": "All active",
+      "unassigned": "Unassigned",
       "fallback": "Filter"
     },
     "count": {
@@ -1041,7 +1072,11 @@
     "empty": {
       "title": "No teams yet",
       "description": "Create your first team to start league management.",
-      "action": "Create first team"
+      "action": "Create first team",
+      "noAssignmentsTitle": "No teams in this season",
+      "noAssignmentsDescription": "No teams are assigned to divisions in this season yet. Set up the season structure in the season settings to assign teams.",
+      "noSeasonTitle": "No season selected",
+      "noSeasonDescription": "Select or create a season to see which teams are active."
     },
     "fields": {
       "logo": "Team logo",
@@ -1054,6 +1089,8 @@
       "shortNamePlaceholder": "e.g. EVF",
       "city": "City",
       "cityPlaceholder": "e.g. Fussen",
+      "homeVenue": "Home venue",
+      "homeVenuePlaceholder": "e.g. Ice Arena Example City",
       "contactSection": "Contact details",
       "contactName": "Contact person",
       "contactNamePlaceholder": "Max Mustermann",
@@ -1081,9 +1118,37 @@
       "emailInvalid": "Invalid email address",
       "websiteInvalid": "URL must start with http:// or https://"
     },
-    "deleteDialog": {
-      "title": "Delete team",
-      "description": "Are you sure you want to delete {{name}}? This action cannot be undone."
+    "removeDialog": {
+      "title": "Remove {{name}}",
+      "subtitle": "Choose how you'd like to handle this team.",
+      "recommended": "Recommended",
+      "or": "or",
+      "back": "Back",
+      "deactivate": {
+        "title": "Remove from season",
+        "description": "Remove this team from all divisions in the current season. The team stays in the system and can be re-assigned later.",
+        "preserved": {
+          "data": "Team data and history preserved",
+          "reassign": "Can be re-assigned anytime",
+          "contracts": "Player contracts remain active"
+        },
+        "button": "Remove from season",
+        "unavailable": "This team is not assigned to any division in the current season."
+      },
+      "delete": {
+        "title": "Delete permanently",
+        "description": "Permanently remove this team and all related data from the system.",
+        "consequences": {
+          "contracts": "All player contracts deleted",
+          "standings": "Standings and bonus points removed",
+          "stats": "All season statistics deleted",
+          "trikots": "Jersey assignments removed"
+        },
+        "button": "Delete permanently...",
+        "confirmTitle": "Delete {{name}} permanently?",
+        "confirmWarning": "This action is irreversible. The following data will be permanently deleted:",
+        "confirmButton": "Delete forever"
+      }
     },
     "trikots": {
       "title": "Jerseys: {{team}}",
@@ -1111,6 +1176,8 @@
       "created": "Team created",
       "updated": "Team updated",
       "deleted": "Team deleted",
+      "removedFromSeason": "Team removed from season",
+      "removeFromSeasonError": "Could not remove team from season",
       "error": "Error",
       "createError": "Could not create team",
       "saveError": "Could not save team",
@@ -1330,8 +1397,7 @@
     },
     "views": {
       "list": "List",
-      "calendar": "Calendar",
-      "venues": "Venues"
+      "calendar": "Calendar"
     },
     "unscheduledSidebar": {
       "title": "Unscheduled",
@@ -1363,7 +1429,6 @@
     "actions": {
       "generate": "Generate schedule",
       "newGame": "New game",
-      "newVenue": "New venue",
       "edit": "Edit",
       "report": "Game report",
       "delete": "Delete",
@@ -1381,19 +1446,14 @@
       "eventCount_other": "{{count}} games will be exported",
       "instructions": "Add this URL as a calendar subscription in your calendar app."
     },
-    "venuesCount": "{{count}} venues",
     "dialogs": {
       "gameEditTitle": "Edit game",
       "gameNewTitle": "New game",
       "gameDescription": "Manage game details.",
       "generateTitle": "Generate schedule",
       "generateDescription": "Create home and away fixtures per pair.",
-      "newVenueTitle": "New venue",
-      "newVenueDescription": "Create a venue for game selection.",
       "deleteGameTitle": "Delete game",
       "deleteGameDescription": "Delete this game?",
-      "deleteVenueTitle": "Delete venue",
-      "deleteVenueDescription": "Delete this venue?",
       "cancelGameTitle": "Cancel game",
       "cancelGameDescription": "Really cancel this game? All game report data (lineup, events, suspensions) will be deleted.",
       "reopenGameTitle": "Reopen game",
@@ -1424,7 +1484,7 @@
       },
       "fields": {
         "round": "Round",
-        "venue": "Venue",
+        "location": "Location",
         "homeTeam": "Home team",
         "awayTeam": "Away team",
         "scheduledAt": "Date and time",
@@ -1454,64 +1514,7 @@
       "gameReopened": "Game reopened",
       "scheduleGenerated": "Schedule generated",
       "scheduleGeneratedDescription": "{{created}} created, {{skipped}} skipped.",
-      "venueCreated": "Venue created",
-      "venueDeleted": "Venue deleted"
-    }
-  },
-  "venuesPage": {
-    "title": "Venues",
-    "description": "Manage game venues and default home assignments",
-    "searchPlaceholder": "Search venues...",
-    "filters": {
-      "all": "All",
-      "allTeams": "All teams",
-      "fallback": "Filter"
-    },
-    "count": "venues",
-    "labels": {
-      "defaultTeam": "Default home: {{team}}",
-      "noDefaultTeam": "No default team"
-    },
-    "actions": {
-      "new": "New venue",
-      "edit": "Edit",
-      "delete": "Delete"
-    },
-    "form": {
-      "sections": {
-        "details": "Venue details",
-        "assignment": "Home assignment"
-      },
-      "fields": {
-        "name": "Venue name",
-        "city": "City",
-        "address": "Address",
-        "defaultTeam": "Default home team"
-      }
-    },
-    "fields": {
-      "name": "Venue name",
-      "city": "City",
-      "address": "Address",
-      "noDefaultTeam": "No default home team"
-    },
-    "dialogs": {
-      "newTitle": "Create venue",
-      "editTitle": "Edit venue",
-      "description": "Maintain venue details and optional default team.",
-      "deleteTitle": "Delete venue",
-      "deleteDescription": "Delete this venue?"
-    },
-    "empty": {
-      "title": "No venues yet",
-      "description": "Create your first venue for scheduling games.",
-      "action": "Create first venue"
-    },
-    "toast": {
-      "error": "Error",
-      "created": "Venue created",
-      "updated": "Venue updated",
-      "deleted": "Venue deleted"
+      "locationCreated": "Location saved"
     }
   },
   "seasonsPage": {

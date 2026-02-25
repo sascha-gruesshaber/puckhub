@@ -43,8 +43,6 @@
   "PAGE_NESTING_LIMIT": "Sub-pages can only be nested one level deep",
   "PAGE_STATIC_TITLE_LOCKED": "The title of a static page cannot be changed",
   "PAGE_STATIC_CANNOT_DELETE": "Static pages cannot be deleted",
-  "VENUE_CREATE_FAILED": "Failed to create venue",
-  "VENUE_IN_USE": "Venue cannot be deleted (has assigned games)",
   "INSUFFICIENT_ROLE": "Insufficient permissions",
   "SETUP_ALREADY_COMPLETED": "Setup is already completed",
   "VALIDATION_REQUIRED": "Please fill all required fields",

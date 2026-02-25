@@ -23,7 +23,6 @@ import { trikotRouter } from "./routers/trikot"
 import { trikotTemplateRouter } from "./routers/trikotTemplate"
 import { userPreferencesRouter } from "./routers/userPreferences"
 import { usersRouter } from "./routers/users"
-import { venueRouter } from "./routers/venue"
 
 export const appRouter = router({
   bonusPoints: bonusPointsRouter,
@@ -48,7 +47,6 @@ export const appRouter = router({
   news: newsRouter,
   organization: organizationRouter,
   page: pageRouter,
-  venue: venueRouter,
   userPreferences: userPreferencesRouter,
   scheduler: schedulerRouter,
 })

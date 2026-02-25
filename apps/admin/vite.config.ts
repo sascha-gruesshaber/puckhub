@@ -8,6 +8,12 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     host: "0.0.0.0",
+    proxy: {
+      "/api/uploads": {
+        target: process.env.VITE_API_URL ?? "http://localhost:3001",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [
     tsConfigPaths({

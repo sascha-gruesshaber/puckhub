@@ -28,6 +28,7 @@ import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamFilterPills } from "~/components/teamFilterPills"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { FILTER_ALL } from "~/lib/search-params"
@@ -94,15 +95,21 @@ function SponsorsPage() {
   const [form, setForm] = useState<SponsorForm>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof SponsorForm, string>>>({})
 
+  const { season: workingSeason } = useWorkingSeason()
   const utils = trpc.useUtils()
   const { data: sponsors, isLoading } = trpc.sponsor.list.useQuery()
   const { data: teams } = trpc.team.list.useQuery()
+  const { data: seasonTeams } = trpc.team.list.useQuery(
+    { seasonId: workingSeason?.id },
+    { enabled: !!workingSeason?.id },
+  )
 
-  // Build list of teams that actually have sponsors assigned
+  // Build list of teams that actually have sponsors assigned (season-scoped)
   const teamsWithSponsors = useMemo(() => {
-    if (!sponsors || !teams) return []
-    const assignedTeamIds = new Set(sponsors.filter((s) => s.teamId).map((s) => s.teamId))
-    return teams
+    if (!sponsors || !seasonTeams) return []
+    const seasonTeamIds = new Set(seasonTeams.map((t) => t.id))
+    const assignedTeamIds = new Set(sponsors.filter((s) => s.teamId && seasonTeamIds.has(s.teamId)).map((s) => s.teamId))
+    return seasonTeams
       .filter((t) => assignedTeamIds.has(t.id))
       .map((t) => ({
         id: t.shortName,
@@ -112,7 +119,7 @@ function SponsorsPage() {
         city: t.city,
         primaryColor: t.primaryColor,
       }))
-  }, [sponsors, teams])
+  }, [sponsors, seasonTeams])
 
   const siteWideCount = useMemo(() => {
     if (!sponsors) return 0

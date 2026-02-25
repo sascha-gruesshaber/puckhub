@@ -17,7 +17,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { Pencil, Plus, Shield, Shirt, Trash2, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
-import { ConfirmDialog } from "~/components/confirmDialog"
+import { RemoveDialog } from "~/components/removeDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterPill } from "~/components/filterPill"
@@ -52,6 +52,7 @@ interface TeamForm {
   name: string
   shortName: string
   city: string
+  homeVenue: string
   logoUrl: string
   teamPhotoUrl: string
   contactName: string
@@ -64,6 +65,7 @@ const emptyForm: TeamForm = {
   name: "",
   shortName: "",
   city: "",
+  homeVenue: "",
   logoUrl: "",
   teamPhotoUrl: "",
   contactName: "",
@@ -95,7 +97,7 @@ function TeamsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [editingTeam, setEditingTeam] = useState<{ id: string } | null>(null)
-  const [deletingTeam, setDeletingTeam] = useState<{ id: string; name: string } | null>(null)
+  const [deletingTeam, setDeletingTeam] = useState<{ id: string; name: string; isInSeason: boolean } | null>(null)
   const [form, setForm] = useState<TeamForm>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof TeamForm, string>>>({})
 
@@ -106,8 +108,10 @@ function TeamsPage() {
   const [assignTrikotName, setAssignTrikotName] = useState("")
   const [editingAssignment, setEditingAssignment] = useState<{ id: string; name: string } | null>(null)
 
+  const FILTER_UNASSIGNED = "__unassigned__"
+
   const utils = trpc.useUtils()
-  const { data: teams, isLoading } = trpc.team.list.useQuery()
+  const { data: allTeams, isLoading } = trpc.team.list.useQuery()
   const { data: allTrikots } = trpc.trikot.list.useQuery()
   const { data: teamAssignments } = trpc.teamTrikot.listByTeam.useQuery(
     { teamId: trikotTeamId! },
@@ -118,18 +122,29 @@ function TeamsPage() {
   const { season } = useWorkingSeason()
   const { data: structure } = trpc.season.getFullStructure.useQuery({ id: season?.id ?? "" }, { enabled: !!season?.id })
 
-  // Extract divisions and team-to-division mapping
-  const { divisions, teamDivisionMap } = useMemo(() => {
-    if (!structure?.divisions) return { divisions: [], teamDivisionMap: new Map<string, string>() }
+  // Extract divisions and team-to-division mapping (a team can be in multiple divisions)
+  const { divisions, teamDivisionMap, seasonTeamIds } = useMemo(() => {
+    if (!structure?.divisions)
+      return { divisions: [], teamDivisionMap: new Map<string, Set<string>>(), seasonTeamIds: new Set<string>() }
     const divs = structure.divisions.map((d) => ({ id: d.id, name: d.name }))
-    const map = new Map<string, string>()
+    const map = new Map<string, Set<string>>()
     if (structure.teamAssignments) {
       for (const ta of structure.teamAssignments) {
-        map.set(ta.team.id, ta.divisionId)
+        const existing = map.get(ta.team.id)
+        if (existing) {
+          existing.add(ta.divisionId)
+        } else {
+          map.set(ta.team.id, new Set([ta.divisionId]))
+        }
       }
     }
-    return { divisions: divs, teamDivisionMap: map }
+    return { divisions: divs, teamDivisionMap: map, seasonTeamIds: new Set(map.keys()) }
   }, [structure])
+
+  const unassignedCount = useMemo(() => {
+    if (!allTeams) return 0
+    return allTeams.filter((t) => !seasonTeamIds.has(t.id)).length
+  }, [allTeams, seasonTeamIds])
 
   const createMutation = trpc.team.create.useMutation({
     onSuccess: () => {
@@ -150,6 +165,19 @@ function TeamsPage() {
     },
     onError: (err) => {
       toast.error(t("teamsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) })
+    },
+  })
+
+  const removeFromSeasonMutation = trpc.team.removeFromSeason.useMutation({
+    onSuccess: () => {
+      utils.team.list.invalidate()
+      utils.season.getFullStructure.invalidate()
+      setDeleteDialogOpen(false)
+      setDeletingTeam(null)
+      toast.success(t("teamsPage.toast.removedFromSeason"))
+    },
+    onError: (err) => {
+      toast.error(t("teamsPage.toast.removeFromSeasonError"), { description: resolveTranslatedError(err, tErrors) })
     },
   })
 
@@ -220,13 +248,18 @@ function TeamsPage() {
   }
 
   const filtered = useMemo(() => {
-    if (!teams) return []
+    if (!allTeams) return []
 
-    let result = teams
+    let result = allTeams
 
-    // Division filter
-    if (divisionFilter !== FILTER_ALL) {
-      result = result.filter((t) => teamDivisionMap.get(t.id) === divisionFilter)
+    // Division / season filter
+    if (divisionFilter === FILTER_UNASSIGNED) {
+      result = result.filter((t) => !seasonTeamIds.has(t.id))
+    } else if (divisionFilter !== FILTER_ALL) {
+      result = result.filter((t) => teamDivisionMap.get(t.id)?.has(divisionFilter))
+    } else {
+      // "All active" — only teams in the current season
+      result = result.filter((t) => seasonTeamIds.has(t.id))
     }
 
     // Search filter
@@ -241,17 +274,18 @@ function TeamsPage() {
     }
 
     return result
-  }, [teams, search, divisionFilter, teamDivisionMap])
+  }, [allTeams, search, divisionFilter, teamDivisionMap, seasonTeamIds])
 
   const stats = useMemo(() => {
-    if (!teams) return { total: 0, cities: 0, withLogos: 0 }
-    const cities = new Set(teams.map((t) => t.city).filter(Boolean))
+    if (!allTeams) return { total: 0, inSeason: 0, cities: 0 }
+    const inSeasonTeams = allTeams.filter((t) => seasonTeamIds.has(t.id))
+    const cities = new Set(inSeasonTeams.map((t) => t.city).filter(Boolean))
     return {
-      total: teams.length,
+      total: allTeams.length,
+      inSeason: inSeasonTeams.length,
       cities: cities.size,
-      withLogos: teams.filter((t) => t.logoUrl).length,
     }
-  }, [teams])
+  }, [allTeams, seasonTeamIds])
 
   function setField<K extends keyof TeamForm>(key: K, value: TeamForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -265,12 +299,13 @@ function TeamsPage() {
     setDialogOpen(true)
   }
 
-  function openEdit(team: NonNullable<typeof teams>[number]) {
+  function openEdit(team: NonNullable<typeof allTeams>[number]) {
     setEditingTeam({ id: team.id })
     setForm({
       name: team.name,
       shortName: team.shortName,
       city: team.city || "",
+      homeVenue: team.homeVenue || "",
       logoUrl: team.logoUrl || "",
       teamPhotoUrl: team.teamPhotoUrl || "",
       contactName: team.contactName || "",
@@ -283,7 +318,7 @@ function TeamsPage() {
   }
 
   function openDelete(team: { id: string; name: string }) {
-    setDeletingTeam(team)
+    setDeletingTeam({ ...team, isInSeason: seasonTeamIds.has(team.id) })
     setDeleteDialogOpen(true)
   }
 
@@ -318,6 +353,7 @@ function TeamsPage() {
         name: form.name.trim(),
         shortName: form.shortName.trim(),
         city: form.city.trim() || null,
+        homeVenue: form.homeVenue.trim() || null,
         logoUrl: form.logoUrl || null,
         teamPhotoUrl: form.teamPhotoUrl || null,
         contactName: form.contactName.trim() || null,
@@ -330,6 +366,7 @@ function TeamsPage() {
         name: form.name.trim(),
         shortName: form.shortName.trim(),
         city: form.city.trim() || undefined,
+        homeVenue: form.homeVenue.trim() || undefined,
         logoUrl: form.logoUrl || undefined,
         teamPhotoUrl: form.teamPhotoUrl || undefined,
         contactName: form.contactName.trim() || undefined,
@@ -371,6 +408,16 @@ function TeamsPage() {
                   onClick={() => setDivisionFilter(d.id)}
                 />
               ))}
+              {unassignedCount > 0 && (
+                <>
+                  <div className="h-5 w-px bg-border mx-1" />
+                  <FilterPill
+                    label={t("teamsPage.filters.unassigned")}
+                    active={divisionFilter === FILTER_UNASSIGNED}
+                    onClick={() => setDivisionFilter(FILTER_UNASSIGNED)}
+                  />
+                </>
+              )}
             </>
           ) : undefined
         }
@@ -378,12 +425,12 @@ function TeamsPage() {
         count={
           isLoading ? (
             <CountSkeleton />
-          ) : (teams?.length ?? 0) > 0 ? (
+          ) : (allTeams?.length ?? 0) > 0 ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
                   {divisionFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-                  {stats.total}
+                  {stats.inSeason}
                 </span>{" "}
                 {t("teamsPage.count.teams")}
               </span>
@@ -398,7 +445,7 @@ function TeamsPage() {
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={5} />
-        ) : filtered.length === 0 && !search && divisionFilter === FILTER_ALL ? (
+        ) : (allTeams?.length ?? 0) === 0 ? (
           <EmptyState
             icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("teamsPage.empty.title")}
@@ -409,6 +456,18 @@ function TeamsPage() {
                 {t("teamsPage.empty.action")}
               </Button>
             }
+          />
+        ) : !season ? (
+          <EmptyState
+            icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            title={t("teamsPage.empty.noSeasonTitle")}
+            description={t("teamsPage.empty.noSeasonDescription")}
+          />
+        ) : filtered.length === 0 && !search && divisionFilter === FILTER_ALL && seasonTeamIds.size === 0 ? (
+          <EmptyState
+            icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            title={t("teamsPage.empty.noAssignmentsTitle")}
+            description={t("teamsPage.empty.noAssignmentsDescription")}
           />
         ) : filtered.length === 0 ? (
           <NoResults query={search || t("teamsPage.filters.fallback")} />
@@ -572,14 +631,23 @@ function TeamsPage() {
               </FormField>
             </div>
 
-            {/* City */}
-            <FormField label={t("teamsPage.fields.city")}>
-              <Input
-                value={form.city}
-                onChange={(e) => setField("city", e.target.value)}
-                placeholder={t("teamsPage.fields.cityPlaceholder")}
-              />
-            </FormField>
+            {/* City + Home Venue */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label={t("teamsPage.fields.city")}>
+                <Input
+                  value={form.city}
+                  onChange={(e) => setField("city", e.target.value)}
+                  placeholder={t("teamsPage.fields.cityPlaceholder")}
+                />
+              </FormField>
+              <FormField label={t("teamsPage.fields.homeVenue", { defaultValue: "Heimspielstätte" })}>
+                <Input
+                  value={form.homeVenue}
+                  onChange={(e) => setField("homeVenue", e.target.value)}
+                  placeholder={t("teamsPage.fields.homeVenuePlaceholder", { defaultValue: "z.B. Eisstadion Musterstadt" })}
+                />
+              </FormField>
+            </div>
 
             {/* Contact section */}
             <div className="border-t pt-4">
@@ -629,19 +697,55 @@ function TeamsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title={t("teamsPage.deleteDialog.title")}
-        description={t("teamsPage.deleteDialog.description", { name: deletingTeam?.name ?? "" })}
-        confirmLabel={t("teamsPage.actions.delete")}
-        variant="destructive"
-        isPending={deleteMutation.isPending}
-        onConfirm={() => {
-          if (deletingTeam) deleteMutation.mutate({ id: deletingTeam.id })
-        }}
-      />
+      {/* Remove / Deactivate / Delete Dialog */}
+      {deletingTeam && (
+        <RemoveDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={t("teamsPage.removeDialog.title", { name: deletingTeam.name })}
+          subtitle={t("teamsPage.removeDialog.subtitle")}
+          deactivate={{
+            title: t("teamsPage.removeDialog.deactivate.title"),
+            description: t("teamsPage.removeDialog.deactivate.description"),
+            preserved: [
+              t("teamsPage.removeDialog.deactivate.preserved.data"),
+              t("teamsPage.removeDialog.deactivate.preserved.reassign"),
+              t("teamsPage.removeDialog.deactivate.preserved.contracts"),
+            ],
+            buttonLabel: t("teamsPage.removeDialog.deactivate.button"),
+            available: deletingTeam.isInSeason,
+            unavailableReason: t("teamsPage.removeDialog.deactivate.unavailable"),
+          }}
+          onDeactivate={() => {
+            if (season) {
+              removeFromSeasonMutation.mutate({ teamId: deletingTeam.id, seasonId: season.id })
+            }
+          }}
+          isDeactivating={removeFromSeasonMutation.isPending}
+          permanentDelete={{
+            title: t("teamsPage.removeDialog.delete.title"),
+            description: t("teamsPage.removeDialog.delete.description"),
+            consequences: [
+              t("teamsPage.removeDialog.delete.consequences.contracts"),
+              t("teamsPage.removeDialog.delete.consequences.standings"),
+              t("teamsPage.removeDialog.delete.consequences.stats"),
+              t("teamsPage.removeDialog.delete.consequences.trikots"),
+            ],
+            buttonLabel: t("teamsPage.removeDialog.delete.button"),
+            confirmTitle: t("teamsPage.removeDialog.delete.confirmTitle", { name: deletingTeam.name }),
+            confirmWarning: t("teamsPage.removeDialog.delete.confirmWarning"),
+            confirmButton: t("teamsPage.removeDialog.delete.confirmButton"),
+          }}
+          onDelete={() => deleteMutation.mutate({ id: deletingTeam.id })}
+          isDeleting={deleteMutation.isPending}
+          labels={{
+            recommended: t("teamsPage.removeDialog.recommended"),
+            or: t("teamsPage.removeDialog.or"),
+            back: t("teamsPage.removeDialog.back"),
+            cancel: t("cancel"),
+          }}
+        />
+      )}
 
       {/* Team Trikot Assignments Dialog */}
       <Dialog open={trikotDialogOpen} onOpenChange={setTrikotDialogOpen}>
@@ -649,7 +753,7 @@ function TeamsPage() {
           <DialogClose onClick={() => setTrikotDialogOpen(false)} />
           <DialogHeader>
             <DialogTitle>
-              {t("teamsPage.trikots.title", { team: teams?.find((team) => team.id === trikotTeamId)?.name ?? "" })}
+              {t("teamsPage.trikots.title", { team: allTeams?.find((team) => team.id === trikotTeamId)?.name ?? "" })}
             </DialogTitle>
             <DialogDescription>{t("teamsPage.trikots.description")}</DialogDescription>
           </DialogHeader>

@@ -13,24 +13,25 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Ban, CalendarDays, ClipboardList, Pencil, Plus, RotateCcw, Sparkles, Trash2, Trophy } from "lucide-react"
+import { Ban, CalendarDays, ClipboardList, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
-import { GameStatusBadge } from "~/components/gameStatusBadge"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { GameStatusBadge, deriveDisplayStatus } from "~/components/gameStatusBadge"
+import type { DisplayStatus } from "~/components/gameStatusBadge"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
+import { SearchInput } from "~/components/searchInput"
 import { TeamCombobox } from "~/components/teamCombobox"
-import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 const roundTypeOrder: Record<string, number> = {
   regular: 0,
@@ -46,7 +47,7 @@ interface GameForm {
   roundId: string
   homeTeamId: string
   awayTeamId: string
-  venueId: string
+  location: string
   scheduledAt: string
 }
 
@@ -54,7 +55,7 @@ const emptyGameForm: GameForm = {
   roundId: "",
   homeTeamId: "",
   awayTeamId: "",
-  venueId: "",
+  location: "",
   scheduledAt: "",
 }
 
@@ -71,13 +72,12 @@ function toLocalInputValue(value: Date | string | null | undefined): string {
 }
 
 export const Route = createFileRoute("/_authed/games/")({
-  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string; status?: string; division?: string } => ({
     ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
     ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+    ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
+    ...(typeof s.division === "string" && s.division ? { division: s.division } : {}),
   }),
-  loader: ({ context }) => {
-    void context.trpcQueryUtils?.venue.list.ensureData()
-  },
   component: GamesPage,
 })
 
@@ -88,16 +88,26 @@ function GamesPage() {
   const { season } = useWorkingSeason()
   const utils = trpc.useUtils()
 
-  const { search: searchParam, team } = Route.useSearch()
+  const { search: searchParam, team, status: statusParam, division: divisionParam } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const teamFilter = team ?? FILTER_ALL
+  const teamFilter = useMemo(() => (team ? team.split(",") : []), [team])
+  const statusFilter = useMemo(() => (statusParam ? statusParam.split(",") : []), [statusParam])
+  const divisionFilter = useMemo(() => (divisionParam ? divisionParam.split(",") : []), [divisionParam])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setTeamFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, team: v.join(",") || undefined }), replace: true }),
+    [navigate],
+  )
+  const setStatusFilter = useCallback(
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, status: v.join(",") || undefined }), replace: true }),
+    [navigate],
+  )
+  const setDivisionFilter = useCallback(
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, division: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
 
@@ -119,12 +129,9 @@ function GamesPage() {
     { id: season?.id ?? "" },
     { enabled: !!season?.id },
   )
-  const { data: venues } = trpc.venue.list.useQuery()
+  const { data: locationSuggestions } = trpc.game.locationSuggestions.useQuery()
   const { data: games, isLoading } = trpc.game.listForSeason.useQuery(
-    {
-      seasonId: season?.id ?? "",
-      teamId: teamFilter !== FILTER_ALL ? teamFilter : undefined,
-    },
+    { seasonId: season?.id ?? "" },
     { enabled: !!season?.id },
   )
 
@@ -195,7 +202,7 @@ function GamesPage() {
         name: string
         shortName: string
         logoUrl: string | null
-        defaultVenueId?: string | null
+        homeVenue?: string | null
       }
     >()
     for (const ta of structure?.teamAssignments ?? []) {
@@ -204,32 +211,75 @@ function GamesPage() {
         name: ta.team.name,
         shortName: ta.team.shortName,
         logoUrl: ta.team.logoUrl ?? null,
-        defaultVenueId: ta.team.defaultVenueId,
+        homeVenue: ta.team.homeVenue,
       })
     }
     return Array.from(m.values())
   }, [structure])
 
-  const filteredGames = useMemo(() => {
-    if (!games) return []
-    if (!search.trim()) return games
-    const q = search.toLowerCase()
-    return games.filter(
-      (g) =>
-        g.homeTeam.name.toLowerCase().includes(q) ||
-        g.awayTeam.name.toLowerCase().includes(q) ||
-        g.round.name.toLowerCase().includes(q),
-    )
-  }, [games, search])
+  const teamOptions: FilterDropdownOption[] = useMemo(
+    () =>
+      [...teams]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((team) => ({
+          value: team.id,
+          label: team.shortName,
+          icon: team.logoUrl ? (
+            <img src={team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
+          ) : (
+            <div className="h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold bg-muted text-muted-foreground">
+              {team.shortName.slice(0, 2).toUpperCase()}
+            </div>
+          ),
+        })),
+    [teams],
+  )
 
-  const stats = useMemo(() => {
-    const all = games ?? []
-    return {
-      total: all.length,
-      completed: all.filter((g) => g.status === "completed").length,
-      unscheduled: all.filter((g) => !g.scheduledAt).length,
+  const allDisplayStatuses: DisplayStatus[] = [
+    "scheduled",
+    "in_progress",
+    "completed",
+    "postponed",
+    "cancelled",
+    "incomplete",
+    "report_pending",
+  ]
+  const statusOptions: FilterDropdownOption[] = useMemo(
+    () => allDisplayStatuses.map((s) => ({ value: s, label: t(`gamesPage.status.${s}`) })),
+    [t],
+  )
+
+  const divisionOptions: FilterDropdownOption[] = useMemo(
+    () => divisions.map((d) => ({ value: d.id, label: d.name })),
+    [divisions],
+  )
+
+  const filteredGames = useMemo(() => {
+    let result = games ?? []
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (g) =>
+          g.homeTeam.name.toLowerCase().includes(q) ||
+          g.awayTeam.name.toLowerCase().includes(q) ||
+          g.round.name.toLowerCase().includes(q),
+      )
     }
-  }, [games])
+    if (teamFilter.length > 0) {
+      result = result.filter(
+        (g) => teamFilter.includes(g.homeTeamId) || teamFilter.includes(g.awayTeamId),
+      )
+    }
+    if (statusFilter.length > 0) {
+      result = result.filter((g) =>
+        statusFilter.includes(deriveDisplayStatus(g.status, g.scheduledAt, g.location)),
+      )
+    }
+    if (divisionFilter.length > 0) {
+      result = result.filter((g) => divisionFilter.includes(g.round.division.id))
+    }
+    return result
+  }, [games, search, teamFilter, statusFilter, divisionFilter])
 
   const groupedGames = useMemo(() => {
     const groups = new Map<
@@ -300,7 +350,7 @@ function GamesPage() {
       roundId: game.roundId,
       homeTeamId: game.homeTeamId,
       awayTeamId: game.awayTeamId,
-      venueId: game.venueId ?? "",
+      location: game.location ?? "",
       scheduledAt: toLocalInputValue(game.scheduledAt),
     })
     setGameDialogOpen(true)
@@ -330,7 +380,7 @@ function GamesPage() {
       roundId: gameForm.roundId,
       homeTeamId: gameForm.homeTeamId,
       awayTeamId: gameForm.awayTeamId,
-      venueId: gameForm.venueId || undefined,
+      location: gameForm.location || undefined,
       scheduledAt: gameForm.scheduledAt ? new Date(gameForm.scheduledAt).toISOString() : undefined,
     }
     if (!editingGameId) {
@@ -340,7 +390,7 @@ function GamesPage() {
     updateGame.mutate({
       id: editingGameId,
       ...base,
-      venueId: gameForm.venueId || null,
+      location: gameForm.location || null,
       scheduledAt: gameForm.scheduledAt ? new Date(gameForm.scheduledAt).toISOString() : null,
     })
   }
@@ -351,7 +401,7 @@ function GamesPage() {
       return {
         ...prev,
         homeTeamId: teamId,
-        venueId: prev.venueId || team?.defaultVenueId || "",
+        location: prev.location || team?.homeVenue || "",
       }
     })
   }
@@ -363,7 +413,7 @@ function GamesPage() {
   }
 
   function formatWhere(game: NonNullable<typeof filteredGames>[number]) {
-    return [game.venue?.name, game.venue?.city].filter(Boolean).join(", ") || t("gamesPage.placeholders.noVenue")
+    return game.location || t("gamesPage.placeholders.noVenue")
   }
 
   return (
@@ -387,25 +437,28 @@ function GamesPage() {
           isStructureLoading ? (
             <FilterPillsSkeleton />
           ) : (
-            <TeamFilterPills
-              teams={teams}
-              activeFilter={teamFilter}
-              onFilterChange={setTeamFilter}
-              showAll
-              translationPrefix="gamesPage.filters"
-              seasonId={season?.id}
-            />
-          )
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              {teamFilter !== FILTER_ALL ? `${filteredGames.length} / ` : ""}
-              {t("gamesPage.count", { total: stats.total, completed: stats.completed, unscheduled: stats.unscheduled })}
-            </div>
+            <>
+              <FilterDropdown
+                label={t("gamesPage.filters.allTeams")}
+                options={teamOptions}
+                value={teamFilter}
+                onChange={setTeamFilter}
+              />
+              <FilterDropdown
+                label={t("gamesPage.filters.allStatus")}
+                options={statusOptions}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+              <FilterDropdown
+                label={t("gamesPage.filters.allDivisions")}
+                options={divisionOptions}
+                value={divisionFilter}
+                onChange={setDivisionFilter}
+              />
+              <div className="flex-1" />
+              <SearchInput value={search} onChange={setSearch} placeholder={t("gamesPage.searchPlaceholder")} />
+            </>
           )
         }
       >
@@ -437,23 +490,25 @@ function GamesPage() {
                       {group.games.length}
                     </span>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                  <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden lg:grid lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:gap-x-4">
                     {group.games.map((g, i) => (
                       <div
                         key={g.id}
-                        className={`data-row group px-4 py-4 hover:bg-accent/5 transition-colors ${i < group.games.length - 1 ? "border-b border-border/40" : ""}`}
+                        className={`data-row group px-4 py-4 hover:bg-accent/5 transition-colors lg:col-span-full lg:grid lg:grid-cols-[subgrid] lg:items-center ${i < group.games.length - 1 ? "border-b border-border/40" : ""}`}
                         style={{ "--row-index": rowIndex++ } as React.CSSProperties}
                       >
-                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-14">
-                          <div className="min-w-0 flex items-center justify-center lg:justify-start gap-4">
-                            {(() => {
-                              const done = g.status === "completed"
-                              const hWins =
-                                done && g.homeScore != null && g.awayScore != null && g.homeScore > g.awayScore
-                              const aWins =
-                                done && g.homeScore != null && g.awayScore != null && g.awayScore > g.homeScore
-                              return (
-                                <>
+                        <div className="space-y-3 lg:space-y-0 lg:contents">
+                          {(() => {
+                            const done = g.status === "completed"
+                            const hWins =
+                              done && g.homeScore != null && g.awayScore != null && g.homeScore > g.awayScore
+                            const aWins =
+                              done && g.homeScore != null && g.awayScore != null && g.awayScore > g.homeScore
+                            return (
+                              <>
+                                {/* Matchup row: horizontal flex on mobile, contents on desktop so children become grid cells */}
+                                <div className="flex items-center gap-2 lg:contents">
+                                  {/* Home team – right-aligned on desktop (scoreboard style) */}
                                   <TeamHoverCard
                                     teamId={g.homeTeam.id}
                                     name={g.homeTeam.name}
@@ -461,31 +516,42 @@ function GamesPage() {
                                     logoUrl={g.homeTeam.logoUrl}
                                     seasonId={season.id}
                                   >
-                                    <div className="flex items-center gap-2 min-w-0 cursor-default">
-                                      <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
+                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 justify-end cursor-default">
+                                      <span
+                                        className={`text-sm leading-tight truncate text-right ${hWins ? "font-bold text-emerald-600 dark:text-emerald-400" : done ? "font-medium text-muted-foreground" : "font-semibold text-foreground"}`}
+                                      >
+                                        {g.homeTeam.shortName}
+                                      </span>
+                                      <div className="h-9 w-9 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
                                         {g.homeTeam.logoUrl ? (
-                                          <img
-                                            src={g.homeTeam.logoUrl}
-                                            alt=""
-                                            className="h-full w-full object-contain"
-                                          />
-                                        ) : null}
-                                        {hWins && (
-                                          <span className="absolute -top-1 -right-1 inline-flex items-center p-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 ring-2 ring-white dark:ring-gray-900">
-                                            <Trophy className="w-2.5 h-2.5" />
+                                          <img src={g.homeTeam.logoUrl} alt="" className="h-full w-full object-contain" />
+                                        ) : (
+                                          <span className="text-[11px] font-bold text-muted-foreground/60">
+                                            {g.homeTeam.shortName.slice(0, 2)}
                                           </span>
                                         )}
-                                      </div>
-                                      <div className="text-base font-semibold leading-tight text-foreground truncate">
-                                        {g.homeTeam.shortName}
                                       </div>
                                     </div>
                                   </TeamHoverCard>
 
-                                  <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground font-semibold text-center">
-                                    vs.
+                                  {/* Score block – centered */}
+                                  <div className="shrink-0 text-center min-w-[6.5rem] px-1">
+                                    <div className="text-xl font-extrabold tabular-nums whitespace-nowrap">
+                                      <span className={hWins ? "text-emerald-600 dark:text-emerald-400" : ""}>
+                                        {g.homeScore ?? "-"}
+                                      </span>
+                                      <span className="text-muted-foreground/40 mx-1.5">:</span>
+                                      <span className={aWins ? "text-emerald-600 dark:text-emerald-400" : ""}>
+                                        {g.awayScore ?? "-"}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-muted-foreground mt-0.5 truncate mb-1">
+                                      {g.round.name} • {t(`seasonStructure.roundTypes.${g.round.roundType}`)}
+                                    </div>
+                                    <GameStatusBadge status={g.status} scheduledAt={g.scheduledAt} location={g.location} t={t} />
                                   </div>
 
+                                  {/* Away team – left-aligned */}
                                   <TeamHoverCard
                                     teamId={g.awayTeam.id}
                                     name={g.awayTeam.name}
@@ -493,102 +559,94 @@ function GamesPage() {
                                     logoUrl={g.awayTeam.logoUrl}
                                     seasonId={season.id}
                                   >
-                                    <div className="flex items-center gap-2 min-w-0 cursor-default">
-                                      <div className="relative h-10 w-10 shrink-0 flex items-center justify-center">
+                                    <div className="flex items-center gap-2.5 flex-1 min-w-0 cursor-default">
+                                      <div className="h-9 w-9 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
                                         {g.awayTeam.logoUrl ? (
-                                          <img
-                                            src={g.awayTeam.logoUrl}
-                                            alt=""
-                                            className="h-full w-full object-contain"
-                                          />
-                                        ) : null}
-                                        {aWins && (
-                                          <span className="absolute -top-1 -right-1 inline-flex items-center p-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 ring-2 ring-white dark:ring-gray-900">
-                                            <Trophy className="w-2.5 h-2.5" />
+                                          <img src={g.awayTeam.logoUrl} alt="" className="h-full w-full object-contain" />
+                                        ) : (
+                                          <span className="text-[11px] font-bold text-muted-foreground/60">
+                                            {g.awayTeam.shortName.slice(0, 2)}
                                           </span>
                                         )}
                                       </div>
-                                      <div className="text-base font-semibold leading-tight text-foreground truncate">
+                                      <span
+                                        className={`text-sm leading-tight truncate ${aWins ? "font-bold text-emerald-600 dark:text-emerald-400" : done ? "font-medium text-muted-foreground" : "font-semibold text-foreground"}`}
+                                      >
                                         {g.awayTeam.shortName}
-                                      </div>
+                                      </span>
                                     </div>
                                   </TeamHoverCard>
-                                </>
-                              )
-                            })()}
-                          </div>
+                                </div>
 
-                          <div className="min-w-0 text-center">
-                            <div className="text-xl font-extrabold tabular-nums text-foreground whitespace-nowrap">
-                              {g.homeScore == null || g.awayScore == null ? "- : -" : `${g.homeScore} : ${g.awayScore}`}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground mt-0.5 truncate mb-1">
-                              {g.round.name} • {t(`seasonStructure.roundTypes.${g.round.roundType}`)}
-                            </div>
-                            <GameStatusBadge status={g.status} scheduledAt={g.scheduledAt} venueId={g.venueId} t={t} />
-                          </div>
+                                {/* Mobile-only: date & location */}
+                                <div className="text-center text-xs text-muted-foreground lg:hidden">
+                                  {formatWhen(g)} · {formatWhere(g)}
+                                </div>
 
-                          <div className="min-w-0">
-                            <div className="text-sm text-muted-foreground">
-                              <div className="truncate">{formatWhen(g)}</div>
-                              <div className="truncate">{formatWhere(g)}</div>
-                            </div>
-                          </div>
+                                {/* Desktop: date & location column */}
+                                <div className="hidden lg:block min-w-0 pl-2">
+                                  <div className="text-sm text-muted-foreground truncate">{formatWhen(g)}</div>
+                                  <div className="text-xs text-muted-foreground/70 truncate">{formatWhere(g)}</div>
+                                </div>
 
-                          <div className="flex items-center gap-1 flex-wrap lg:ml-auto">
-                            {g.status !== "completed" && g.status !== "cancelled" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditGame(g.id)}
-                                className="text-xs h-8 px-2 md:px-3"
-                              >
-                                <Pencil className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                                <span className="hidden md:inline">{t("gamesPage.actions.edit")}</span>
-                              </Button>
-                            )}
-                            {g.status !== "cancelled" && (
-                              <Link to="/games/$gameId/report" params={{ gameId: g.id }}>
-                                <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
-                                  <ClipboardList className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                                  <span className="hidden md:inline">{t("gamesPage.actions.report")}</span>
-                                </Button>
-                              </Link>
-                            )}
-                            {g.status === "scheduled" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-8 px-2 md:px-3 text-amber-600 hover:text-amber-700"
-                                onClick={() => setCancelGameId(g.id)}
-                              >
-                                <Ban className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                                <span className="hidden md:inline">{t("gamesPage.actions.cancelGame")}</span>
-                              </Button>
-                            )}
-                            {(g.status === "completed" || g.status === "cancelled") && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-8 px-2 md:px-3"
-                                onClick={() => setReopenGameId(g.id)}
-                              >
-                                <RotateCcw className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                                <span className="hidden md:inline">{t("gamesPage.actions.reopenGame")}</span>
-                              </Button>
-                            )}
-                            {g.status !== "completed" && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-                                onClick={() => setDeleteGameId(g.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                                <span className="hidden md:inline">{t("gamesPage.actions.delete")}</span>
-                              </Button>
-                            )}
-                          </div>
+                                {/* Actions */}
+                                <div className="flex items-center gap-1 flex-wrap justify-center lg:justify-end">
+                                  {g.status !== "completed" && g.status !== "cancelled" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openEditGame(g.id)}
+                                      className="text-xs h-8 px-2 md:px-3"
+                                    >
+                                      <Pencil className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+                                      <span className="hidden md:inline">{t("gamesPage.actions.edit")}</span>
+                                    </Button>
+                                  )}
+                                  {g.status !== "cancelled" && (
+                                    <Link to="/games/$gameId/report" params={{ gameId: g.id }}>
+                                      <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
+                                        <ClipboardList className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+                                        <span className="hidden md:inline">{t("gamesPage.actions.report")}</span>
+                                      </Button>
+                                    </Link>
+                                  )}
+                                  {g.status === "scheduled" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-8 px-2 md:px-3 text-amber-600 hover:text-amber-700"
+                                      onClick={() => setCancelGameId(g.id)}
+                                    >
+                                      <Ban className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+                                      <span className="hidden md:inline">{t("gamesPage.actions.cancelGame")}</span>
+                                    </Button>
+                                  )}
+                                  {(g.status === "completed" || g.status === "cancelled") && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-8 px-2 md:px-3"
+                                      onClick={() => setReopenGameId(g.id)}
+                                    >
+                                      <RotateCcw className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+                                      <span className="hidden md:inline">{t("gamesPage.actions.reopenGame")}</span>
+                                    </Button>
+                                  )}
+                                  {g.status !== "completed" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
+                                      onClick={() => setDeleteGameId(g.id)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+                                      <span className="hidden md:inline">{t("gamesPage.actions.delete")}</span>
+                                    </Button>
+                                  )}
+                                </div>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     ))}
@@ -637,19 +695,18 @@ function GamesPage() {
                     ))}
                   </select>
                 </FormField>
-                <FormField label={t("gamesPage.form.fields.venue", { defaultValue: "Venue" })}>
-                  <select
-                    value={gameForm.venueId}
-                    onChange={(e) => setGameForm((p) => ({ ...p, venueId: e.target.value }))}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="">{t("gamesPage.placeholders.noVenue")}</option>
-                    {(venues ?? []).map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name}
-                      </option>
+                <FormField label={t("gamesPage.form.fields.location", { defaultValue: "Location" })}>
+                  <Input
+                    list="location-suggestions"
+                    value={gameForm.location}
+                    onChange={(e) => setGameForm((p) => ({ ...p, location: e.target.value }))}
+                    placeholder={t("gamesPage.placeholders.noVenue")}
+                  />
+                  <datalist id="location-suggestions">
+                    {(locationSuggestions ?? []).map((s) => (
+                      <option key={s} value={s} />
                     ))}
-                  </select>
+                  </datalist>
                 </FormField>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">

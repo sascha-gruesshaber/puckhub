@@ -27,17 +27,17 @@ const TEAMS = [
   { name: "Tübinger Eisbären", shortName: "TEB", city: "Tübingen" },
 ]
 
-const VENUES = [
-  { name: "Eisstadion am Fächerbad", city: "Karlsruhe", address: "Am Fächerbad 4, 76131 Karlsruhe" },
-  { name: "Eishalle Waldau", city: "Stuttgart", address: "Stuttgarter Str. 106, 70469 Stuttgart" },
-  { name: "Heidelberg Ice Arena", city: "Heidelberg", address: "Im Neuenheimer Feld 700, 69120 Heidelberg" },
-  { name: "Eissporthalle Mannheim", city: "Mannheim", address: "Xaver-Fuhr-Str. 63, 68163 Mannheim" },
-  { name: "Eishalle Freiburg", city: "Freiburg", address: "Ensisheimer Str. 9, 79110 Freiburg" },
-  { name: "Ulmer Eishalle", city: "Ulm", address: "Friedrichsau 72, 89073 Ulm" },
-  { name: "Eiszentrum Pforzheim", city: "Pforzheim", address: "Am Wartberg 1, 75175 Pforzheim" },
-  { name: "Kolbenschmidt Arena", city: "Heilbronn", address: "Stuttgarter Str. 130, 74078 Heilbronn" },
-  { name: "Eishalle Reutlingen", city: "Reutlingen", address: "Markwiesenstr. 40, 72770 Reutlingen" },
-  { name: "Tübinger Eispalast", city: "Tübingen", address: "Europastr. 2, 72072 Tübingen" },
+const VENUE_NAMES = [
+  "Eisstadion am Fächerbad, Karlsruhe",
+  "Eishalle Waldau, Stuttgart",
+  "Heidelberg Ice Arena",
+  "Eissporthalle Mannheim",
+  "Eishalle Freiburg",
+  "Ulmer Eishalle",
+  "Eiszentrum Pforzheim",
+  "Kolbenschmidt Arena, Heilbronn",
+  "Eishalle Reutlingen",
+  "Tübinger Eispalast",
 ]
 
 // ---------------------------------------------------------------------------
@@ -749,22 +749,12 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       name: t.name,
       shortName: t.shortName,
       city: t.city,
+      homeVenue: VENUE_NAMES[i] ?? null,
       logoUrl: seedImages.teamLogoUrls[i],
     })),
   })
 
-  // ── 7. Venues ────────────────────────────────────────────────────────
-  console.log("[demo-seed] Seeding 10 venues...")
-  const insertedVenues = await db.venue.createManyAndReturn({
-    data: VENUES.map((v) => ({
-      organizationId: DEMO_ORG_ID,
-      name: v.name,
-      city: v.city,
-      address: v.address,
-    })),
-  })
-
-  // ── 8. Team-Division assignments ─────────────────────────────────────
+  // ── 7. Team-Division assignments ─────────────────────────────────────
   console.log("[demo-seed] Seeding team-division assignments...")
   const tdValues: any[] = []
   for (const seasonDef of seasonStructure) {
@@ -841,7 +831,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
           const slot = eveningSlots[(gameIdx + roundIdx + seasonIdx) % eveningSlots.length]!
           scheduledAt.setUTCHours(slot[0], slot[1], 0, 0)
 
-          const venue = insertedVenues[(seasonIdx + roundIdx * 3 + gameIdx) % insertedVenues.length]!
+          const locationName = VENUE_NAMES[(seasonIdx + roundIdx * 3 + gameIdx) % VENUE_NAMES.length]!
           const isCompleted = scheduledAt.getTime() < now.getTime()
           const scoreSeed = seasonIdx * 10000 + roundIdx * 1000 + gameIdx * 10
 
@@ -850,7 +840,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
             roundId: round.id,
             homeTeamId: fixture.homeTeamId,
             awayTeamId: fixture.awayTeamId,
-            venueId: venue.id,
+            location: locationName,
             scheduledAt,
             status: isCompleted ? "completed" : "scheduled",
             homeScore: isCompleted ? seededInt(scoreSeed + 1, 0, 8) : null,
@@ -1603,7 +1593,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   console.log(`   • ${insertedDivisions.length} divisions`)
   console.log(`   • ${roundValues.length} rounds`)
   console.log(`   • ${insertedTeams.length} teams`)
-  console.log(`   • ${VENUES.length} venues`)
   console.log(`   • ${tdValues.length} team-division assignments`)
   console.log(`   • ${gamesValues.length} games`)
   console.log(`   • ${insertedPlayers.length} players`)

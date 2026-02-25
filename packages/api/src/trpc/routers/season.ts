@@ -315,7 +315,7 @@ export const seasonRouter = router({
         primaryColor: string | null
         contactName: string | null
         website: string | null
-        defaultVenueId: string | null
+        homeVenue: string | null
       }
     }[] = []
 
@@ -344,7 +344,7 @@ export const seasonRouter = router({
               primaryColor: true,
               contactName: true,
               website: true,
-              defaultVenueId: true,
+              homeVenue: true,
             },
           },
         },

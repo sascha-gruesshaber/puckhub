@@ -1,19 +1,27 @@
 import { z } from "zod"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, requireRole, router } from "../init"
 
 export const teamRouter = router({
-  list: orgProcedure.query(async ({ ctx }) => {
-    return ctx.db.team.findMany({
-      where: { organizationId: ctx.organizationId },
-      include: {
-        teamTrikots: {
-          include: { trikot: { include: { template: true } } },
-          take: 1,
+  list: orgProcedure
+    .input(z.object({ seasonId: z.string().uuid().optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const seasonId = input?.seasonId
+      return ctx.db.team.findMany({
+        where: {
+          organizationId: ctx.organizationId,
+          ...(seasonId ? { teamDivisions: { some: { division: { seasonId } } } } : {}),
         },
-      },
-      orderBy: { name: "asc" },
-    })
-  }),
+        include: {
+          teamTrikots: {
+            include: { trikot: { include: { template: true } } },
+            take: 1,
+          },
+        },
+        orderBy: { name: "asc" },
+      })
+    }),
 
   getById: orgProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
     return ctx.db.team.findFirst({
@@ -34,6 +42,7 @@ export const teamRouter = router({
         contactEmail: z.string().email().optional(),
         contactPhone: z.string().optional(),
         website: z.string().url().optional(),
+        homeVenue: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -57,6 +66,7 @@ export const teamRouter = router({
         contactEmail: z.string().email().nullish(),
         contactPhone: z.string().nullish(),
         website: z.string().url().nullish(),
+        homeVenue: z.string().nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -72,6 +82,34 @@ export const teamRouter = router({
 
       if (updateResult.count === 0) return undefined
       return ctx.db.team.findFirst({ where: { id, organizationId: ctx.organizationId } })
+    }),
+
+  /**
+   * Remove a team from all divisions in a specific season.
+   * The team stays in the system but is no longer part of the season structure.
+   */
+  removeFromSeason: orgAdminProcedure
+    .input(z.object({ teamId: z.string().uuid(), seasonId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const season = await ctx.db.season.findFirst({
+        where: { id: input.seasonId, organizationId: ctx.organizationId },
+      })
+      if (!season) throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
+
+      const divisions = await ctx.db.division.findMany({
+        where: { seasonId: input.seasonId, organizationId: ctx.organizationId },
+        select: { id: true },
+      })
+
+      if (divisions.length > 0) {
+        await ctx.db.teamDivision.deleteMany({
+          where: {
+            teamId: input.teamId,
+            divisionId: { in: divisions.map((d) => d.id) },
+            organizationId: ctx.organizationId,
+          },
+        })
+      }
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
