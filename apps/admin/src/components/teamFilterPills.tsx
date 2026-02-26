@@ -1,3 +1,7 @@
+/**
+ * @deprecated Use `FilterDropdown` instead for a more space-efficient filter UI.
+ * This component is only kept for the roster page and will be removed once that is migrated.
+ */
 import { useMemo } from "react"
 import { useTranslation } from "~/i18n/use-translation"
 import { FilterPill } from "./filterPill"

@@ -21,17 +21,17 @@ import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
-import { TeamFilterPills } from "~/components/teamFilterPills"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/sponsors/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
@@ -79,13 +79,13 @@ function SponsorsPage() {
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const teamFilter = team ?? FILTER_ALL
+  const teamFilter = useMemo(() => (team ? team.split(",") : []), [team])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setTeamFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, team: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -104,27 +104,26 @@ function SponsorsPage() {
     { enabled: !!workingSeason?.id },
   )
 
-  // Build list of teams that actually have sponsors assigned (season-scoped)
-  const teamsWithSponsors = useMemo(() => {
+  // Build team filter options from season teams that have sponsors assigned
+  const teamOptions: FilterDropdownOption[] = useMemo(() => {
     if (!sponsors || !seasonTeams) return []
     const seasonTeamIds = new Set(seasonTeams.map((t) => t.id))
     const assignedTeamIds = new Set(sponsors.filter((s) => s.teamId && seasonTeamIds.has(s.teamId)).map((s) => s.teamId))
-    return seasonTeams
+    const opts: FilterDropdownOption[] = seasonTeams
       .filter((t) => assignedTeamIds.has(t.id))
       .map((t) => ({
-        id: t.shortName,
-        name: t.name,
-        shortName: t.shortName,
-        logoUrl: t.logoUrl,
-        city: t.city,
-        primaryColor: t.primaryColor,
+        value: t.shortName,
+        label: t.shortName,
+        icon: t.logoUrl ? (
+          <img src={t.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
+        ) : undefined,
       }))
-  }, [sponsors, seasonTeams])
-
-  const siteWideCount = useMemo(() => {
-    if (!sponsors) return 0
-    return sponsors.filter((s) => !s.teamId).length
-  }, [sponsors])
+    const siteWideCount = sponsors.filter((s) => !s.teamId).length
+    if (siteWideCount > 0) {
+      opts.push({ value: FILTER_SITEWIDE, label: t("sponsorsPage.filters.siteWide") })
+    }
+    return opts
+  }, [sponsors, seasonTeams, t])
 
   const createMutation = trpc.sponsor.create.useMutation({
     onSuccess: () => {
@@ -166,11 +165,11 @@ function SponsorsPage() {
     let result = sponsors
 
     // Team filter
-    if (teamFilter === FILTER_SITEWIDE) {
-      result = result.filter((s) => !s.teamId)
-    } else if (teamFilter !== FILTER_ALL) {
-      // teamFilter is a team shortName
-      result = result.filter((s) => s.team?.shortName === teamFilter)
+    if (teamFilter.length > 0) {
+      result = result.filter((s) => {
+        if (teamFilter.includes(FILTER_SITEWIDE) && !s.teamId) return true
+        return s.team ? teamFilter.includes(s.team.shortName) : false
+      })
     }
 
     // Search filter
@@ -380,22 +379,15 @@ function SponsorsPage() {
         }
         filters={
           isLoading ? (
-            <FilterPillsSkeleton />
-          ) : (
-            <TeamFilterPills
-              teams={teamsWithSponsors}
-              activeFilter={teamFilter}
-              onFilterChange={setTeamFilter}
-              showAll
-              customFilters={
-                siteWideCount > 0
-                  ? [{ id: FILTER_SITEWIDE, label: t("sponsorsPage.filters.siteWide"), count: siteWideCount }]
-                  : []
-              }
-              translationPrefix="sponsorsPage.filters"
-              seasonId={null}
+            <FilterPillsSkeleton count={1} />
+          ) : teamOptions.length > 0 ? (
+            <FilterDropdown
+              label={t("sponsorsPage.filters.allTeams")}
+              options={teamOptions}
+              value={teamFilter}
+              onChange={setTeamFilter}
             />
-          )
+          ) : undefined
         }
         search={{ value: search, onChange: setSearch, placeholder: t("sponsorsPage.searchPlaceholder") }}
         count={
@@ -405,7 +397,7 @@ function SponsorsPage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {teamFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
+                  {teamFilter.length > 0 ? `${filtered.length} / ` : ""}
                   {stats.total}
                 </span>{" "}
                 {t("sponsorsPage.count.total")}
@@ -421,7 +413,7 @@ function SponsorsPage() {
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={5} />
-        ) : filtered.length === 0 && !search && teamFilter === FILTER_ALL ? (
+        ) : filtered.length === 0 && !search && teamFilter.length === 0 ? (
           <EmptyState
             icon={<Handshake className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("sponsorsPage.empty.title")}

@@ -4,6 +4,8 @@ import { BarChart3, RefreshCw } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { FilterPill } from "~/components/filterPill"
 import { PageHeader } from "~/components/pageHeader"
 import { GoalieChart } from "~/components/stats/goalieChart"
@@ -20,7 +22,6 @@ import { TeamComparisonBar } from "~/components/stats/teamComparisonBar"
 import { TeamComparisonRadar, type TeamRadarData } from "~/components/stats/teamComparisonRadar"
 import { TeamComparisonSelector } from "~/components/stats/teamComparisonSelector"
 import { TeamStandingsTable } from "~/components/stats/teamStandingsTable"
-import { FILTER_ALL, TeamFilterPills } from "~/components/teamFilterPills"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 
@@ -41,7 +42,7 @@ function StatsPage() {
   const { tab, team, position, round } = Route.useSearch()
 
   const activeTab = (tab ?? "overview") as StatsTab
-  const teamFilter = team ?? FILTER_ALL
+  const teamFilter = useMemo(() => (team ? [team] : []), [team])
   const positionFilter = position ?? "all"
   const selectedRoundId = round ?? ""
 
@@ -51,7 +52,7 @@ function StatsPage() {
     [navigate],
   )
   const setTeamFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, team: v[0] || undefined }), replace: true }),
     [navigate],
   )
   const setPositionFilter = useCallback(
@@ -74,17 +75,17 @@ function StatsPage() {
   const { data: playerStats, isLoading: playerStatsLoading } = trpc.stats.playerStats.useQuery(
     {
       seasonId,
-      teamId: teamFilter !== FILTER_ALL ? teamFilter : undefined,
+      teamId: teamFilter[0] || undefined,
       position: positionFilter !== "all" ? (positionFilter as "forward" | "defense") : undefined,
     },
     { enabled },
   )
   const { data: goalieStats, isLoading: goalieStatsLoading } = trpc.stats.goalieStats.useQuery(
-    { seasonId, teamId: teamFilter !== FILTER_ALL ? teamFilter : undefined },
+    { seasonId, teamId: teamFilter[0] || undefined },
     { enabled },
   )
   const { data: penaltyStats, isLoading: penaltyStatsLoading } = trpc.stats.penaltyStats.useQuery(
-    { seasonId, teamId: teamFilter !== FILTER_ALL ? teamFilter : undefined },
+    { seasonId, teamId: teamFilter[0] || undefined },
     { enabled },
   )
   const { data: teamPenaltyStats } = trpc.stats.teamPenaltyStats.useQuery({ seasonId }, { enabled })
@@ -112,10 +113,20 @@ function StatsPage() {
   const [comparisonTeamIds, setComparisonTeamIds] = useState<string[]>([])
   const [comparisonChartType, setComparisonChartType] = useState<"radar" | "bar">("bar")
 
-  // Use teams from team.list for filter pills (always populated, unlike playerStats which may be empty)
-  const teamsForFilter = useMemo(() => {
+  // Use teams from team.list for filter dropdown (always populated, unlike playerStats which may be empty)
+  const teamOptions: FilterDropdownOption[] = useMemo(() => {
     if (!teams) return []
-    return teams.map((t) => ({ id: t.id, name: t.name, shortName: t.shortName, logoUrl: t.logoUrl }))
+    return teams.map((t) => ({
+      value: t.id,
+      label: t.shortName,
+      icon: t.logoUrl ? (
+        <img src={t.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
+      ) : (
+        <div className="h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold bg-muted text-muted-foreground">
+          {t.shortName.slice(0, 2).toUpperCase()}
+        </div>
+      ),
+    }))
   }, [teams])
 
   // Auto-select first round when rounds load
@@ -216,19 +227,15 @@ function StatsPage() {
       {showTeamFilter && (
         <div className="flex items-center gap-2 flex-wrap">
           {isLoading ? (
-            <div className="flex gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-8 w-16 rounded-full" />
-              ))}
-            </div>
+            <Skeleton className="h-8 w-32 rounded-full" />
           ) : (
             <>
-              <TeamFilterPills
-                teams={teamsForFilter}
-                activeFilter={teamFilter}
-                onFilterChange={setTeamFilter}
-                showAll
-                translationPrefix="statsPage.filters"
+              <FilterDropdown
+                label={t("statsPage.filters.allTeams")}
+                options={teamOptions}
+                value={teamFilter}
+                onChange={setTeamFilter}
+                singleSelect
               />
               {showPositionFilter && (
                 <>

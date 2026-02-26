@@ -5,6 +5,7 @@ import { dashboardRouter } from "./routers/dashboard"
 import { divisionRouter } from "./routers/division"
 import { gameRouter } from "./routers/game"
 import { gameReportRouter } from "./routers/gameReport"
+import { leagueTransferRouter } from "./routers/leagueTransfer"
 import { newsRouter } from "./routers/news"
 import { organizationRouter } from "./routers/organization"
 import { pageRouter } from "./routers/page"
@@ -36,6 +37,7 @@ export const appRouter = router({
   contract: contractRouter,
   game: gameRouter,
   gameReport: gameReportRouter,
+  leagueTransfer: leagueTransferRouter,
   standings: standingsRouter,
   stats: statsRouter,
   trikotTemplate: trikotTemplateRouter,

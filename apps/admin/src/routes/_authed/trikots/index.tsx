@@ -21,7 +21,8 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
-import { FilterPill } from "~/components/filterPill"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
@@ -31,7 +32,6 @@ import { TrikotPreview } from "~/components/trikotPreview"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/trikots/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; template?: string } => ({
@@ -71,14 +71,13 @@ function TrikotsPage() {
   const { search: searchParam, template } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const templateFilter = template ?? FILTER_ALL
+  const templateFilter = useMemo(() => (template ? template.split(",") : []), [template])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setTemplateFilter = useCallback(
-    (v: string) =>
-      navigate({ search: (prev) => ({ ...prev, template: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, template: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -190,8 +189,8 @@ function TrikotsPage() {
     return templateName
   }
 
-  // Distinct templates used by trikots (for filter pills)
-  const usedTemplates = useMemo(() => {
+  // Distinct templates used by trikots (for filter dropdown)
+  const templateOptions: FilterDropdownOption[] = useMemo(() => {
     if (!trikots) return []
     const map = new Map<
       string,
@@ -207,7 +206,10 @@ function TrikotsPage() {
         })
       }
     }
-    return [...map.values()]
+    return [...map.values()].map((tmpl) => ({
+      value: tmpl.id,
+      label: getTemplateLabel(tmpl.name, tmpl.templateType, tmpl.colorCount),
+    }))
   }, [trikots])
 
   const filtered = useMemo(() => {
@@ -216,8 +218,8 @@ function TrikotsPage() {
     let result = trikots
 
     // Template filter
-    if (templateFilter !== FILTER_ALL) {
-      result = result.filter((t) => t.template.id === templateFilter)
+    if (templateFilter.length > 0) {
+      result = result.filter((t) => templateFilter.includes(t.template.id))
     }
 
     // Search filter
@@ -343,23 +345,14 @@ function TrikotsPage() {
         }
         filters={
           isLoading ? (
-            <FilterPillsSkeleton count={3} />
-          ) : usedTemplates.length > 1 ? (
-            <>
-              <FilterPill
-                label={t("trikotsPage.filters.all")}
-                active={templateFilter === FILTER_ALL}
-                onClick={() => setTemplateFilter(FILTER_ALL)}
-              />
-              {usedTemplates.map((tmpl) => (
-                <FilterPill
-                  key={tmpl.id}
-                  label={getTemplateLabel(tmpl.name, tmpl.templateType, tmpl.colorCount)}
-                  active={templateFilter === tmpl.id}
-                  onClick={() => setTemplateFilter(tmpl.id)}
-                />
-              ))}
-            </>
+            <FilterPillsSkeleton count={1} />
+          ) : templateOptions.length > 1 ? (
+            <FilterDropdown
+              label={t("trikotsPage.filters.all")}
+              options={templateOptions}
+              value={templateFilter}
+              onChange={setTemplateFilter}
+            />
           ) : undefined
         }
         search={{ value: search, onChange: setSearch, placeholder: t("trikotsPage.searchPlaceholder") }}
@@ -370,7 +363,7 @@ function TrikotsPage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {templateFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
+                  {templateFilter.length > 0 ? `${filtered.length} / ` : ""}
                   {trikots?.length ?? 0}
                 </span>{" "}
                 {t("trikotsPage.count.trikots")}
@@ -387,7 +380,7 @@ function TrikotsPage() {
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={5} />
-        ) : filtered.length === 0 && !search && templateFilter === FILTER_ALL ? (
+        ) : filtered.length === 0 && !search && templateFilter.length === 0 ? (
           <EmptyState
             icon={<Shirt className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("trikotsPage.empty.title")}

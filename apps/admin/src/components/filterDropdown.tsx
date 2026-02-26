@@ -14,10 +14,12 @@ interface FilterDropdownProps {
   options: FilterDropdownOption[]
   value: string[]
   onChange: (selected: string[]) => void
+  /** When true, only one option can be selected at a time (radio behaviour). */
+  singleSelect?: boolean
   className?: string
 }
 
-function FilterDropdown({ label, options, value, onChange, className }: FilterDropdownProps) {
+function FilterDropdown({ label, options, value, onChange, singleSelect, className }: FilterDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -33,12 +35,16 @@ function FilterDropdown({ label, options, value, onChange, className }: FilterDr
 
   const toggleValue = useCallback(
     (optionValue: string) => {
-      const next = value.includes(optionValue)
-        ? value.filter((v) => v !== optionValue)
-        : [...value, optionValue]
-      onChange(next)
+      if (singleSelect) {
+        onChange(value.includes(optionValue) ? [] : [optionValue])
+      } else {
+        const next = value.includes(optionValue)
+          ? value.filter((v) => v !== optionValue)
+          : [...value, optionValue]
+        onChange(next)
+      }
     },
-    [value, onChange],
+    [value, onChange, singleSelect],
   )
 
   const clearSelection = useCallback(
@@ -146,7 +152,7 @@ function FilterDropdown({ label, options, value, onChange, className }: FilterDr
         <div
           ref={listRef}
           role="listbox"
-          aria-multiselectable="true"
+          aria-multiselectable={!singleSelect}
           className="absolute top-full left-0 z-50 mt-1.5 min-w-[200px] max-h-[280px] overflow-y-auto rounded-lg border border-border bg-white shadow-lg"
           onKeyDown={handleKeyDown}
         >
@@ -169,13 +175,20 @@ function FilterDropdown({ label, options, value, onChange, className }: FilterDr
                 >
                   <div
                     className={cn(
-                      "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+                      "flex h-4 w-4 shrink-0 items-center justify-center transition-colors",
+                      singleSelect ? "rounded-full border-2" : "rounded border",
                       isSelected
-                        ? "border-primary bg-primary text-primary-foreground"
+                        ? singleSelect
+                          ? "border-primary"
+                          : "border-primary bg-primary text-primary-foreground"
                         : "border-border",
                     )}
                   >
-                    {isSelected && <Check className="h-3 w-3" />}
+                    {isSelected && (
+                      singleSelect
+                        ? <div className="h-2 w-2 rounded-full bg-primary" />
+                        : <Check className="h-3 w-3" />
+                    )}
                   </div>
                   {option.icon && <span className="shrink-0">{option.icon}</span>}
                   <span className="truncate">{option.label}</span>

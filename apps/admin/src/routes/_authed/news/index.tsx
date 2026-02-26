@@ -6,7 +6,8 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
-import { FilterPill } from "~/components/filterPill"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
@@ -14,7 +15,6 @@ import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/news/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; year?: string } => ({
@@ -34,13 +34,13 @@ function NewsPage() {
   const { search: searchParam, year } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const yearFilter = year ?? FILTER_ALL
+  const yearFilter = useMemo(() => (year ? year.split(",") : []), [year])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setYearFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, year: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, year: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -62,14 +62,14 @@ function NewsPage() {
   })
 
   // Extract distinct years from articles
-  const years = useMemo(() => {
+  const yearOptions: FilterDropdownOption[] = useMemo(() => {
     if (!articles) return []
     const yearSet = new Set<number>()
     for (const a of articles) {
       const d = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
       yearSet.add(d.getFullYear())
     }
-    return [...yearSet].sort((a, b) => b - a)
+    return [...yearSet].sort((a, b) => b - a).map((y) => ({ value: String(y), label: String(y) }))
   }, [articles])
 
   const filtered = useMemo(() => {
@@ -78,11 +78,10 @@ function NewsPage() {
     let result = articles
 
     // Year filter
-    if (yearFilter !== FILTER_ALL) {
-      const y = Number(yearFilter)
+    if (yearFilter.length > 0) {
       result = result.filter((a) => {
         const d = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
-        return d.getFullYear() === y
+        return yearFilter.includes(String(d.getFullYear()))
       })
     }
 
@@ -136,23 +135,14 @@ function NewsPage() {
         }
         filters={
           isLoading ? (
-            <FilterPillsSkeleton count={3} />
-          ) : years.length > 1 ? (
-            <>
-              <FilterPill
-                label={t("newsPage.filters.all")}
-                active={yearFilter === FILTER_ALL}
-                onClick={() => setYearFilter(FILTER_ALL)}
-              />
-              {years.map((y) => (
-                <FilterPill
-                  key={y}
-                  label={String(y)}
-                  active={yearFilter === String(y)}
-                  onClick={() => setYearFilter(String(y))}
-                />
-              ))}
-            </>
+            <FilterPillsSkeleton count={1} />
+          ) : yearOptions.length > 1 ? (
+            <FilterDropdown
+              label={t("newsPage.filters.all")}
+              options={yearOptions}
+              value={yearFilter}
+              onChange={setYearFilter}
+            />
           ) : undefined
         }
         search={{ value: search, onChange: setSearch, placeholder: t("newsPage.searchPlaceholder") }}
@@ -163,7 +153,7 @@ function NewsPage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {yearFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
+                  {yearFilter.length > 0 ? `${filtered.length} / ` : ""}
                   {stats.total}
                 </span>{" "}
                 {t("newsPage.count.total")}
@@ -192,7 +182,7 @@ function NewsPage() {
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={5} showIcon={false} />
-        ) : filtered.length === 0 && !search && yearFilter === FILTER_ALL ? (
+        ) : filtered.length === 0 && !search && yearFilter.length === 0 ? (
           <EmptyState
             icon={<Newspaper className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("newsPage.empty.title")}

@@ -20,20 +20,19 @@ import { trpc } from "@/trpc"
 import { RemoveDialog } from "~/components/removeDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { PlayerHoverCard } from "~/components/playerHoverCard"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
-import { FilterPill } from "~/components/filterPill"
-import { TeamFilterPills } from "~/components/teamFilterPills"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/players/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; team?: string } => ({
@@ -75,13 +74,13 @@ function PlayersPage() {
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const teamFilter = team ?? FILTER_ALL
+  const teamFilter = useMemo(() => (team ? team.split(",") : []), [team])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setTeamFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, team: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, team: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -108,19 +107,34 @@ function PlayersPage() {
     { enabled: !!workingSeason?.id },
   )
 
-  // Only show season teams that actually have players assigned
-  const teamsForFilter = useMemo(() => {
-    if (!players || !seasonTeams) return []
-    const teamIdsWithPlayers = new Set(players.filter((p) => p.currentTeam).map((p) => p.currentTeam!.id))
-    return seasonTeams
-      .filter((t) => teamIdsWithPlayers.has(t.id))
-      .map((t) => ({ id: t.id, name: t.name, shortName: t.shortName, logoUrl: t.logoUrl }))
-  }, [players, seasonTeams])
-
   const unassignedCount = useMemo(() => {
     if (!players) return 0
     return players.filter((p) => !p.currentTeam).length
   }, [players])
+
+  // Build team filter options from season teams that have players
+  const teamOptions: FilterDropdownOption[] = useMemo(() => {
+    if (!players || !seasonTeams) return []
+    const teamIdsWithPlayers = new Set(players.filter((p) => p.currentTeam).map((p) => p.currentTeam!.id))
+    const opts: FilterDropdownOption[] = seasonTeams
+      .filter((t) => teamIdsWithPlayers.has(t.id))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((t) => ({
+        value: t.id,
+        label: t.shortName,
+        icon: t.logoUrl ? (
+          <img src={t.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
+        ) : (
+          <div className="h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold bg-muted text-muted-foreground">
+            {t.shortName.slice(0, 2).toUpperCase()}
+          </div>
+        ),
+      }))
+    if (unassignedCount > 0) {
+      opts.push({ value: FILTER_UNASSIGNED, label: t("playersPage.filters.unassigned") })
+    }
+    return opts
+  }, [players, seasonTeams, unassignedCount, t])
 
   const createMutation = trpc.player.create.useMutation({
     onSuccess: () => {
@@ -174,10 +188,11 @@ function PlayersPage() {
     let result = players
 
     // Team / contract filter
-    if (teamFilter === FILTER_UNASSIGNED) {
-      result = result.filter((p) => !p.currentTeam)
-    } else if (teamFilter !== FILTER_ALL) {
-      result = result.filter((p) => p.currentTeam?.id === teamFilter)
+    if (teamFilter.length > 0) {
+      result = result.filter((p) => {
+        if (teamFilter.includes(FILTER_UNASSIGNED) && !p.currentTeam) return true
+        return p.currentTeam ? teamFilter.includes(p.currentTeam.id) : false
+      })
     } else {
       // "All" — only contracted players
       result = result.filter((p) => p.currentTeam)
@@ -198,9 +213,9 @@ function PlayersPage() {
     return result
   }, [players, search, teamFilter])
 
-  // Group by team when "All" is active
+  // Group by team when no filter is active (= "All")
   const grouped = useMemo(() => {
-    if (teamFilter !== FILTER_ALL) return null
+    if (teamFilter.length > 0) return null
     if (!filtered.length) return null
 
     const map = new Map<
@@ -392,7 +407,7 @@ function PlayersPage() {
         </div>
 
         {/* Team badge (shown when not grouped) */}
-        {teamFilter !== FILTER_ALL && (
+        {teamFilter.length > 0 && (
           <div className="w-20 shrink-0 hidden md:block">
             {player.currentTeam ? (
               <TeamHoverCard
@@ -471,29 +486,15 @@ function PlayersPage() {
         }
         filters={
           isLoading ? (
-            <FilterPillsSkeleton count={5} />
-          ) : (
-            <>
-              <TeamFilterPills
-                teams={teamsForFilter}
-                activeFilter={teamFilter}
-                onFilterChange={setTeamFilter}
-                showAll
-                translationPrefix="playersPage.filters"
-                seasonId={workingSeason?.id}
-              />
-              {unassignedCount > 0 && (
-                <>
-                  <div className="h-5 w-px bg-border mx-1" />
-                  <FilterPill
-                    label={`${t("playersPage.filters.unassigned")} (${unassignedCount})`}
-                    active={teamFilter === FILTER_UNASSIGNED}
-                    onClick={() => setTeamFilter(FILTER_UNASSIGNED)}
-                  />
-                </>
-              )}
-            </>
-          )
+            <FilterPillsSkeleton count={1} />
+          ) : teamOptions.length > 0 ? (
+            <FilterDropdown
+              label={t("playersPage.filters.allTeams")}
+              options={teamOptions}
+              value={teamFilter}
+              onChange={setTeamFilter}
+            />
+          ) : undefined
         }
         search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
         count={
@@ -503,7 +504,7 @@ function PlayersPage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {teamFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
+                  {teamFilter.length > 0 ? `${filtered.length} / ` : ""}
                   {(players?.length ?? 0) - unassignedCount}
                 </span>{" "}
                 {t("playersPage.count.players")}
@@ -515,7 +516,7 @@ function PlayersPage() {
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={8} />
-        ) : filtered.length === 0 && !search && teamFilter === FILTER_ALL ? (
+        ) : filtered.length === 0 && !search && teamFilter.length === 0 ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("playersPage.empty.noPlayersTitle")}

@@ -20,7 +20,8 @@ import { trpc } from "@/trpc"
 import { RemoveDialog } from "~/components/removeDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
-import { FilterPill } from "~/components/filterPill"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
@@ -32,7 +33,6 @@ import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/teams/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; division?: string } => ({
@@ -84,14 +84,13 @@ function TeamsPage() {
   const { search: searchParam, division } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const divisionFilter = division ?? FILTER_ALL
+  const divisionFilter = useMemo(() => (division ? division.split(",") : []), [division])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setDivisionFilter = useCallback(
-    (v: string) =>
-      navigate({ search: (prev) => ({ ...prev, division: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, division: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -247,16 +246,26 @@ function TeamsPage() {
     })
   }
 
+  const divisionOptions: FilterDropdownOption[] = useMemo(() => {
+    const opts: FilterDropdownOption[] = divisions.map((d) => ({ value: d.id, label: d.name }))
+    if (unassignedCount > 0) {
+      opts.push({ value: FILTER_UNASSIGNED, label: t("teamsPage.filters.unassigned") })
+    }
+    return opts
+  }, [divisions, unassignedCount, t])
+
   const filtered = useMemo(() => {
     if (!allTeams) return []
 
     let result = allTeams
 
     // Division / season filter
-    if (divisionFilter === FILTER_UNASSIGNED) {
-      result = result.filter((t) => !seasonTeamIds.has(t.id))
-    } else if (divisionFilter !== FILTER_ALL) {
-      result = result.filter((t) => teamDivisionMap.get(t.id)?.has(divisionFilter))
+    if (divisionFilter.length > 0) {
+      result = result.filter((t) => {
+        if (divisionFilter.includes(FILTER_UNASSIGNED) && !seasonTeamIds.has(t.id)) return true
+        const teamDivs = teamDivisionMap.get(t.id)
+        return teamDivs ? divisionFilter.some((dId) => teamDivs.has(dId)) : false
+      })
     } else {
       // "All active" — only teams in the current season
       result = result.filter((t) => seasonTeamIds.has(t.id))
@@ -392,33 +401,14 @@ function TeamsPage() {
         }
         filters={
           isLoading ? (
-            <FilterPillsSkeleton />
-          ) : divisions.length > 0 ? (
-            <>
-              <FilterPill
-                label={t("teamsPage.filters.all")}
-                active={divisionFilter === FILTER_ALL}
-                onClick={() => setDivisionFilter(FILTER_ALL)}
-              />
-              {divisions.map((d) => (
-                <FilterPill
-                  key={d.id}
-                  label={d.name}
-                  active={divisionFilter === d.id}
-                  onClick={() => setDivisionFilter(d.id)}
-                />
-              ))}
-              {unassignedCount > 0 && (
-                <>
-                  <div className="h-5 w-px bg-border mx-1" />
-                  <FilterPill
-                    label={t("teamsPage.filters.unassigned")}
-                    active={divisionFilter === FILTER_UNASSIGNED}
-                    onClick={() => setDivisionFilter(FILTER_UNASSIGNED)}
-                  />
-                </>
-              )}
-            </>
+            <FilterPillsSkeleton count={1} />
+          ) : divisionOptions.length > 0 ? (
+            <FilterDropdown
+              label={t("teamsPage.filters.all")}
+              options={divisionOptions}
+              value={divisionFilter}
+              onChange={setDivisionFilter}
+            />
           ) : undefined
         }
         search={{ value: search, onChange: setSearch, placeholder: t("teamsPage.searchPlaceholder") }}
@@ -429,7 +419,7 @@ function TeamsPage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {divisionFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
+                  {divisionFilter.length > 0 ? `${filtered.length} / ` : ""}
                   {stats.inSeason}
                 </span>{" "}
                 {t("teamsPage.count.teams")}
@@ -463,7 +453,7 @@ function TeamsPage() {
             title={t("teamsPage.empty.noSeasonTitle")}
             description={t("teamsPage.empty.noSeasonDescription")}
           />
-        ) : filtered.length === 0 && !search && divisionFilter === FILTER_ALL && seasonTeamIds.size === 0 ? (
+        ) : filtered.length === 0 && !search && divisionFilter.length === 0 && seasonTeamIds.size === 0 ? (
           <EmptyState
             icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("teamsPage.empty.noAssignmentsTitle")}

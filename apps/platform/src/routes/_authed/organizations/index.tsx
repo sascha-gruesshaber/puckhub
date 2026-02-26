@@ -12,8 +12,8 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Check, Copy, ExternalLink, Plus, Trash2 } from "lucide-react"
-import { useState } from "react"
+import { Building2, Check, Copy, Download, ExternalLink, Loader2, Plus, Trash2, Upload } from "lucide-react"
+import { useRef, useState } from "react"
 import { trpc } from "@/trpc"
 
 export const Route = createFileRoute("/_authed/organizations/")({
@@ -46,6 +46,15 @@ function OrganizationsPage() {
     password: string
   }>({ open: false, email: "", password: "" })
   const [copied, setCopied] = useState(false)
+
+  // Export state
+  const [exportingOrgId, setExportingOrgId] = useState<string | null>(null)
+
+  // Import state
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
+  const [importData, setImportData] = useState<any>(null)
+  const [importFileName, setImportFileName] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const utils = trpc.useUtils()
   const createMutation = trpc.organization.create.useMutation({
@@ -82,6 +91,19 @@ function OrganizationsPage() {
       window.open("http://localhost:3000", "_blank")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
+  const importMutation = trpc.leagueTransfer.importLeague.useMutation({
+    onSuccess: (result) => {
+      utils.organization.listAll.invalidate()
+      setImportDialogOpen(false)
+      setImportData(null)
+      setImportFileName("")
+      toast.success("League imported", {
+        description: `"${result.organizationName}" imported successfully`,
+      })
+    },
+    onError: (err) => toast.error("Import failed", { description: err.message }),
   })
 
   function setField<K extends keyof OrgForm>(key: K, value: string) {
@@ -130,6 +152,64 @@ function OrganizationsPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function handleExport(orgId: string, orgName: string) {
+    setExportingOrgId(orgId)
+    try {
+      const data = await utils.leagueTransfer.exportLeague.fetch({ organizationId: orgId })
+      const json = JSON.stringify(data, null, 2)
+      const blob = new Blob([json], { type: "application/json" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      const date = new Date().toISOString().slice(0, 10)
+      const safeName = orgName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+      a.href = url
+      a.download = `puckhub-${safeName}-${date}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success("Export downloaded", { description: `${orgName} exported successfully` })
+    } catch (err: any) {
+      toast.error("Export failed", { description: err.message })
+    } finally {
+      setExportingOrgId(null)
+    }
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImportFileName(file.name)
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string)
+        setImportData(parsed)
+        setImportDialogOpen(true)
+      } catch {
+        toast.error("Invalid file", { description: "The selected file is not valid JSON" })
+      }
+    }
+    reader.readAsText(file)
+    // Reset input so the same file can be selected again
+    e.target.value = ""
+  }
+
+  function handleImportConfirm() {
+    if (!importData) return
+    importMutation.mutate({ data: importData })
+  }
+
+  // Compute import summary for display
+  const importSummary = importData
+    ? {
+        name: importData.organization?.name ?? "Unknown",
+        seasons: importData.seasons?.length ?? 0,
+        teams: importData.teams?.length ?? 0,
+        players: importData.players?.length ?? 0,
+        games: importData.games?.length ?? 0,
+      }
+    : null
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -137,11 +217,20 @@ function OrganizationsPage() {
           <h1 className="text-2xl font-bold text-foreground">Leagues</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage all leagues</p>
         </div>
-        <Button variant="accent" onClick={() => setDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New League
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import League
+          </Button>
+          <Button variant="accent" onClick={() => setDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New League
+          </Button>
+        </div>
       </div>
+
+      {/* Hidden file input for import */}
+      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleFileSelect} />
 
       {isLoading ? (
         <div className="space-y-3 animate-pulse">
@@ -203,6 +292,22 @@ function OrganizationsPage() {
               >
                 <ExternalLink className="h-3.5 w-3.5 md:mr-1.5" />
                 <span className="hidden md:inline">Login to league</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-8 px-2 md:px-3"
+                onClick={() => handleExport(org.id, org.name)}
+                disabled={exportingOrgId === org.id}
+                title="Export league"
+                aria-label="Export league"
+              >
+                {exportingOrgId === org.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin md:mr-1.5" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 md:mr-1.5" />
+                )}
+                <span className="hidden md:inline">{exportingOrgId === org.id ? "Exporting..." : "Export"}</span>
               </Button>
               <Button
                 variant="ghost"
@@ -361,6 +466,76 @@ function OrganizationsPage() {
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import League Dialog */}
+      <Dialog
+        open={importDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && !importMutation.isPending) {
+            setImportDialogOpen(false)
+            setImportData(null)
+            setImportFileName("")
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogClose
+            onClick={() => {
+              if (!importMutation.isPending) {
+                setImportDialogOpen(false)
+                setImportData(null)
+                setImportFileName("")
+              }
+            }}
+          />
+          <DialogHeader>
+            <DialogTitle>Import League</DialogTitle>
+            <DialogDescription>
+              Import a league from an export file. This will create a new league with all data from the backup.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importSummary && (
+            <div className="p-6 pt-2 space-y-4">
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2">
+                <p className="text-sm font-medium">File: {importFileName}</p>
+                <p className="text-sm font-semibold text-foreground">{importSummary.name}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <span>Seasons: {importSummary.seasons}</span>
+                  <span>Teams: {importSummary.teams}</span>
+                  <span>Players: {importSummary.players}</span>
+                  <span>Games: {importSummary.games}</span>
+                </div>
+              </div>
+
+              <DialogFooter className="p-0 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={importMutation.isPending}
+                  onClick={() => {
+                    setImportDialogOpen(false)
+                    setImportData(null)
+                    setImportFileName("")
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button variant="accent" disabled={importMutation.isPending} onClick={handleImportConfirm}>
+                  {importMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    "Import"
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

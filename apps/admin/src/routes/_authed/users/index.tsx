@@ -21,7 +21,8 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
-import { FilterPill } from "~/components/filterPill"
+import { FilterDropdown } from "~/components/filterDropdown"
+import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
@@ -29,7 +30,6 @@ import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/users/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; role?: string } => ({
@@ -123,13 +123,13 @@ function UsersPage() {
   const { search: searchParam, role } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const roleFilter = role ?? FILTER_ALL
+  const roleFilter = useMemo(() => (role ? role.split(",") : []), [role])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setRoleFilter = useCallback(
-    (v: string) => navigate({ search: (prev) => ({ ...prev, role: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, role: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -242,15 +242,32 @@ function UsersPage() {
     return counts
   }, [users])
 
+  const roleOptions: FilterDropdownOption[] = useMemo(
+    () =>
+      ORG_ROLES.filter((r) => roleCounts.has(r)).map((r) => ({
+        value: r,
+        label: `${getRoleLabel(r)} (${roleCounts.get(r) || 0})`,
+        icon: (
+          <span
+            className="flex h-5 w-5 items-center justify-center rounded-full shrink-0"
+            style={{ background: ROLE_META[r].bgColor, color: ROLE_META[r].color }}
+          >
+            {ROLE_META[r].icon}
+          </span>
+        ),
+      })),
+    [roleCounts, getRoleLabel],
+  )
+
   const filtered = useMemo(() => {
     if (!users) return []
     let result = users
 
     // Role filter (check memberRoles)
-    if (roleFilter !== FILTER_ALL) {
+    if (roleFilter.length > 0) {
       result = result.filter((u) => {
         const roles = (u as any).memberRoles as MemberRoleEntry[] | undefined
-        return roles?.some((r) => r.role === roleFilter) ?? false
+        return roles?.some((r) => roleFilter.includes(r.role)) ?? false
       })
     }
 
@@ -404,31 +421,14 @@ function UsersPage() {
         }
         filters={
           isLoading ? (
-            <FilterPillsSkeleton count={4} />
+            <FilterPillsSkeleton count={1} />
           ) : (
-            <>
-              <FilterPill
-                label={t("usersPage.filters.all")}
-                active={roleFilter === FILTER_ALL}
-                onClick={() => setRoleFilter(FILTER_ALL)}
-              />
-              {ORG_ROLES.filter((r) => roleCounts.has(r)).map((r) => (
-                <FilterPill
-                  key={r}
-                  label={`${getRoleLabel(r)} (${roleCounts.get(r) || 0})`}
-                  active={roleFilter === r}
-                  onClick={() => setRoleFilter(r)}
-                  icon={
-                    <span
-                      className="flex h-5 w-5 items-center justify-center rounded-full shrink-0"
-                      style={{ background: ROLE_META[r].bgColor, color: ROLE_META[r].color }}
-                    >
-                      {ROLE_META[r].icon}
-                    </span>
-                  }
-                />
-              ))}
-            </>
+            <FilterDropdown
+              label={t("usersPage.filters.all")}
+              options={roleOptions}
+              value={roleFilter}
+              onChange={setRoleFilter}
+            />
           )
         }
         search={{ value: search, onChange: setSearch, placeholder: t("usersPage.searchPlaceholder") }}
@@ -439,7 +439,7 @@ function UsersPage() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">
-                  {roleFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
+                  {roleFilter.length > 0 ? `${filtered.length} / ` : ""}
                   {users?.length ?? 0}
                 </span>{" "}
                 {t("usersPage.count.members")}
@@ -451,7 +451,7 @@ function UsersPage() {
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={5} />
-        ) : filtered.length === 0 && !search && roleFilter === FILTER_ALL ? (
+        ) : filtered.length === 0 && !search && roleFilter.length === 0 ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("usersPage.empty.title")}
