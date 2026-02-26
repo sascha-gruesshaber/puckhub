@@ -50,7 +50,7 @@ const SEASON_ORDER = [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 17, 16, 18, 19, 20
 
 const BATCH_SIZE = 500
 
-// packages/db/src/migration/ → 4 levels up to monorepo root
+// packages/db/src/eal-migration/ → 4 levels up to monorepo root
 const MONOREPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
 const LEGACY_IMAGES_DIR = join(MONOREPO_ROOT, '_legacy', 'src', 'frontend', 'imgs', 'teams')
 const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, 'uploads'))

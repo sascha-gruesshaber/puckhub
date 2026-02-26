@@ -9,15 +9,15 @@ import { platformAdminProcedure, router } from "../init"
 
 export const leagueTransferRouter = router({
   exportLeague: platformAdminProcedure
-    .input(z.object({ organizationId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().min(1) }))
     .query(async ({ ctx, input }) => {
       return buildLeagueExport(ctx.db, input.organizationId)
     }),
 
   importLeague: platformAdminProcedure
-    .input(z.object({ data: leagueExportSchema }))
+    .input(z.object({ data: leagueExportSchema, name: z.string().min(1).optional() }))
     .mutation(async ({ ctx, input }) => {
-      return importLeagueData(ctx.db, input.data, ctx.user.id)
+      return importLeagueData(ctx.db, input.data, ctx.user.id, { name: input.name })
     }),
 
   validateImport: platformAdminProcedure

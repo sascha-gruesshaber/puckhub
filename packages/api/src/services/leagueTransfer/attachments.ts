@@ -31,9 +31,10 @@ export const IMAGE_FIELDS: Record<string, string[]> = {
   document: ["fileUrl"],
 }
 
-// Resolve a URL like /api/uploads/orgId/logo/abc.webp to a filesystem path
+// Resolve a URL like /api/uploads/orgId/logo/abc.webp to a filesystem path.
+// Handles both relative (/api/uploads/...) and absolute (http://host/api/uploads/...) URLs.
 function urlToFilePath(url: string): string | null {
-  const match = url.match(/^\/api\/uploads\/(.+)$/)
+  const match = url.match(/\/api\/uploads\/(.+)$/)
   if (!match) return null
   return path.join(UPLOAD_DIR, match[1]!)
 }

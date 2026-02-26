@@ -14,7 +14,7 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 ## Prisma Schema
 
 - Enums: 9 (`RoundType`, `Position`, `GameStatus`, `GameEventType`, `NewsStatus`, `PageStatus`, `MenuLocation`, `TrikotTemplateType`, `OrgRole`)
-- Models: 37 (auth, organization, core league, stats, CMS, trikot domain)
+- Models: 36 (auth, organization, core league, stats, CMS, trikot domain)
 - Most app tables are organization-scoped via `organizationId`
 - Naming convention uses `@@map`/`@map` to keep DB snake_case while code stays camelCase
 
@@ -35,6 +35,7 @@ pnpm db:studio          # Prisma Studio
 - API startup calls `runMigrations(db)` and `runSeed(db)` when `AUTO_MIGRATE` is enabled.
 - `runSeed` (`src/seed/index.ts`) is idempotent reference seeding (penalty types + trikot templates).
 - Demo data flow lives in `src/seed/demoSeed.ts` and is separate from reference seeding.
+- Image seeding logic in `src/seed/seedImages.ts` handles logo/photo uploads during demo seeding.
 
 ## Main Exports
 

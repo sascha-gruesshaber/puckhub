@@ -22,8 +22,8 @@
     "db:seed": "tsx src/seed/run.ts",
     "db:reset": "tsx src/seed/reset.ts",
     "db:studio": "prisma studio",
-    "db:migrate:legacy": "tsx src/migration/run.ts",
-    "db:migrate:legacy:analyze": "tsx src/migration/run.ts --analyze-only"
+    "db:migrate:eal": "tsx src/eal-migration/run.ts",
+    "db:migrate:eal:analyze": "tsx src/eal-migration/run.ts --analyze-only"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

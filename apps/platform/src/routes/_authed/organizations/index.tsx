@@ -54,6 +54,7 @@ function OrganizationsPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false)
   const [importData, setImportData] = useState<any>(null)
   const [importFileName, setImportFileName] = useState("")
+  const [importName, setImportName] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const utils = trpc.useUtils()
@@ -99,6 +100,7 @@ function OrganizationsPage() {
       setImportDialogOpen(false)
       setImportData(null)
       setImportFileName("")
+      setImportName("")
       toast.success("League imported", {
         description: `"${result.organizationName}" imported successfully`,
       })
@@ -184,6 +186,7 @@ function OrganizationsPage() {
       try {
         const parsed = JSON.parse(ev.target?.result as string)
         setImportData(parsed)
+        setImportName(parsed.organization?.name ?? "")
         setImportDialogOpen(true)
       } catch {
         toast.error("Invalid file", { description: "The selected file is not valid JSON" })
@@ -196,7 +199,12 @@ function OrganizationsPage() {
 
   function handleImportConfirm() {
     if (!importData) return
-    importMutation.mutate({ data: importData })
+    const trimmed = importName.trim()
+    const originalName = importData.organization?.name ?? ""
+    importMutation.mutate({
+      data: importData,
+      ...(trimmed && trimmed !== originalName ? { name: trimmed } : {}),
+    })
   }
 
   // Compute import summary for display
@@ -477,6 +485,7 @@ function OrganizationsPage() {
             setImportDialogOpen(false)
             setImportData(null)
             setImportFileName("")
+            setImportName("")
           }
         }}
       >
@@ -487,6 +496,7 @@ function OrganizationsPage() {
                 setImportDialogOpen(false)
                 setImportData(null)
                 setImportFileName("")
+                setImportName("")
               }
             }}
           />
@@ -501,7 +511,6 @@ function OrganizationsPage() {
             <div className="p-6 pt-2 space-y-4">
               <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-2">
                 <p className="text-sm font-medium">File: {importFileName}</p>
-                <p className="text-sm font-semibold text-foreground">{importSummary.name}</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span>Seasons: {importSummary.seasons}</span>
                   <span>Teams: {importSummary.teams}</span>
@@ -509,6 +518,14 @@ function OrganizationsPage() {
                   <span>Games: {importSummary.games}</span>
                 </div>
               </div>
+
+              <FormField label="League Name">
+                <Input
+                  value={importName}
+                  onChange={(e) => setImportName(e.target.value)}
+                  placeholder="League name"
+                />
+              </FormField>
 
               <DialogFooter className="p-0 pt-2">
                 <Button
@@ -519,6 +536,7 @@ function OrganizationsPage() {
                     setImportDialogOpen(false)
                     setImportData(null)
                     setImportFileName("")
+                    setImportName("")
                   }}
                 >
                   Cancel

@@ -1,8 +1,9 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
 import { Building2, Clock, LayoutDashboard, Users } from "lucide-react"
 import { Suspense } from "react"
 import { TopBar } from "~/components/topBar"
 import { useSession } from "@/auth-client"
+import { trpc } from "@/trpc"
 
 export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
@@ -50,6 +51,20 @@ function AuthedLayout() {
         </div>
       </div>
     )
+  }
+
+  return <MustChangePasswordGate />
+}
+
+function MustChangePasswordGate() {
+  const { data: me, isLoading: meLoading } = trpc.users.me.useQuery()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  // Redirect to /profile if password change is required (unless already there)
+  if (!meLoading && me?.mustChangePassword && location.pathname !== "/profile") {
+    navigate({ to: "/profile" })
+    return null
   }
 
   return (

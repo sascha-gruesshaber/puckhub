@@ -31,6 +31,7 @@ export async function ensureDefaultUser(): Promise<void> {
       name: "Admin",
       emailVerified: true,
       role: "admin",
+      mustChangePassword: true,
     },
   })
 

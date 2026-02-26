@@ -135,6 +135,7 @@ export const organizationRouter = router({
               email: input.ownerEmail,
               name: input.ownerName,
               emailVerified: true,
+              mustChangePassword: true,
             },
           })
 

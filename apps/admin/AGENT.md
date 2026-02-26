@@ -2,15 +2,15 @@
 
 TanStack Start (React 19) admin application with Vite 7, file-based routing, tRPC integration, and i18n (DE/EN).
 
-## Route Structure (27 routes)
+## Route Structure (26 routes)
 
 ```
 src/routes/
 ├── __root.tsx              # Root layout (providers, fonts)
 ├── login.tsx               # Public login page
-├── setup.tsx               # First-time setup wizard
-└── _authed.tsx             # Protected layout (sidebar, session check, season context)
+└── _authed.tsx             # Protected layout (sidebar, session check, season/org context)
     ├── index.tsx           # Dashboard
+    ├── profile.tsx         # User profile settings
     ├── settings.tsx        # League settings
     ├── security.tsx        # Security settings (passkey, 2FA)
     ├── standings.tsx       # Standings view
@@ -23,7 +23,6 @@ src/routes/
     ├── teams/index.tsx     # Teams
     ├── players/index.tsx   # Players list
     ├── players/$playerId/history.tsx    # Player timeline
-    ├── venues/index.tsx    # Venues management
     ├── trikots/index.tsx   # Jersey management
     ├── news/index.tsx      # News list
     ├── news/new.tsx        # Create news article
@@ -32,8 +31,7 @@ src/routes/
     ├── pages/new.tsx       # Create page
     ├── pages/$pageId/edit.tsx  # Edit page
     ├── sponsors/index.tsx  # Sponsors management
-    ├── users/index.tsx     # User management
-    └── security.tsx        # Security settings
+    └── users/index.tsx     # User management
 ```
 
 - `_authed.tsx` wraps all protected routes — checks session, redirects to `/login` if unauthenticated
@@ -78,7 +76,7 @@ src/i18n/
 - **Namespaces**: `common` (all UI text), `errors` (error messages)
 - User locale preference stored in DB and synced via `localeSync.tsx` component
 
-## Component Organization (~89 files)
+## Component Organization (~84 files)
 
 ```
 src/components/
@@ -97,11 +95,6 @@ src/components/
 │   ├── lineupEditor.tsx   # Manage game lineups
 │   ├── teamRosterChecklist.tsx  # Player checklist for lineup
 │   └── timelineEvent.tsx  # Single event in timeline
-├── gettingStarted/        # Setup wizard (8 files)
-│   ├── gettingStartedWizard.tsx
-│   ├── wizardLayout.tsx
-│   ├── stepIndicator.tsx
-│   └── steps/             # welcomeStep, leagueOverviewStep, adminAccountStep, firstSeasonStep, completeStep
 ├── playerTimeline/        # Player history timeline (playerTimeline.tsx)
 ├── roster/                # Roster management (4 files)
 │   ├── rosterTable.tsx
@@ -135,7 +128,7 @@ src/components/
 │   ├── teamComparisonBar.tsx
 │   ├── teamComparisonRadar.tsx
 │   └── echartsWrapper.tsx
-├── structureBuilder/      # React Flow canvas for season structure (15 files)
+├── structureBuilder/      # React Flow canvas for season structure (13 files)
 │   ├── structureCanvas.tsx
 │   ├── setupWizardDialog.tsx
 │   ├── nodes/             # Custom node types (seasonNode, divisionNode, roundNode, teamNode)
@@ -144,6 +137,7 @@ src/components/
 ├── confirmDialog.tsx      # Confirmation modal
 ├── dataPageLayout.tsx     # Standard data page layout wrapper
 ├── emptyState.tsx         # Empty state placeholder
+├── filterDropdown.tsx     # Filter dropdown component
 ├── filterPill.tsx         # Filter pill component
 ├── gameStatusBadge.tsx    # Game status badge
 ├── hoverCard.tsx          # Generic hover card
@@ -152,11 +146,14 @@ src/components/
 ├── localeSync.tsx         # Locale synchronization
 ├── newsForm.tsx           # News article form
 ├── noResults.tsx          # No search results state
+├── orgPickerPage.tsx      # Organization picker page
+├── orgSwitcher.tsx        # Organization switcher
 ├── pageForm.tsx           # Page content form
 ├── pageHeader.tsx         # Reusable page header
 ├── pageSkeleton.tsx       # Full-page loading skeleton
 ├── playerCombobox.tsx     # Player search/select combobox
 ├── playerHoverCard.tsx    # Player hover card
+├── removeDialog.tsx       # Remove confirmation dialog
 ├── richTextEditor.tsx     # Rich text editor (Tiptap)
 ├── richTextEditorLazy.tsx # Lazy-loaded rich text editor
 ├── searchInput.tsx        # Search input
@@ -165,6 +162,7 @@ src/components/
 ├── teamCombobox.tsx       # Team search/select combobox
 ├── teamFilterPills.tsx    # Team filter pill badges
 ├── teamHoverCard.tsx      # Team hover card
+├── topBar.tsx             # Top navigation bar
 └── trikotPreview.tsx      # Jersey preview
 ```
 
@@ -172,7 +170,9 @@ src/components/
 
 ```
 src/contexts/
-└── seasonContext.tsx      # Current season selection (used in _authed.tsx layout)
+├── organizationContext.tsx  # Current organization selection and switching
+├── permissionsContext.tsx   # Role-based permissions for current org member
+└── seasonContext.tsx        # Current season selection (used in _authed.tsx layout)
 ```
 
 ## Lib

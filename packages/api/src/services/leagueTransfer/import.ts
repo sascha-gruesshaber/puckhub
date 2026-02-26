@@ -13,7 +13,17 @@ export interface ImportResult {
   summary: Record<string, number>
 }
 
-export async function importLeagueData(db: Database, data: PuckHubExport, callerUserId: string): Promise<ImportResult> {
+export interface ImportOptions {
+  /** Override the organization (and league) name instead of using the exported one. */
+  name?: string
+}
+
+export async function importLeagueData(
+  db: Database,
+  data: PuckHubExport,
+  callerUserId: string,
+  options: ImportOptions = {},
+): Promise<ImportResult> {
   // 1. Validate version
   if (data._meta.version !== 1) {
     throw createAppError(
@@ -25,6 +35,7 @@ export async function importLeagueData(db: Database, data: PuckHubExport, caller
 
   const sourceOrgId = data._meta.sourceOrganizationId
   const newOrgId = randomUUID()
+  const orgName = options.name || data.organization.name
 
   // 2. Build global reference maps from the target DB
   const penaltyTypes = await db.penaltyType.findMany()
@@ -75,7 +86,7 @@ export async function importLeagueData(db: Database, data: PuckHubExport, caller
       await tx.organization.create({
         data: {
           id: newOrgId,
-          name: data.organization.name,
+          name: orgName,
           logo: data.organization.logo,
           metadata: data.organization.metadata,
         },
@@ -86,7 +97,7 @@ export async function importLeagueData(db: Database, data: PuckHubExport, caller
         await tx.systemSettings.create({
           data: {
             organizationId: newOrgId,
-            leagueName: data.systemSettings.leagueName,
+            leagueName: options.name || data.systemSettings.leagueName,
             leagueShortName: data.systemSettings.leagueShortName,
             locale: data.systemSettings.locale,
             timezone: data.systemSettings.timezone,
@@ -252,7 +263,7 @@ export async function importLeagueData(db: Database, data: PuckHubExport, caller
 
   return {
     organizationId: newOrgId,
-    organizationName: data.organization.name,
+    organizationName: orgName,
     summary,
   }
 }

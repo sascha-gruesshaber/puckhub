@@ -11,7 +11,8 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 | Workspace | Package | Description |
 |-----------|---------|-------------|
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (port 3000), i18n (DE/EN) |
-| `apps/web` | — | Public website (placeholder) |
+| `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (port 3002) |
+| `apps/web` | `@puckhub/web` | Public website (empty placeholder) |
 | `packages/api` | `@puckhub/api` | Hono server + tRPC (25 routers) + Better Auth (port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
@@ -20,7 +21,7 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 ## Commands
 
 ```bash
-pnpm dev                # Start Docker (DB + pgAdmin) + all dev servers (admin :3000, api :3001)
+pnpm dev                # Start Docker (DB + pgAdmin) + all dev servers (admin :3000, api :3001, platform :3002)
 pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
 pnpm test:api           # Run API tests only
@@ -55,6 +56,10 @@ Copy `.env.example` to `.env`. Key variables:
 | `ADMIN_PORT` | `3000` | Admin dev server port |
 | `AUTO_MIGRATE` | `true` | Auto-run migrations on API startup |
 | `UPLOAD_DIR` | `./uploads` | File upload directory |
+| `DEFAULT_USER_EMAIL` | `admin@puckhub.local` | Default admin user email |
+| `DEFAULT_USER_PASSWORD` | `changeme123` | Default admin user password |
+| `DEMO_MODE` | `false` | Enable demo mode with periodic resets |
+| `DEMO_RESET_CRON` | `0 */4 * * *` | Cron schedule for demo data reset |
 | `PASSKEY_RP_ID` | `localhost` | WebAuthn relying party ID |
 | `PASSKEY_RP_NAME` | `PuckHub Admin` | WebAuthn relying party name |
 | `PASSKEY_ORIGIN` | `http://localhost:3000` | WebAuthn origin |
@@ -62,7 +67,7 @@ Copy `.env.example` to `.env`. Key variables:
 ## Docker
 
 - **Development**: `docker/docker-compose.yml` — PostgreSQL 16 + pgAdmin (port 5050)
-- **Production**: `docker-compose.prod.yml` — PostgreSQL 16 + API container (multi-stage `Dockerfile`)
+- **Production**: `docker-compose.prod.yml` — Caddy (reverse proxy) + PostgreSQL 16 + API + Admin + Platform containers
 
 ## Conventions
 
@@ -72,13 +77,14 @@ Copy `.env.example` to `.env`. Key variables:
 - **i18n**: Two locales (`de-DE`, `en-US`), two namespaces (`common`, `errors`). JSON locale files with React Context and `useTranslation()` hook
 - **Package manager**: pnpm 10.28.2 — always use `pnpm`, never npm/yarn
 - **TypeScript**: Strict mode, `noUncheckedIndexedAccess`, ES2022 target
-- **Path aliases**: `~/` = `src/`, `@/` = `lib/` (admin app only)
+- **Path aliases**: `~/` = `src/`, `@/` = `lib/` (admin + platform apps)
 - **Formatter/Linter**: Biome (2-space indent, 120-char line width, single quotes JS, double quotes JSX)
 
 ## Package-Level Docs
 
 Each package has its own `AGENT.md` with detailed context:
 - [`apps/admin/AGENT.md`](apps/admin/AGENT.md) — routes, components, auth/tRPC client
+- [`apps/platform/AGENT.md`](apps/platform/AGENT.md) — platform admin dashboard, routes, global management
 - [`packages/api/AGENT.md`](packages/api/AGENT.md) — routers, procedures, middleware
 - [`packages/db/AGENT.md`](packages/db/AGENT.md) — schema, migrations, seeds, patterns
 - [`packages/ui/AGENT.md`](packages/ui/AGENT.md) — components, design patterns

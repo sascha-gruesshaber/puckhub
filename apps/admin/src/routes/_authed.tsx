@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
 import {
   FileText,
   GitBranch,
@@ -201,6 +201,19 @@ function OrgGate() {
 // ---------------------------------------------------------------------------
 // Sidebar + Content (extracted so useWorkingSeason is inside SeasonProvider)
 // ---------------------------------------------------------------------------
+function MustChangePasswordGuard({ children }: { children: React.ReactNode }) {
+  const { data: me, isLoading: meLoading } = trpc.users.me.useQuery()
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  if (!meLoading && me?.mustChangePassword && location.pathname !== "/profile") {
+    navigate({ to: "/profile" })
+    return null
+  }
+
+  return <>{children}</>
+}
+
 function SidebarLayout() {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
@@ -450,9 +463,11 @@ function SidebarLayout() {
       >
         <TopBar />
         <div className="content-enter flex-1" style={{ padding: "24px 44px" }}>
-          <Suspense fallback={<PageSkeleton />}>
-            <Outlet />
-          </Suspense>
+          <MustChangePasswordGuard>
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </MustChangePasswordGuard>
         </div>
       </main>
 

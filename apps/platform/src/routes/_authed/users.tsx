@@ -8,10 +8,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  FormField,
+  Input,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Plus, Search, Shield, Trash2, Users, X } from "lucide-react"
+import { Building2, Check, Copy, Plus, Search, Shield, Trash2, UserPlus, Users, X } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -51,6 +53,19 @@ function UsersPage() {
     orgName: string
   }>({ open: false, userId: "", userName: "", organizationId: "", orgName: "" })
 
+  // Create user dialog
+  const [createDialog, setCreateDialog] = useState(false)
+  const [createForm, setCreateForm] = useState({ name: "", email: "", isPlatformAdmin: false })
+  const [createErrors, setCreateErrors] = useState<{ name?: string; email?: string }>({})
+
+  // Credentials dialog (shown after creating a user)
+  const [credentialsDialog, setCredentialsDialog] = useState<{
+    open: boolean
+    email: string
+    password: string
+  }>({ open: false, email: "", password: "" })
+  const [copied, setCopied] = useState(false)
+
   const utils = trpc.useUtils()
 
   const deleteMutation = trpc.users.deleteGlobal.useMutation({
@@ -84,6 +99,21 @@ function UsersPage() {
     onError: (err) => toast.error("Error", { description: err.message }),
   })
 
+  const createUserMutation = trpc.users.createPlatformUser.useMutation({
+    onSuccess: (data) => {
+      utils.users.listAll.invalidate()
+      setCreateDialog(false)
+      setCreateForm({ name: "", email: "", isPlatformAdmin: false })
+      setCreateErrors({})
+      setCredentialsDialog({
+        open: true,
+        email: data.email,
+        password: data.generatedPassword,
+      })
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
   const filtered = users?.filter((u) => {
     if (!search) return true
     const q = search.toLowerCase()
@@ -101,6 +131,31 @@ function UsersPage() {
     setAssignRole("admin")
   }
 
+  function validateCreateForm(): boolean {
+    const next: { name?: string; email?: string } = {}
+    if (!createForm.name.trim()) next.name = "Name is required"
+    if (!createForm.email.trim()) next.email = "Email is required"
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email)) next.email = "Invalid email"
+    setCreateErrors(next)
+    return Object.keys(next).length === 0
+  }
+
+  function handleCreateUser(e: React.FormEvent) {
+    e.preventDefault()
+    if (!validateCreateForm()) return
+    createUserMutation.mutate({
+      name: createForm.name.trim(),
+      email: createForm.email.trim(),
+      role: createForm.isPlatformAdmin ? "admin" : null,
+    })
+  }
+
+  async function handleCopyPassword() {
+    await navigator.clipboard.writeText(credentialsDialog.password)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   const availableOrgs = allOrgs?.filter((o) => !assignDialog.existingOrgIds.includes(o.id)) ?? []
 
   function roleColor(role: string) {
@@ -116,9 +171,15 @@ function UsersPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Users</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Global user management across all leagues</p>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Users</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Global user management across all leagues</p>
+        </div>
+        <Button variant="accent" onClick={() => setCreateDialog(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          New User
+        </Button>
       </div>
 
       {/* Search */}
@@ -432,6 +493,121 @@ function UsersPage() {
               }}
             >
               {removeFromOrgMutation.isPending ? "Removing..." : "Remove"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog */}
+      <Dialog
+        open={createDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateDialog(false)
+            setCreateForm({ name: "", email: "", isPlatformAdmin: false })
+            setCreateErrors({})
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogClose onClick={() => setCreateDialog(false)} />
+          <DialogHeader>
+            <DialogTitle>Create User</DialogTitle>
+            <DialogDescription>
+              Create a new user account. A random password will be generated and shown once.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateUser} className="space-y-4 p-6 pt-2">
+            <FormField label="Name" error={createErrors.name} required>
+              <Input
+                value={createForm.name}
+                onChange={(e) => {
+                  setCreateForm((f) => ({ ...f, name: e.target.value }))
+                  if (createErrors.name) setCreateErrors((e) => ({ ...e, name: undefined }))
+                }}
+                placeholder="e.g. Max Mustermann"
+              />
+            </FormField>
+
+            <FormField label="Email" error={createErrors.email} required>
+              <Input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => {
+                  setCreateForm((f) => ({ ...f, email: e.target.value }))
+                  if (createErrors.email) setCreateErrors((e) => ({ ...e, email: undefined }))
+                }}
+                placeholder="user@example.com"
+              />
+            </FormField>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={createForm.isPlatformAdmin}
+                onChange={(e) => setCreateForm((f) => ({ ...f, isPlatformAdmin: e.target.checked }))}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="text-sm font-medium">Platform Admin</span>
+            </label>
+
+            <DialogFooter className="p-0 pt-2">
+              <Button type="button" variant="outline" onClick={() => setCreateDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="accent" disabled={createUserMutation.isPending}>
+                {createUserMutation.isPending ? "Creating..." : "Create"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credentials Dialog */}
+      <Dialog
+        open={credentialsDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCredentialsDialog({ open: false, email: "", password: "" })
+            setCopied(false)
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Created</DialogTitle>
+            <DialogDescription>
+              Save these credentials — the password cannot be retrieved later. The user will be asked to change their
+              password on first login.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 p-6 pt-2">
+            <FormField label="Email">
+              <Input value={credentialsDialog.email} readOnly />
+            </FormField>
+
+            <FormField label="Password">
+              <div className="flex gap-2">
+                <Input value={credentialsDialog.password} readOnly className="font-mono" />
+                <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword} title="Copy password">
+                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+            </FormField>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="accent"
+              onClick={() => {
+                setCredentialsDialog({ open: false, email: "", password: "" })
+                setCopied(false)
+                toast.success("User created")
+              }}
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

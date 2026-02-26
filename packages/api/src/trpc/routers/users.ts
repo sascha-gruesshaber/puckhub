@@ -2,7 +2,7 @@ import { hashPassword } from "better-auth/crypto"
 import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
-import { orgAdminProcedure, orgProcedure, platformAdminProcedure, router } from "../init"
+import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
 
 const ORG_ROLE_VALUES = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"] as const
 
@@ -157,6 +157,7 @@ export const usersRouter = router({
             email: input.email,
             name: input.name,
             emailVerified: true,
+            mustChangePassword: true,
           },
         })
 
@@ -266,6 +267,11 @@ export const usersRouter = router({
         data: { password: hashedPw, updatedAt: new Date() },
       })
 
+      await ctx.db.user.update({
+        where: { id: input.id },
+        data: { mustChangePassword: true },
+      })
+
       await ctx.db.session.deleteMany({ where: { userId: input.id } })
     }),
 
@@ -362,5 +368,70 @@ export const usersRouter = router({
       })
 
       return { ok: true }
+    }),
+
+  me: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.db.user.findUnique({
+      where: { id: ctx.user.id },
+      select: { id: true, mustChangePassword: true },
+    })
+    return user
+  }),
+
+  clearMustChangePassword: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.user.update({
+      where: { id: ctx.user.id },
+      data: { mustChangePassword: false },
+    })
+    return { ok: true }
+  }),
+
+  createPlatformUser: platformAdminProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        email: z.string().email(),
+        role: z.enum(["admin"]).nullish(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.user.findFirst({
+        where: { email: input.email },
+        select: { id: true },
+      })
+      if (existing) {
+        throw createAppError("CONFLICT", APP_ERROR_CODES.USER_EMAIL_CONFLICT)
+      }
+
+      // Generate secure random password
+      const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*"
+      const bytes = new Uint8Array(16)
+      crypto.getRandomValues(bytes)
+      const generatedPassword = Array.from(bytes, (b) => chars[b % chars.length]).join("")
+
+      const userId = crypto.randomUUID()
+      await ctx.db.user.create({
+        data: {
+          id: userId,
+          email: input.email,
+          name: input.name,
+          emailVerified: true,
+          role: input.role ?? null,
+          mustChangePassword: true,
+        },
+      })
+
+      const hashedPw = await hashPassword(generatedPassword)
+      await ctx.db.account.create({
+        data: {
+          id: crypto.randomUUID(),
+          accountId: userId,
+          providerId: "credential",
+          password: hashedPw,
+          userId,
+        },
+      })
+
+      return { userId, email: input.email, generatedPassword }
     }),
 })

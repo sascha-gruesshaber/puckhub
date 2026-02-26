@@ -96,8 +96,9 @@ model User {
   emailVerified    Boolean   @default(false)
   image            String?
   twoFactorEnabled Boolean?  @default(false)
-  role             String?
-  banned           Boolean?  @default(false)
+  role               String?
+  banned             Boolean?  @default(false)
+  mustChangePassword Boolean   @default(false)
   banReason        String?
   banExpires       DateTime?
   createdAt        DateTime  @default(now())

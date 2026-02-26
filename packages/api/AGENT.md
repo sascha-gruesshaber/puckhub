@@ -11,11 +11,19 @@ src/
 ├── lib/auth.ts        # Better Auth config (email/password, passkey, 2FA, 7-day sessions)
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
-│   └── codes.ts       # APP_ERROR_CODES enum (20 error codes)
+│   └── codes.ts       # APP_ERROR_CODES enum (56 error codes)
 ├── routes/
 │   └── upload.ts      # File upload handler (POST /api/upload)
 ├── services/
-│   └── schedulerService.ts  # Round-robin game scheduling logic
+│   ├── schedulerService.ts        # Round-robin game scheduling logic
+│   └── leagueTransfer/            # League data export/import
+│       ├── index.ts               # Service entry point
+│       ├── schema.ts              # Transfer data schema
+│       ├── export.ts              # Export logic
+│       ├── import.ts              # Import logic
+│       ├── validate.ts            # Validation logic
+│       ├── registry.ts            # Entity registry
+│       └── attachments.ts         # Attachment handling
 └── trpc/
     ├── init.ts        # tRPC init, middleware, procedure types
     ├── context.ts     # Request context (db, session, user)
@@ -36,19 +44,20 @@ src/
 
 ## Routers (25)
 
-`season` · `division` · `round` · `team` · `teamDivision` · `player` · `contract` · `game` · `gameReport` · `standings` · `stats` · `trikotTemplate` · `trikot` · `teamTrikot` · `users` · `setup` · `settings` · `sponsor` · `news` · `page` · `venue` · `userPreferences` · `bonusPoints` · `dashboard` · `organization`
+`bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `player` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users`
 
 ## Procedure Types
 
 ```ts
 publicProcedure        // No auth — use for read-only public data
 protectedProcedure     // Requires authenticated session (isAuthed middleware)
-adminProcedure         // Requires org admin role (alias for orgAdminProcedure)
-orgAdminProcedure      // Requires Better Auth organization admin/owner role
-platformAdminProcedure // Requires platform-level admin privileges
+orgProcedure           // Requires session + active org + loads member roles (withOrgRoles middleware)
+orgAdminProcedure      // Requires session + owner/admin role in org (isOrgAdmin middleware)
+adminProcedure         // Alias for orgAdminProcedure (migration convenience)
+platformAdminProcedure // Requires user.role === 'admin' at platform level (isPlatformAdmin middleware)
 ```
 
-Most mutations use `adminProcedure` (org-scoped). Public queries for standings/stats use `publicProcedure`.
+Most mutations use `adminProcedure` (org-scoped). Public queries for standings/stats use `publicProcedure`. `orgProcedure` provides role context (`orgRole`, `memberRoles`, `hasRole()`) without requiring admin.
 
 ## Error Handling
 
