@@ -1,7 +1,8 @@
 import { Badge, Card, CardContent, Skeleton } from "@puckhub/ui"
-import { ArrowRightLeft, FileSignature, RefreshCw, Zap } from "lucide-react"
+import { ArrowRightLeft, FileSignature, RefreshCw, ShieldAlert, Zap } from "lucide-react"
 import { useMemo } from "react"
 import "./timeline.css"
+import type { TimelineFilterValue } from "~/components/playerHistory/timelineFilters"
 import { useTranslation } from "~/i18n/use-translation"
 
 // ---------------------------------------------------------------------------
@@ -36,19 +37,47 @@ export interface Contract {
   endSeason: Season | null
 }
 
-export type EventType = "signed" | "transfer" | "position-change" | "active"
+export interface Suspension {
+  id: string
+  suspensionType: string
+  suspendedGames: number
+  servedGames: number
+  reason: string | null
+  createdAt: Date | string
+  game: {
+    id: string
+    scheduledAt: Date | string | null
+    homeTeam: { id: string; shortName: string; logoUrl: string | null }
+    awayTeam: { id: string; shortName: string; logoUrl: string | null }
+    round: {
+      name: string
+      division: {
+        name: string
+        season: { name: string }
+      }
+    }
+  }
+  gameEvent: {
+    penaltyType: { name: string; shortName: string } | null
+  } | null
+  team: { id: string; shortName: string; logoUrl: string | null }
+}
 
-interface ClassifiedEntry {
-  contract: Contract
+export type EventType = "signed" | "transfer" | "position-change" | "active" | "suspension"
+
+interface TimelineEntry {
+  id: string
   eventType: EventType
+  sortDate: number
+  contract?: Contract
+  suspension?: Suspension
 }
 
 // ---------------------------------------------------------------------------
 // Classification helper
 // ---------------------------------------------------------------------------
 
-function classifyContracts(contracts: Contract[]): ClassifiedEntry[] {
-  // Sort chronologically ascending by startSeason.seasonStart, then createdAt
+function classifyContracts(contracts: Contract[]): TimelineEntry[] {
   const sorted = [...contracts].sort((a, b) => {
     const startDiff = new Date(a.startSeason.seasonStart).getTime() - new Date(b.startSeason.seasonStart).getTime()
     if (startDiff !== 0) return startDiff
@@ -56,30 +85,41 @@ function classifyContracts(contracts: Contract[]): ClassifiedEntry[] {
   })
 
   return sorted.map((contract, i) => {
-    // Active contract (no endSeason)
+    let eventType: EventType
+
     if (!contract.endSeasonId) {
-      return { contract, eventType: "active" as const }
+      eventType = "active"
+    } else if (i === 0) {
+      eventType = "signed"
+    } else {
+      const prev = sorted[i - 1]!
+      if (contract.teamId !== prev.teamId) {
+        eventType = "transfer"
+      } else if (contract.position !== prev.position) {
+        eventType = "position-change"
+      } else {
+        eventType = "signed"
+      }
     }
 
-    if (i === 0) {
-      return { contract, eventType: "signed" as const }
+    return {
+      id: contract.id,
+      eventType,
+      sortDate: new Date(contract.startSeason.seasonStart).getTime(),
+      contract,
     }
-
-    const prev = sorted[i - 1]!
-
-    // Transfer — different team from previous
-    if (contract.teamId !== prev.teamId) {
-      return { contract, eventType: "transfer" as const }
-    }
-
-    // Position change — same team but different position
-    if (contract.position !== prev.position) {
-      return { contract, eventType: "position-change" as const }
-    }
-
-    // Default — signed (e.g. re-signed with same team)
-    return { contract, eventType: "signed" as const }
   })
+}
+
+function mergeSuspensions(entries: TimelineEntry[], suspensions: Suspension[]): TimelineEntry[] {
+  const suspensionEntries: TimelineEntry[] = suspensions.map((s) => ({
+    id: s.id,
+    eventType: "suspension" as const,
+    sortDate: new Date(s.createdAt).getTime(),
+    suspension: s,
+  }))
+
+  return [...entries, ...suspensionEntries].sort((a, b) => a.sortDate - b.sortDate)
 }
 
 // ---------------------------------------------------------------------------
@@ -97,11 +137,13 @@ function TimelineIcon({ eventType }: { eventType: EventType }) {
       return <RefreshCw className={iconClass} />
     case "active":
       return <Zap className={iconClass} />
+    case "suspension":
+      return <ShieldAlert className={iconClass} />
   }
 }
 
 // ---------------------------------------------------------------------------
-// TimelineCard
+// TimelineCard (contract)
 // ---------------------------------------------------------------------------
 
 const positionColors: Record<string, { bg: string; text: string }> = {
@@ -110,9 +152,10 @@ const positionColors: Record<string, { bg: string; text: string }> = {
   forward: { bg: "rgba(239, 68, 68, 0.15)", text: "#f87171" },
 }
 
-function TimelineCard({ entry }: { entry: ClassifiedEntry }) {
+function ContractTimelineCard({ entry }: { entry: TimelineEntry }) {
   const { t } = useTranslation("common")
-  const { contract, eventType } = entry
+  const contract = entry.contract!
+  const eventType = entry.eventType
   const colors = positionColors[contract.position] ?? { bg: "rgba(148,163,184,0.15)", text: "#94a3b8" }
   const initials = contract.team.shortName.slice(0, 3).toUpperCase()
 
@@ -122,10 +165,8 @@ function TimelineCard({ entry }: { entry: ClassifiedEntry }) {
 
   return (
     <Card className="overflow-hidden">
-      {/* Position-colored accent bar */}
       <div className={`h-1 timeline-accent-bar--${contract.position}`} aria-hidden="true" />
       <CardContent className="p-4">
-        {/* Event type row */}
         <div className="flex items-center gap-2 mb-3">
           <span className="text-muted-foreground">
             <TimelineIcon eventType={eventType} />
@@ -145,7 +186,6 @@ function TimelineCard({ entry }: { entry: ClassifiedEntry }) {
           )}
         </div>
 
-        {/* Team row */}
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center overflow-hidden bg-muted">
             {contract.team.logoUrl ? (
@@ -160,7 +200,6 @@ function TimelineCard({ entry }: { entry: ClassifiedEntry }) {
           </div>
         </div>
 
-        {/* Position + season range */}
         <div className="flex items-center gap-2 flex-wrap">
           <span
             className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold"
@@ -176,30 +215,112 @@ function TimelineCard({ entry }: { entry: ClassifiedEntry }) {
 }
 
 // ---------------------------------------------------------------------------
+// SuspensionTimelineCard
+// ---------------------------------------------------------------------------
+
+function SuspensionTimelineCard({ suspension }: { suspension: Suspension }) {
+  const { t } = useTranslation("common")
+  const { game, gameEvent } = suspension
+
+  const matchup = `${game.homeTeam.shortName} vs ${game.awayTeam.shortName}`
+  const penaltyName = gameEvent?.penaltyType?.name ?? suspension.suspensionType
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="h-1 timeline-accent-bar--suspension" aria-hidden="true" />
+      <CardContent className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-amber-500">
+            <ShieldAlert className="h-4 w-4" />
+          </span>
+          <Badge variant="outline" className="text-xs border-amber-500/40 text-amber-600">
+            {t("playersPage.history.suspensionLabel")}
+          </Badge>
+          <Badge variant="secondary" className="text-xs ml-auto">
+            {t("playersPage.history.suspensionGamesInfo", {
+              served: suspension.servedGames,
+              total: suspension.suspendedGames,
+            })}
+          </Badge>
+        </div>
+
+        {/* Game matchup */}
+        <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <TeamLogo url={game.homeTeam.logoUrl} />
+            <span className="text-sm font-medium">{matchup}</span>
+            <TeamLogo url={game.awayTeam.logoUrl} />
+          </div>
+        </div>
+
+        {/* Penalty + season info */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold bg-amber-500/10 text-amber-600">
+            {penaltyName}
+          </span>
+          <span className="text-xs text-muted-foreground">{game.round.division.season.name}</span>
+          {suspension.reason && (
+            <span className="text-xs text-muted-foreground">– {suspension.reason}</span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function TeamLogo({ url }: { url: string | null }) {
+  if (!url) return <div className="w-5 h-5 rounded-sm bg-muted shrink-0" />
+  return <img src={url} alt="" className="w-5 h-5 rounded-sm object-contain shrink-0" />
+}
+
+// ---------------------------------------------------------------------------
 // PlayerTimeline
 // ---------------------------------------------------------------------------
 
-function PlayerTimeline({ contracts }: { contracts: Contract[] }) {
-  const entries = useMemo(() => classifyContracts(contracts), [contracts])
+function PlayerTimeline({
+  contracts,
+  suspensions,
+  activeFilter = "all",
+}: {
+  contracts: Contract[]
+  suspensions?: Suspension[]
+  activeFilter?: TimelineFilterValue
+}) {
+  const allEntries = useMemo(() => {
+    const contractEntries = classifyContracts(contracts)
+    return suspensions ? mergeSuspensions(contractEntries, suspensions) : contractEntries
+  }, [contracts, suspensions])
+
+  const entries = useMemo(() => {
+    if (activeFilter === "all") return allEntries
+    return allEntries.filter((e) => e.eventType === activeFilter)
+  }, [allEntries, activeFilter])
 
   return (
     <ol className="player-timeline">
-      {entries.map((entry, i) => (
-        <li key={entry.contract.id} className="timeline-entry" style={{ "--entry-index": i } as React.CSSProperties}>
-          {/* Year label */}
-          <div className="timeline-year">{new Date(entry.contract.startSeason.seasonStart).getUTCFullYear()}</div>
+      {entries.map((entry, i) => {
+        const year = entry.contract
+          ? new Date(entry.contract.startSeason.seasonStart).getUTCFullYear()
+          : entry.suspension
+            ? new Date(entry.suspension.createdAt).getUTCFullYear()
+            : ""
 
-          {/* Spine + node */}
-          <div className="timeline-spine">
-            <div className={`timeline-node timeline-node--${entry.eventType}`} />
-          </div>
-
-          {/* Card */}
-          <div className="timeline-card">
-            <TimelineCard entry={entry} />
-          </div>
-        </li>
-      ))}
+        return (
+          <li key={entry.id} className="timeline-entry" style={{ "--entry-index": i } as React.CSSProperties}>
+            <div className="timeline-year">{year}</div>
+            <div className="timeline-spine">
+              <div className={`timeline-node timeline-node--${entry.eventType}`} />
+            </div>
+            <div className="timeline-card">
+              {entry.eventType === "suspension" && entry.suspension ? (
+                <SuspensionTimelineCard suspension={entry.suspension} />
+              ) : entry.contract ? (
+                <ContractTimelineCard entry={entry} />
+              ) : null}
+            </div>
+          </li>
+        )
+      })}
     </ol>
   )
 }
@@ -213,17 +334,12 @@ function TimelineSkeleton() {
     <div>
       {Array.from({ length: 3 }).map((_, i) => (
         <div key={i} className="timeline-skeleton-entry">
-          {/* Year */}
           <div className="flex justify-end pr-3 pt-4">
             <Skeleton className="h-4 w-10 rounded" />
           </div>
-
-          {/* Spine */}
           <div className="timeline-skeleton-spine">
             <Skeleton className="h-3.5 w-3.5 rounded-full mt-4" />
           </div>
-
-          {/* Card */}
           <div className="pt-1">
             <Card className="overflow-hidden">
               <Skeleton className="h-1 rounded-none" />

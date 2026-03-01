@@ -20,12 +20,12 @@ import { trpc } from "@/trpc"
 import { RemoveDialog } from "~/components/removeDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
+import { FilterBar } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { PlayerHoverCard } from "~/components/playerHoverCard"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamHoverCard } from "~/components/teamHoverCard"
@@ -485,32 +485,21 @@ function PlayersPage() {
           </Button>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={1} />
-          ) : teamOptions.length > 0 ? (
-            <FilterDropdown
-              label={t("playersPage.filters.allTeams")}
-              options={teamOptions}
-              value={teamFilter}
-              onChange={setTeamFilter}
-            />
-          ) : undefined
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (players?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {teamFilter.length > 0 ? `${filtered.length} / ` : ""}
-                  {(players?.length ?? 0) - unassignedCount}
-                </span>{" "}
-                {t("playersPage.count.players")}
-              </span>
-            </div>
-          ) : undefined
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : teamOptions.length > 0 ? (
+              <FilterDropdown
+                label={t("playersPage.filters.allTeams")}
+                options={teamOptions}
+                value={teamFilter}
+                onChange={setTeamFilter}
+              />
+            ) : null}
+          </FilterBar>
         }
       >
         {/* Content */}

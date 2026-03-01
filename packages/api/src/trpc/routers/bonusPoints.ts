@@ -1,5 +1,7 @@
 import { recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const bonusPointsRouter = router({
@@ -41,6 +43,13 @@ export const bonusPointsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+      // Verify record belongs to caller's organization
+      const existing = await ctx.db.bonusPoint.findFirst({
+        where: { id, organizationId: ctx.organizationId },
+      })
+      if (!existing) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.BONUS_POINT_NOT_FOUND)
+      }
       const bp = await ctx.db.bonusPoint.update({
         where: { id },
         data,
@@ -52,11 +61,14 @@ export const bonusPointsRouter = router({
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    // Fetch before deleting to get roundId for recalculation
-    const bp = await ctx.db.bonusPoint.findUnique({
-      where: { id: input.id },
+    // Fetch before deleting to get roundId for recalculation (scoped by org)
+    const bp = await ctx.db.bonusPoint.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
       select: { roundId: true },
     })
+    if (!bp) {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.BONUS_POINT_NOT_FOUND)
+    }
     await ctx.db.bonusPoint.delete({
       where: { id: input.id },
     })

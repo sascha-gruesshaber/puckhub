@@ -30,6 +30,7 @@
       "sponsors": "Sponsors",
       "users": "Users",
       "settings": "Settings",
+      "website": "Website",
       "security": "Security",
       "dashboard": "Dashboard"
     }
@@ -128,6 +129,85 @@
     "win": "Win",
     "draw": "Draw",
     "loss": "Loss"
+  },
+  "website": {
+    "title": "Website & Domain",
+    "description": "Configure your public website and custom domain",
+    "saved": "Website settings saved",
+    "tabs": {
+      "domain": "Domain",
+      "appearance": "Appearance",
+      "images": "Images",
+      "seo": "SEO"
+    },
+    "domain": {
+      "title": "Domain Configuration",
+      "customDomain": "Custom domain",
+      "customDomainPlaceholder": "e.g. allgaeuliga.de",
+      "customDomainHint": "Enter your domain without http:// or www.",
+      "subdomain": "Subdomain",
+      "subdomainSuffix": ".puckhub.de",
+      "subdomainHint": "Your site will be accessible at this subdomain",
+      "active": "Website active",
+      "activeHint": "Enable or disable the public website"
+    },
+    "dns": {
+      "title": "DNS Configuration",
+      "cnameLabel": "CNAME Record",
+      "cnameTarget": "sites.puckhub.de",
+      "cnameInstruction": "Point your domain to this address with a CNAME record at your DNS provider",
+      "aRecordLabel": "A Record (alternative)",
+      "aRecordInstruction": "Or use an A record if CNAME is not supported for your root domain",
+      "verify": "Verify DNS",
+      "verifying": "Checking DNS...",
+      "valid": "DNS correctly configured",
+      "invalid": "DNS not correctly configured",
+      "error": "DNS query failed",
+      "lastVerified": "Last verified"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "preset": "Template",
+      "presetClassic": "Classic — dark header, clean layout",
+      "presetModern": "Modern — light header, purple accent",
+      "presetBold": "Bold — dark mode, red accent",
+      "colors": "Theme colors",
+      "colorPrimary": "Primary",
+      "colorSecondary": "Secondary",
+      "colorAccent": "Accent",
+      "colorBackground": "Background",
+      "colorText": "Text",
+      "colorHeaderBg": "Header background",
+      "colorHeaderText": "Header text",
+      "colorFooterBg": "Footer background",
+      "colorFooterText": "Footer text",
+      "colorGroupBrand": "Brand",
+      "colorGroupPage": "Page",
+      "colorGroupHeader": "Header",
+      "colorGroupFooter": "Footer",
+      "resetColor": "Reset to preset default"
+    },
+    "preview": {
+      "title": "Preview",
+      "open": "Preview website",
+      "openNewTab": "Open in new tab",
+      "close": "Close preview",
+      "savedNote": "Preview shows the saved state. Save your changes first to see updates.",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobile"
+    },
+    "images": {
+      "title": "Images",
+      "logo": "Logo",
+      "favicon": "Favicon",
+      "ogImage": "Social sharing image"
+    },
+    "seo": {
+      "title": "SEO",
+      "seoTitle": "Page title",
+      "seoDescription": "Meta description"
+    }
   },
   "language": {
     "label": "Display language",
@@ -344,6 +424,9 @@
       "goalies": "Goalies",
       "teams": "Teams"
     },
+    "tabGroups": {
+      "skaters": "Skater Stats"
+    },
     "roundInfo": {
       "title": "Counted rounds",
       "playerStats": "Player stats",
@@ -439,6 +522,7 @@
       "chartBar": "Bar Chart"
     },
     "filters": {
+      "label": "Filters",
       "allTeams": "All Teams",
       "allPositions": "All Positions",
       "forward": "Forwards",
@@ -852,7 +936,42 @@
       "teamCount": "Teams: {{count}}",
       "sinceYear": "Since {{year}}",
       "noContractsTitle": "No contract history",
-      "noContractsDescription": "No contracts have been recorded for this player yet."
+      "noContractsDescription": "No contracts have been recorded for this player yet.",
+      "careerStats": "Career Stats",
+      "seasonStats": "Season Stats",
+      "timeline": "Timeline",
+      "gp": "GP",
+      "gpFull": "Games Played",
+      "goals": "Goals",
+      "goalsFull": "Goals",
+      "assists": "Assists",
+      "assistsFull": "Assists",
+      "points": "Points",
+      "pointsFull": "Total Points",
+      "pim": "PIM",
+      "pimFull": "Penalty Minutes",
+      "ga": "GA",
+      "gaFull": "Goals Against",
+      "gaa": "GAA",
+      "gaaFull": "Goals Against Average",
+      "season": "Season",
+      "team": "Team",
+      "careerTotals": "Career Totals",
+      "noStatsTitle": "No statistics available",
+      "noStatsDescription": "No season statistics have been recorded for this player yet.",
+      "chartProgression": "Points Progression",
+      "chartGoalieProgression": "GAA Progression",
+      "chartPenaltyPerSeason": "Penalty Minutes per Season",
+      "filterAll": "All",
+      "filterSigned": "Signed",
+      "filterTransfer": "Transfer",
+      "filterPositionChange": "Position Change",
+      "filterSuspensions": "Suspensions",
+      "suspensionMatchPenalty": "Match Penalty",
+      "suspensionGameMisconduct": "Game Misconduct",
+      "suspensionGamesInfo": "{{served}} / {{total}} served",
+      "suspensionLabel": "Suspension",
+      "noSuspensions": "No suspensions"
     },
     "toast": {
       "created": "Player created",
@@ -1388,6 +1507,9 @@
     "title": "Games",
     "description": "Management for {{season}}",
     "searchPlaceholder": "Search games...",
+    "tabs": {
+      "all": "All Games"
+    },
     "count": "{{total}} total | {{completed}} completed | {{unscheduled}} unscheduled",
     "noDate": "No date",
     "noScheduledGames": "No scheduled games.",

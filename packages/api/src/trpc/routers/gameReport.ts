@@ -4,9 +4,9 @@ import { createAppError } from "../../errors/appError"
 import { type OrgContext, orgProcedure, requireRole, router } from "../init"
 
 /** Verify the game is not completed or cancelled before allowing report modifications */
-async function assertGameEditable(db: any, gameId: string) {
-  const game = await db.game.findUnique({
-    where: { id: gameId },
+async function assertGameEditable(db: any, gameId: string, organizationId: string) {
+  const game = await db.game.findFirst({
+    where: { id: gameId, organizationId },
     select: { status: true },
   })
   if (!game) {
@@ -18,9 +18,9 @@ async function assertGameEditable(db: any, gameId: string) {
 }
 
 /** Check game_reporter role for a game (either team). */
-async function assertGameReporter(ctx: OrgContext & { db: any }, gameId: string) {
-  const game = await ctx.db.game.findUnique({
-    where: { id: gameId },
+async function assertGameReporter(ctx: OrgContext & { db: any; organizationId: string }, gameId: string) {
+  const game = await ctx.db.game.findFirst({
+    where: { id: gameId, organizationId: ctx.organizationId },
     select: { homeTeamId: true, awayTeamId: true },
   })
   if (!game) {
@@ -278,7 +278,7 @@ export const gameReportRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertGameReporter(ctx, input.gameId)
-      await assertGameEditable(ctx.db, input.gameId)
+      await assertGameEditable(ctx.db, input.gameId, ctx.organizationId)
       await ctx.db.$transaction(async (tx: any) => {
         await tx.gameLineup.deleteMany({ where: { gameId: input.gameId } })
 
@@ -331,7 +331,7 @@ export const gameReportRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertGameReporter(ctx, input.gameId)
-      await assertGameEditable(ctx.db, input.gameId)
+      await assertGameEditable(ctx.db, input.gameId, ctx.organizationId)
       const { suspension, ...eventData } = input
 
       const event = await ctx.db.gameEvent.create({
@@ -399,14 +399,14 @@ export const gameReportRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
 
-      const existing = await ctx.db.gameEvent.findUnique({
-        where: { id },
+      const existing = await ctx.db.gameEvent.findFirst({
+        where: { id, organizationId: ctx.organizationId },
       })
       if (!existing) {
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_EVENT_NOT_FOUND)
       }
       await assertGameReporter(ctx, existing.gameId)
-      await assertGameEditable(ctx.db, existing.gameId)
+      await assertGameEditable(ctx.db, existing.gameId, ctx.organizationId)
 
       const updated = await ctx.db.gameEvent.update({
         where: { id },
@@ -421,14 +421,14 @@ export const gameReportRouter = router({
     }),
 
   deleteEvent: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const existing = await ctx.db.gameEvent.findUnique({
-      where: { id: input.id },
+    const existing = await ctx.db.gameEvent.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
     if (!existing) {
       throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_EVENT_NOT_FOUND)
     }
     await assertGameReporter(ctx, existing.gameId)
-    await assertGameEditable(ctx.db, existing.gameId)
+    await assertGameEditable(ctx.db, existing.gameId, ctx.organizationId)
 
     // Cascade: delete linked suspension first
     await ctx.db.gameSuspension.deleteMany({ where: { gameEventId: input.id } })
@@ -455,7 +455,7 @@ export const gameReportRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       await assertGameReporter(ctx, input.gameId)
-      await assertGameEditable(ctx.db, input.gameId)
+      await assertGameEditable(ctx.db, input.gameId, ctx.organizationId)
       const suspension = await ctx.db.gameSuspension.create({
         data: {
           organizationId: ctx.organizationId,
@@ -483,15 +483,15 @@ export const gameReportRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
 
-      const existing = await ctx.db.gameSuspension.findUnique({
-        where: { id },
+      const existing = await ctx.db.gameSuspension.findFirst({
+        where: { id, organizationId: ctx.organizationId },
         select: { gameId: true },
       })
       if (!existing) {
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_SUSPENSION_NOT_FOUND)
       }
       await assertGameReporter(ctx, existing.gameId)
-      await assertGameEditable(ctx.db, existing.gameId)
+      await assertGameEditable(ctx.db, existing.gameId, ctx.organizationId)
 
       const updated = await ctx.db.gameSuspension.update({
         where: { id },
@@ -502,16 +502,17 @@ export const gameReportRouter = router({
     }),
 
   deleteSuspension: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const existing = await ctx.db.gameSuspension.findUnique({
-      where: { id: input.id },
-      select: { gameId: true },
+    const existing = await ctx.db.gameSuspension.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      select: { id: true, gameId: true },
     })
-    if (existing) {
-      await assertGameReporter(ctx, existing.gameId)
-      await assertGameEditable(ctx.db, existing.gameId)
+    if (!existing) {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_SUSPENSION_NOT_FOUND)
     }
+    await assertGameReporter(ctx, existing.gameId)
+    await assertGameEditable(ctx.db, existing.gameId, ctx.organizationId)
 
-    await ctx.db.gameSuspension.deleteMany({ where: { id: input.id } })
+    await ctx.db.gameSuspension.delete({ where: { id: existing.id } })
 
     return { success: true }
   }),

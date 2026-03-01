@@ -2,6 +2,7 @@ import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tansta
 import {
   FileText,
   GitBranch,
+  Globe,
   Handshake,
   LayoutDashboard,
   Newspaper,
@@ -26,6 +27,7 @@ import { useTranslation } from "~/i18n/use-translation"
 import { useSession } from "../../lib/auth-client"
 import { trpc } from "../../lib/trpc"
 import "~/styles/dataList.css"
+import "~/styles/navigation.css"
 
 export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
@@ -72,6 +74,7 @@ type RouteLink =
   | "/news"
   | "/pages"
   | "/users"
+  | "/website"
   | "/settings"
 
 interface ActiveItem {
@@ -262,6 +265,7 @@ function SidebarLayout() {
       label: t("sidebar.groups.system"),
       items: [
         { to: "/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} />, permission: "users" },
+        { to: "/website", label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, permission: "settings" },
         { to: "/settings", label: t("sidebar.items.settings"), icon: <Settings {...iconProps} />, permission: "settings" },
       ],
     },

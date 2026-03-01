@@ -20,11 +20,11 @@ import { useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -420,32 +420,21 @@ function UsersPage() {
           </Button>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={1} />
-          ) : (
-            <FilterDropdown
-              label={t("usersPage.filters.all")}
-              options={roleOptions}
-              value={roleFilter}
-              onChange={setRoleFilter}
-            />
-          )
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("usersPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (users?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {roleFilter.length > 0 ? `${filtered.length} / ` : ""}
-                  {users?.length ?? 0}
-                </span>{" "}
-                {t("usersPage.count.members")}
-              </span>
-            </div>
-          ) : undefined
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("usersPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : (
+              <FilterDropdown
+                label={t("usersPage.filters.all")}
+                options={roleOptions}
+                value={roleFilter}
+                onChange={setRoleFilter}
+              />
+            )}
+          </FilterBar>
         }
       >
         {/* Content */}

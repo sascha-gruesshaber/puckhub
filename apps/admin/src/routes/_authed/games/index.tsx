@@ -19,13 +19,17 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
+import { FilterBar, FilterBarDivider } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { roundTypeIcons } from "~/components/structureBuilder/utils/roundTypeIcons"
+import { TabNavigation } from "~/components/tabNavigation"
+import type { TabGroup } from "~/components/tabNavigation"
 import { GameStatusBadge, deriveDisplayStatus } from "~/components/gameStatusBadge"
 import type { DisplayStatus } from "~/components/gameStatusBadge"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
-import { SearchInput } from "~/components/searchInput"
+
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -72,11 +76,11 @@ function toLocalInputValue(value: Date | string | null | undefined): string {
 }
 
 export const Route = createFileRoute("/_authed/games/")({
-  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string; status?: string; division?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string; status?: string; tab?: string } => ({
     ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
     ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
     ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
-    ...(typeof s.division === "string" && s.division ? { division: s.division } : {}),
+    ...(typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
   }),
   component: GamesPage,
 })
@@ -88,12 +92,12 @@ function GamesPage() {
   const { season } = useWorkingSeason()
   const utils = trpc.useUtils()
 
-  const { search: searchParam, team, status: statusParam, division: divisionParam } = Route.useSearch()
+  const { search: searchParam, team, status: statusParam, tab: tabParam } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
+  const activeTab = tabParam ?? "all"
   const teamFilter = useMemo(() => (team ? team.split(",") : []), [team])
   const statusFilter = useMemo(() => (statusParam ? statusParam.split(",") : []), [statusParam])
-  const divisionFilter = useMemo(() => (divisionParam ? divisionParam.split(",") : []), [divisionParam])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
@@ -106,8 +110,8 @@ function GamesPage() {
     (v: string[]) => navigate({ search: (prev) => ({ ...prev, status: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
-  const setDivisionFilter = useCallback(
-    (v: string[]) => navigate({ search: (prev) => ({ ...prev, division: v.join(",") || undefined }), replace: true }),
+  const setTab = useCallback(
+    (v: string) => navigate({ search: (prev) => ({ ...prev, tab: v === "all" ? undefined : v }), replace: true }),
     [navigate],
   )
 
@@ -249,13 +253,51 @@ function GamesPage() {
     [t],
   )
 
-  const divisionOptions: FilterDropdownOption[] = useMemo(
-    () => divisions.map((d) => ({ value: d.id, label: d.name })),
-    [divisions],
-  )
+  // Build round tabs grouped by division (from season structure)
+  const gameTabGroups: TabGroup<string>[] = useMemo(() => {
+    if (divisions.length === 0 || rounds.length === 0) return []
+
+    // Group rounds by division
+    const roundsByDiv = new Map<string, typeof rounds>()
+    for (const r of rounds) {
+      const list = roundsByDiv.get(r.divisionId) ?? []
+      list.push(r)
+      roundsByDiv.set(r.divisionId, list)
+    }
+
+    // Only show tabs if there's more than 1 round total
+    if (rounds.length <= 1) return []
+
+    const showLabels = divisions.length > 1
+
+    const groups: TabGroup<string>[] = [
+      { key: "all", tabs: [{ id: "all", label: t("gamesPage.tabs.all"), icon: CalendarDays }] },
+    ]
+
+    for (const div of divisions) {
+      const divRounds = roundsByDiv.get(div.id) ?? []
+      if (divRounds.length === 0) continue
+      groups.push({
+        key: div.id,
+        label: showLabels ? div.name : undefined,
+        tabs: divRounds.map((r) => ({
+          id: `${div.id}::${r.id}`,
+          label: r.name,
+          icon: roundTypeIcons[r.roundType as keyof typeof roundTypeIcons],
+        })),
+      })
+    }
+
+    return groups
+  }, [divisions, rounds, t])
 
   const filteredGames = useMemo(() => {
     let result = games ?? []
+    // Tab filter by division::roundId
+    if (activeTab !== "all") {
+      const roundId = activeTab.split("::")[1]
+      result = result.filter((g) => g.roundId === roundId)
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(
@@ -275,11 +317,8 @@ function GamesPage() {
         statusFilter.includes(deriveDisplayStatus(g.status, g.scheduledAt, g.location)),
       )
     }
-    if (divisionFilter.length > 0) {
-      result = result.filter((g) => divisionFilter.includes(g.round.division.id))
-    }
     return result
-  }, [games, search, teamFilter, statusFilter, divisionFilter])
+  }, [games, search, teamFilter, statusFilter, activeTab])
 
   const groupedGames = useMemo(() => {
     const groups = new Map<
@@ -434,32 +473,30 @@ function GamesPage() {
           </div>
         }
         filters={
-          isStructureLoading ? (
-            <FilterPillsSkeleton />
-          ) : (
-            <>
-              <FilterDropdown
-                label={t("gamesPage.filters.allTeams")}
-                options={teamOptions}
-                value={teamFilter}
-                onChange={setTeamFilter}
-              />
-              <FilterDropdown
-                label={t("gamesPage.filters.allStatus")}
-                options={statusOptions}
-                value={statusFilter}
-                onChange={setStatusFilter}
-              />
-              <FilterDropdown
-                label={t("gamesPage.filters.allDivisions")}
-                options={divisionOptions}
-                value={divisionFilter}
-                onChange={setDivisionFilter}
-              />
-              <div className="flex-1" />
-              <SearchInput value={search} onChange={setSearch} placeholder={t("gamesPage.searchPlaceholder")} />
-            </>
-          )
+          <>
+            {gameTabGroups.length > 0 && (
+              <TabNavigation groups={gameTabGroups} activeTab={activeTab} onTabChange={setTab} />
+            )}
+            {isStructureLoading ? (
+              <FilterPillsSkeleton />
+            ) : (
+              <FilterBar label={t("statsPage.filters.label")} search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}>
+                <FilterDropdown
+                  label={t("gamesPage.filters.allTeams")}
+                  options={teamOptions}
+                  value={teamFilter}
+                  onChange={setTeamFilter}
+                />
+                <FilterBarDivider />
+                <FilterDropdown
+                  label={t("gamesPage.filters.allStatus")}
+                  options={statusOptions}
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                />
+              </FilterBar>
+            )}
+          </>
         }
       >
         <div>

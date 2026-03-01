@@ -5,11 +5,11 @@ import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -94,21 +94,6 @@ function NewsPage() {
     return result
   }, [articles, search, yearFilter])
 
-  const stats = useMemo(() => {
-    if (!articles) return { total: 0, published: 0, drafts: 0, scheduled: 0 }
-    const now = new Date()
-    return {
-      total: articles.length,
-      published: articles.filter((a) => a.status === "published").length,
-      drafts: articles.filter(
-        (a) => a.status === "draft" && !(a.scheduledPublishAt && new Date(a.scheduledPublishAt) > now),
-      ).length,
-      scheduled: articles.filter(
-        (a) => a.status === "draft" && a.scheduledPublishAt && new Date(a.scheduledPublishAt) > now,
-      ).length,
-    }
-  }, [articles])
-
   function formatDate(date: string | Date | null) {
     if (!date) return "—"
     return new Date(date).toLocaleDateString(i18n.language, {
@@ -134,49 +119,21 @@ function NewsPage() {
           </Link>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={1} />
-          ) : yearOptions.length > 1 ? (
-            <FilterDropdown
-              label={t("newsPage.filters.all")}
-              options={yearOptions}
-              value={yearFilter}
-              onChange={setYearFilter}
-            />
-          ) : undefined
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("newsPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (articles?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {yearFilter.length > 0 ? `${filtered.length} / ` : ""}
-                  {stats.total}
-                </span>{" "}
-                {t("newsPage.count.total")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.published}</span> {t("newsPage.count.published")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.drafts}</span> {t("newsPage.count.drafts")}
-              </span>
-              {stats.scheduled > 0 && (
-                <>
-                  <span className="text-border">|</span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-semibold text-foreground">{stats.scheduled}</span>{" "}
-                    {t("newsPage.count.scheduled")}
-                  </span>
-                </>
-              )}
-            </div>
-          ) : undefined
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("newsPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : yearOptions.length > 1 ? (
+              <FilterDropdown
+                label={t("newsPage.filters.all")}
+                options={yearOptions}
+                value={yearFilter}
+                onChange={setYearFilter}
+              />
+            ) : null}
+          </FilterBar>
         }
       >
         {/* Content */}

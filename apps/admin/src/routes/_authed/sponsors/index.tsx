@@ -19,12 +19,12 @@ import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
@@ -192,14 +192,6 @@ function SponsorsPage() {
     const inactive = filtered.filter((s) => !s.isActive)
     return { active, inactive }
   }, [filtered])
-
-  const stats = useMemo(() => {
-    if (!sponsors) return { total: 0, active: 0 }
-    return {
-      total: sponsors.length,
-      active: sponsors.filter((s) => s.isActive).length,
-    }
-  }, [sponsors])
 
   function setField<K extends keyof SponsorForm>(key: K, value: SponsorForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -378,36 +370,21 @@ function SponsorsPage() {
           </Button>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={1} />
-          ) : teamOptions.length > 0 ? (
-            <FilterDropdown
-              label={t("sponsorsPage.filters.allTeams")}
-              options={teamOptions}
-              value={teamFilter}
-              onChange={setTeamFilter}
-            />
-          ) : undefined
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("sponsorsPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (sponsors?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {teamFilter.length > 0 ? `${filtered.length} / ` : ""}
-                  {stats.total}
-                </span>{" "}
-                {t("sponsorsPage.count.total")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.active}</span> {t("sponsorsPage.count.active")}
-              </span>
-            </div>
-          ) : undefined
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("sponsorsPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : teamOptions.length > 0 ? (
+              <FilterDropdown
+                label={t("sponsorsPage.filters.allTeams")}
+                options={teamOptions}
+                value={teamFilter}
+                onChange={setTeamFilter}
+              />
+            ) : null}
+          </FilterBar>
         }
       >
         {/* Content */}

@@ -1,0 +1,197 @@
+/* ── Tab Navigation ── */
+
+.tab-nav {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border) / 0.7);
+  box-shadow: 0 1px 4px rgba(12, 25, 41, 0.05);
+  padding: 6px;
+}
+
+.tab-nav__track {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-nav__track::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Tab Groups ── */
+
+.tab-nav__group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+
+/* ── Group Label ── */
+
+.tab-nav__group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground) / 0.55);
+  white-space: nowrap;
+  padding: 0 6px;
+  user-select: none;
+}
+
+/* ── Segment: shared background for grouped tabs ── */
+
+.tab-nav__segment {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: hsl(var(--muted) / 0.45);
+  border-radius: 8px;
+  padding: 2px;
+  transition: background 200ms ease;
+}
+
+.tab-nav__segment--active {
+  background: hsl(var(--accent) / 0.1);
+}
+
+/* ── Divider between groups ── */
+
+.tab-nav__divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 6px 2px;
+  background: hsl(var(--border) / 0.6);
+  flex-shrink: 0;
+}
+
+/* ── Individual Tab ── */
+
+.tab-nav__tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+  position: relative;
+}
+
+.tab-nav__tab:hover:not(.tab-nav__tab--active) {
+  color: hsl(var(--foreground));
+  background: hsl(var(--muted) / 0.6);
+}
+
+.tab-nav__tab--active {
+  color: hsl(var(--primary));
+  background: white;
+  box-shadow:
+    0 1px 3px rgba(12, 25, 41, 0.08),
+    0 0 0 1px hsl(var(--border) / 0.4);
+  font-weight: 600;
+}
+
+/* ── Tab Icon Badge ── */
+
+.tab-nav__tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: hsl(var(--muted) / 0.6);
+  color: hsl(var(--muted-foreground));
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+  flex-shrink: 0;
+}
+
+.tab-nav__tab--active .tab-nav__tab-icon {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  box-shadow: 0 2px 8px hsl(var(--accent) / 0.35);
+}
+
+.tab-nav__tab:hover:not(.tab-nav__tab--active) .tab-nav__tab-icon {
+  background: hsl(var(--muted) / 0.9);
+  color: hsl(var(--foreground));
+}
+
+/* ── Filter Toolbar ── */
+
+.filter-bar-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: hsl(var(--muted) / 0.35);
+  border-radius: 10px;
+  border: 1px solid hsl(var(--border) / 0.4);
+  animation: filter-bar-enter 200ms ease-out;
+}
+
+.filter-bar-panel__label {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: hsl(var(--muted-foreground) / 0.7);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+
+.filter-bar-panel__divider {
+  width: 1px;
+  height: 20px;
+  background: hsl(var(--border) / 0.6);
+  flex-shrink: 0;
+}
+
+.filter-bar-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@keyframes filter-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Reduced Motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-nav__tab,
+  .tab-nav__tab-icon,
+  .tab-nav__segment,
+  .filter-bar-panel {
+    transition: none;
+    animation: none;
+  }
+}

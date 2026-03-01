@@ -148,6 +148,12 @@
   border-radius: 2px;
 }
 
+/* ── Suspension node ── */
+.timeline-node--suspension {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
 /* ── Position accent bar colors ── */
 .timeline-accent-bar--goalie {
   background: #3b82f6;
@@ -159,4 +165,8 @@
 
 .timeline-accent-bar--forward {
   background: #ef4444;
+}
+
+.timeline-accent-bar--suspension {
+  background: #f59e0b;
 }

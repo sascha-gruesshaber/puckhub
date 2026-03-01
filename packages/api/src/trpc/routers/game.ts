@@ -206,8 +206,8 @@ export const gameRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
 
-      const existing = await ctx.db.game.findUnique({
-        where: { id },
+      const existing = await ctx.db.game.findFirst({
+        where: { id, organizationId: ctx.organizationId },
       })
       if (!existing) {
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
@@ -244,8 +244,8 @@ export const gameRouter = router({
     }),
 
   complete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const game = await ctx.db.game.findUnique({
-      where: { id: input.id },
+    const game = await ctx.db.game.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
     if (!game) {
       throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
@@ -335,8 +335,8 @@ export const gameRouter = router({
   }),
 
   cancel: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const game = await ctx.db.game.findUnique({
-      where: { id: input.id },
+    const game = await ctx.db.game.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
     if (!game) {
       throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
@@ -371,8 +371,8 @@ export const gameRouter = router({
   }),
 
   reopen: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    const game = await ctx.db.game.findUnique({
-      where: { id: input.id },
+    const game = await ctx.db.game.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
     })
     if (!game) {
       throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
@@ -516,12 +516,16 @@ export const gameRouter = router({
     .input(z.object({ ids: z.array(z.string().uuid()).min(1) }))
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx, "game_manager")
-      await ctx.db.game.deleteMany({ where: { id: { in: input.ids } } })
+      await ctx.db.game.deleteMany({ where: { id: { in: input.ids }, organizationId: ctx.organizationId } })
       return { success: true }
     }),
 
   delete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     requireRole(ctx, "game_manager")
+    const game = await ctx.db.game.findFirst({ where: { id: input.id, organizationId: ctx.organizationId } })
+    if (!game) {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
+    }
     await ctx.db.game.delete({ where: { id: input.id } })
   }),
 

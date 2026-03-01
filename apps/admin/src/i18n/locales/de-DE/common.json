@@ -30,6 +30,7 @@
       "sponsors": "Sponsoren",
       "users": "Benutzer",
       "settings": "Einstellungen",
+      "website": "Website",
       "security": "Sicherheit",
       "dashboard": "Dashboard"
     }
@@ -128,6 +129,85 @@
     "win": "Sieg",
     "draw": "Unentschieden",
     "loss": "Niederlage"
+  },
+  "website": {
+    "title": "Website & Domain",
+    "description": "Öffentliche Website und eigene Domain konfigurieren",
+    "saved": "Website-Einstellungen gespeichert",
+    "tabs": {
+      "domain": "Domain",
+      "appearance": "Erscheinungsbild",
+      "images": "Bilder",
+      "seo": "SEO"
+    },
+    "domain": {
+      "title": "Domain-Konfiguration",
+      "customDomain": "Eigene Domain",
+      "customDomainPlaceholder": "z.B. allgaeuliga.de",
+      "customDomainHint": "Domain ohne http:// oder www. eingeben",
+      "subdomain": "Subdomain",
+      "subdomainSuffix": ".puckhub.de",
+      "subdomainHint": "Deine Seite ist unter dieser Subdomain erreichbar",
+      "active": "Website aktiv",
+      "activeHint": "Öffentliche Website aktivieren oder deaktivieren"
+    },
+    "dns": {
+      "title": "DNS-Konfiguration",
+      "cnameLabel": "CNAME-Eintrag",
+      "cnameTarget": "sites.puckhub.de",
+      "cnameInstruction": "Richte bei deinem DNS-Anbieter einen CNAME-Eintrag auf diese Adresse ein",
+      "aRecordLabel": "A-Eintrag (Alternative)",
+      "aRecordInstruction": "Oder verwende einen A-Eintrag, falls CNAME für deine Root-Domain nicht unterstützt wird",
+      "verify": "DNS prüfen",
+      "verifying": "Prüfe DNS...",
+      "valid": "DNS korrekt konfiguriert",
+      "invalid": "DNS nicht korrekt konfiguriert",
+      "error": "DNS-Abfrage fehlgeschlagen",
+      "lastVerified": "Zuletzt geprüft"
+    },
+    "appearance": {
+      "title": "Erscheinungsbild",
+      "preset": "Vorlage",
+      "presetClassic": "Klassisch — dunkler Header, klares Layout",
+      "presetModern": "Modern — heller Header, lila Akzent",
+      "presetBold": "Kräftig — Dark Mode, roter Akzent",
+      "colors": "Farbschema",
+      "colorPrimary": "Primär",
+      "colorSecondary": "Sekundär",
+      "colorAccent": "Akzent",
+      "colorBackground": "Hintergrund",
+      "colorText": "Text",
+      "colorHeaderBg": "Header-Hintergrund",
+      "colorHeaderText": "Header-Text",
+      "colorFooterBg": "Footer-Hintergrund",
+      "colorFooterText": "Footer-Text",
+      "colorGroupBrand": "Marke",
+      "colorGroupPage": "Seite",
+      "colorGroupHeader": "Header",
+      "colorGroupFooter": "Footer",
+      "resetColor": "Auf Vorlagenwert zurücksetzen"
+    },
+    "preview": {
+      "title": "Vorschau",
+      "open": "Website-Vorschau",
+      "openNewTab": "In neuem Tab öffnen",
+      "close": "Vorschau schließen",
+      "savedNote": "Die Vorschau zeigt den gespeicherten Stand. Speichere deine Änderungen, um Aktualisierungen zu sehen.",
+      "desktop": "Desktop",
+      "tablet": "Tablet",
+      "mobile": "Mobil"
+    },
+    "images": {
+      "title": "Bilder",
+      "logo": "Logo",
+      "favicon": "Favicon",
+      "ogImage": "Social-Sharing-Bild"
+    },
+    "seo": {
+      "title": "SEO",
+      "seoTitle": "Seitentitel",
+      "seoDescription": "Meta-Beschreibung"
+    }
   },
   "language": {
     "label": "Anzeigesprache",
@@ -344,6 +424,9 @@
       "goalies": "Torhüter",
       "teams": "Teams"
     },
+    "tabGroups": {
+      "skaters": "Feldspieler"
+    },
     "roundInfo": {
       "title": "Berücksichtigte Runden",
       "playerStats": "Spielerstatistik",
@@ -439,6 +522,7 @@
       "chartBar": "Balkendiagramm"
     },
     "filters": {
+      "label": "Filter",
       "allTeams": "Alle Teams",
       "allPositions": "Alle Positionen",
       "forward": "Stürmer",
@@ -852,7 +936,42 @@
       "teamCount": "Teams: {{count}}",
       "sinceYear": "Seit {{year}}",
       "noContractsTitle": "Keine Vertragshistorie",
-      "noContractsDescription": "Für diesen Spieler wurden noch keine Verträge erfasst."
+      "noContractsDescription": "Für diesen Spieler wurden noch keine Verträge erfasst.",
+      "careerStats": "Karrierestatistiken",
+      "seasonStats": "Saisonstatistiken",
+      "timeline": "Zeitverlauf",
+      "gp": "SP",
+      "gpFull": "Spiele",
+      "goals": "Tore",
+      "goalsFull": "Tore",
+      "assists": "Assists",
+      "assistsFull": "Torvorlagen",
+      "points": "Punkte",
+      "pointsFull": "Gesamtpunkte",
+      "pim": "SM",
+      "pimFull": "Strafminuten",
+      "ga": "GT",
+      "gaFull": "Gegentore",
+      "gaa": "GDS",
+      "gaaFull": "Gegentorschnitt",
+      "season": "Saison",
+      "team": "Team",
+      "careerTotals": "Karriere Gesamt",
+      "noStatsTitle": "Keine Statistiken vorhanden",
+      "noStatsDescription": "Für diesen Spieler wurden noch keine Saisonstatistiken erfasst.",
+      "chartProgression": "Punkteentwicklung",
+      "chartGoalieProgression": "GDS-Entwicklung",
+      "chartPenaltyPerSeason": "Strafminuten pro Saison",
+      "filterAll": "Alle",
+      "filterSigned": "Verpflichtet",
+      "filterTransfer": "Transfer",
+      "filterPositionChange": "Positionswechsel",
+      "filterSuspensions": "Sperren",
+      "suspensionMatchPenalty": "Matchstrafe",
+      "suspensionGameMisconduct": "Spieldauer-Disziplinarstrafe",
+      "suspensionGamesInfo": "{{served}} / {{total}} abgesessen",
+      "suspensionLabel": "Sperre",
+      "noSuspensions": "Keine Sperren"
     },
     "toast": {
       "created": "Spieler erstellt",
@@ -1388,6 +1507,9 @@
     "title": "Spiele",
     "description": "Verwaltung für {{season}}",
     "searchPlaceholder": "Spiele suchen...",
+    "tabs": {
+      "all": "Alle Spiele"
+    },
     "count": "{{total}} gesamt | {{completed}} abgeschlossen | {{unscheduled}} ohne Termin",
     "noDate": "Kein Termin",
     "noScheduledGames": "Keine terminierten Spiele.",

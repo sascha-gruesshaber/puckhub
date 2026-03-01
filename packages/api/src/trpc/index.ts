@@ -10,6 +10,7 @@ import { newsRouter } from "./routers/news"
 import { organizationRouter } from "./routers/organization"
 import { pageRouter } from "./routers/page"
 import { playerRouter } from "./routers/player"
+import { publicSiteRouter } from "./routers/publicSite"
 import { roundRouter } from "./routers/round"
 import { schedulerRouter } from "./routers/scheduler"
 import { seasonRouter } from "./routers/season"
@@ -24,6 +25,7 @@ import { trikotRouter } from "./routers/trikot"
 import { trikotTemplateRouter } from "./routers/trikotTemplate"
 import { userPreferencesRouter } from "./routers/userPreferences"
 import { usersRouter } from "./routers/users"
+import { websiteConfigRouter } from "./routers/websiteConfig"
 
 export const appRouter = router({
   bonusPoints: bonusPointsRouter,
@@ -49,8 +51,10 @@ export const appRouter = router({
   news: newsRouter,
   organization: organizationRouter,
   page: pageRouter,
+  publicSite: publicSiteRouter,
   userPreferences: userPreferencesRouter,
   scheduler: schedulerRouter,
+  websiteConfig: websiteConfigRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -9,13 +9,25 @@ import { createContext } from "./trpc/context"
 
 const app = new Hono()
 
+const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "http://localhost:3000,http://localhost:3002,http://localhost:3003").split(",").map((o) => o.trim())
+
+// Public site tRPC routes — allow any origin (read-only, no auth)
+app.use(
+  "/api/trpc/publicSite.*",
+  cors({
+    origin: "*",
+    credentials: false,
+  }),
+)
+
+// Authenticated routes — strict origin checking
 app.use(
   "/api/*",
   cors({
     origin: (origin) => {
-      if (!origin) return "http://localhost:3000"
-      if (new URL(origin).hostname === "localhost") return origin
-      return "http://localhost:3000"
+      if (!origin) return trustedOrigins[0]!
+      if (trustedOrigins.includes(origin)) return origin
+      return trustedOrigins[0]!
     },
     credentials: true,
   }),

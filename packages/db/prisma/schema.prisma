@@ -228,6 +228,7 @@ model Organization {
   teamDivisions  TeamDivision[]
   teamTrikots    TeamTrikot[]
   pageAliases    PageAlias[]
+  websiteConfig  WebsiteConfig?
 
   @@map("organization")
 }
@@ -852,4 +853,43 @@ model TeamTrikot {
   @@unique([teamId, trikotId, name])
   @@index([organizationId], map: "team_trikots_org_id_idx")
   @@map("team_trikots")
+}
+
+// ─── Website Config ─────────────────────────────────────────────────────────
+
+model WebsiteConfig {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @unique @map("organization_id")
+  domain         String?  @unique
+  subdomain      String?  @unique
+  isActive       Boolean  @default(false) @map("is_active")
+  logoUrl        String?  @map("logo_url")
+  faviconUrl     String?  @map("favicon_url")
+  ogImageUrl     String?  @map("og_image_url")
+
+  colorPrimary    String? @map("color_primary")
+  colorSecondary  String? @map("color_secondary")
+  colorAccent     String? @map("color_accent")
+  colorBackground String? @map("color_background")
+  colorText       String? @map("color_text")
+  colorHeaderBg   String? @map("color_header_bg")
+  colorHeaderText String? @map("color_header_text")
+  colorFooterBg   String? @map("color_footer_bg")
+  colorFooterText String? @map("color_footer_text")
+
+  templatePreset String @default("classic") @map("template_preset")
+  layoutConfig   Json?  @map("layout_config")
+
+  seoTitle       String? @map("seo_title")
+  seoDescription String? @map("seo_description")
+
+  domainVerifiedAt DateTime? @map("domain_verified_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([domain], map: "website_config_domain_idx")
+  @@map("website_config")
 }

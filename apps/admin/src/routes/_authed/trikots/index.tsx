@@ -20,11 +20,11 @@ import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
@@ -344,37 +344,21 @@ function TrikotsPage() {
           </Button>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={1} />
-          ) : templateOptions.length > 1 ? (
-            <FilterDropdown
-              label={t("trikotsPage.filters.all")}
-              options={templateOptions}
-              value={templateFilter}
-              onChange={setTemplateFilter}
-            />
-          ) : undefined
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("trikotsPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (trikots?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {templateFilter.length > 0 ? `${filtered.length} / ` : ""}
-                  {trikots?.length ?? 0}
-                </span>{" "}
-                {t("trikotsPage.count.trikots")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{templates?.length ?? 0}</span>{" "}
-                {t("trikotsPage.count.templates")}
-              </span>
-            </div>
-          ) : undefined
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("trikotsPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : templateOptions.length > 1 ? (
+              <FilterDropdown
+                label={t("trikotsPage.filters.all")}
+                options={templateOptions}
+                value={templateFilter}
+                onChange={setTemplateFilter}
+              />
+            ) : null}
+          </FilterBar>
         }
       >
         {/* Content */}

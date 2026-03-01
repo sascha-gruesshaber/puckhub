@@ -4,17 +4,18 @@ import { RefreshCw, Trophy } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
-import { FilterPill } from "~/components/filterPill"
 import { PageHeader } from "~/components/pageHeader"
+import { roundTypeIcons } from "~/components/structureBuilder/utils/roundTypeIcons"
+import { TabNavigation } from "~/components/tabNavigation"
+import type { TabGroup } from "~/components/tabNavigation"
 import { BonusPointsSection } from "~/components/standings/bonusPointsSection"
 import { StandingsTable } from "~/components/standings/standingsTable"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 
 export const Route = createFileRoute("/_authed/standings")({
-  validateSearch: (s: Record<string, unknown>): { division?: string; round?: string } => ({
-    ...(typeof s.division === "string" && s.division ? { division: s.division } : {}),
-    ...(typeof s.round === "string" && s.round ? { round: s.round } : {}),
+  validateSearch: (s: Record<string, unknown>): { tab?: string } => ({
+    ...(typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
   }),
   component: StandingsPage,
 })
@@ -23,7 +24,7 @@ function StandingsPage() {
   const { t } = useTranslation("common")
   const { season } = useWorkingSeason()
   const navigate = useNavigate({ from: Route.fullPath })
-  const { division: selectedDivisionId, round: selectedRoundId } = Route.useSearch()
+  const { tab: tabParam } = Route.useSearch()
   const utils = trpc.useUtils()
 
   const seasonId = season?.id ?? ""
@@ -37,24 +38,40 @@ function StandingsPage() {
 
   const { data: teams } = trpc.team.list.useQuery(undefined, { enabled })
 
-  // Auto-select first division
-  const activeDivisionId = useMemo(() => {
-    if (selectedDivisionId) return selectedDivisionId
-    return roundInfo?.[0]?.id ?? ""
-  }, [selectedDivisionId, roundInfo])
+  // Build a flat lookup of all valid tab IDs → roundId
+  const allRoundTabs = useMemo(() => {
+    if (!roundInfo) return new Map<string, { divisionId: string; roundId: string }>()
+    const m = new Map<string, { divisionId: string; roundId: string }>()
+    for (const div of roundInfo) {
+      for (const r of div.rounds) {
+        m.set(`${div.id}::${r.id}`, { divisionId: div.id, roundId: r.id })
+      }
+    }
+    return m
+  }, [roundInfo])
 
-  // Rounds for selected division
-  const divisionRounds = useMemo(() => {
-    if (!roundInfo || !activeDivisionId) return []
-    const div = roundInfo.find((d) => d.id === activeDivisionId)
-    return div?.rounds ?? []
-  }, [roundInfo, activeDivisionId])
+  // Derive the default tab (first division's first round)
+  const defaultTab = useMemo(() => {
+    if (!roundInfo || roundInfo.length === 0) return ""
+    const firstDiv = roundInfo[0]!
+    const firstRound = firstDiv.rounds[0]
+    return firstRound ? `${firstDiv.id}::${firstRound.id}` : ""
+  }, [roundInfo])
 
-  // Auto-select first round
-  const activeRoundId = useMemo(() => {
-    if (selectedRoundId && divisionRounds.some((r) => r.id === selectedRoundId)) return selectedRoundId
-    return divisionRounds[0]?.id ?? ""
-  }, [selectedRoundId, divisionRounds])
+  // Active tab: use URL param if valid, otherwise default
+  const activeTab = useMemo(() => {
+    if (tabParam && allRoundTabs.has(tabParam)) return tabParam
+    return defaultTab
+  }, [tabParam, allRoundTabs, defaultTab])
+
+  // Derived IDs for queries and mutations
+  const activeDivisionId = allRoundTabs.get(activeTab)?.divisionId ?? ""
+  const activeRoundId = allRoundTabs.get(activeTab)?.roundId ?? ""
+
+  const setTab = useCallback(
+    (tab: string) => navigate({ search: { tab }, replace: true }),
+    [navigate],
+  )
 
   // Clear stale search params when season changes
   const prevSeasonIdRef = useRef(seasonId)
@@ -65,37 +82,13 @@ function StandingsPage() {
     }
   }, [seasonId, navigate])
 
-  // Auto-select first division+round once roundInfo loads and nothing is selected
+  // Auto-select default tab once roundInfo loads and nothing valid is selected
   useEffect(() => {
     if (!roundInfo || roundInfo.length === 0) return
-    // If the selected division doesn't belong to this season's data, reset
-    const divisionValid = selectedDivisionId && roundInfo.some((d) => d.id === selectedDivisionId)
-    if (!divisionValid) {
-      const firstDiv = roundInfo[0]!
-      const firstRound = firstDiv.rounds[0]
-      navigate({
-        search: { division: firstDiv.id, round: firstRound?.id },
-        replace: true,
-      })
+    if (!tabParam || !allRoundTabs.has(tabParam)) {
+      if (defaultTab) navigate({ search: { tab: defaultTab }, replace: true })
     }
-  }, [roundInfo, selectedDivisionId, navigate])
-
-  const setDivision = useCallback(
-    (divId: string) => {
-      const div = roundInfo?.find((d) => d.id === divId)
-      const firstRound = div?.rounds[0]
-      navigate({
-        search: { division: divId, round: firstRound?.id },
-        replace: true,
-      })
-    },
-    [navigate, roundInfo],
-  )
-
-  const setRound = useCallback(
-    (roundId: string) => navigate({ search: (prev) => ({ ...prev, round: roundId }), replace: true }),
-    [navigate],
-  )
+  }, [roundInfo, tabParam, allRoundTabs, defaultTab, navigate])
 
   // Standings + form queries
   const { data: standings, isLoading: standingsLoading } = trpc.standings.getByRound.useQuery(
@@ -136,6 +129,24 @@ function StandingsPage() {
       primaryColor: t.primaryColor,
     }))
   }, [teams])
+
+  // Division + round tabs
+  const standingsTabGroups: TabGroup<string>[] = useMemo(() => {
+    if (!roundInfo || roundInfo.length === 0) return []
+    // Only one division with one round → no tabs needed
+    if (roundInfo.length === 1 && roundInfo[0]!.rounds.length <= 1) return []
+
+    const showLabels = roundInfo.length > 1
+    return roundInfo.map((div) => ({
+      key: div.id,
+      label: showLabels ? div.name : undefined,
+      tabs: div.rounds.map((r) => ({
+        id: `${div.id}::${r.id}`,
+        label: r.name,
+        icon: roundTypeIcons[r.roundType as keyof typeof roundTypeIcons],
+      })),
+    }))
+  }, [roundInfo])
 
   // No season
   if (!season) {
@@ -180,34 +191,16 @@ function StandingsPage() {
         }
       />
 
-      {/* Division pills */}
+      {/* Division + round tabs */}
       {roundInfoLoading ? (
         <div className="flex gap-2">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-8 w-24 rounded-full" />
           ))}
         </div>
-      ) : roundInfo && roundInfo.length > 1 ? (
-        <div className="flex items-center gap-2 flex-wrap">
-          {roundInfo.map((div) => (
-            <FilterPill
-              key={div.id}
-              label={div.name}
-              active={div.id === activeDivisionId}
-              onClick={() => setDivision(div.id)}
-            />
-          ))}
-        </div>
+      ) : standingsTabGroups.length > 0 ? (
+        <TabNavigation groups={standingsTabGroups} activeTab={activeTab} onTabChange={setTab} />
       ) : null}
-
-      {/* Round pills */}
-      {divisionRounds.length > 0 && (
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {divisionRounds.map((r) => (
-            <FilterPill key={r.id} label={r.name} active={r.id === activeRoundId} onClick={() => setRound(r.id)} />
-          ))}
-        </div>
-      )}
 
       {/* Loading */}
       {standingsLoading && (

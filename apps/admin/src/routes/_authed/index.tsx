@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { AlertTriangle, Calendar, CheckCircle2, Clock, ShieldAlert, Trophy, Users } from "lucide-react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
+import { PlayerHoverCard } from "~/components/playerHoverCard"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 
@@ -11,30 +12,73 @@ export const Route = createFileRoute("/_authed/")({
 })
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+const RANK_COLORS = [
+  "bg-amber-400/15 text-amber-600 ring-amber-400/30",
+  "bg-slate-300/20 text-slate-500 ring-slate-300/40",
+  "bg-orange-400/15 text-orange-600 ring-orange-400/30",
+] as const
+
+function RankBadge({ rank }: { rank: number }) {
+  const style = RANK_COLORS[rank] ?? "bg-muted text-muted-foreground ring-border"
+  return (
+    <span
+      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ring-1 shrink-0 ${style}`}
+    >
+      {rank + 1}
+    </span>
+  )
+}
+
+function TeamLogo({ url, size = 16 }: { url: string | null; size?: number }) {
+  if (!url) return <div className="rounded-full bg-muted shrink-0" style={{ width: size, height: size }} />
+  return (
+    <img
+      src={url}
+      alt=""
+      className="rounded-full object-cover shrink-0"
+      style={{ width: size, height: size }}
+    />
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Stat Card
 // ---------------------------------------------------------------------------
 function StatCard({
   label,
   value,
   icon,
+  color,
   isLoading,
 }: {
   label: string
   value: number
   icon: React.ReactNode
+  color: string
   isLoading: boolean
 }) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-          <span className="text-muted-foreground">{icon}</span>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-lg shrink-0"
+            style={{ background: `${color}15`, color }}
+          >
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground truncate">{label}</p>
+            {isLoading ? (
+              <Skeleton className="h-7 w-14 mt-0.5" />
+            ) : (
+              <p className="text-2xl font-bold leading-tight tabular-nums">{value}</p>
+            )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? <Skeleton className="h-8 w-16" /> : <p className="text-2xl font-bold">{value}</p>}
-      </CardContent>
     </Card>
   )
 }
@@ -84,19 +128,23 @@ function MissingReportsCard({
             {t("dashboard.missingReports.empty")}
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {reports.map((game) => (
               <Link
                 key={game.id}
                 to="/games/$gameId/report"
                 params={{ gameId: game.id }}
-                className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-accent/50 transition-colors"
+                className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm hover:bg-accent/50 transition-colors"
               >
-                <span className="font-medium">
-                  {game.homeTeam.shortName} vs {game.awayTeam.shortName}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {game.scheduledAt ? new Date(game.scheduledAt).toLocaleDateString() : "–"}
+                <div className="flex items-center gap-2 min-w-0">
+                  <TeamLogo url={game.homeTeam.logoUrl} />
+                  <span className="font-medium truncate">{game.homeTeam.shortName}</span>
+                  <span className="text-muted-foreground text-xs">vs</span>
+                  <TeamLogo url={game.awayTeam.logoUrl} />
+                  <span className="font-medium truncate">{game.awayTeam.shortName}</span>
+                </div>
+                <span className="text-xs text-muted-foreground shrink-0 ml-2">
+                  {game.scheduledAt ? new Date(game.scheduledAt).toLocaleDateString() : "\u2013"}
                 </span>
               </Link>
             ))}
@@ -143,13 +191,17 @@ function UpcomingGamesCard({
         ) : games.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("dashboard.upcomingGames.empty")}</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {games.map((game) => (
-              <div key={game.id} className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm">
-                <span className="font-medium">
-                  {game.homeTeam.shortName} vs {game.awayTeam.shortName}
-                </span>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div key={game.id} className="rounded-lg border border-border/50 px-3 py-2.5">
+                <div className="flex items-center gap-2 text-sm">
+                  <TeamLogo url={game.homeTeam.logoUrl} />
+                  <span className="font-medium">{game.homeTeam.shortName}</span>
+                  <span className="text-muted-foreground text-xs">vs</span>
+                  <TeamLogo url={game.awayTeam.logoUrl} />
+                  <span className="font-medium">{game.awayTeam.shortName}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                   {game.scheduledAt && (
                     <span>
                       {new Date(game.scheduledAt).toLocaleDateString(undefined, {
@@ -160,7 +212,7 @@ function UpcomingGamesCard({
                     </span>
                   )}
                   {game.location && (
-                    <span className="hidden sm:inline">
+                    <span>
                       {t("dashboard.upcomingGames.at")} {game.location}
                     </span>
                   )}
@@ -219,22 +271,39 @@ function ActiveSuspensionsCard({
             {t("dashboard.activeSuspensions.empty")}
           </p>
         ) : (
-          <div className="space-y-2">
-            {suspensions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm">
-                <div>
-                  <span className="font-medium">
-                    {s.player.firstName} {s.player.lastName}
-                  </span>
-                  <span className="text-muted-foreground ml-1.5 text-xs">{s.team.shortName}</span>
+          <div className="space-y-2.5">
+            {suspensions.map((s) => {
+              const progress = s.suspendedGames > 0 ? (s.servedGames / s.suspendedGames) * 100 : 0
+              return (
+                <div key={s.id} className="rounded-lg border border-border/50 px-3 py-2.5">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <TeamLogo url={s.team.logoUrl} />
+                      <PlayerHoverCard
+                        playerId={s.player.id}
+                        name={`${s.player.firstName} ${s.player.lastName}`}
+                      >
+                        <span className="font-medium text-sm cursor-pointer hover:underline decoration-dotted underline-offset-2 truncate">
+                          {s.player.firstName} {s.player.lastName}
+                        </span>
+                      </PlayerHoverCard>
+                      <span className="text-xs text-muted-foreground">{s.team.shortName}</span>
+                    </div>
+                    <Badge variant="outline" className="text-[11px] shrink-0 ml-2">
+                      {t("dashboard.activeSuspensions.remaining")
+                        .replace("{served}", String(s.servedGames))
+                        .replace("{total}", String(s.suspendedGames))}
+                    </Badge>
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-red-500/10 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-red-500/60 transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {t("dashboard.activeSuspensions.remaining")
-                    .replace("{served}", String(s.servedGames))
-                    .replace("{total}", String(s.suspendedGames))}
-                </Badge>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </CardContent>
@@ -270,40 +339,50 @@ function TopScorersCard({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-5 w-full" />
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-6 w-6 rounded-full" />
+                <Skeleton className="h-5 flex-1" />
+              </div>
             ))}
           </div>
         ) : scorers.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("dashboard.topScorers.empty")}</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-muted-foreground border-b">
-                <th className="text-left pb-2 font-medium">#</th>
-                <th className="text-left pb-2 font-medium">{t("dashboard.topScorers.name")}</th>
-                <th className="text-left pb-2 font-medium">{t("dashboard.topScorers.team")}</th>
-                <th className="text-right pb-2 font-medium">{t("dashboard.topScorers.goals")}</th>
-                <th className="text-right pb-2 font-medium">{t("dashboard.topScorers.assists")}</th>
-                <th className="text-right pb-2 font-medium">{t("dashboard.topScorers.points")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {scorers.map((s, i) => (
-                <tr key={s.player.id} className="border-b last:border-0">
-                  <td className="py-1.5 text-muted-foreground">{i + 1}</td>
-                  <td className="py-1.5 font-medium">
-                    {s.player.firstName.charAt(0)}. {s.player.lastName}
-                  </td>
-                  <td className="py-1.5 text-muted-foreground">{s.team.shortName}</td>
-                  <td className="py-1.5 text-right">{s.goals}</td>
-                  <td className="py-1.5 text-right">{s.assists}</td>
-                  <td className="py-1.5 text-right font-semibold">{s.totalPoints}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-1">
+            {scorers.map((s, i) => (
+              <div
+                key={s.player.id}
+                className="flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-muted/50 transition-colors"
+              >
+                <RankBadge rank={i} />
+                <TeamLogo url={s.team.logoUrl} size={20} />
+                <div className="min-w-0 flex-1 leading-tight">
+                  <PlayerHoverCard
+                    playerId={s.player.id}
+                    name={`${s.player.firstName} ${s.player.lastName}`}
+                  >
+                    <span className="text-sm font-medium cursor-pointer hover:underline decoration-dotted underline-offset-2 truncate block">
+                      {s.player.firstName} {s.player.lastName}
+                    </span>
+                  </PlayerHoverCard>
+                  <span className="text-[11px] text-muted-foreground block mt-0.5">{s.team.shortName}</span>
+                </div>
+                <div className="flex items-center gap-3 shrink-0 text-xs tabular-nums">
+                  <span className="text-muted-foreground" title={t("dashboard.topScorers.goals")}>
+                    {s.goals}G
+                  </span>
+                  <span className="text-muted-foreground" title={t("dashboard.topScorers.assists")}>
+                    {s.assists}A
+                  </span>
+                  <span className="font-bold text-sm" title={t("dashboard.topScorers.points")}>
+                    {s.totalPoints}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -326,6 +405,8 @@ function TopPenalizedCard({
   isLoading: boolean
   t: (key: string) => string
 }) {
+  const maxPim = players.length > 0 ? players[0]!.penaltyMinutes : 1
+
   return (
     <Card>
       <CardHeader>
@@ -336,36 +417,50 @@ function TopPenalizedCard({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-5 w-full" />
+              <div key={i} className="flex items-center gap-3">
+                <Skeleton className="h-6 w-6 rounded-full" />
+                <Skeleton className="h-5 flex-1" />
+              </div>
             ))}
           </div>
         ) : players.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("dashboard.topPenalized.empty")}</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs text-muted-foreground border-b">
-                <th className="text-left pb-2 font-medium">#</th>
-                <th className="text-left pb-2 font-medium">{t("dashboard.topPenalized.name")}</th>
-                <th className="text-left pb-2 font-medium">{t("dashboard.topPenalized.team")}</th>
-                <th className="text-right pb-2 font-medium">{t("dashboard.topPenalized.pim")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((s, i) => (
-                <tr key={s.player.id} className="border-b last:border-0">
-                  <td className="py-1.5 text-muted-foreground">{i + 1}</td>
-                  <td className="py-1.5 font-medium">
-                    {s.player.firstName.charAt(0)}. {s.player.lastName}
-                  </td>
-                  <td className="py-1.5 text-muted-foreground">{s.team.shortName}</td>
-                  <td className="py-1.5 text-right font-semibold">{s.penaltyMinutes}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-1">
+            {players.map((s, i) => (
+              <div
+                key={s.player.id}
+                className="flex items-center gap-3 rounded-lg px-2.5 py-2 hover:bg-muted/50 transition-colors"
+              >
+                <RankBadge rank={i} />
+                <TeamLogo url={s.team.logoUrl} size={20} />
+                <div className="min-w-0 flex-1">
+                  <PlayerHoverCard
+                    playerId={s.player.id}
+                    name={`${s.player.firstName} ${s.player.lastName}`}
+                  >
+                    <span className="text-sm font-medium cursor-pointer hover:underline decoration-dotted underline-offset-2 truncate block">
+                      {s.player.firstName} {s.player.lastName}
+                    </span>
+                  </PlayerHoverCard>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-muted-foreground">{s.team.shortName}</span>
+                    <div className="flex-1 h-1 rounded-full bg-orange-500/10 overflow-hidden max-w-[80px]">
+                      <div
+                        className="h-full rounded-full bg-orange-500/50"
+                        style={{ width: `${(s.penaltyMinutes / maxPim) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <span className="text-sm font-bold tabular-nums shrink-0" title={t("dashboard.topPenalized.pim")}>
+                  {s.penaltyMinutes}'
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -393,47 +488,60 @@ function RecentResultsCard({
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">{t("dashboard.recentResults.title")}</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-full" />
+              <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
         ) : results.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("dashboard.recentResults.empty")}</p>
         ) : (
           <div className="space-y-1">
-            {results.map((game) => (
-              <Link
-                key={game.id}
-                to="/games/$gameId/report"
-                params={{ gameId: game.id }}
-                className="flex items-center justify-between rounded-md px-3 py-2 hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xs text-muted-foreground w-20 shrink-0">
+            {results.map((game) => {
+              const homeWin = (game.homeScore ?? 0) > (game.awayScore ?? 0)
+              const awayWin = (game.awayScore ?? 0) > (game.homeScore ?? 0)
+              return (
+                <Link
+                  key={game.id}
+                  to="/games/$gameId/report"
+                  params={{ gameId: game.id }}
+                  className="flex items-center rounded-lg px-3 py-2.5 hover:bg-accent/50 transition-colors group"
+                >
+                  <span className="text-xs text-muted-foreground w-16 shrink-0">
                     {game.scheduledAt
                       ? new Date(game.scheduledAt).toLocaleDateString(undefined, {
                           month: "short",
                           day: "numeric",
                         })
-                      : "–"}
+                      : "\u2013"}
                   </span>
-                  <span className="font-medium text-sm truncate">{game.homeTeam.shortName}</span>
-                  <span className="text-lg font-bold tabular-nums">
-                    {game.homeScore ?? 0} : {game.awayScore ?? 0}
+                  <div className="flex items-center justify-center gap-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 justify-end flex-1 min-w-0">
+                      <span className={`text-sm truncate ${homeWin ? "font-bold" : "font-medium text-muted-foreground"}`}>
+                        {game.homeTeam.shortName}
+                      </span>
+                      <TeamLogo url={game.homeTeam.logoUrl} size={20} />
+                    </div>
+                    <span className="text-base font-bold tabular-nums px-2 shrink-0">
+                      {game.homeScore ?? 0}
+                      <span className="text-muted-foreground mx-0.5">:</span>
+                      {game.awayScore ?? 0}
+                    </span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <TeamLogo url={game.awayTeam.logoUrl} size={20} />
+                      <span className={`text-sm truncate ${awayWin ? "font-bold" : "font-medium text-muted-foreground"}`}>
+                        {game.awayTeam.shortName}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {t("dashboard.recentResults.viewReport")}
                   </span>
-                  <span className="font-medium text-sm truncate">{game.awayTeam.shortName}</span>
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                  {t("dashboard.recentResults.viewReport")}
-                </span>
-              </Link>
-            ))}
+                </Link>
+              )
+            })}
           </div>
         )}
       </CardContent>
@@ -486,24 +594,28 @@ function DashboardPage() {
           label={t("dashboard.cards.teams")}
           value={data?.counts.teams ?? 0}
           icon={<Users size={18} />}
+          color="hsl(215, 55%, 23%)"
           isLoading={loading}
         />
         <StatCard
           label={t("dashboard.cards.players")}
           value={data?.counts.players ?? 0}
           icon={<Users size={18} />}
+          color="hsl(142, 71%, 45%)"
           isLoading={loading}
         />
         <StatCard
           label={t("dashboard.cards.completed")}
           value={data?.counts.completed ?? 0}
           icon={<CheckCircle2 size={18} />}
+          color="hsl(44, 87%, 50%)"
           isLoading={loading}
         />
         <StatCard
           label={t("dashboard.cards.remaining")}
           value={data?.counts.remaining ?? 0}
           icon={<Clock size={18} />}
+          color="hsl(354, 85%, 42%)"
           isLoading={loading}
         />
       </div>

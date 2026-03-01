@@ -731,9 +731,223 @@ describe("organization router", () => {
     })
   })
 
+  // ─── getMyRoles ──────────────────────────────────────────────────────────
+
+  describe("getMyRoles", () => {
+    it("returns roles for the admin user (owner)", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const roles = await admin.organization.getMyRoles()
+
+      expect(roles).toBeDefined()
+      expect(Array.isArray(roles)).toBe(true)
+      expect(roles.length).toBeGreaterThanOrEqual(1)
+
+      const ownerRole = roles.find((r) => r.role === "owner")
+      expect(ownerRole).toBeDefined()
+      expect(ownerRole?.id).toBeDefined()
+      expect(ownerRole?.teamId).toBeNull()
+    })
+
+    it("returns empty array for regular user with no MemberRoles", async () => {
+      const user = createTestCaller({ asUser: true })
+      const roles = await user.organization.getMyRoles()
+
+      expect(roles).toEqual([])
+    })
+
+    it("returns multiple roles when assigned", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const db = getTestDb()
+
+      // Add an editor role to the admin
+      await db.memberRole.create({
+        data: {
+          memberId: "test-admin-member-id",
+          role: "editor",
+        },
+      })
+
+      const roles = await admin.organization.getMyRoles()
+      expect(roles.length).toBeGreaterThanOrEqual(2)
+      expect(roles.some((r) => r.role === "owner")).toBe(true)
+      expect(roles.some((r) => r.role === "editor")).toBe(true)
+    })
+
+    it("rejects unauthenticated calls", async () => {
+      const caller = createTestCaller()
+      await expect(caller.organization.getMyRoles()).rejects.toThrow("Not authenticated")
+    })
+  })
+
+  // ─── getMemberRoles ─────────────────────────────────────────────────────────
+
+  describe("getMemberRoles", () => {
+    it("returns roles for a specific member", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const roles = await admin.organization.getMemberRoles({
+        memberId: "test-admin-member-id",
+      })
+
+      expect(roles).toBeDefined()
+      expect(Array.isArray(roles)).toBe(true)
+      expect(roles.length).toBeGreaterThanOrEqual(1)
+      expect(roles.some((r) => r.role === "owner")).toBe(true)
+    })
+
+    it("returns empty array for member with no roles", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const roles = await admin.organization.getMemberRoles({
+        memberId: "test-user-member-id",
+      })
+
+      expect(roles).toEqual([])
+    })
+
+    it("throws NOT_FOUND for non-existent member", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      await expect(
+        admin.organization.getMemberRoles({ memberId: "non-existent-member-id" }),
+      ).rejects.toThrow("MEMBER_NOT_FOUND")
+    })
+
+    it("rejects regular member (not admin/owner)", async () => {
+      const user = createTestCaller({ asUser: true })
+      await expect(
+        user.organization.getMemberRoles({ memberId: "test-admin-member-id" }),
+      ).rejects.toThrow("Keine Administratorrechte")
+    })
+
+    it("rejects unauthenticated calls", async () => {
+      const caller = createTestCaller()
+      await expect(
+        caller.organization.getMemberRoles({ memberId: "test-admin-member-id" }),
+      ).rejects.toThrow("Not authenticated")
+    })
+  })
+
+  // ─── addMemberRole ──────────────────────────────────────────────────────────
+
+  describe("addMemberRole", () => {
+    it("adds a role to a member", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const result = await admin.organization.addMemberRole({
+        memberId: "test-user-member-id",
+        role: "editor",
+      })
+
+      expect(result).toBeDefined()
+      expect(result.role).toBe("editor")
+      expect(result.memberId).toBe("test-user-member-id")
+      expect(result.teamId).toBeNull()
+    })
+
+    it("adds a team-scoped role", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const db = getTestDb()
+
+      // Create a team first
+      const team = await db.team.create({
+        data: {
+          name: "Role Test Team",
+          shortName: "RTT",
+          organizationId: TEST_ORG_ID,
+        },
+      })
+
+      const result = await admin.organization.addMemberRole({
+        memberId: "test-user-member-id",
+        role: "team_manager",
+        teamId: team.id,
+      })
+
+      expect(result.role).toBe("team_manager")
+      expect(result.teamId).toBe(team.id)
+      expect(result.team).toBeDefined()
+      expect(result.team?.name).toBe("Role Test Team")
+    })
+
+    it("rejects duplicate role assignment", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+
+      await admin.organization.addMemberRole({
+        memberId: "test-user-member-id",
+        role: "game_manager",
+      })
+
+      await expect(
+        admin.organization.addMemberRole({
+          memberId: "test-user-member-id",
+          role: "game_manager",
+        }),
+      ).rejects.toThrow("USER_ROLE_ALREADY_ASSIGNED")
+    })
+
+    it("throws NOT_FOUND for non-existent member", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      await expect(
+        admin.organization.addMemberRole({
+          memberId: "non-existent-member-id",
+          role: "editor",
+        }),
+      ).rejects.toThrow("MEMBER_NOT_FOUND")
+    })
+
+    it("throws NOT_FOUND for team from another org", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+
+      await expect(
+        admin.organization.addMemberRole({
+          memberId: "test-user-member-id",
+          role: "team_manager",
+          teamId: "00000000-0000-0000-0000-000000000099",
+        }),
+      ).rejects.toThrow("TEAM_NOT_FOUND")
+    })
+
+    it("rejects regular member (not admin/owner)", async () => {
+      const user = createTestCaller({ asUser: true })
+      await expect(
+        user.organization.addMemberRole({
+          memberId: "test-admin-member-id",
+          role: "editor",
+        }),
+      ).rejects.toThrow("Keine Administratorrechte")
+    })
+
+    it("rejects unauthenticated calls", async () => {
+      const caller = createTestCaller()
+      await expect(
+        caller.organization.addMemberRole({
+          memberId: "test-user-member-id",
+          role: "editor",
+        }),
+      ).rejects.toThrow("Not authenticated")
+    })
+  })
+
   // ─── removeMemberRole ─────────────────────────────────────────────────────
 
   describe("removeMemberRole", () => {
+    it("removes a non-owner role from a member", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const db = getTestDb()
+
+      // Add an editor role to the regular user
+      const role = await db.memberRole.create({
+        data: {
+          memberId: "test-user-member-id",
+          role: "editor",
+        },
+      })
+
+      const result = await admin.organization.removeMemberRole({ memberRoleId: role.id })
+      expect(result.success).toBe(true)
+
+      // Verify role is gone
+      const found = await db.memberRole.findUnique({ where: { id: role.id } })
+      expect(found).toBeNull()
+    })
+
     it("prevents removing the last owner role in the organization", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const db = getTestDb()
@@ -769,6 +983,37 @@ describe("organization router", () => {
 
       const result = await admin.organization.removeMemberRole({ memberRoleId: adminOwnerRole!.id })
       expect(result.success).toBe(true)
+    })
+
+    it("throws NOT_FOUND for non-existent role", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      await expect(
+        admin.organization.removeMemberRole({
+          memberRoleId: "00000000-0000-0000-0000-000000000099",
+        }),
+      ).rejects.toThrow("MEMBER_ROLE_NOT_FOUND")
+    })
+
+    it("rejects regular member (not admin/owner)", async () => {
+      const user = createTestCaller({ asUser: true })
+      const db = getTestDb()
+
+      const ownerRole = await db.memberRole.findFirst({
+        where: { memberId: "test-admin-member-id", role: "owner" },
+      })
+
+      await expect(
+        user.organization.removeMemberRole({ memberRoleId: ownerRole!.id }),
+      ).rejects.toThrow("Keine Administratorrechte")
+    })
+
+    it("rejects unauthenticated calls", async () => {
+      const caller = createTestCaller()
+      await expect(
+        caller.organization.removeMemberRole({
+          memberRoleId: "00000000-0000-0000-0000-000000000099",
+        }),
+      ).rejects.toThrow("Not authenticated")
     })
   })
 

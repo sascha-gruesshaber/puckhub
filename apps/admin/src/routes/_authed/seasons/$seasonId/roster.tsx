@@ -6,6 +6,7 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
+import { FilterBar } from "~/components/filterBar"
 import { EditContractDialog } from "~/components/roster/editContractDialog"
 import type { ContractRow } from "~/components/roster/rosterTable"
 import { RosterTable } from "~/components/roster/rosterTable"
@@ -134,7 +135,9 @@ function RosterPage() {
           <DataPageLayout
             title={t("rosterPage.title")}
             description={t("rosterPage.description")}
-            search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }}
+            filters={
+              <FilterBar search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }} />
+            }
           >
             <EmptyState
               icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
@@ -159,24 +162,19 @@ function RosterPage() {
             </Button>
           }
           filters={
-            <TeamFilterPills
-              teams={teams}
-              activeFilter={activeTeamId ?? ""}
-              onFilterChange={setSelectedTeamId}
-              showAll={false}
-              translationPrefix="rosterPage.filters"
-              seasonId={seasonId}
-            />
-          }
-          search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }}
-          count={
-            roster && roster.length > 0 ? (
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  <span className="font-semibold text-foreground">{roster.length}</span> {t("rosterPage.count.players")}
-                </span>
-              </div>
-            ) : undefined
+            <FilterBar
+              label={t("statsPage.filters.label")}
+              search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }}
+            >
+              <TeamFilterPills
+                teams={teams}
+                activeFilter={activeTeamId ?? ""}
+                onFilterChange={setSelectedTeamId}
+                showAll={false}
+                translationPrefix="rosterPage.filters"
+                seasonId={seasonId}
+              />
+            </FilterBar>
           }
         >
           {/* Roster */}

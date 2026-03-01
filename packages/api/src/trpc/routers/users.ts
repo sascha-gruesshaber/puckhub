@@ -207,6 +207,14 @@ export const usersRouter = router({
       const { id, ...data } = input
       if (Object.keys(data).length === 0) return
 
+      // Verify target user belongs to caller's organization
+      const memberRecord = await ctx.db.member.findFirst({
+        where: { userId: id, organizationId: ctx.organizationId },
+      })
+      if (!memberRecord) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
+      }
+
       if (data.email) {
         const existing = await ctx.db.user.findFirst({
           where: {
@@ -252,6 +260,14 @@ export const usersRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Verify target user belongs to caller's organization
+      const memberRecord = await ctx.db.member.findFirst({
+        where: { userId: input.id, organizationId: ctx.organizationId },
+      })
+      if (!memberRecord) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
+      }
+
       const hashedPw = await hashPassword(input.password)
 
       const existing = await ctx.db.account.findFirst({

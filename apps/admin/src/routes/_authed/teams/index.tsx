@@ -19,12 +19,12 @@ import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { RemoveDialog } from "~/components/removeDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamHoverCard } from "~/components/teamHoverCard"
@@ -285,17 +285,6 @@ function TeamsPage() {
     return result
   }, [allTeams, search, divisionFilter, teamDivisionMap, seasonTeamIds])
 
-  const stats = useMemo(() => {
-    if (!allTeams) return { total: 0, inSeason: 0, cities: 0 }
-    const inSeasonTeams = allTeams.filter((t) => seasonTeamIds.has(t.id))
-    const cities = new Set(inSeasonTeams.map((t) => t.city).filter(Boolean))
-    return {
-      total: allTeams.length,
-      inSeason: inSeasonTeams.length,
-      cities: cities.size,
-    }
-  }, [allTeams, seasonTeamIds])
-
   function setField<K extends keyof TeamForm>(key: K, value: TeamForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
@@ -400,36 +389,21 @@ function TeamsPage() {
           </Button>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={1} />
-          ) : divisionOptions.length > 0 ? (
-            <FilterDropdown
-              label={t("teamsPage.filters.all")}
-              options={divisionOptions}
-              value={divisionFilter}
-              onChange={setDivisionFilter}
-            />
-          ) : undefined
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("teamsPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (allTeams?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {divisionFilter.length > 0 ? `${filtered.length} / ` : ""}
-                  {stats.inSeason}
-                </span>{" "}
-                {t("teamsPage.count.teams")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.cities}</span> {t("teamsPage.count.cities")}
-              </span>
-            </div>
-          ) : undefined
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("teamsPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : divisionOptions.length > 0 ? (
+              <FilterDropdown
+                label={t("teamsPage.filters.all")}
+                options={divisionOptions}
+                value={divisionFilter}
+                onChange={setDivisionFilter}
+              />
+            ) : null}
+          </FilterBar>
         }
       >
         {/* Content */}

@@ -13,14 +13,14 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { AlertTriangle, Calendar, Pencil, Plus, Star, Trash2 } from "lucide-react"
+import { AlertTriangle, Calendar, Pencil, Plus, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
+import { FilterBar } from "~/components/filterBar"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
@@ -150,14 +150,6 @@ function SeasonsPage() {
     )
   }, [seasons, search])
 
-  const stats = useMemo(() => {
-    if (!seasons) return { total: 0, currentName: null as string | null }
-    return {
-      total: seasons.length,
-      currentName: currentSeason?.name ?? null,
-    }
-  }, [seasons, currentSeason])
-
   function setField<K extends keyof SeasonForm>(key: K, value: SeasonForm[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
@@ -247,26 +239,8 @@ function SeasonsPage() {
             {t("seasonsPage.actions.new")}
           </Button>
         }
-        search={{ value: search, onChange: setSearch, placeholder: t("seasonsPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (seasons?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.total}</span> {t("seasonsPage.count.total")}
-              </span>
-              {stats.currentName && (
-                <>
-                  <span className="text-border">|</span>
-                  <span className="flex items-center gap-1.5">
-                    <Star className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
-                    <span className="font-semibold text-foreground">{stats.currentName}</span>
-                  </span>
-                </>
-              )}
-            </div>
-          ) : undefined
+        filters={
+          <FilterBar search={{ value: search, onChange: setSearch, placeholder: t("seasonsPage.searchPlaceholder") }} />
         }
       >
         {/* Content */}

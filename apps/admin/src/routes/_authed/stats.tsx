@@ -1,13 +1,16 @@
 import { Button, Skeleton } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { BarChart3, RefreshCw } from "lucide-react"
+import { BarChart3, Clock, Handshake, LayoutDashboard, RefreshCw, Shield, Target, Trophy, Users } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
+import { FilterBar, FilterBarDivider } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { FilterPill } from "~/components/filterPill"
 import { PageHeader } from "~/components/pageHeader"
+import { TabNavigation } from "~/components/tabNavigation"
+import type { TabGroup } from "~/components/tabNavigation"
 import { GoalieChart } from "~/components/stats/goalieChart"
 import { GoalieTable } from "~/components/stats/goalieTable"
 import { PenaltyPlayerTable } from "~/components/stats/penaltyPlayerTable"
@@ -17,7 +20,6 @@ import { ScorerChart } from "~/components/stats/scorerChart"
 import { ScorerTable } from "~/components/stats/scorerTable"
 import { StatsRoundInfo } from "~/components/stats/statsRoundInfo"
 import { StatsSummaryCards } from "~/components/stats/statsSummaryCards"
-import { type StatsTab, StatsTabNavigation } from "~/components/stats/statsTabNavigation"
 import { TeamComparisonBar } from "~/components/stats/teamComparisonBar"
 import { TeamComparisonRadar, type TeamRadarData } from "~/components/stats/teamComparisonRadar"
 import { TeamComparisonSelector } from "~/components/stats/teamComparisonSelector"
@@ -34,6 +36,26 @@ export const Route = createFileRoute("/_authed/stats")({
   }),
   component: StatsPage,
 })
+
+const STATS_TABS = ["overview", "scorers", "goals", "assists", "penalties", "goalies", "teams"] as const
+type StatsTab = (typeof STATS_TABS)[number]
+
+function buildStatsTabGroups(t: (key: string) => string): TabGroup<StatsTab>[] {
+  return [
+    { key: "overview", tabs: [{ id: "overview", label: t("statsPage.tabs.overview"), icon: LayoutDashboard }] },
+    {
+      key: "skaters",
+      tabs: [
+        { id: "scorers", label: t("statsPage.tabs.scorers"), icon: Trophy },
+        { id: "goals", label: t("statsPage.tabs.goals"), icon: Target },
+        { id: "assists", label: t("statsPage.tabs.assists"), icon: Handshake },
+      ],
+    },
+    { key: "penalties", tabs: [{ id: "penalties", label: t("statsPage.tabs.penalties"), icon: Clock }] },
+    { key: "goalies", tabs: [{ id: "goalies", label: t("statsPage.tabs.goalies"), icon: Shield }] },
+    { key: "teams", tabs: [{ id: "teams", label: t("statsPage.tabs.teams"), icon: Users }] },
+  ]
+}
 
 function StatsPage() {
   const { t } = useTranslation("common")
@@ -221,11 +243,11 @@ function StatsPage() {
       {roundInfo && <StatsRoundInfo divisions={roundInfo} />}
 
       {/* Tab navigation */}
-      <StatsTabNavigation activeTab={activeTab} onTabChange={setTab} />
+      <TabNavigation groups={buildStatsTabGroups(t)} activeTab={activeTab} onTabChange={setTab} />
 
       {/* Filters */}
       {showTeamFilter && (
-        <div className="flex items-center gap-2 flex-wrap">
+        <FilterBar label={t("statsPage.filters.label")}>
           {isLoading ? (
             <Skeleton className="h-8 w-32 rounded-full" />
           ) : (
@@ -239,7 +261,7 @@ function StatsPage() {
               />
               {showPositionFilter && (
                 <>
-                  <div className="h-5 w-px bg-border mx-1" />
+                  <FilterBarDivider />
                   <FilterPill
                     label={t("statsPage.filters.allPositions")}
                     active={positionFilter === "all"}
@@ -259,7 +281,7 @@ function StatsPage() {
               )}
             </>
           )}
-        </div>
+        </FilterBar>
       )}
 
       {/* Loading state */}

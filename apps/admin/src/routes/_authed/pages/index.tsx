@@ -6,15 +6,14 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
-import { FilterPill } from "~/components/filterPill"
+import { FilterBar } from "~/components/filterBar"
+import { FilterDropdown } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
-import { CountSkeleton } from "~/components/skeletons/countSkeleton"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { FILTER_ALL } from "~/lib/search-params"
 
 export const Route = createFileRoute("/_authed/pages/")({
   validateSearch: (s: Record<string, unknown>): { search?: string; status?: string } => ({
@@ -37,14 +36,14 @@ function PagesPage() {
   const { search: searchParam, status } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
-  const statusFilter = status ?? FILTER_ALL
+  const statusFilter = useMemo(() => (status ? [status] : []), [status])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setStatusFilter = useCallback(
-    (v: string) =>
-      navigate({ search: (prev) => ({ ...prev, status: v === FILTER_ALL ? undefined : v }), replace: true }),
+    (v: string[]) =>
+      navigate({ search: (prev) => ({ ...prev, status: v[0] || undefined }), replace: true }),
     [navigate],
   )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -109,9 +108,9 @@ function PagesPage() {
     let result = topLevelPages
 
     // Status filter
-    if (statusFilter === FILTER_PUBLISHED) {
+    if (statusFilter.includes(FILTER_PUBLISHED)) {
       result = result.filter((p) => p.status === "published")
-    } else if (statusFilter === FILTER_DRAFT) {
+    } else if (statusFilter.includes(FILTER_DRAFT)) {
       result = result.filter((p) => p.status === "draft")
     }
 
@@ -128,16 +127,6 @@ function PagesPage() {
 
     return result
   }, [topLevelPages, search, statusFilter])
-
-  const stats = useMemo(() => {
-    if (!pages) return { total: 0, published: 0, drafts: 0, static: 0 }
-    return {
-      total: pages.length,
-      published: pages.filter((p) => p.status === "published").length,
-      drafts: pages.filter((p) => p.status === "draft").length,
-      static: pages.filter((p) => p.isStatic).length,
-    }
-  }, [pages])
 
   // All pages for alias target dropdown (built from top-level + nested children to avoid duplicates)
   const allPagesFlat = useMemo(() => {
@@ -168,58 +157,31 @@ function PagesPage() {
           </Link>
         }
         filters={
-          isLoading ? (
-            <FilterPillsSkeleton count={3} />
-          ) : (
-            <>
-              <FilterPill
+          <FilterBar
+            label={t("statsPage.filters.label")}
+            search={{ value: search, onChange: setSearch, placeholder: t("pagesPage.searchPlaceholder") }}
+          >
+            {isLoading ? (
+              <FilterPillsSkeleton count={1} />
+            ) : (
+              <FilterDropdown
                 label={t("pagesPage.filters.all")}
-                active={statusFilter === FILTER_ALL}
-                onClick={() => setStatusFilter(FILTER_ALL)}
+                options={[
+                  { value: FILTER_PUBLISHED, label: t("pagesPage.filters.published") },
+                  { value: FILTER_DRAFT, label: t("pagesPage.filters.draft") },
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                singleSelect
               />
-              <FilterPill
-                label={t("pagesPage.filters.published")}
-                active={statusFilter === FILTER_PUBLISHED}
-                onClick={() => setStatusFilter(FILTER_PUBLISHED)}
-              />
-              <FilterPill
-                label={t("pagesPage.filters.draft")}
-                active={statusFilter === FILTER_DRAFT}
-                onClick={() => setStatusFilter(FILTER_DRAFT)}
-              />
-            </>
-          )
-        }
-        search={{ value: search, onChange: setSearch, placeholder: t("pagesPage.searchPlaceholder") }}
-        count={
-          isLoading ? (
-            <CountSkeleton />
-          ) : (pages?.length ?? 0) > 0 ? (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">
-                  {statusFilter !== FILTER_ALL ? `${filtered.length} / ` : ""}
-                  {stats.total}
-                </span>{" "}
-                {t("pagesPage.count.total")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.published}</span>{" "}
-                {t("pagesPage.count.published")}
-              </span>
-              <span className="text-border">|</span>
-              <span className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">{stats.drafts}</span> {t("pagesPage.count.drafts")}
-              </span>
-            </div>
-          ) : undefined
+            )}
+          </FilterBar>
         }
       >
         {/* Pages list */}
         {isLoading ? (
           <DataListSkeleton rows={5} showIcon={false} />
-        ) : filtered.length === 0 && !search && statusFilter === FILTER_ALL ? (
+        ) : filtered.length === 0 && !search && statusFilter.length === 0 ? (
           <EmptyState
             icon={<FileText className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("pagesPage.empty.title")}

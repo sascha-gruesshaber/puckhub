@@ -1,38 +1,7 @@
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
-
-/**
- * Helper: get IDs of completed games in rounds matching a stats toggle for a given season.
- */
-async function getEligibleGameIds(
-  db: any,
-  seasonId: string,
-  toggle: "countsForPlayerStats" | "countsForGoalieStats",
-): Promise<string[]> {
-  const eligibleRounds = await db.round.findMany({
-    where: {
-      [toggle]: true,
-      division: {
-        seasonId,
-      },
-    },
-    select: { id: true },
-  })
-
-  const roundIds = eligibleRounds.map((r: any) => r.id) as string[]
-  if (roundIds.length === 0) return []
-
-  const completedGames = await db.game.findMany({
-    where: {
-      roundId: { in: roundIds },
-      status: "completed",
-    },
-    select: { id: true },
-  })
-
-  return completedGames.map((g: any) => g.id) as string[]
-}
+import { getEligibleGameIds } from "./_helpers"
 
 /**
  * Backfill goalieGameStats for completed games that are missing them.
@@ -426,4 +395,82 @@ export const statsRouter = router({
 
     return { success: true }
   }),
+
+  // ---------------------------------------------------------------------------
+  // Player career stats (cross-season)
+  // ---------------------------------------------------------------------------
+
+  playerCareerStats: orgProcedure
+    .input(z.object({ playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const stats = await ctx.db.playerSeasonStat.findMany({
+        where: {
+          playerId: input.playerId,
+          organizationId: ctx.organizationId,
+        },
+        include: {
+          season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+        },
+        orderBy: { season: { seasonStart: "asc" } },
+      })
+      return stats
+    }),
+
+  goalieCareerStats: orgProcedure
+    .input(z.object({ playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const stats = await ctx.db.goalieSeasonStat.findMany({
+        where: {
+          playerId: input.playerId,
+          organizationId: ctx.organizationId,
+        },
+        include: {
+          season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+        },
+        orderBy: { season: { seasonStart: "asc" } },
+      })
+      return stats
+    }),
+
+  playerSuspensions: orgProcedure
+    .input(z.object({ playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const suspensions = await ctx.db.gameSuspension.findMany({
+        where: {
+          playerId: input.playerId,
+          organizationId: ctx.organizationId,
+        },
+        include: {
+          game: {
+            select: {
+              id: true,
+              scheduledAt: true,
+              homeTeam: { select: { id: true, shortName: true, logoUrl: true } },
+              awayTeam: { select: { id: true, shortName: true, logoUrl: true } },
+              round: {
+                select: {
+                  name: true,
+                  division: {
+                    select: {
+                      name: true,
+                      season: { select: { name: true } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          gameEvent: {
+            select: {
+              penaltyType: { select: { name: true, shortName: true } },
+            },
+          },
+          team: { select: { id: true, shortName: true, logoUrl: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+      return suspensions
+    }),
 })
