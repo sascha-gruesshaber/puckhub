@@ -2,6 +2,7 @@ import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, requireRole, router } from "../init"
+import { checkLimit, getOrgPlan } from "../../services/planLimits"
 
 export const teamRouter = router({
   list: orgProcedure
@@ -46,6 +47,10 @@ export const teamRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      const count = await ctx.db.team.count({ where: { organizationId: ctx.organizationId } })
+      checkLimit(plan, "maxTeams", count)
+
       const team = await ctx.db.team.create({
         data: { ...input, organizationId: ctx.organizationId },
       })

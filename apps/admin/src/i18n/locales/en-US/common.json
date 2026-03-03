@@ -40,7 +40,7 @@
     "subtitle": "Sign in to continue",
     "email": "Email",
     "password": "Password",
-    "emailPlaceholder": "admin@puckhub.com",
+    "emailPlaceholder": "admin@puckhub.eu",
     "submit": "Sign in",
     "submitting": "Signing in...",
     "passkey": {
@@ -146,7 +146,6 @@
       "customDomainPlaceholder": "e.g. allgaeuliga.de",
       "customDomainHint": "Enter your domain without http:// or www.",
       "subdomain": "Subdomain",
-      "subdomainSuffix": ".puckhub.de",
       "subdomainHint": "Your site will be accessible at this subdomain",
       "active": "Website active",
       "activeHint": "Enable or disable the public website"
@@ -154,7 +153,6 @@
     "dns": {
       "title": "DNS Configuration",
       "cnameLabel": "CNAME Record",
-      "cnameTarget": "sites.puckhub.de",
       "cnameInstruction": "Point your domain to this address with a CNAME record at your DNS provider",
       "aRecordLabel": "A Record (alternative)",
       "aRecordInstruction": "Or use an A record if CNAME is not supported for your root domain",

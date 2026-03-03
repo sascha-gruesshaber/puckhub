@@ -2,6 +2,7 @@ import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgProcedure, requireRole, router } from "../init"
+import { checkLimit, getOrgPlan } from "../../services/planLimits"
 
 // ---------------------------------------------------------------------------
 // Slug utility
@@ -228,6 +229,11 @@ export const pageRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx, "editor")
+
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      const pageCount = await ctx.db.page.count({ where: { organizationId: ctx.organizationId } })
+      checkLimit(plan, "maxPages", pageCount)
+
       const slug = slugify(input.title)
       const parentId = input.parentId ?? null
 

@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { checkFeature, getOrgPlan } from "../../services/planLimits"
 
 export const trikotRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -30,6 +31,9 @@ export const trikotRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      checkFeature(plan, "featureTrikotDesigner")
+
       const trikot = await ctx.db.trikot.create({
         data: {
           organizationId: ctx.organizationId,

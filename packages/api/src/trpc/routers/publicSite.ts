@@ -15,11 +15,21 @@ export const publicSiteRouter = router({
     })
     if (!config) return null
 
-    const settings = await ctx.db.systemSettings.findUnique({
-      where: { organizationId: config.organizationId },
-    })
+    const [settings, subscription] = await Promise.all([
+      ctx.db.systemSettings.findUnique({
+        where: { organizationId: config.organizationId },
+      }),
+      ctx.db.orgSubscription.findUnique({
+        where: { organizationId: config.organizationId },
+        include: { plan: { select: { featureAdvancedStats: true } } },
+      }),
+    ])
 
-    return { config, settings, organization: config.organization }
+    const features = {
+      advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
+    }
+
+    return { config, settings, organization: config.organization, features }
   }),
 
   getConfig: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
@@ -31,11 +41,21 @@ export const publicSiteRouter = router({
     })
     if (!config) return null
 
-    const settings = await ctx.db.systemSettings.findUnique({
-      where: { organizationId: input.organizationId },
-    })
+    const [settings, subscription] = await Promise.all([
+      ctx.db.systemSettings.findUnique({
+        where: { organizationId: input.organizationId },
+      }),
+      ctx.db.orgSubscription.findUnique({
+        where: { organizationId: input.organizationId },
+        include: { plan: { select: { featureAdvancedStats: true } } },
+      }),
+    ])
 
-    return { config, settings, organization: config.organization }
+    const features = {
+      advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
+    }
+
+    return { config, settings, organization: config.organization, features }
   }),
 
   getCurrentSeason: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {

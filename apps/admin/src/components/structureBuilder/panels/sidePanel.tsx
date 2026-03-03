@@ -28,6 +28,7 @@ interface SidePanelProps {
   seasonId: string
   onInvalidate: () => void
   onDragTypeChange: (type: DragType) => void
+  atDivisionLimit?: boolean
 }
 
 const allRoundTypes = Object.keys(roundTypeMap) as RoundType[]
@@ -35,9 +36,11 @@ const allRoundTypes = Object.keys(roundTypeMap) as RoundType[]
 function StructurePalette({
   t,
   onDragTypeChange,
+  atDivisionLimit,
 }: {
   t: (key: string, options?: Record<string, string | number | undefined>) => string
   onDragTypeChange: (type: DragType) => void
+  atDivisionLimit?: boolean
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -51,14 +54,16 @@ function StructurePalette({
       <div className="flex flex-col gap-2">
         {/* Division drag item */}
         <div
-          draggable
+          draggable={!atDivisionLimit}
           onDragStart={(e) => {
+            if (atDivisionLimit) { e.preventDefault(); return }
             e.dataTransfer.setData("text/structureType", "division")
             e.dataTransfer.effectAllowed = "copy"
             onDragTypeChange("division")
           }}
           onDragEnd={() => onDragTypeChange(null)}
-          className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 border-dashed border-gray-300 cursor-grab hover:border-[#D4A843]/50 hover:bg-[#F4D35E]/5 active:cursor-grabbing transition-colors"
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 border-dashed border-gray-300 ${atDivisionLimit ? "opacity-50 cursor-not-allowed" : "cursor-grab hover:border-[#D4A843]/50 hover:bg-[#F4D35E]/5 active:cursor-grabbing"} transition-colors`}
+          title={atDivisionLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
         >
           <GripVertical className="h-3.5 w-3.5 text-gray-300 shrink-0" />
           <div
@@ -140,6 +145,7 @@ export function SidePanel({
   seasonId,
   onInvalidate,
   onDragTypeChange,
+  atDivisionLimit,
 }: SidePanelProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
@@ -165,7 +171,7 @@ export function SidePanel({
     if (!selectedNode) {
       return (
         <>
-          <StructurePalette t={t} onDragTypeChange={onDragTypeChange} />
+          <StructurePalette t={t} onDragTypeChange={onDragTypeChange} atDivisionLimit={atDivisionLimit} />
           <div className="border-t border-gray-200 mt-4 pt-4">
             <TeamPalette teams={teams} teamDivisionCounts={teamDivisionCounts} onDragTypeChange={onDragTypeChange} />
           </div>
@@ -181,7 +187,7 @@ export function SidePanel({
       const end = new Date(d.seasonEnd as string)
       return (
         <div className="flex flex-col gap-4">
-          <StructurePalette t={t} onDragTypeChange={onDragTypeChange} />
+          <StructurePalette t={t} onDragTypeChange={onDragTypeChange} atDivisionLimit={atDivisionLimit} />
           <div className="border-t border-gray-200 pt-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               {t("seasonStructure.panel.season")}
@@ -199,7 +205,8 @@ export function SidePanel({
               variant="outline"
               size="sm"
               onClick={handleAddDivision}
-              disabled={createDivisionMutation.isPending}
+              disabled={createDivisionMutation.isPending || atDivisionLimit}
+              title={atDivisionLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
               className="text-xs h-8 mt-3 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -253,7 +260,7 @@ export function SidePanel({
 
     return (
       <>
-        <StructurePalette t={t} onDragTypeChange={onDragTypeChange} />
+        <StructurePalette t={t} onDragTypeChange={onDragTypeChange} atDivisionLimit={atDivisionLimit} />
         <div className="border-t border-gray-200 mt-4 pt-4">
           <TeamPalette teams={teams} teamDivisionCounts={teamDivisionCounts} onDragTypeChange={onDragTypeChange} />
         </div>

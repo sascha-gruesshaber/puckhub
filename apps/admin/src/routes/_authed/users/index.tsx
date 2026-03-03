@@ -28,6 +28,7 @@ import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -118,6 +119,8 @@ function UsersPage() {
   usePermissionGuard("users")
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atAdminLimit = isAtLimit("maxAdmins")
   const { data: session } = useSession()
   const currentUserId = session?.user?.id
   const { search: searchParam, role } = Route.useSearch()
@@ -414,10 +417,13 @@ function UsersPage() {
         title={t("usersPage.title")}
         description={t("usersPage.description")}
         action={
-          <Button variant="accent" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t("usersPage.actions.newMember")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxAdmins")}</Badge>
+            <Button variant="accent" onClick={openCreate} disabled={atAdminLimit} title={atAdminLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              {t("usersPage.actions.newMember")}
+            </Button>
+          </div>
         }
         filters={
           <FilterBar
@@ -446,7 +452,7 @@ function UsersPage() {
             title={t("usersPage.empty.title")}
             description={t("usersPage.empty.description")}
             action={
-              <Button variant="accent" onClick={openCreate}>
+              <Button variant="accent" onClick={openCreate} disabled={atAdminLimit}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("usersPage.empty.action")}
               </Button>

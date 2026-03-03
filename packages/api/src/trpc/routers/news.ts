@@ -3,6 +3,7 @@ import type { Context } from "../context"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgProcedure, requireRole, router } from "../init"
+import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 
 /**
  * Auto-publishes all draft news whose scheduledPublishAt has passed,
@@ -63,6 +64,16 @@ export const newsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx, "editor")
+
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      const count = await ctx.db.news.count({ where: { organizationId: ctx.organizationId } })
+      checkLimit(plan, "maxNewsArticles", count)
+
+      // Scheduled publishing requires the featureScheduledNews flag
+      if (input.scheduledPublishAt) {
+        checkFeature(plan, "featureScheduledNews")
+      }
+
       const article = await ctx.db.news.create({
         data: {
           organizationId: ctx.organizationId,

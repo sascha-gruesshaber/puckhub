@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { checkLimit, getOrgPlan } from "../../services/planLimits"
 
 export const divisionRouter = router({
   listBySeason: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -28,6 +29,12 @@ export const divisionRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      const count = await ctx.db.division.count({
+        where: { seasonId: input.seasonId, organizationId: ctx.organizationId },
+      })
+      checkLimit(plan, "maxDivisionsPerSeason", count)
+
       const division = await ctx.db.division.create({
         data: { ...input, organizationId: ctx.organizationId },
       })

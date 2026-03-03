@@ -2,6 +2,7 @@ import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 
 const dateInputRegex = /^\d{4}-\d{2}-\d{2}$/
 const seasonDateSchema = z.string().regex(dateInputRegex)
@@ -78,6 +79,10 @@ export const seasonRouter = router({
         }),
     )
     .mutation(async ({ ctx, input }) => {
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      const count = await ctx.db.season.count({ where: { organizationId: ctx.organizationId } })
+      checkLimit(plan, "maxSeasons", count)
+
       const season = await ctx.db.season.create({
         data: {
           organizationId: ctx.organizationId,

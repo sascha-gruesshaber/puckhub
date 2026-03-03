@@ -3,6 +3,7 @@ import { trpcServer } from "@hono/trpc-server"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { auth } from "./lib/auth"
+import { handleStripeWebhook } from "./routes/stripe-webhook"
 import { handleUpload } from "./routes/upload"
 import { appRouter } from "./trpc"
 import { createContext } from "./trpc/context"
@@ -59,6 +60,9 @@ app.use(
     rewriteRequestPath: (path) => path.replace("/api/uploads", ""),
   }),
 )
+
+// Stripe webhook (stub — no auth, raw body needed for signature verification)
+app.post("/api/webhooks/stripe", handleStripeWebhook)
 
 // Health check
 app.get("/api/health", (c) => {

@@ -23,6 +23,7 @@ import { FilterBar } from "~/components/filterBar"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -75,6 +76,8 @@ function SeasonsPage() {
   usePermissionGuard("seasonStructure")
   const { t, i18n } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atSeasonLimit = isAtLimit("maxSeasons")
   const { search: searchParam, create } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -234,10 +237,13 @@ function SeasonsPage() {
         title={t("seasonsPage.title")}
         description={t("seasonsPage.description")}
         action={
-          <Button variant="accent" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t("seasonsPage.actions.new")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxSeasons")}</Badge>
+            <Button variant="accent" onClick={openCreate} disabled={atSeasonLimit} title={atSeasonLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              {t("seasonsPage.actions.new")}
+            </Button>
+          </div>
         }
         filters={
           <FilterBar search={{ value: search, onChange: setSearch, placeholder: t("seasonsPage.searchPlaceholder") }} />
@@ -252,7 +258,7 @@ function SeasonsPage() {
             title={t("seasonsPage.empty.title")}
             description={t("seasonsPage.empty.description")}
             action={
-              <Button variant="accent" onClick={openCreate}>
+              <Button variant="accent" onClick={openCreate} disabled={atSeasonLimit}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("seasonsPage.empty.action")}
               </Button>

@@ -15,12 +15,15 @@ services:
         condition: service_healthy
       platform:
         condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     ports:
       - "80:80"
+      - "443:443"
     networks:
       - puckhub
 
@@ -60,6 +63,8 @@ services:
       AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
       UPLOAD_DIR: /app/uploads
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost}
+      CNAME_TARGET: ${CNAME_TARGET:-sites.puckhub.eu}
+      SUBDOMAIN_SUFFIX: ${SUBDOMAIN_SUFFIX:-.puckhub.eu}
     volumes:
       - uploads:/app/uploads
     networks:

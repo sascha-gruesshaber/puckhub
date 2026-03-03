@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 
 export const sponsorRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -30,6 +31,11 @@ export const sponsorRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      checkFeature(plan, "featureSponsorMgmt")
+      const count = await ctx.db.sponsor.count({ where: { organizationId: ctx.organizationId } })
+      checkLimit(plan, "maxSponsors", count)
+
       const sponsor = await ctx.db.sponsor.create({
         data: { ...input, organizationId: ctx.organizationId },
       })

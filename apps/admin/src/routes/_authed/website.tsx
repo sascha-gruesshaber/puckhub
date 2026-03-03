@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { trpc } from "@/trpc"
+import { FeatureGate } from "~/components/featureGate"
 import { ImageUpload } from "~/components/imageUpload"
 import { PageHeader } from "~/components/pageHeader"
 import { TabNavigation, type TabGroup } from "~/components/tabNavigation"
@@ -29,7 +30,7 @@ import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { hexToHslString, hslStringToHex } from "~/lib/colorUtils"
-import { presets, type ThemeColors } from "../../../../web/src/lib/theme"
+import { presets, type ThemeColors } from "../../../../league-site/src/lib/theme"
 
 const WEBSITE_TABS = ["domain", "appearance", "images", "seo"] as const
 type WebsiteTab = (typeof WEBSITE_TABS)[number]
@@ -269,6 +270,7 @@ function WebsitePage() {
   const { t: tErrors } = useTranslation("errors")
   const { organization } = useOrganization()
   const { data: config, isLoading } = trpc.websiteConfig.get.useQuery()
+  const { data: dnsConfig } = trpc.websiteConfig.dnsConfig.useQuery()
   const utils = trpc.useUtils()
   const navigate = useNavigate({ from: Route.fullPath })
   const { tab: tabParam } = Route.useSearch()
@@ -424,22 +426,25 @@ function WebsitePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader title={t("website.title")} description={t("website.description")} />
-        <Card>
-          <CardContent className="p-6">
-            <div className="animate-pulse space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-10 bg-muted rounded" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <FeatureGate feature="featureWebsiteBuilder">
+        <div className="space-y-6">
+          <PageHeader title={t("website.title")} description={t("website.description")} />
+          <Card>
+            <CardContent className="p-6">
+              <div className="animate-pulse space-y-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-10 bg-muted rounded" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </FeatureGate>
     )
   }
 
   return (
+    <FeatureGate feature="featureWebsiteBuilder">
     <div className="space-y-6">
       <PageHeader
         title={t("website.title")}
@@ -566,7 +571,7 @@ function WebsitePage() {
                       className="h-10 rounded-r-none"
                     />
                     <span className="inline-flex h-10 items-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                      {t("website.domain.subdomainSuffix")}
+                      {dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">{t("website.domain.subdomainHint")}</p>
@@ -604,14 +609,14 @@ function WebsitePage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <code className="rounded bg-background px-2 py-1 text-xs font-mono border">
-                          {t("website.dns.cnameTarget")}
+                          {dnsConfig?.cnameTarget ?? "sites.puckhub.eu"}
                         </code>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           className="h-7 w-7 p-0"
-                          onClick={() => copyToClipboard(t("website.dns.cnameTarget"))}
+                          onClick={() => copyToClipboard(dnsConfig?.cnameTarget ?? "sites.puckhub.eu")}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
@@ -817,5 +822,6 @@ function WebsitePage() {
         </div>
       </form>
     </div>
+    </FeatureGate>
   )
 }

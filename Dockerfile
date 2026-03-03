@@ -28,7 +28,7 @@ ARG PLATFORM_BASE_PATH=/platform
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
 COPY apps/platform/package.json ./apps/platform/
-COPY apps/web/package.json ./apps/web/
+COPY apps/league-site/package.json ./apps/league-site/
 COPY packages/api/package.json ./packages/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/config/package.json ./packages/config/
@@ -75,7 +75,7 @@ COPY --from=builder --chown=puckhub:nodejs /app/tsconfig.base.json ./
 COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/package.json ./apps/admin/
 COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/package.json ./apps/platform/
-COPY --from=builder --chown=puckhub:nodejs /app/apps/web/package.json ./apps/web/
+COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/package.json ./apps/league-site/
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
 COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/dist ./apps/platform/dist
 

@@ -643,9 +643,36 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     data: {
       id: DEMO_ORG_ID,
       name: "Demo League",
+      slug: "demo-league",
       createdAt: new Date(),
     },
   })
+
+  // ── 1d. Assign Pro plan (unlimited features) ──────────────────────────
+  const proPlan = await db.plan.findUnique({ where: { slug: "pro" } })
+  if (proPlan) {
+    console.log("[demo-seed] Assigning Pro plan to demo org...")
+    const now = new Date()
+    const farFuture = new Date(now)
+    farFuture.setFullYear(farFuture.getFullYear() + 100)
+    await db.orgSubscription.upsert({
+      where: { organizationId: DEMO_ORG_ID },
+      create: {
+        organizationId: DEMO_ORG_ID,
+        planId: proPlan.id,
+        interval: "monthly",
+        status: "active",
+        currentPeriodStart: now,
+        currentPeriodEnd: farFuture,
+      },
+      update: {
+        planId: proPlan.id,
+        status: "active",
+        currentPeriodStart: now,
+        currentPeriodEnd: farFuture,
+      },
+    })
+  }
 
   // ── 2. Reference data ────────────────────────────────────────────────
   console.log("[demo-seed] Ensuring penalty types exist...")

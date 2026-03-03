@@ -31,6 +31,7 @@ import { TeamHoverCard } from "~/components/teamHoverCard"
 import { TrikotPreview } from "~/components/trikotPreview"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -81,6 +82,8 @@ function TeamsPage() {
   usePermissionGuard("teams")
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atTeamLimit = isAtLimit("maxTeams")
   const { search: searchParam, division } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -383,10 +386,13 @@ function TeamsPage() {
         title={t("teamsPage.title")}
         description={t("teamsPage.description")}
         action={
-          <Button variant="accent" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t("teamsPage.actions.new")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxTeams")}</Badge>
+            <Button variant="accent" onClick={openCreate} disabled={atTeamLimit} title={atTeamLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              {t("teamsPage.actions.new")}
+            </Button>
+          </div>
         }
         filters={
           <FilterBar
@@ -415,7 +421,7 @@ function TeamsPage() {
             title={t("teamsPage.empty.title")}
             description={t("teamsPage.empty.description")}
             action={
-              <Button variant="accent" onClick={openCreate}>
+              <Button variant="accent" onClick={openCreate} disabled={atTeamLimit}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("teamsPage.empty.action")}
               </Button>

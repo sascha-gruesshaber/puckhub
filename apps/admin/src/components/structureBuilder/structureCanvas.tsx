@@ -16,6 +16,7 @@ import "./structureFlow.css"
 
 import { toast } from "@puckhub/ui"
 import { trpc } from "@/trpc"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import { DivisionNode } from "./nodes/divisionNode"
@@ -51,6 +52,10 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
   const utils = trpc.useUtils()
 
   const { data: structure, isLoading } = trpc.season.getFullStructure.useQuery({ id: seasonId })
+  const { getLimit } = usePlanLimits()
+  const divisionCount = structure?.divisions?.length ?? 0
+  const maxDivisions = getLimit("maxDivisionsPerSeason")
+  const atDivisionLimit = maxDivisions !== null && divisionCount >= maxDivisions
 
   const { data: allTeams } = trpc.team.list.useQuery()
 
@@ -113,6 +118,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       e.preventDefault()
       const structureType = e.dataTransfer.getData("text/structureType")
       if (structureType === "division") {
+        if (atDivisionLimit) return
         createDivisionMutation.mutate({
           seasonId,
           name: t("seasonStructure.defaults.newDivision"),
@@ -120,7 +126,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
         })
       }
     },
-    [createDivisionMutation, seasonId, t],
+    [createDivisionMutation, seasonId, t, atDivisionLimit],
   )
 
   const onCanvasDragOver = useCallback((e: React.DragEvent) => {
@@ -264,6 +270,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
         seasonId={seasonId}
         onInvalidate={invalidate}
         onDragTypeChange={setActiveDragType}
+        atDivisionLimit={atDivisionLimit}
       />
     </div>
   )

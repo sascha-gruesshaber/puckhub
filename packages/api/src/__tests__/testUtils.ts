@@ -146,6 +146,7 @@ export async function seedTestOrg(db?: PrismaClient) {
     data: {
       id: TEST_ORG_ID,
       name: TEST_ORG_NAME,
+      slug: "test-org",
     },
   })
 
@@ -191,6 +192,7 @@ export async function seedSecondOrg(db?: PrismaClient) {
     data: {
       id: OTHER_ORG_ID,
       name: OTHER_ORG_NAME,
+      slug: "other-test-org",
     },
   })
 

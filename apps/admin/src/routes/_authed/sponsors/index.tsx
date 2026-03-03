@@ -28,8 +28,10 @@ import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
+import { FeatureGate } from "~/components/featureGate"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -76,6 +78,8 @@ function SponsorsPage() {
   usePermissionGuard("sponsors")
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atSponsorLimit = isAtLimit("maxSponsors")
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -359,15 +363,18 @@ function SponsorsPage() {
   const showGroupHeaders = hasActive && hasInactive
 
   return (
-    <>
+    <FeatureGate feature="featureSponsorMgmt">
       <DataPageLayout
         title={t("sponsorsPage.title")}
         description={t("sponsorsPage.description")}
         action={
-          <Button variant="accent" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t("sponsorsPage.actions.new")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxSponsors")}</Badge>
+            <Button variant="accent" onClick={openCreate} disabled={atSponsorLimit} title={atSponsorLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              {t("sponsorsPage.actions.new")}
+            </Button>
+          </div>
         }
         filters={
           <FilterBar
@@ -396,7 +403,7 @@ function SponsorsPage() {
             title={t("sponsorsPage.empty.title")}
             description={t("sponsorsPage.empty.description")}
             action={
-              <Button variant="accent" onClick={openCreate}>
+              <Button variant="accent" onClick={openCreate} disabled={atSponsorLimit}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("sponsorsPage.empty.action")}
               </Button>
@@ -573,6 +580,6 @@ function SponsorsPage() {
           if (deletingSponsor) deleteMutation.mutate({ id: deletingSponsor.id })
         }}
       />
-    </>
+    </FeatureGate>
   )
 }

@@ -24,6 +24,7 @@ import { OrganizationProvider, useOrganization } from "~/contexts/organizationCo
 import { type NavPermission, PermissionsProvider, usePermissions } from "~/contexts/permissionsContext"
 import { SeasonProvider, useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useSession } from "../../lib/auth-client"
 import { trpc } from "../../lib/trpc"
 import "~/styles/dataList.css"
@@ -224,11 +225,28 @@ function SidebarLayout() {
   const { organization } = useOrganization()
   const { data: settings } = trpc.settings.get.useQuery()
   const { canSee } = usePermissions()
+  const { canUseFeature } = usePlanLimits()
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerTarget, setPickerTarget] = useState<{ label: string; route: string }>({
     label: "",
     route: "",
   })
+
+  // Build trikots item — locked if featureTrikotDesigner is off
+  const trikotsItem: NavItem = canUseFeature("featureTrikotDesigner")
+    ? { to: "/trikots", label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, permission: "trikots" }
+    : { label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, disabled: true as const, badge: "PRO", permission: "trikots" }
+
+  // Build sponsors item — locked if featureSponsorMgmt is off
+  const sponsorsItem: NavItem = canUseFeature("featureSponsorMgmt")
+    ? { to: "/sponsors", label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} />, permission: "sponsors" }
+    : { label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} />, disabled: true as const, badge: "PRO", permission: "sponsors" }
+
+  // Build website item — locked if featureWebsiteBuilder is off
+  const websiteItem: NavItem = canUseFeature("featureWebsiteBuilder")
+    ? { to: "/website", label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, permission: "settings" }
+    : { label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, disabled: true as const, badge: "PRO", permission: "settings" }
+
   const allNavGroups: NavGroup[] = [
     {
       label: t("sidebar.groups.gameOperations"),
@@ -250,7 +268,7 @@ function SidebarLayout() {
         { label: t("sidebar.items.roster"), icon: <Users {...iconProps} />, seasonRoute: "/seasons/$seasonId/roster", permission: "roster" },
         { to: "/teams", label: t("sidebar.items.teams"), icon: <Shield {...iconProps} />, permission: "teams" },
         { to: "/players", label: t("sidebar.items.players"), icon: <Users {...iconProps} />, permission: "players" },
-        { to: "/trikots", label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, permission: "trikots" },
+        trikotsItem,
       ],
     },
     {
@@ -258,14 +276,14 @@ function SidebarLayout() {
       items: [
         { to: "/news", label: t("sidebar.items.news"), icon: <Newspaper {...iconProps} />, permission: "news" },
         { to: "/pages", label: t("sidebar.items.pages"), icon: <FileText {...iconProps} />, permission: "pages" },
-        { to: "/sponsors", label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} />, permission: "sponsors" },
+        sponsorsItem,
       ],
     },
     {
       label: t("sidebar.groups.system"),
       items: [
         { to: "/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} />, permission: "users" },
-        { to: "/website", label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, permission: "settings" },
+        websiteItem,
         { to: "/settings", label: t("sidebar.items.settings"), icon: <Settings {...iconProps} />, permission: "settings" },
       ],
     },

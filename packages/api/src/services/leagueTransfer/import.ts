@@ -83,10 +83,23 @@ export async function importLeagueData(
   await db.$transaction(
     async (tx) => {
       // Create Organization
+      // Generate slug from org name
+      let orgSlug = orgName
+        .toLowerCase()
+        .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+      if (!orgSlug) orgSlug = newOrgId.slice(0, 8)
+      let baseSlug = orgSlug
+      let counter = 1
+      while (await tx.organization.findFirst({ where: { slug: orgSlug } })) {
+        orgSlug = `${baseSlug}-${counter++}`
+      }
+
       await tx.organization.create({
         data: {
           id: newOrgId,
           name: orgName,
+          slug: orgSlug,
           logo: data.organization.logo,
           metadata: data.organization.metadata,
         },

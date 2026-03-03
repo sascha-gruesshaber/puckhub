@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
-import { Building2, Clock, LayoutDashboard, Users } from "lucide-react"
+import { Building2, Clock, CreditCard, LayoutDashboard, Users } from "lucide-react"
 import { Suspense } from "react"
 import { TopBar } from "~/components/topBar"
 import { useSession } from "@/auth-client"
@@ -132,6 +132,10 @@ function MustChangePasswordGate() {
               >
                 <Building2 {...iconProps} />
                 Leagues
+              </Link>
+              <Link to="/plans" className="sidebar-link" activeProps={{ className: "sidebar-link sidebar-link-active" }}>
+                <CreditCard {...iconProps} />
+                Plans
               </Link>
               <Link to="/users" className="sidebar-link" activeProps={{ className: "sidebar-link sidebar-link-active" }}>
                 <Users {...iconProps} />

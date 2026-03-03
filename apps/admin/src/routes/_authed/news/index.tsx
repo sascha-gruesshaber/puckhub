@@ -13,6 +13,7 @@ import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -31,6 +32,8 @@ function NewsPage() {
   usePermissionGuard("news")
   const { t, i18n } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atNewsLimit = isAtLimit("maxNewsArticles")
   const { search: searchParam, year } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -111,12 +114,17 @@ function NewsPage() {
         title={t("newsPage.title")}
         description={t("newsPage.description")}
         action={
-          <Link to="/news/new">
-            <Button variant="accent">
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              {t("newsPage.actions.new")}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxNewsArticles")}</Badge>
+            <div className={atNewsLimit ? "pointer-events-none opacity-50" : ""}>
+              <Link to="/news/new">
+                <Button variant="accent" disabled={atNewsLimit} title={atNewsLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t("newsPage.actions.new")}
+                </Button>
+              </Link>
+            </div>
+          </div>
         }
         filters={
           <FilterBar
@@ -145,12 +153,14 @@ function NewsPage() {
             title={t("newsPage.empty.title")}
             description={t("newsPage.empty.description")}
             action={
-              <Link to="/news/new">
-                <Button variant="accent">
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t("newsPage.empty.action")}
-                </Button>
-              </Link>
+              <div className={atNewsLimit ? "pointer-events-none opacity-50" : ""}>
+                <Link to="/news/new">
+                  <Button variant="accent" disabled={atNewsLimit}>
+                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                    {t("newsPage.empty.action")}
+                  </Button>
+                </Link>
+              </div>
             }
           />
         ) : filtered.length === 0 ? (

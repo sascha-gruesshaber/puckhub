@@ -9,6 +9,7 @@ import { leagueTransferRouter } from "./routers/leagueTransfer"
 import { newsRouter } from "./routers/news"
 import { organizationRouter } from "./routers/organization"
 import { pageRouter } from "./routers/page"
+import { planRouter } from "./routers/plan"
 import { playerRouter } from "./routers/player"
 import { publicSiteRouter } from "./routers/publicSite"
 import { roundRouter } from "./routers/round"
@@ -18,6 +19,7 @@ import { settingsRouter } from "./routers/settings"
 import { sponsorRouter } from "./routers/sponsor"
 import { standingsRouter } from "./routers/standings"
 import { statsRouter } from "./routers/stats"
+import { subscriptionRouter } from "./routers/subscription"
 import { teamRouter } from "./routers/team"
 import { teamDivisionRouter } from "./routers/teamDivision"
 import { teamTrikotRouter } from "./routers/teamTrikot"
@@ -51,7 +53,9 @@ export const appRouter = router({
   news: newsRouter,
   organization: organizationRouter,
   page: pageRouter,
+  plan: planRouter,
   publicSite: publicSiteRouter,
+  subscription: subscriptionRouter,
   userPreferences: userPreferencesRouter,
   scheduler: schedulerRouter,
   websiteConfig: websiteConfigRouter,

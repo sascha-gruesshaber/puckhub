@@ -1,8 +1,19 @@
 import type { Database } from "../index"
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
 /**
- * Seed reference data (penalty types, trikot templates).
- * Uses skipDuplicates so it's safe to run repeatedly.
+ * Seed reference data (penalty types, trikot templates, plans).
+ * Uses skipDuplicates / upsert so it's safe to run repeatedly.
  *
  * Note: static pages are NOT seeded here because the pages table requires
  * an organizationId. Static pages must be created per-organization, either
@@ -47,6 +58,153 @@ export async function runSeed(db: Database) {
     ],
     skipDuplicates: true,
   })
+
+  // ─── Plans ──────────────────────────────────────────────────────────────────
+  console.log("Seeding plans...")
+
+  const planData = [
+    {
+      slug: "free",
+      name: "Free",
+      description: "For small hobby tournaments",
+      sortOrder: 0,
+      priceMonthly: 0,
+      priceYearly: 0,
+      maxTeams: 4,
+      maxPlayers: 40,
+      maxDivisionsPerSeason: 1,
+      maxSeasons: 2,
+      maxAdmins: 2,
+      maxNewsArticles: 10,
+      maxPages: 3,
+      maxSponsors: 0,
+      maxDocuments: 0,
+      storageQuotaMb: 50,
+      featureCustomDomain: false,
+      featureWebsiteBuilder: false,
+      featureSponsorMgmt: false,
+      featureTrikotDesigner: false,
+      featureExportImport: false,
+      featureGameReports: true,
+      featurePlayerStats: true,
+      featureScheduler: false,
+      featureScheduledNews: false,
+      featureAdvancedRoles: false,
+      featureAdvancedStats: false,
+    },
+    {
+      slug: "starter",
+      name: "Starter",
+      description: "For regional leagues with websites and sponsors",
+      sortOrder: 1,
+      priceMonthly: 1999,
+      priceYearly: 19990,
+      maxTeams: 16,
+      maxPlayers: 250,
+      maxDivisionsPerSeason: 3,
+      maxSeasons: 5,
+      maxAdmins: 5,
+      maxNewsArticles: 50,
+      maxPages: 10,
+      maxSponsors: 5,
+      maxDocuments: 10,
+      storageQuotaMb: 500,
+      featureCustomDomain: false,
+      featureWebsiteBuilder: true,
+      featureSponsorMgmt: true,
+      featureTrikotDesigner: false,
+      featureExportImport: false,
+      featureGameReports: true,
+      featurePlayerStats: true,
+      featureScheduler: false,
+      featureScheduledNews: false,
+      featureAdvancedRoles: false,
+      featureAdvancedStats: false,
+    },
+    {
+      slug: "pro",
+      name: "Pro",
+      description: "Full-featured for large leagues",
+      sortOrder: 2,
+      priceMonthly: 4999,
+      priceYearly: 49990,
+      maxTeams: null,
+      maxPlayers: null,
+      maxDivisionsPerSeason: null,
+      maxSeasons: null,
+      maxAdmins: null,
+      maxNewsArticles: null,
+      maxPages: null,
+      maxSponsors: null,
+      maxDocuments: null,
+      storageQuotaMb: 2048,
+      featureCustomDomain: true,
+      featureWebsiteBuilder: true,
+      featureSponsorMgmt: true,
+      featureTrikotDesigner: true,
+      featureExportImport: true,
+      featureGameReports: true,
+      featurePlayerStats: true,
+      featureScheduler: true,
+      featureScheduledNews: true,
+      featureAdvancedRoles: true,
+      featureAdvancedStats: true,
+    },
+  ] as const
+
+  for (const plan of planData) {
+    await db.plan.upsert({
+      where: { slug: plan.slug },
+      create: plan,
+      update: plan,
+    })
+  }
+
+  // ─── Assign Free plan + slug to existing orgs ──────────────────────────────
+  const freePlan = await db.plan.findUnique({ where: { slug: "free" } })
+  if (freePlan) {
+    const orgs = await db.organization.findMany({
+      select: { id: true, name: true, slug: true },
+    })
+
+    for (const org of orgs) {
+      // Generate slug if missing
+      if (!org.slug) {
+        let baseSlug = slugify(org.name)
+        if (!baseSlug) baseSlug = org.id.slice(0, 8)
+        let slug = baseSlug
+        let counter = 1
+        while (await db.organization.findFirst({ where: { slug, id: { not: org.id } } })) {
+          slug = `${baseSlug}-${counter++}`
+        }
+        await db.organization.update({
+          where: { id: org.id },
+          data: { slug },
+        })
+      }
+
+      // Assign Free plan if no subscription exists
+      const existing = await db.orgSubscription.findUnique({
+        where: { organizationId: org.id },
+      })
+      if (!existing) {
+        const now = new Date()
+        const oneYear = new Date(now)
+        oneYear.setFullYear(oneYear.getFullYear() + 100) // effectively unlimited for free
+        await db.orgSubscription.create({
+          data: {
+            organizationId: org.id,
+            planId: freePlan.id,
+            interval: "monthly",
+            status: "active",
+            currentPeriodStart: now,
+            currentPeriodEnd: oneYear,
+          },
+        })
+      }
+    }
+    console.log(`Ensured ${orgs.length} organization(s) have slug + Free plan subscription.`)
+  }
 
   console.log("Seed complete.")
 }

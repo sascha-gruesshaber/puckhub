@@ -2,6 +2,7 @@ import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { checkLimit, getOrgPlan } from "../../services/planLimits"
 
 async function resolveCurrentSeason(db: any, organizationId: string) {
   const now = new Date()
@@ -116,6 +117,10 @@ export const playerRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+      const count = await ctx.db.player.count({ where: { organizationId: ctx.organizationId } })
+      checkLimit(plan, "maxPlayers", count)
+
       const { dateOfBirth, ...rest } = input
       const player = await ctx.db.player.create({
         data: {

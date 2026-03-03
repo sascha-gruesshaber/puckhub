@@ -112,6 +112,7 @@ export default async function globalSetup() {
       data: {
         id: "test-org-id",
         name: "Test League",
+        slug: "test-league",
       },
     })
 

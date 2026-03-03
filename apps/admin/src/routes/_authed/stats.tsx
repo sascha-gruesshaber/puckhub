@@ -4,6 +4,7 @@ import { BarChart3, Clock, Handshake, LayoutDashboard, RefreshCw, Shield, Target
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
+import { FeatureGate } from "~/components/featureGate"
 import { FilterBar, FilterBarDivider } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
@@ -310,38 +311,42 @@ function StatsPage() {
         <>
           {/* Overview */}
           {activeTab === "overview" && (
-            <div className="space-y-6">
-              <StatsSummaryCards
-                playerStats={playerStats ?? []}
-                goalieStats={goalieStats ?? null}
-                penaltyStats={penaltyStats ?? []}
-                totalGames={totalGames}
-              />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                  <ScorerChart
-                    stats={playerStats ?? []}
-                    mode="stacked"
-                    title={t("statsPage.scorers.chartTitle")}
-                    limit={10}
-                  />
-                </div>
-                {goalieStats && goalieStats.qualified.length > 0 && (
+            <FeatureGate feature="featureAdvancedStats">
+              <div className="space-y-6">
+                <StatsSummaryCards
+                  playerStats={playerStats ?? []}
+                  goalieStats={goalieStats ?? null}
+                  penaltyStats={penaltyStats ?? []}
+                  totalGames={totalGames}
+                />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                    <GoalieChart stats={goalieStats.qualified.slice(0, 10)} title={t("statsPage.goalies.chartTitle")} />
+                    <ScorerChart
+                      stats={playerStats ?? []}
+                      mode="stacked"
+                      title={t("statsPage.scorers.chartTitle")}
+                      limit={10}
+                    />
                   </div>
-                )}
+                  {goalieStats && goalieStats.qualified.length > 0 && (
+                    <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                      <GoalieChart stats={goalieStats.qualified.slice(0, 10)} title={t("statsPage.goalies.chartTitle")} />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </FeatureGate>
           )}
 
           {/* Scorers */}
           {activeTab === "scorers" && (
             <div className="space-y-6">
               <ScorerTable stats={playerStats ?? []} sortBy="points" />
-              <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                <ScorerChart stats={playerStats ?? []} mode="stacked" title={t("statsPage.scorers.chartTitle")} />
-              </div>
+              <FeatureGate feature="featureAdvancedStats">
+                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                  <ScorerChart stats={playerStats ?? []} mode="stacked" title={t("statsPage.scorers.chartTitle")} />
+                </div>
+              </FeatureGate>
             </div>
           )}
 
@@ -349,9 +354,11 @@ function StatsPage() {
           {activeTab === "goals" && (
             <div className="space-y-6">
               <ScorerTable stats={playerStats ?? []} sortBy="goals" />
-              <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                <ScorerChart stats={playerStats ?? []} mode="goals" title={t("statsPage.goalsTab.chartTitle")} />
-              </div>
+              <FeatureGate feature="featureAdvancedStats">
+                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                  <ScorerChart stats={playerStats ?? []} mode="goals" title={t("statsPage.goalsTab.chartTitle")} />
+                </div>
+              </FeatureGate>
             </div>
           )}
 
@@ -359,9 +366,11 @@ function StatsPage() {
           {activeTab === "assists" && (
             <div className="space-y-6">
               <ScorerTable stats={playerStats ?? []} sortBy="assists" />
-              <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                <ScorerChart stats={playerStats ?? []} mode="assists" title={t("statsPage.assistsTab.chartTitle")} />
-              </div>
+              <FeatureGate feature="featureAdvancedStats">
+                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                  <ScorerChart stats={playerStats ?? []} mode="assists" title={t("statsPage.assistsTab.chartTitle")} />
+                </div>
+              </FeatureGate>
             </div>
           )}
 
@@ -369,18 +378,20 @@ function StatsPage() {
           {activeTab === "penalties" && (
             <div className="space-y-6">
               <PenaltyPlayerTable stats={penaltyStats ?? []} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {teamPenaltyStats && (
-                  <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                    <PenaltyTeamChart stats={teamPenaltyStats} title={t("statsPage.penalties.teamChartTitle")} />
-                  </div>
-                )}
-                {teamPenaltyStats && (
-                  <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                    <PenaltyTypeChart stats={teamPenaltyStats} title={t("statsPage.penalties.typeChartTitle")} />
-                  </div>
-                )}
-              </div>
+              <FeatureGate feature="featureAdvancedStats">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {teamPenaltyStats && (
+                    <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                      <PenaltyTeamChart stats={teamPenaltyStats} title={t("statsPage.penalties.teamChartTitle")} />
+                    </div>
+                  )}
+                  {teamPenaltyStats && (
+                    <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                      <PenaltyTypeChart stats={teamPenaltyStats} title={t("statsPage.penalties.typeChartTitle")} />
+                    </div>
+                  )}
+                </div>
+              </FeatureGate>
             </div>
           )}
 
@@ -392,11 +403,13 @@ function StatsPage() {
                 belowThreshold={goalieStats.belowThreshold}
                 minGames={goalieStats.minGames}
               />
-              {goalieStats.qualified.length > 0 && (
-                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                  <GoalieChart stats={goalieStats.qualified} title={t("statsPage.goalies.chartTitle")} />
-                </div>
-              )}
+              <FeatureGate feature="featureAdvancedStats">
+                {goalieStats.qualified.length > 0 && (
+                  <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                    <GoalieChart stats={goalieStats.qualified} title={t("statsPage.goalies.chartTitle")} />
+                  </div>
+                )}
+              </FeatureGate>
             </div>
           )}
 
@@ -446,51 +459,55 @@ function StatsPage() {
                 <p className="text-sm text-muted-foreground">{t("statsPage.teamsTab.noStandings")}</p>
               ) : null}
 
-              {/* Team penalty comparison */}
-              {teamPenaltyStats && teamPenaltyStats.length > 0 && (
-                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
-                  <PenaltyTeamChart stats={teamPenaltyStats} title={t("statsPage.teamsTab.penaltyComparison")} />
-                </div>
-              )}
-
-              {/* Team comparison */}
-              {teams && teams.length > 0 && (
-                <div className="bg-white rounded-xl border border-border/50 shadow-sm p-6 space-y-4">
-                  <TeamComparisonSelector
-                    teams={teams}
-                    selectedIds={comparisonTeamIds}
-                    onToggle={toggleComparisonTeam}
-                  />
-                  {comparisonTeamIds.length >= 2 && (
-                    <>
-                      {/* Chart type tabs */}
-                      <div className="flex items-center gap-1 border-b border-border/40 pb-0">
-                        {(["radar", "bar"] as const).map((type) => (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => setComparisonChartType(type)}
-                            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
-                              comparisonChartType === type
-                                ? "border-primary text-foreground"
-                                : "border-transparent text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            {t(type === "radar" ? "statsPage.teamsTab.chartRadar" : "statsPage.teamsTab.chartBar")}
-                          </button>
-                        ))}
-                      </div>
-
-                      {comparisonChartType === "radar" && (
-                        <TeamComparisonRadar teams={radarData} title={t("statsPage.teamsTab.radarTitle")} />
-                      )}
-                      {comparisonChartType === "bar" && (
-                        <TeamComparisonBar teams={radarData} title={t("statsPage.teamsTab.radarTitle")} />
-                      )}
-                    </>
+              <FeatureGate feature="featureAdvancedStats">
+                <>
+                  {/* Team penalty comparison */}
+                  {teamPenaltyStats && teamPenaltyStats.length > 0 && (
+                    <div className="bg-white rounded-xl border border-border/50 shadow-sm p-4">
+                      <PenaltyTeamChart stats={teamPenaltyStats} title={t("statsPage.teamsTab.penaltyComparison")} />
+                    </div>
                   )}
-                </div>
-              )}
+
+                  {/* Team comparison */}
+                  {teams && teams.length > 0 && (
+                    <div className="bg-white rounded-xl border border-border/50 shadow-sm p-6 space-y-4">
+                      <TeamComparisonSelector
+                        teams={teams}
+                        selectedIds={comparisonTeamIds}
+                        onToggle={toggleComparisonTeam}
+                      />
+                      {comparisonTeamIds.length >= 2 && (
+                        <>
+                          {/* Chart type tabs */}
+                          <div className="flex items-center gap-1 border-b border-border/40 pb-0">
+                            {(["radar", "bar"] as const).map((type) => (
+                              <button
+                                key={type}
+                                type="button"
+                                onClick={() => setComparisonChartType(type)}
+                                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
+                                  comparisonChartType === type
+                                    ? "border-primary text-foreground"
+                                    : "border-transparent text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                {t(type === "radar" ? "statsPage.teamsTab.chartRadar" : "statsPage.teamsTab.chartBar")}
+                              </button>
+                            ))}
+                          </div>
+
+                          {comparisonChartType === "radar" && (
+                            <TeamComparisonRadar teams={radarData} title={t("statsPage.teamsTab.radarTitle")} />
+                          )}
+                          {comparisonChartType === "bar" && (
+                            <TeamComparisonBar teams={radarData} title={t("statsPage.teamsTab.radarTitle")} />
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              </FeatureGate>
             </div>
           )}
         </>

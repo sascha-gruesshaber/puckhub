@@ -51,5 +51,7 @@
   "PASSKEY_FAILED": "Passkey-Anmeldung fehlgeschlagen",
   "PASSKEY_NOT_FOUND": "Passkey nicht gefunden",
   "BACKUP_CODE_INVALID": "Ungültiger Backup-Code",
+  "PLAN_LIMIT_EXCEEDED": "Du hast das Limit deines aktuellen Plans erreicht. Upgrade, um mehr hinzuzufügen.",
+  "PLAN_FEATURE_UNAVAILABLE": "Diese Funktion ist in deinem aktuellen Plan nicht verfügbar. Upgrade, um sie freizuschalten.",
   "UNKNOWN": "Ein unerwarteter Fehler ist aufgetreten"
 }

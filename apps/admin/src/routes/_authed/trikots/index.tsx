@@ -29,6 +29,7 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TrikotPreview } from "~/components/trikotPreview"
+import { FeatureGate } from "~/components/featureGate"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
@@ -333,7 +334,7 @@ function TrikotsPage() {
   const assigningTrikot = trikots?.find((t) => t.id === assigningTrikotId)
 
   return (
-    <>
+    <FeatureGate feature="featureTrikotDesigner">
       <DataPageLayout
         title={t("trikotsPage.title")}
         description={t("trikotsPage.description")}
@@ -689,6 +690,6 @@ function TrikotsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </FeatureGate>
   )
 }

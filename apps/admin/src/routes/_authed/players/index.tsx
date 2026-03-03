@@ -31,6 +31,7 @@ import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamHoverCard } from "~/components/teamHoverCard"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -71,6 +72,8 @@ function PlayersPage() {
   usePermissionGuard("players")
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atPlayerLimit = isAtLimit("maxPlayers")
   const { search: searchParam, team } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -479,10 +482,13 @@ function PlayersPage() {
         title={t("playersPage.title")}
         description={t("playersPage.description")}
         action={
-          <Button variant="accent" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            {t("playersPage.actions.new")}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxPlayers")}</Badge>
+            <Button variant="accent" onClick={openCreate} disabled={atPlayerLimit} title={atPlayerLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              {t("playersPage.actions.new")}
+            </Button>
+          </div>
         }
         filters={
           <FilterBar
@@ -511,7 +517,7 @@ function PlayersPage() {
             title={t("playersPage.empty.noPlayersTitle")}
             description={t("playersPage.empty.noPlayersDescription")}
             action={
-              <Button variant="accent" onClick={openCreate}>
+              <Button variant="accent" onClick={openCreate} disabled={atPlayerLimit}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("playersPage.empty.createFirst")}
               </Button>

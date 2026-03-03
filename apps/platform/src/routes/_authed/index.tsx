@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { Building2, UserCheck, Users } from "lucide-react"
+import { Building2, CreditCard, TrendingUp, UserCheck, Users } from "lucide-react"
 import { trpc } from "@/trpc"
 
 export const Route = createFileRoute("/_authed/")({
@@ -9,10 +9,33 @@ export const Route = createFileRoute("/_authed/")({
 function DashboardPage() {
   const { data: orgs, isLoading: orgsLoading } = trpc.organization.listAll.useQuery()
   const { data: users, isLoading: usersLoading } = trpc.users.listAll.useQuery()
+  const { data: subscriptions, isLoading: subsLoading } = trpc.subscription.listAll.useQuery()
 
   const orgCount = orgs?.length ?? 0
   const totalMembers = orgs?.reduce((sum, o) => sum + o.memberCount, 0) ?? 0
   const userCount = users?.length ?? 0
+
+  // Calculate MRR from active subscriptions
+  const mrr = subscriptions
+    ?.filter((s) => s.status === "active")
+    .reduce((sum, s) => {
+      if (s.interval === "yearly") {
+        return sum + Math.round(s.plan.priceYearly / 12)
+      }
+      return sum + s.plan.priceMonthly
+    }, 0) ?? 0
+
+  // Plan distribution
+  const planDistribution = subscriptions
+    ? subscriptions.reduce(
+        (acc, s) => {
+          const name = s.plan.name
+          acc[name] = (acc[name] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+    : {}
 
   return (
     <div>
@@ -22,11 +45,37 @@ function DashboardPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard icon={<Building2 size={20} />} label="Leagues" value={orgsLoading ? "-" : String(orgCount)} />
         <StatCard icon={<UserCheck size={20} />} label="Total Memberships" value={orgsLoading ? "-" : String(totalMembers)} />
         <StatCard icon={<Users size={20} />} label="Users" value={usersLoading ? "-" : String(userCount)} />
+        <StatCard
+          icon={<TrendingUp size={20} />}
+          label="MRR"
+          value={subsLoading ? "-" : `${(mrr / 100).toFixed(2).replace(".", ",")} EUR`}
+        />
       </div>
+
+      {/* Plan distribution */}
+      {Object.keys(planDistribution).length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Plan Distribution</h2>
+          <div className="flex gap-3 flex-wrap">
+            {Object.entries(planDistribution).map(([name, count]) => (
+              <div
+                key={name}
+                className="bg-white rounded-xl shadow-sm border border-border/50 px-5 py-3 flex items-center gap-3"
+              >
+                <CreditCard size={16} className="text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{count}</p>
+                  <p className="text-xs text-muted-foreground">{name}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent orgs */}
       {orgs && orgs.length > 0 && (
@@ -56,9 +105,16 @@ function DashboardPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold truncate">{org.name}</p>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
-                </span>
+                <div className="flex items-center gap-3">
+                  {(org as any).subscription?.plan && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
+                      {(org as any).subscription.plan.name}
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>

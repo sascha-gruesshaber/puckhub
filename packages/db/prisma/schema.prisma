@@ -86,6 +86,13 @@ enum OrgRole {
   @@map("org_role")
 }
 
+enum PlanInterval {
+  monthly
+  yearly
+
+  @@map("plan_interval")
+}
+
 // ─── Auth Models (Better Auth managed) ──────────────────────────────────────
 
 model User {
@@ -198,6 +205,7 @@ model Passkey {
 model Organization {
   id        String   @id
   name      String
+  slug      String   @unique
   logo      String?
   metadata  String?
   createdAt DateTime @default(now())
@@ -229,6 +237,7 @@ model Organization {
   teamTrikots    TeamTrikot[]
   pageAliases    PageAlias[]
   websiteConfig  WebsiteConfig?
+  subscription   OrgSubscription?
 
   @@map("organization")
 }
@@ -892,4 +901,81 @@ model WebsiteConfig {
 
   @@index([domain], map: "website_config_domain_idx")
   @@map("website_config")
+}
+
+// ─── Plans & Subscriptions ──────────────────────────────────────────────────
+
+model Plan {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
+
+  // Pricing (in cents)
+  priceMonthly Int    @default(0) @map("price_monthly")
+  priceYearly  Int    @default(0) @map("price_yearly")
+  currency     String @default("EUR")
+
+  // Structural limits (null = unlimited)
+  maxTeams              Int? @map("max_teams")
+  maxPlayers            Int? @map("max_players")
+  maxDivisionsPerSeason Int? @map("max_divisions_per_season")
+  maxSeasons            Int? @map("max_seasons")
+  maxAdmins             Int? @map("max_admins")
+
+  // Content limits (null = unlimited)
+  maxNewsArticles Int? @map("max_news_articles")
+  maxPages        Int? @map("max_pages")
+  maxSponsors     Int? @map("max_sponsors")
+  maxDocuments    Int? @map("max_documents")
+  storageQuotaMb  Int? @map("storage_quota_mb")
+
+  // Feature flags
+  featureCustomDomain   Boolean @default(false) @map("feature_custom_domain")
+  featureWebsiteBuilder Boolean @default(false) @map("feature_website_builder")
+  featureSponsorMgmt    Boolean @default(false) @map("feature_sponsor_mgmt")
+  featureTrikotDesigner Boolean @default(false) @map("feature_trikot_designer")
+  featureExportImport   Boolean @default(false) @map("feature_export_import")
+  featureGameReports    Boolean @default(true)  @map("feature_game_reports")
+  featurePlayerStats    Boolean @default(true)  @map("feature_player_stats")
+  featureScheduler      Boolean @default(false) @map("feature_scheduler")
+  featureScheduledNews  Boolean @default(false) @map("feature_scheduled_news")
+  featureAdvancedRoles  Boolean @default(false) @map("feature_advanced_roles")
+  featureAdvancedStats  Boolean @default(false) @map("feature_advanced_stats")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  subscriptions OrgSubscription[]
+
+  @@map("plans")
+}
+
+model OrgSubscription {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @unique @map("organization_id")
+  planId         String       @map("plan_id") @db.Uuid
+  interval       PlanInterval @default(monthly)
+  status         String       @default("active")
+  currentPeriodStart DateTime @map("current_period_start") @db.Timestamptz
+  currentPeriodEnd   DateTime @map("current_period_end") @db.Timestamptz
+  cancelledAt    DateTime?    @map("cancelled_at") @db.Timestamptz
+  trialEndsAt    DateTime?    @map("trial_ends_at") @db.Timestamptz
+
+  // Stripe integration (prepared for future use)
+  stripeCustomerId     String? @unique @map("stripe_customer_id")
+  stripeSubscriptionId String? @unique @map("stripe_subscription_id")
+  stripePriceId        String? @map("stripe_price_id")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan         @relation(fields: [planId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId], map: "org_subscriptions_org_id_idx")
+  @@index([planId], map: "org_subscriptions_plan_id_idx")
+  @@map("org_subscriptions")
 }

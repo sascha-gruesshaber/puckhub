@@ -12,7 +12,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Check, Copy, Download, ExternalLink, Loader2, Plus, Trash2, Upload } from "lucide-react"
+import { Building2, Check, Copy, CreditCard, Download, ExternalLink, Globe, Loader2, Plus, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -22,16 +22,30 @@ export const Route = createFileRoute("/_authed/organizations/")({
 
 interface OrgForm {
   name: string
+  slug: string
   ownerEmail: string
   ownerName: string
   leagueName: string
   leagueShortName: string
+  planId: string
 }
 
-const emptyForm: OrgForm = { name: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "" }
+const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "", planId: "" }
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
 
 function OrganizationsPage() {
   const { data: orgs, isLoading } = trpc.organization.listAll.useQuery()
+  const { data: plans } = trpc.plan.list.useQuery()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState<OrgForm>(emptyForm)
   const [errors, setErrors] = useState<Partial<Record<keyof OrgForm, string>>>({})
@@ -56,6 +70,15 @@ function OrganizationsPage() {
   const [importFileName, setImportFileName] = useState("")
   const [importName, setImportName] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Plan change dialog state
+  const [planChangeDialog, setPlanChangeDialog] = useState<{
+    open: boolean
+    orgId: string
+    orgName: string
+    currentPlanId: string
+    newPlanId: string
+  }>({ open: false, orgId: "", orgName: "", currentPlanId: "", newPlanId: "" })
 
   const utils = trpc.useUtils()
   const createMutation = trpc.organization.create.useMutation({
@@ -108,6 +131,15 @@ function OrganizationsPage() {
     onError: (err) => toast.error("Import failed", { description: err.message }),
   })
 
+  const assignPlanMutation = trpc.subscription.assignPlan.useMutation({
+    onSuccess: () => {
+      utils.organization.listAll.invalidate()
+      setPlanChangeDialog((p) => ({ ...p, open: false }))
+      toast.success("Plan updated")
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
   function setField<K extends keyof OrgForm>(key: K, value: string) {
     setForm((prev) => ({ ...prev, [key]: value }))
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }))
@@ -115,6 +147,10 @@ function OrganizationsPage() {
 
   function handleNameChange(value: string) {
     setField("name", value)
+    // Auto-fill slug
+    if (!form.slug || form.slug === slugify(form.name)) {
+      setForm((prev) => ({ ...prev, slug: slugify(value) }))
+    }
     // Auto-fill league name
     if (!form.leagueName || form.leagueName === form.name) {
       setField("leagueName", value)
@@ -139,8 +175,10 @@ function OrganizationsPage() {
 
     createMutation.mutate({
       name: form.name.trim(),
+      slug: form.slug.trim() || undefined,
       ownerEmail: form.ownerEmail.trim(),
       ownerName: form.ownerName.trim(),
+      planId: form.planId || undefined,
       leagueSettings: {
         leagueName: form.leagueName.trim(),
         leagueShortName: form.leagueShortName.trim(),
@@ -283,8 +321,35 @@ function OrganizationsPage() {
               )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold truncate">{org.name}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {org.slug && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      {org.slug}.puckhub.eu
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="text-right shrink-0">
+              <div className="flex items-center gap-3 shrink-0">
+                {(org as any).subscription?.plan && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+                    onClick={() =>
+                      setPlanChangeDialog({
+                        open: true,
+                        orgId: org.id,
+                        orgName: org.name,
+                        currentPlanId: (org as any).subscription.plan.id,
+                        newPlanId: (org as any).subscription.plan.id,
+                      })
+                    }
+                    title="Change plan"
+                  >
+                    <CreditCard className="h-3 w-3" />
+                    {(org as any).subscription.plan.name}
+                  </button>
+                )}
                 <p className="text-sm text-muted-foreground">
                   {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
                 </p>
@@ -353,6 +418,36 @@ function OrganizationsPage() {
                 placeholder="e.g. Oberliga Baden-Württemberg"
               />
             </FormField>
+
+            <FormField label="Slug">
+              <Input
+                value={form.slug}
+                onChange={(e) => setField("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                placeholder="auto-generated from name"
+              />
+              {form.slug && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL: <span className="font-mono">{form.slug}.puckhub.eu</span>
+                </p>
+              )}
+            </FormField>
+
+            {plans && plans.length > 0 && (
+              <FormField label="Plan">
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={form.planId}
+                  onChange={(e) => setForm((p) => ({ ...p, planId: e.target.value }))}
+                >
+                  <option value="">Free (default)</option>
+                  {plans.filter((p) => p.isActive).map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
 
             <FormField label="Owner Name" error={errors.ownerName} required>
               <Input
@@ -554,6 +649,55 @@ function OrganizationsPage() {
               </DialogFooter>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Plan Dialog */}
+      <Dialog open={planChangeDialog.open} onOpenChange={(open) => !open && setPlanChangeDialog((p) => ({ ...p, open: false }))}>
+        <DialogContent className="max-w-sm">
+          <DialogClose onClick={() => setPlanChangeDialog((p) => ({ ...p, open: false }))} />
+          <DialogHeader>
+            <DialogTitle>Change Plan</DialogTitle>
+            <DialogDescription>
+              Update the subscription plan for <strong>{planChangeDialog.orgName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-6 pt-2 space-y-4">
+            {plans && plans.length > 0 && (
+              <FormField label="Plan">
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={planChangeDialog.newPlanId}
+                  onChange={(e) => setPlanChangeDialog((p) => ({ ...p, newPlanId: e.target.value }))}
+                >
+                  {plans.filter((p) => p.isActive).map((plan) => (
+                    <option key={plan.id} value={plan.id}>
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+
+            <DialogFooter className="p-0 pt-2">
+              <Button type="button" variant="outline" onClick={() => setPlanChangeDialog((p) => ({ ...p, open: false }))}>
+                Cancel
+              </Button>
+              <Button
+                variant="accent"
+                disabled={assignPlanMutation.isPending || planChangeDialog.newPlanId === planChangeDialog.currentPlanId}
+                onClick={() =>
+                  assignPlanMutation.mutate({
+                    organizationId: planChangeDialog.orgId,
+                    planId: planChangeDialog.newPlanId,
+                  })
+                }
+              >
+                {assignPlanMutation.isPending ? "Updating..." : "Update Plan"}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

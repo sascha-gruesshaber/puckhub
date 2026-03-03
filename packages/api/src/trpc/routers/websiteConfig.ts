@@ -2,7 +2,8 @@ import dns from "node:dns/promises"
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
-const CNAME_TARGET = "sites.puckhub.de"
+const CNAME_TARGET = process.env.CNAME_TARGET || "sites.puckhub.eu"
+const SUBDOMAIN_SUFFIX = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
 
 function cleanDomain(raw: string): string {
   let d = raw.trim().toLowerCase()
@@ -18,6 +19,11 @@ function cleanDomain(raw: string): string {
 }
 
 export const websiteConfigRouter = router({
+  dnsConfig: orgProcedure.query(() => ({
+    cnameTarget: CNAME_TARGET,
+    subdomainSuffix: SUBDOMAIN_SUFFIX,
+  })),
+
   get: orgProcedure.query(async ({ ctx }) => {
     const row = await ctx.db.websiteConfig.findUnique({
       where: { organizationId: ctx.organizationId },

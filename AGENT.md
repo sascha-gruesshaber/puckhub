@@ -12,7 +12,7 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 |-----------|---------|-------------|
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (port 3000), i18n (DE/EN) |
 | `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (port 3002) |
-| `apps/web` | `@puckhub/web` | Public website (empty placeholder) |
+| `apps/league-site` | `@puckhub/league-site` | Public league website (standings, schedules, stats, news) |
 | `packages/api` | `@puckhub/api` | Hono server + tRPC (25 routers) + Better Auth (port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |

@@ -3,8 +3,20 @@ import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
+import { checkLimit, getOrgPlan } from "../../services/planLimits"
 
 const ORG_ROLE_VALUES = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"] as const
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
 
 export const organizationRouter = router({
   listMine: protectedProcedure.query(async ({ ctx }) => {
@@ -69,6 +81,13 @@ export const organizationRouter = router({
   listAll: platformAdminProcedure.query(async ({ ctx }) => {
     const orgs = await ctx.db.organization.findMany({
       orderBy: { name: "asc" },
+      include: {
+        subscription: {
+          include: {
+            plan: { select: { id: true, name: true, slug: true } },
+          },
+        },
+      },
     })
 
     const memberCounts = await ctx.db.member.groupBy({
@@ -91,9 +110,11 @@ export const organizationRouter = router({
     .input(
       z.object({
         name: z.string().min(1),
+        slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
         logo: z.string().nullish(),
         ownerEmail: z.string().email(),
         ownerName: z.string().min(1),
+        planId: z.string().uuid().optional(),
         leagueSettings: z.object({
           leagueName: z.string().min(1),
           leagueShortName: z.string().min(1),
@@ -109,6 +130,24 @@ export const organizationRouter = router({
       const orgId = crypto.randomUUID()
       let isNewUser = false
       let generatedPassword: string | undefined
+
+      // Generate or validate slug
+      let orgSlug = input.slug || slugify(input.name)
+      if (!orgSlug) orgSlug = orgId.slice(0, 8)
+
+      // Ensure uniqueness
+      let baseSlug = orgSlug
+      let counter = 1
+      while (await ctx.db.organization.findFirst({ where: { slug: orgSlug } })) {
+        orgSlug = `${baseSlug}-${counter++}`
+      }
+
+      // Resolve plan (default to Free)
+      let planId = input.planId
+      if (!planId) {
+        const freePlan = await ctx.db.plan.findUnique({ where: { slug: "free" } })
+        if (freePlan) planId = freePlan.id
+      }
 
       // Look up or create user
       const existingUser = await ctx.db.user.findFirst({ where: { email: input.ownerEmail } })
@@ -155,6 +194,7 @@ export const organizationRouter = router({
           data: {
             id: orgId,
             name: input.name,
+            slug: orgSlug,
             logo: input.logo ?? null,
           },
         })
@@ -182,6 +222,23 @@ export const organizationRouter = router({
             ...input.leagueSettings,
           },
         })
+
+        // Assign plan subscription
+        if (planId) {
+          const now = new Date()
+          const periodEnd = new Date(now)
+          periodEnd.setFullYear(periodEnd.getFullYear() + 100)
+          await tx.orgSubscription.create({
+            data: {
+              organizationId: orgId,
+              planId,
+              interval: "monthly",
+              status: "active",
+              currentPeriodStart: now,
+              currentPeriodEnd: periodEnd,
+            },
+          })
+        }
 
         return org
       })
@@ -228,6 +285,18 @@ export const organizationRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Check admin limit when inviting with admin role
+      if (input.role === "admin") {
+        const plan = await getOrgPlan(ctx.db, ctx.organizationId)
+        const adminCount = await ctx.db.member.count({
+          where: {
+            organizationId: ctx.organizationId,
+            role: { in: ["owner", "admin"] },
+          },
+        })
+        checkLimit(plan, "maxAdmins", adminCount)
+      }
+
       const existing = await ctx.db.invitation.findFirst({
         where: {
           email: input.email,

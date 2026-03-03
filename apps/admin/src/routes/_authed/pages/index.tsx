@@ -12,6 +12,7 @@ import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -33,6 +34,8 @@ function PagesPage() {
   usePermissionGuard("pages")
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const { isAtLimit, usageText } = usePlanLimits()
+  const atPageLimit = isAtLimit("maxPages")
   const { search: searchParam, status } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
@@ -149,12 +152,17 @@ function PagesPage() {
         title={t("pagesPage.title")}
         description={t("pagesPage.description")}
         action={
-          <Link to="/pages/new" search={{}}>
-            <Button variant="accent">
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              {t("pagesPage.actions.new")}
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{usageText("maxPages")}</Badge>
+            <div className={atPageLimit ? "pointer-events-none opacity-50" : ""}>
+              <Link to="/pages/new" search={{}}>
+                <Button variant="accent" disabled={atPageLimit} title={atPageLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t("pagesPage.actions.new")}
+                </Button>
+              </Link>
+            </div>
+          </div>
         }
         filters={
           <FilterBar
@@ -187,12 +195,14 @@ function PagesPage() {
             title={t("pagesPage.empty.title")}
             description={t("pagesPage.empty.description")}
             action={
-              <Link to="/pages/new">
-                <Button variant="accent">
-                  <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t("pagesPage.empty.action")}
-                </Button>
-              </Link>
+              <div className={atPageLimit ? "pointer-events-none opacity-50" : ""}>
+                <Link to="/pages/new">
+                  <Button variant="accent" disabled={atPageLimit}>
+                    <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+                    {t("pagesPage.empty.action")}
+                  </Button>
+                </Link>
+              </div>
             }
           />
         ) : filtered.length === 0 ? (

@@ -80,7 +80,7 @@ function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@puckhub.de"
+              placeholder="admin@puckhub.eu"
               required
             />
           </FormField>

@@ -297,7 +297,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   // ── Step 1: Organization + SystemSettings ────────────────────────────
   console.log('[step 1] Creating organization + system settings...')
   await db.organization.create({
-    data: { id: ORG_ID, name: 'EAL Hockey Allgäuliga' },
+    data: { id: ORG_ID, name: 'EAL Hockey Allgäuliga', slug: 'eal-hockey-allgaeuliga' },
   })
   await db.systemSettings.create({
     data: {
