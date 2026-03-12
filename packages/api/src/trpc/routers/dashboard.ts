@@ -171,6 +171,7 @@ export const dashboardRouter = router({
         ) AS "player",
         json_build_object(
           'id', t.id,
+          'name', t.name,
           'shortName', t.short_name,
           'logoUrl', t.logo_url
         ) AS "team"
@@ -186,7 +187,7 @@ export const dashboardRouter = router({
       suspendedGames: number
       servedGames: number
       player: { id: string; firstName: string; lastName: string }
-      team: { id: string; shortName: string; logoUrl: string | null }
+      team: { id: string; name: string; shortName: string; logoUrl: string | null }
     }>
 
     // --- Top Scorers ---
@@ -197,7 +198,7 @@ export const dashboardRouter = router({
       },
       include: {
         player: { select: { id: true, firstName: true, lastName: true } },
-        team: { select: { id: true, shortName: true, logoUrl: true } },
+        team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
       },
       orderBy: [{ totalPoints: "desc" }, { goals: "desc" }, { assists: "desc" }],
       take: 5,
@@ -212,7 +213,7 @@ export const dashboardRouter = router({
       },
       include: {
         player: { select: { id: true, firstName: true, lastName: true } },
-        team: { select: { id: true, shortName: true, logoUrl: true } },
+        team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
       },
       orderBy: { penaltyMinutes: "desc" },
       take: 5,

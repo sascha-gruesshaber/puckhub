@@ -239,7 +239,7 @@ function ActiveSuspensionsCard({
     suspendedGames: number
     servedGames: number
     player: { id: string; firstName: string; lastName: string }
-    team: { id: string; shortName: string; logoUrl: string | null }
+    team: { id: string; name: string; shortName: string; logoUrl: string | null }
   }>
   isLoading: boolean
   t: (key: string) => string
@@ -282,6 +282,7 @@ function ActiveSuspensionsCard({
                       <PlayerHoverCard
                         playerId={s.player.id}
                         name={`${s.player.firstName} ${s.player.lastName}`}
+                        team={s.team}
                       >
                         <span className="font-medium text-sm cursor-pointer hover:underline decoration-dotted underline-offset-2 truncate">
                           {s.player.firstName} {s.player.lastName}
@@ -324,7 +325,7 @@ function TopScorersCard({
     assists: number
     totalPoints: number
     player: { id: string; firstName: string; lastName: string }
-    team: { id: string; shortName: string; logoUrl: string | null }
+    team: { id: string; name: string; shortName: string; logoUrl: string | null }
   }>
   isLoading: boolean
   t: (key: string) => string
@@ -362,6 +363,7 @@ function TopScorersCard({
                   <PlayerHoverCard
                     playerId={s.player.id}
                     name={`${s.player.firstName} ${s.player.lastName}`}
+                    team={s.team}
                   >
                     <span className="text-sm font-medium cursor-pointer hover:underline decoration-dotted underline-offset-2 truncate block">
                       {s.player.firstName} {s.player.lastName}
@@ -400,7 +402,7 @@ function TopPenalizedCard({
   players: Array<{
     penaltyMinutes: number
     player: { id: string; firstName: string; lastName: string }
-    team: { id: string; shortName: string; logoUrl: string | null }
+    team: { id: string; name: string; shortName: string; logoUrl: string | null }
   }>
   isLoading: boolean
   t: (key: string) => string
@@ -440,6 +442,7 @@ function TopPenalizedCard({
                   <PlayerHoverCard
                     playerId={s.player.id}
                     name={`${s.player.firstName} ${s.player.lastName}`}
+                    team={s.team}
                   >
                     <span className="text-sm font-medium cursor-pointer hover:underline decoration-dotted underline-offset-2 truncate block">
                       {s.player.firstName} {s.player.lastName}
