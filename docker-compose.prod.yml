@@ -15,10 +15,13 @@ services:
         condition: service_healthy
       platform:
         condition: service_healthy
+      league-site:
+        condition: service_healthy
     environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      BASE_DOMAIN: ${BASE_DOMAIN:-puckhub.eu}
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./docker/www:/srv/www:ro
       - caddy_data:/data
       - caddy_config:/config
     ports:
@@ -62,9 +65,14 @@ services:
       API_PORT: 3001
       AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
       UPLOAD_DIR: /app/uploads
-      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-https://admin.puckhub.eu,https://platform.puckhub.eu}
       CNAME_TARGET: ${CNAME_TARGET:-sites.puckhub.eu}
       SUBDOMAIN_SUFFIX: ${SUBDOMAIN_SUFFIX:-.puckhub.eu}
+      BASE_DOMAIN: ${BASE_DOMAIN:-puckhub.eu}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-puckhub.eu}
+      BETTER_AUTH_BASE_URL: ${BETTER_AUTH_BASE_URL:-https://api.puckhub.eu}
+      PASSKEY_RP_ID: ${PASSKEY_RP_ID:-puckhub.eu}
+      PASSKEY_ORIGIN: ${PASSKEY_ORIGIN:-https://admin.puckhub.eu}
     volumes:
       - uploads:/app/uploads
     networks:
@@ -108,7 +116,26 @@ services:
     networks:
       - puckhub
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/platform"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PuckHub League Site (public frontend)
+  league-site:
+    image: ghcr.io/sascha-gruesshaber/puckhub-league-site:latest
+    container_name: puckhub-league-site
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+    networks:
+      - puckhub
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/"]
       interval: 30s
       timeout: 10s
       retries: 3

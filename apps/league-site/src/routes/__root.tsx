@@ -63,8 +63,8 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
   // Check for ?orgId query param (used by admin preview iframe)
   const orgIdParam = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("orgId") : null
 
-  // In dev mode, use VITE_DEV_DOMAIN or fallback to resolving the first available org
-  const domain = typeof window !== "undefined" ? window.location.hostname : (import.meta.env.VITE_DEV_DOMAIN ?? "localhost")
+  const isClient = typeof window !== "undefined"
+  const domain = isClient ? window.location.hostname : null
 
   // When orgId is provided, use getConfig directly (skips isActive check for preview)
   const { data: siteDataByOrg, isLoading: isLoadingByOrg } = trpc.publicSite.getConfig.useQuery(
@@ -73,12 +73,13 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
   )
 
   const { data: siteDataByDomain, isLoading: isLoadingByDomain } = trpc.publicSite.resolveByDomain.useQuery(
-    { domain },
-    { retry: false, staleTime: 300_000, enabled: !orgIdParam },
+    { domain: domain! },
+    { retry: false, staleTime: 300_000, enabled: !orgIdParam && !!domain },
   )
 
   const siteData = orgIdParam ? siteDataByOrg : siteDataByDomain
-  const isLoading = orgIdParam ? isLoadingByOrg : isLoadingByDomain
+  // During SSR, domain is null so the query is disabled — treat as loading until client hydrates
+  const isLoading = orgIdParam ? isLoadingByOrg : (isLoadingByDomain || !domain)
 
   const orgId = siteData?.organization?.id
   const { data: seasons } = trpc.publicSite.listSeasons.useQuery(

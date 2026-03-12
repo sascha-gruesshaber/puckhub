@@ -1,0 +1,25 @@
+# Local development reverse proxy
+# HTTP only — no certs, no trust setup needed
+# Uses puckhub.localhost so cross-subdomain cookies work
+# (bare "localhost" is a TLD — browsers reject Domain=localhost cookies)
+
+{
+	auto_https off
+}
+
+http://admin.puckhub.localhost {
+	reverse_proxy host.docker.internal:3000
+}
+
+http://api.puckhub.localhost {
+	reverse_proxy host.docker.internal:3001
+}
+
+http://platform.puckhub.localhost {
+	reverse_proxy host.docker.internal:3002
+}
+
+# Wildcard catch-all → league-site
+http://*.puckhub.localhost {
+	reverse_proxy host.docker.internal:3003
+}

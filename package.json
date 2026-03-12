@@ -6,6 +6,7 @@
     "dev": "pnpm dev:docker:up && wait-on tcp:5432 && pnpm dev:servers",
     "dev:docker:up": "docker compose -p puckhub -f docker/docker-compose.yml up -d",
     "dev:docker:down": "docker compose -p puckhub -f docker/docker-compose.yml down",
+    "dev:services": "turbo dev --log-order=stream",
     "dev:servers": "turbo dev --log-order=stream",
     "build": "turbo build",
     "lint": "turbo lint",

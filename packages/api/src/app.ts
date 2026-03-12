@@ -1,5 +1,6 @@
 import { serveStatic } from "@hono/node-server/serve-static"
 import { trpcServer } from "@hono/trpc-server"
+import { db } from "@puckhub/db"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { auth } from "./lib/auth"
@@ -10,7 +11,7 @@ import { createContext } from "./trpc/context"
 
 const app = new Hono()
 
-const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "http://localhost:3000,http://localhost:3002,http://localhost:3003").split(",").map((o) => o.trim())
+const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "http://admin.puckhub.localhost,http://platform.puckhub.localhost").split(",").map((o) => o.trim())
 
 // Public site tRPC routes — allow any origin (read-only, no auth)
 app.use(
@@ -21,18 +22,20 @@ app.use(
   }),
 )
 
-// Authenticated routes — strict origin checking
-app.use(
-  "/api/*",
-  cors({
+// Authenticated routes — strict origin checking (skip publicSite routes handled above)
+app.use("/api/*", async (c, next) => {
+  if (c.req.path.startsWith("/api/trpc/publicSite.")) {
+    return next()
+  }
+  return cors({
     origin: (origin) => {
       if (!origin) return trustedOrigins[0]!
       if (trustedOrigins.includes(origin)) return origin
       return trustedOrigins[0]!
     },
     credentials: true,
-  }),
-)
+  })(c, next)
+})
 
 // Better Auth routes
 app.on(["POST", "GET"], "/api/auth/**", (c) => {
@@ -63,6 +66,33 @@ app.use(
 
 // Stripe webhook (stub — no auth, raw body needed for signature verification)
 app.post("/api/webhooks/stripe", handleStripeWebhook)
+
+// Domain check for Caddy On-Demand TLS
+app.get("/api/domain-check", async (c) => {
+  const domain = c.req.query("domain")
+  if (!domain) return c.text("missing domain", 400)
+
+  const baseDomain = process.env.BASE_DOMAIN ?? "puckhub.eu"
+  const suffix = process.env.SUBDOMAIN_SUFFIX ?? `.${baseDomain}`
+
+  // Allow known fixed subdomains and bare domain
+  const knownHosts = [baseDomain, `www.${baseDomain}`, `admin.${baseDomain}`, `platform.${baseDomain}`, `api.${baseDomain}`]
+  if (knownHosts.includes(domain)) return c.text("ok", 200)
+
+  // Check if it matches an active websiteConfig (by custom domain or subdomain prefix)
+  const orClauses: { domain?: string; subdomain?: string }[] = [{ domain }]
+  if (domain.endsWith(suffix)) {
+    const prefix = domain.slice(0, -suffix.length)
+    if (prefix) orClauses.push({ subdomain: prefix })
+  }
+
+  const config = await db.websiteConfig.findFirst({
+    where: { isActive: true, OR: orClauses },
+    select: { id: true },
+  })
+
+  return config ? c.text("ok", 200) : c.text("not found", 404)
+})
 
 // Health check
 app.get("/api/health", (c) => {

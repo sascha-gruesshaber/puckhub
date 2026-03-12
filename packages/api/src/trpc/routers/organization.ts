@@ -223,6 +223,16 @@ export const organizationRouter = router({
           },
         })
 
+        // Create website config with subdomain = org slug
+        await tx.websiteConfig.create({
+          data: {
+            organizationId: orgId,
+            subdomain: orgSlug,
+            isActive: true,
+            templatePreset: "classic",
+          },
+        })
+
         // Assign plan subscription
         if (planId) {
           const now = new Date()
@@ -263,6 +273,42 @@ export const organizationRouter = router({
       })
 
       return org
+    }),
+
+  /** Platform admin: update any organization's details */
+  platformUpdate: platformAdminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        name: z.string().min(1).optional(),
+        slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const org = await ctx.db.organization.findFirst({ where: { id: input.id } })
+      if (!org) throw createAppError("NOT_FOUND", APP_ERROR_CODES.ORG_NOT_FOUND)
+
+      // Check slug uniqueness if changed
+      if (input.slug && input.slug !== org.slug) {
+        const existing = await ctx.db.organization.findFirst({ where: { slug: input.slug } })
+        if (existing) throw createAppError("CONFLICT", APP_ERROR_CODES.ORG_SLUG_CONFLICT)
+      }
+
+      // If slug changed, also update the websiteConfig subdomain
+      if (input.slug && input.slug !== org.slug) {
+        await ctx.db.websiteConfig.updateMany({
+          where: { organizationId: input.id },
+          data: { subdomain: input.slug },
+        })
+      }
+
+      return ctx.db.organization.update({
+        where: { id: input.id },
+        data: {
+          ...(input.name ? { name: input.name } : {}),
+          ...(input.slug ? { slug: input.slug } : {}),
+        },
+      })
     }),
 
   listMembers: orgProcedure.query(async ({ ctx }) => {

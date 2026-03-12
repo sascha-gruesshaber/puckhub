@@ -12,7 +12,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Check, Copy, CreditCard, Download, ExternalLink, Globe, Loader2, Plus, Trash2, Upload } from "lucide-react"
+import { Building2, Check, Copy, CreditCard, Download, ExternalLink, Globe, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -31,6 +31,12 @@ interface OrgForm {
 }
 
 const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "", planId: "" }
+
+interface EditForm {
+  name: string
+  slug: string
+  planId: string
+}
 
 function slugify(text: string): string {
   return text
@@ -71,14 +77,11 @@ function OrganizationsPage() {
   const [importName, setImportName] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Plan change dialog state
-  const [planChangeDialog, setPlanChangeDialog] = useState<{
-    open: boolean
-    orgId: string
-    orgName: string
-    currentPlanId: string
-    newPlanId: string
-  }>({ open: false, orgId: "", orgName: "", currentPlanId: "", newPlanId: "" })
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editingOrg, setEditingOrg] = useState<{ id: string; name: string; slug: string; currentPlanId: string } | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({ name: "", slug: "", planId: "" })
+  const [editErrors, setEditErrors] = useState<Partial<Record<keyof EditForm, string>>>({})
 
   const utils = trpc.useUtils()
   const createMutation = trpc.organization.create.useMutation({
@@ -112,7 +115,7 @@ function OrganizationsPage() {
 
   const setActiveMutation = trpc.organization.setActiveForAdmin.useMutation({
     onSuccess: () => {
-      window.open("http://localhost:3000", "_blank")
+      window.open("http://admin.puckhub.localhost", "_blank")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -131,10 +134,17 @@ function OrganizationsPage() {
     onError: (err) => toast.error("Import failed", { description: err.message }),
   })
 
+  const platformUpdateMutation = trpc.organization.platformUpdate.useMutation({
+    onSuccess: () => {
+      utils.organization.listAll.invalidate()
+      toast.success("League updated")
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
   const assignPlanMutation = trpc.subscription.assignPlan.useMutation({
     onSuccess: () => {
       utils.organization.listAll.invalidate()
-      setPlanChangeDialog((p) => ({ ...p, open: false }))
       toast.success("Plan updated")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
@@ -245,6 +255,68 @@ function OrganizationsPage() {
     })
   }
 
+  function openEditDialog(org: any) {
+    const currentPlanId = org.subscription?.plan?.id ?? ""
+    setEditingOrg({ id: org.id, name: org.name, slug: org.slug, currentPlanId })
+    setEditForm({ name: org.name, slug: org.slug, planId: currentPlanId })
+    setEditErrors({})
+    setEditDialogOpen(true)
+  }
+
+  function validateEdit(): boolean {
+    const next: Partial<Record<keyof EditForm, string>> = {}
+    if (!editForm.name.trim()) next.name = "Name is required"
+    if (!editForm.slug.trim()) next.slug = "Slug is required"
+    else if (!/^[a-z0-9-]+$/.test(editForm.slug)) next.slug = "Only lowercase letters, numbers and hyphens"
+    setEditErrors(next)
+    return Object.keys(next).length === 0
+  }
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingOrg || !validateEdit()) return
+
+    const isSaving = platformUpdateMutation.isPending || assignPlanMutation.isPending
+
+    if (isSaving) return
+
+    const nameChanged = editForm.name.trim() !== editingOrg.name
+    const slugChanged = editForm.slug.trim() !== editingOrg.slug
+    const planChanged = editForm.planId !== editingOrg.currentPlanId
+
+    // Update org details if changed
+    if (nameChanged || slugChanged) {
+      platformUpdateMutation.mutate(
+        {
+          id: editingOrg.id,
+          ...(nameChanged ? { name: editForm.name.trim() } : {}),
+          ...(slugChanged ? { slug: editForm.slug.trim() } : {}),
+        },
+        {
+          onSuccess: () => {
+            // If plan also needs changing, do it after org update succeeds
+            if (planChanged && editForm.planId) {
+              assignPlanMutation.mutate(
+                { organizationId: editingOrg.id, planId: editForm.planId },
+                { onSuccess: () => setEditDialogOpen(false) },
+              )
+            } else {
+              setEditDialogOpen(false)
+            }
+          },
+        },
+      )
+    } else if (planChanged && editForm.planId) {
+      assignPlanMutation.mutate(
+        { organizationId: editingOrg.id, planId: editForm.planId },
+        { onSuccess: () => setEditDialogOpen(false) },
+      )
+    } else {
+      // Nothing changed
+      setEditDialogOpen(false)
+    }
+  }
+
   // Compute import summary for display
   const importSummary = importData
     ? {
@@ -255,6 +327,8 @@ function OrganizationsPage() {
         games: importData.games?.length ?? 0,
       }
     : null
+
+  const editIsSaving = platformUpdateMutation.isPending || assignPlanMutation.isPending
 
   return (
     <div>
@@ -323,37 +397,40 @@ function OrganizationsPage() {
                 <p className="text-sm font-semibold truncate">{org.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {org.slug && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <a
+                      href={`http://${org.slug}.${import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                    >
                       <Globe className="h-3 w-3" />
-                      {org.slug}.puckhub.eu
-                    </span>
+                      {org.slug}.{import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}
+                    </a>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {(org as any).subscription?.plan && (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
-                    onClick={() =>
-                      setPlanChangeDialog({
-                        open: true,
-                        orgId: org.id,
-                        orgName: org.name,
-                        currentPlanId: (org as any).subscription.plan.id,
-                        newPlanId: (org as any).subscription.plan.id,
-                      })
-                    }
-                    title="Change plan"
-                  >
+                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
                     <CreditCard className="h-3 w-3" />
                     {(org as any).subscription.plan.name}
-                  </button>
+                  </span>
                 )}
                 <p className="text-sm text-muted-foreground">
                   {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
                 </p>
               </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-8 px-2 md:px-3"
+                onClick={() => openEditDialog(org)}
+                title="Edit league"
+                aria-label="Edit league"
+              >
+                <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
+                <span className="hidden md:inline">Edit</span>
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -427,7 +504,7 @@ function OrganizationsPage() {
               />
               {form.slug && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  URL: <span className="font-mono">{form.slug}.puckhub.eu</span>
+                  URL: <span className="font-mono">{form.slug}.{import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}</span>
                 </p>
               )}
             </FormField>
@@ -652,25 +729,51 @@ function OrganizationsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Change Plan Dialog */}
-      <Dialog open={planChangeDialog.open} onOpenChange={(open) => !open && setPlanChangeDialog((p) => ({ ...p, open: false }))}>
-        <DialogContent className="max-w-sm">
-          <DialogClose onClick={() => setPlanChangeDialog((p) => ({ ...p, open: false }))} />
+      {/* Edit League Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => !editIsSaving && setEditDialogOpen(open)}>
+        <DialogContent className="max-w-md">
+          <DialogClose onClick={() => !editIsSaving && setEditDialogOpen(false)} />
           <DialogHeader>
-            <DialogTitle>Change Plan</DialogTitle>
+            <DialogTitle>Edit League</DialogTitle>
             <DialogDescription>
-              Update the subscription plan for <strong>{planChangeDialog.orgName}</strong>.
+              Update league details and subscription plan.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-6 pt-2 space-y-4">
+          <form onSubmit={handleEditSubmit} className="space-y-4 p-6 pt-2">
+            <FormField label="Name" error={editErrors.name} required>
+              <Input
+                value={editForm.name}
+                onChange={(e) => {
+                  setEditForm((p) => ({ ...p, name: e.target.value }))
+                  if (editErrors.name) setEditErrors((p) => ({ ...p, name: undefined }))
+                }}
+              />
+            </FormField>
+
+            <FormField label="Slug" error={editErrors.slug} required>
+              <Input
+                value={editForm.slug}
+                onChange={(e) => {
+                  setEditForm((p) => ({ ...p, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))
+                  if (editErrors.slug) setEditErrors((p) => ({ ...p, slug: undefined }))
+                }}
+              />
+              {editForm.slug && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL: <span className="font-mono">{editForm.slug}.{import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}</span>
+                </p>
+              )}
+            </FormField>
+
             {plans && plans.length > 0 && (
               <FormField label="Plan">
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={planChangeDialog.newPlanId}
-                  onChange={(e) => setPlanChangeDialog((p) => ({ ...p, newPlanId: e.target.value }))}
+                  value={editForm.planId}
+                  onChange={(e) => setEditForm((p) => ({ ...p, planId: e.target.value }))}
                 >
+                  <option value="">No plan</option>
                   {plans.filter((p) => p.isActive).map((plan) => (
                     <option key={plan.id} value={plan.id}>
                       {plan.name}
@@ -681,23 +784,14 @@ function OrganizationsPage() {
             )}
 
             <DialogFooter className="p-0 pt-2">
-              <Button type="button" variant="outline" onClick={() => setPlanChangeDialog((p) => ({ ...p, open: false }))}>
+              <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)} disabled={editIsSaving}>
                 Cancel
               </Button>
-              <Button
-                variant="accent"
-                disabled={assignPlanMutation.isPending || planChangeDialog.newPlanId === planChangeDialog.currentPlanId}
-                onClick={() =>
-                  assignPlanMutation.mutate({
-                    organizationId: planChangeDialog.orgId,
-                    planId: planChangeDialog.newPlanId,
-                  })
-                }
-              >
-                {assignPlanMutation.isPending ? "Updating..." : "Update Plan"}
+              <Button type="submit" variant="accent" disabled={editIsSaving}>
+                {editIsSaving ? "Saving..." : "Save"}
               </Button>
             </DialogFooter>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

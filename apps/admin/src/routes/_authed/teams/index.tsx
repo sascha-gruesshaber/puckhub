@@ -13,8 +13,8 @@ import {
   Label,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Pencil, Plus, Shield, Shirt, Trash2, X } from "lucide-react"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { History, Pencil, Plus, Shield, Shirt, Trash2, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { RemoveDialog } from "~/components/removeDialog"
@@ -512,6 +512,12 @@ function TeamsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-1 shrink-0">
+                    <Link to="/teams/$teamId/history" params={{ teamId: team.id }}>
+                      <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
+                        <History className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+                        <span className="hidden md:inline">{t("teamsPage.actions.history")}</span>
+                      </Button>
+                    </Link>
                     <Button
                       variant="ghost"
                       size="sm"

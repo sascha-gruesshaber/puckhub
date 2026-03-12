@@ -1,4 +1,16 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy_dev_data:/data
+      - caddy_dev_config:/config
+    ports:
+      - "80:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
   db:
     image: postgres:16-alpine
     environment:
@@ -40,3 +52,5 @@ services:
 volumes:
   pgdata:
   pgadmin_data:
+  caddy_dev_data:
+  caddy_dev_config:

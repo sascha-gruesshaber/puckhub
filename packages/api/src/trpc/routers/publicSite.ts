@@ -4,10 +4,17 @@ import { getEligibleGameIds } from "./_helpers"
 
 export const publicSiteRouter = router({
   resolveByDomain: publicProcedure.input(z.object({ domain: z.string() })).query(async ({ ctx, input }) => {
+    const suffix = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
+    const orClauses: { domain?: string; subdomain?: string }[] = [{ domain: input.domain }, { subdomain: input.domain }]
+    if (input.domain.endsWith(suffix)) {
+      const prefix = input.domain.slice(0, -suffix.length)
+      if (prefix) orClauses.push({ subdomain: prefix })
+    }
+
     const config = await ctx.db.websiteConfig.findFirst({
       where: {
         isActive: true,
-        OR: [{ domain: input.domain }, { subdomain: input.domain }],
+        OR: orClauses,
       },
       include: {
         organization: { select: { id: true, name: true, logo: true } },

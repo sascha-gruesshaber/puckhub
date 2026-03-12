@@ -341,7 +341,6 @@ function WebsitePage() {
     ev.preventDefault()
     updateMutation.mutate({
       domain: form.domain || null,
-      subdomain: form.subdomain || null,
       isActive: form.isActive,
       templatePreset: form.templatePreset,
       colorPrimary: form.colorPrimary || null,
@@ -415,7 +414,7 @@ function WebsitePage() {
     toast.success("Copied!")
   }
 
-  const webUrl = (import.meta.env.VITE_WEB_URL as string) || "http://localhost:3003"
+  const webUrl = (import.meta.env.VITE_WEB_URL as string) || "http://web.puckhub.localhost"
   const previewUrl = organization ? `${webUrl}?orgId=${organization.id}` : webUrl
 
   const deviceWidths: Record<DeviceMode, number | "100%"> = {
@@ -544,38 +543,45 @@ function WebsitePage() {
         {activeTab === "domain" && (
           <Card>
             <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    {t("website.domain.customDomain")}
-                  </label>
-                  <Input
-                    value={form.domain}
-                    onChange={(e) => {
-                      setForm({ ...form, domain: e.target.value })
-                      setDnsResult(null)
-                    }}
-                    placeholder={t("website.domain.customDomainPlaceholder")}
-                    className="h-10"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">{t("website.domain.customDomainHint")}</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    {t("website.domain.subdomain")}
-                  </label>
-                  <div className="flex items-center gap-0">
-                    <Input
-                      value={form.subdomain}
-                      onChange={(e) => setForm({ ...form, subdomain: e.target.value })}
-                      className="h-10 rounded-r-none"
-                    />
-                    <span className="inline-flex h-10 items-center rounded-r-md border border-l-0 border-input bg-muted px-3 text-sm text-muted-foreground">
-                      {dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}
-                    </span>
+              {/* Subdomain (read-only, derived from org slug) */}
+              {form.subdomain && (
+                <div className="rounded-lg border border-border bg-muted/30 p-4 flex items-center justify-between">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      {t("website.domain.subdomain")}
+                    </label>
+                    <p className="text-sm font-medium">
+                      {form.subdomain}{dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{t("website.domain.subdomainReadonlyHint")}</p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">{t("website.domain.subdomainHint")}</p>
+                  <a
+                    href={`http://${form.subdomain}${dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {t("website.domain.openSite")}
+                  </a>
                 </div>
+              )}
+
+              {/* Custom domain */}
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  {t("website.domain.customDomain")}
+                </label>
+                <Input
+                  value={form.domain}
+                  onChange={(e) => {
+                    setForm({ ...form, domain: e.target.value })
+                    setDnsResult(null)
+                  }}
+                  placeholder={t("website.domain.customDomainPlaceholder")}
+                  className="h-10"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">{t("website.domain.customDomainHint")}</p>
               </div>
 
               <div className="flex items-center gap-3">

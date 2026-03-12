@@ -36,7 +36,7 @@ import type {
 // Constants
 // ---------------------------------------------------------------------------
 
-const ORG_ID = 'eal-hockey-allgaeuliga'
+const ORG_ID = 'eishockey-allgaeuliga'
 const MYSQL_CONFIG = {
   host: process.env.LEGACY_MYSQL_HOST ?? '127.0.0.1',
   port: Number(process.env.LEGACY_MYSQL_PORT ?? 3306),
@@ -54,6 +54,31 @@ const BATCH_SIZE = 500
 const MONOREPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
 const LEGACY_IMAGES_DIR = join(MONOREPO_ROOT, '_legacy', 'src', 'frontend', 'imgs', 'teams')
 const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, 'uploads'))
+
+/**
+ * Maps legacy team IDs to their name-based logo filenames in the legacy images dir.
+ * The legacy system stored team logos as `<name>.jpg` but the DB `logo` column often
+ * just references `logo_unknown.jpg`. This mapping bridges the gap.
+ */
+const TEAM_ID_TO_LOGO_FILE: Record<number, string> = {
+  1: 'tsv-dietmannsried-tigers.jpg',
+  2: 'cosmos.jpg',
+  3: 'allgeier.jpg',
+  4: 'greuter.jpg',
+  5: 'apfeltrang.jpg',
+  6: 'memmingen.jpg',
+  7: 'dachser.jpg',
+  // 8: Sauriers — has sauriers_logo.jpg in DB column (handled by existing logic)
+  // 9: ESK Piranhas — has piranhas_logo.jpg in DB column (handled by existing logic)
+  10: 'oberguenzburg.jpg',
+  // 11: SSV Niedersonthofen — has niedersonthofen_logo.gif in DB column (handled by existing logic)
+  12: 'sv_29_kempten.jpg',
+  // 13: Taxi Pepe — has taxipepe_logo.gif in DB column (handled by existing logic)
+  16: 'tsv_lengenwang.jpg',
+  18: 'castle_mountain.jpg',
+  21: 'elbsee.jpg',
+  27: 'piranhas.jpg',
+}
 
 // ---------------------------------------------------------------------------
 // MySQL helpers
@@ -297,8 +322,30 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   // ── Step 1: Organization + SystemSettings ────────────────────────────
   console.log('[step 1] Creating organization + system settings...')
   await db.organization.create({
-    data: { id: ORG_ID, name: 'EAL Hockey Allgäuliga', slug: 'eal-hockey-allgaeuliga' },
+    data: { id: ORG_ID, name: 'Eishockey Allgäuliga', slug: 'eishockey-allgaeuliga' },
   })
+
+  // Assign Professional plan
+  const proPlan = await db.plan.findUnique({ where: { slug: 'professional' } })
+  if (proPlan) {
+    const now = new Date()
+    const oneYearLater = new Date(now)
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1)
+    await db.orgSubscription.create({
+      data: {
+        organizationId: ORG_ID,
+        planId: proPlan.id,
+        interval: 'yearly',
+        status: 'active',
+        currentPeriodStart: now,
+        currentPeriodEnd: oneYearLater,
+      },
+    })
+    console.log('[step 1]   → Assigned Professional plan')
+  } else {
+    console.log('[step 1]   ⚠ Professional plan not found — run db:seed first')
+  }
+
   await db.systemSettings.create({
     data: {
       organizationId: ORG_ID,
@@ -311,6 +358,17 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       pointsLoss: 0,
     },
   })
+
+  // Create website config so the league-site can resolve by subdomain
+  await db.websiteConfig.create({
+    data: {
+      organizationId: ORG_ID,
+      subdomain: ORG_ID,
+      isActive: true,
+      templatePreset: 'classic',
+    },
+  })
+  console.log('[step 1]   → Created website config')
 
   // ── Step 2: PenaltyTypes ─────────────────────────────────────────────
   console.log('[step 2] Ensuring penalty types exist...')
@@ -366,7 +424,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       let logoUrl: string | null = null
       let teamPhotoUrl: string | null = null
 
-      // --- Logo: try teamlogo_<id>.jpg, then logo column value ---
+      // --- Logo: try teamlogo_<id>.jpg, then logo column value, then name-based file ---
       const logoById = join(LEGACY_IMAGES_DIR, `teamlogo_${team.id}.jpg`)
       const logoByIdExists = await stat(logoById).then(() => true).catch(() => false)
 
@@ -383,6 +441,15 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
           if (logoByColExists) {
             logoSource = logoByCol
           }
+        }
+      }
+
+      // Fallback: team-name-based logo file (e.g. memmingen.jpg, cosmos.jpg)
+      if (!logoSource && TEAM_ID_TO_LOGO_FILE[team.id]) {
+        const logoByName = join(LEGACY_IMAGES_DIR, TEAM_ID_TO_LOGO_FILE[team.id]!)
+        const logoByNameExists = await stat(logoByName).then(() => true).catch(() => false)
+        if (logoByNameExists) {
+          logoSource = logoByName
         }
       }
 

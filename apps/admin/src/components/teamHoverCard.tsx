@@ -1,6 +1,6 @@
 import { Badge, Skeleton } from "@puckhub/ui"
 import { Link } from "@tanstack/react-router"
-import { Globe, Pencil, Users } from "lucide-react"
+import { Globe, History, Pencil, Users } from "lucide-react"
 import type { ReactNode } from "react"
 import { trpc } from "@/trpc"
 import { HoverCard } from "~/components/hoverCard"
@@ -140,6 +140,14 @@ function TeamHoverCardContent({
               {t("teamsPage.hoverCard.roster")}
             </Link>
           )}
+          <Link
+            to="/teams/$teamId/history"
+            params={{ teamId }}
+            className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            <History className="h-3 w-3" aria-hidden="true" />
+            {t("teamsPage.hoverCard.history")}
+          </Link>
           {onEdit && (
             <button
               type="button"

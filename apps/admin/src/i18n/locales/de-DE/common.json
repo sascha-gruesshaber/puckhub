@@ -145,8 +145,10 @@
       "customDomain": "Eigene Domain",
       "customDomainPlaceholder": "z.B. allgaeuliga.de",
       "customDomainHint": "Domain ohne http:// oder www. eingeben",
-      "subdomain": "Subdomain",
+      "subdomain": "Deine Website",
       "subdomainHint": "Deine Seite ist unter dieser Subdomain erreichbar",
+      "subdomainReadonlyHint": "Diese Adresse wird von deinem Plattform-Administrator vergeben.",
+      "openSite": "Website öffnen",
       "active": "Website aktiv",
       "activeHint": "Öffentliche Website aktivieren oder deaktivieren"
     },
@@ -1183,6 +1185,7 @@
       "new": "Neues Team",
       "edit": "Bearbeiten",
       "delete": "Löschen",
+      "history": "Historie",
       "trikots": "Trikots",
       "saving": "Speichern..."
     },
@@ -1221,6 +1224,7 @@
     "hoverCard": {
       "noContactData": "Keine Kontaktdaten hinterlegt",
       "roster": "Kader",
+      "history": "Historie",
       "edit": "Bearbeiten"
     },
     "dialogs": {
@@ -1288,6 +1292,42 @@
         "assignmentUpdated": "Zuordnung aktualisiert",
         "assignmentRemoved": "Zuordnung entfernt"
       }
+    },
+    "history": {
+      "backToTeams": "Zurück zu Teams",
+      "notFoundTitle": "Team nicht gefunden",
+      "notFoundDescription": "Das angeforderte Team existiert nicht oder wurde gelöscht.",
+      "allTimeStats": "Gesamtstatistik",
+      "seasons": "Saisons",
+      "games": "Spiele",
+      "gamesShort": "Sp.",
+      "winRate": "Siegquote",
+      "bestFinish": "Beste Platzierung",
+      "goalDifference": "Tordifferenz",
+      "seasonCount": "{{count}} Saisons",
+      "gameCount": "{{count}} Spiele",
+      "seasonBySeasonTitle": "Saison für Saison",
+      "noSeasons": "Keine Saisondaten vorhanden.",
+      "noSeasonsTitle": "Keine Saisonhistorie",
+      "noSeasonsDescription": "Dieses Team hat noch an keiner Saison teilgenommen.",
+      "expand": "Details anzeigen",
+      "collapse": "Details ausblenden",
+      "pts": "Pkt.",
+      "topScorers": "Top-Scorer",
+      "bestGoalie": "Bester Torhüter",
+      "rosterChanges": "Kaderänderungen",
+      "position": {
+        "forward": "Stürmer",
+        "defense": "Verteidiger",
+        "goalie": "Torhüter"
+      },
+      "chartRankPoints": "Siege & Platzierung",
+      "chartWins": "Siege",
+      "chartRank": "Platzierung",
+      "chartGoals": "Tore",
+      "chartGoalsFor": "Erzielte Tore",
+      "chartGoalsAgainst": "Gegentore",
+      "chartGoalDiff": "Tordifferenz"
     },
     "toast": {
       "created": "Team erstellt",

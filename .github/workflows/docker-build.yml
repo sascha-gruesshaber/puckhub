@@ -33,6 +33,9 @@ jobs:
           - app: platform
             image: puckhub-platform
             target: platform-runner
+          - app: league-site
+            image: puckhub-league-site
+            target: league-site-runner
 
     steps:
       - name: Checkout repository
@@ -84,7 +87,7 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ steps.meta.outputs.version }}
             VITE_API_URL=
-            PLATFORM_BASE_PATH=/platform
+            PLATFORM_BASE_PATH=/
 
       - name: Generate image summary
         run: |

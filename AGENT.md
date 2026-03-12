@@ -10,10 +10,10 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 
 | Workspace | Package | Description |
 |-----------|---------|-------------|
-| `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (port 3000), i18n (DE/EN) |
-| `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (port 3002) |
-| `apps/league-site` | `@puckhub/league-site` | Public league website (standings, schedules, stats, news) |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (25 routers) + Better Auth (port 3001) |
+| `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (`admin.` subdomain, port 3000), i18n (DE/EN) |
+| `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (`platform.` subdomain, port 3002) |
+| `apps/league-site` | `@puckhub/league-site` | Public league website (`*.` wildcard subdomain, port 3003) — standings, schedules, stats, news |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (29 routers) + Better Auth (`api.` subdomain, port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
@@ -21,7 +21,7 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 ## Commands
 
 ```bash
-pnpm dev                # Start Docker (DB + pgAdmin) + all dev servers (admin :3000, api :3001, platform :3002)
+pnpm dev                # Start Docker (DB + pgAdmin + Caddy) + all dev servers
 pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
 pnpm test:api           # Run API tests only
@@ -33,8 +33,9 @@ pnpm check              # Biome check + auto-fix
 pnpm check:ci           # Biome CI check (no auto-fix)
 pnpm db:generate        # Generate Prisma client
 pnpm db:reset           # Reset database via @puckhub/db seed reset utility
-pnpm dev:docker:up      # Start Docker containers only
+pnpm dev:docker:up      # Start Docker containers only (DB + pgAdmin + Caddy dev proxy)
 pnpm dev:docker:down    # Stop Docker containers only
+pnpm dev:services       # Start all dev servers via Turborepo (alias for dev:servers)
 ```
 
 **Per-package** (run from package dir or with `pnpm --filter`):
@@ -51,7 +52,9 @@ Copy `.env.example` to `.env`. Key variables:
 |----------|---------|---------|
 | `DATABASE_URL` | `postgresql://puckhub:puckhub_dev@localhost:5432/puckhub` | PostgreSQL connection |
 | `AUTH_SECRET` | — | Better Auth secret (change in prod) |
-| `AUTH_URL` | `http://localhost:3001` | Auth base URL |
+| `AUTH_URL` | `http://api.puckhub.localhost` | Auth base URL |
+| `VITE_API_URL` | `http://api.puckhub.localhost` | API URL for frontend apps |
+| `VITE_WEB_URL` | `http://web.puckhub.localhost` | Public site URL for website preview |
 | `API_PORT` | `3001` | API server port |
 | `ADMIN_PORT` | `3000` | Admin dev server port |
 | `AUTO_MIGRATE` | `true` | Auto-run migrations on API startup |
@@ -60,14 +63,23 @@ Copy `.env.example` to `.env`. Key variables:
 | `DEFAULT_USER_PASSWORD` | `changeme123` | Default admin user password |
 | `DEMO_MODE` | `false` | Enable demo mode with periodic resets |
 | `DEMO_RESET_CRON` | `0 */4 * * *` | Cron schedule for demo data reset |
-| `PASSKEY_RP_ID` | `localhost` | WebAuthn relying party ID |
+| `PASSKEY_RP_ID` | `puckhub.localhost` | WebAuthn relying party ID |
 | `PASSKEY_RP_NAME` | `PuckHub Admin` | WebAuthn relying party name |
-| `PASSKEY_ORIGIN` | `http://localhost:3000` | WebAuthn origin |
+| `PASSKEY_ORIGIN` | `http://admin.puckhub.localhost` | WebAuthn origin |
+| `BASE_DOMAIN` | `puckhub.localhost` | Base domain for subdomain routing |
+| `COOKIE_DOMAIN` | `puckhub.localhost` | Domain for cross-subdomain cookies |
+| `SUBDOMAIN_SUFFIX` | `.puckhub.localhost` | Suffix for league subdomains |
+| `TRUSTED_ORIGINS` | `http://admin.puckhub.localhost,...` | Comma-separated trusted origins for CORS/auth |
+| `BETTER_AUTH_BASE_URL` | `http://api.puckhub.localhost` | Better Auth server base URL |
+| `CNAME_TARGET` | `sites.puckhub.localhost` | CNAME target for custom domain verification |
 
 ## Docker
 
-- **Development**: `docker/docker-compose.yml` — PostgreSQL 16 + pgAdmin (port 5050)
-- **Production**: `docker-compose.prod.yml` — Caddy (reverse proxy) + PostgreSQL 16 + API + Admin + Platform containers
+- **Development**: `docker/docker-compose.yml` — PostgreSQL 16 + pgAdmin (port 5050) + Caddy dev proxy (port 80) for subdomain routing (`*.puckhub.localhost`)
+- **Dev Caddy**: `docker/Caddyfile.dev` — HTTP-only reverse proxy mapping `admin.puckhub.localhost` → `:3000`, `api.puckhub.localhost` → `:3001`, `platform.puckhub.localhost` → `:3002`, `*.puckhub.localhost` → `:3003`
+- **Production**: `docker-compose.prod.yml` — Caddy (subdomain-based reverse proxy + on-demand TLS) + PostgreSQL 16 + API + Admin + Platform + League-site containers
+- **Prod Caddy**: `docker/Caddyfile` — subdomain routing (`api.`, `admin.`, `platform.`, `*.` wildcard for league sites), static landing page on bare domain
+- **Landing page**: `docker/www/index.html` — static placeholder page served on bare domain
 
 ## Conventions
 

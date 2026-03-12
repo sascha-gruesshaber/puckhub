@@ -13,8 +13,9 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 
 ## Prisma Schema
 
-- Enums: 9 (`RoundType`, `Position`, `GameStatus`, `GameEventType`, `NewsStatus`, `PageStatus`, `MenuLocation`, `TrikotTemplateType`, `OrgRole`)
-- Models: 36 (auth, organization, core league, stats, CMS, trikot domain)
+- Enums: 10 (`RoundType`, `Position`, `GameStatus`, `GameEventType`, `NewsStatus`, `PageStatus`, `MenuLocation`, `TrikotTemplateType`, `OrgRole`, `PlanInterval`)
+- Models: 39 (auth, organization, core league, stats, CMS, trikot domain, SaaS/billing)
+- SaaS models: `WebsiteConfig` (per-org website settings + custom domain), `Plan` (subscription tiers with feature flags + limits), `OrgSubscription` (org-to-plan binding with Stripe fields)
 - Most app tables are organization-scoped via `organizationId`
 - Naming convention uses `@@map`/`@map` to keep DB snake_case while code stays camelCase
 

@@ -2,7 +2,7 @@
 
 TanStack Start (React 19) admin application with Vite 7, file-based routing, tRPC integration, and i18n (DE/EN).
 
-## Route Structure (26 routes)
+## Route Structure (27 routes)
 
 ```
 src/routes/
@@ -15,6 +15,7 @@ src/routes/
     ├── security.tsx        # Security settings (passkey, 2FA)
     ├── standings.tsx       # Standings view
     ├── stats.tsx           # Statistics
+    ├── website.tsx         # Website builder (subdomain/domain config, theme, preview)
     ├── games/index.tsx     # Games calendar + scheduling
     ├── games/$gameId/report.tsx  # Game report editor (lineups, events, suspensions)
     ├── seasons/index.tsx   # Seasons list
@@ -51,7 +52,7 @@ import { trpc } from '@/trpc'
 import { useTranslation } from '~/i18n/use-translation'
 ```
 
-- **Auth**: Better Auth React client → base URL `VITE_API_URL` or `http://localhost:3001`
+- **Auth**: Better Auth React client → base URL `VITE_API_URL` or `http://api.puckhub.localhost`
 - **tRPC**: React Query integration with httpBatchLink, superjson, credentials: 'include'
 - **API endpoint**: `{VITE_API_URL}/api/trpc`
 - **i18n**: `useTranslation()` hook returns `t()` function for current locale

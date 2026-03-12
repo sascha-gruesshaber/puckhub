@@ -22,7 +22,7 @@ WORKDIR /app
 FROM base AS builder
 
 ARG VITE_API_URL=
-ARG PLATFORM_BASE_PATH=/platform
+ARG PLATFORM_BASE_PATH=/
 
 # Copy package manifests first (Docker layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -46,6 +46,7 @@ COPY . .
 # Build frontends with production base/API settings
 RUN VITE_API_URL="${VITE_API_URL}" pnpm --filter @puckhub/admin run build
 RUN VITE_API_URL="${VITE_API_URL}" VITE_BASE_PATH="${PLATFORM_BASE_PATH}" pnpm --filter @puckhub/platform run build
+RUN VITE_API_URL="${VITE_API_URL}" pnpm --filter @puckhub/league-site run build
 
 # Remove caches not needed at runtime
 RUN rm -rf .turbo node_modules/.cache
@@ -78,6 +79,7 @@ COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/package.json ./app
 COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/package.json ./apps/league-site/
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
 COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/dist ./apps/platform/dist
+COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/dist ./apps/league-site/dist
 
 # Shared OCI labels
 ARG BUILD_DATE
@@ -131,7 +133,20 @@ FROM runner-base AS platform-runner
 ENV PORT=3002
 EXPOSE 3002
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3002/platform', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:3002/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 WORKDIR /app/apps/platform
+CMD ["node", "dist/server/server.js"]
+
+# ============================================================================
+# League-site runtime image
+# ============================================================================
+FROM runner-base AS league-site-runner
+
+ENV PORT=3003
+EXPOSE 3003
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3003/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+
+WORKDIR /app/apps/league-site
 CMD ["node", "dist/server/server.js"]

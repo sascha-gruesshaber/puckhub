@@ -145,8 +145,10 @@
       "customDomain": "Custom domain",
       "customDomainPlaceholder": "e.g. allgaeuliga.de",
       "customDomainHint": "Enter your domain without http:// or www.",
-      "subdomain": "Subdomain",
+      "subdomain": "Your Website",
       "subdomainHint": "Your site will be accessible at this subdomain",
+      "subdomainReadonlyHint": "This address is assigned by your platform administrator.",
+      "openSite": "Open website",
       "active": "Website active",
       "activeHint": "Enable or disable the public website"
     },
@@ -1183,6 +1185,7 @@
       "new": "New team",
       "edit": "Edit",
       "delete": "Delete",
+      "history": "History",
       "trikots": "Jerseys",
       "saving": "Saving..."
     },
@@ -1221,6 +1224,7 @@
     "hoverCard": {
       "noContactData": "No contact details available",
       "roster": "Roster",
+      "history": "History",
       "edit": "Edit"
     },
     "dialogs": {
@@ -1288,6 +1292,42 @@
         "assignmentUpdated": "Assignment updated",
         "assignmentRemoved": "Assignment removed"
       }
+    },
+    "history": {
+      "backToTeams": "Back to Teams",
+      "notFoundTitle": "Team not found",
+      "notFoundDescription": "The requested team does not exist or has been deleted.",
+      "allTimeStats": "All-Time Stats",
+      "seasons": "Seasons",
+      "games": "Games",
+      "gamesShort": "GP",
+      "winRate": "Win Rate",
+      "bestFinish": "Best Finish",
+      "goalDifference": "Goal Diff.",
+      "seasonCount": "{{count}} Seasons",
+      "gameCount": "{{count}} Games",
+      "seasonBySeasonTitle": "Season by Season",
+      "noSeasons": "No season data available.",
+      "noSeasonsTitle": "No Season History",
+      "noSeasonsDescription": "This team has not participated in any season yet.",
+      "expand": "Show details",
+      "collapse": "Hide details",
+      "pts": "Pts",
+      "topScorers": "Top Scorers",
+      "bestGoalie": "Best Goalie",
+      "rosterChanges": "Roster Changes",
+      "position": {
+        "forward": "Forward",
+        "defense": "Defense",
+        "goalie": "Goalie"
+      },
+      "chartRankPoints": "Wins & Ranking",
+      "chartWins": "Wins",
+      "chartRank": "Rank",
+      "chartGoals": "Goals",
+      "chartGoalsFor": "Goals For",
+      "chartGoalsAgainst": "Goals Against",
+      "chartGoalDiff": "Goal Difference"
     },
     "toast": {
       "created": "Team created",

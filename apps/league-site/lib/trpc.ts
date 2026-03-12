@@ -9,7 +9,7 @@ export function createTRPCClient(): ReturnType<typeof trpc.createClient> {
   return trpc.createClient({
     links: [
       httpBatchLink({
-        url: `${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}/api/trpc`,
+        url: `${import.meta.env.VITE_API_URL ?? "http://api.puckhub.localhost"}/api/trpc`,
         transformer: superjson,
       }),
     ],

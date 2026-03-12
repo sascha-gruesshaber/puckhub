@@ -117,6 +117,193 @@ export const teamRouter = router({
       }
     }),
 
+  history: orgProcedure.input(z.object({ teamId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    const { teamId } = input
+    const orgId = ctx.organizationId
+
+    const [team, teamDivisions, contracts, allScorers, allGoalies] = await Promise.all([
+      ctx.db.team.findFirst({
+        where: { id: teamId, organizationId: orgId },
+      }),
+      ctx.db.teamDivision.findMany({
+        where: { teamId, organizationId: orgId },
+        include: {
+          division: {
+            include: {
+              season: true,
+              rounds: {
+                include: {
+                  standings: { where: { teamId }, take: 1 },
+                },
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          },
+        },
+      }),
+      ctx.db.contract.findMany({
+        where: { teamId, organizationId: orgId },
+        include: {
+          player: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+          startSeason: true,
+          endSeason: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      ctx.db.playerSeasonStat.findMany({
+        where: { teamId, organizationId: orgId },
+        include: {
+          player: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { totalPoints: "desc" },
+      }),
+      ctx.db.goalieSeasonStat.findMany({
+        where: { teamId, organizationId: orgId },
+        include: {
+          player: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { gaa: "asc" },
+      }),
+    ])
+
+    if (!team) return null
+
+    // Group teamDivisions by season
+    const seasonMap = new Map<
+      string,
+      {
+        season: { id: string; name: string; seasonStart: Date; seasonEnd: Date }
+        divisions: Array<{
+          id: string
+          name: string
+          rounds: Array<{
+            id: string
+            name: string
+            roundType: string
+            standing: {
+              gamesPlayed: number
+              wins: number
+              draws: number
+              losses: number
+              goalsFor: number
+              goalsAgainst: number
+              goalDifference: number
+              points: number
+              totalPoints: number
+              rank: number | null
+            } | null
+          }>
+        }>
+      }
+    >()
+
+    for (const td of teamDivisions) {
+      const s = td.division.season
+      if (!seasonMap.has(s.id)) {
+        seasonMap.set(s.id, {
+          season: { id: s.id, name: s.name, seasonStart: s.seasonStart, seasonEnd: s.seasonEnd },
+          divisions: [],
+        })
+      }
+      seasonMap.get(s.id)!.divisions.push({
+        id: td.division.id,
+        name: td.division.name,
+        rounds: td.division.rounds.map((r) => ({
+          id: r.id,
+          name: r.name,
+          roundType: r.roundType,
+          standing: r.standings[0]
+            ? {
+                gamesPlayed: r.standings[0].gamesPlayed,
+                wins: r.standings[0].wins,
+                draws: r.standings[0].draws,
+                losses: r.standings[0].losses,
+                goalsFor: r.standings[0].goalsFor,
+                goalsAgainst: r.standings[0].goalsAgainst,
+                goalDifference: r.standings[0].goalDifference,
+                points: r.standings[0].points,
+                totalPoints: r.standings[0].totalPoints,
+                rank: r.standings[0].rank,
+              }
+            : null,
+        })),
+      })
+    }
+
+    // Compute totals + best rank per season
+    const seasons = Array.from(seasonMap.values())
+      .map((entry) => {
+        let gp = 0,
+          w = 0,
+          d = 0,
+          l = 0,
+          gf = 0,
+          ga = 0
+        let bestRank: number | null = null
+        let bestRankRoundType: string | null = null
+
+        for (const div of entry.divisions) {
+          for (const round of div.rounds) {
+            if (round.standing) {
+              gp += round.standing.gamesPlayed
+              w += round.standing.wins
+              d += round.standing.draws
+              l += round.standing.losses
+              gf += round.standing.goalsFor
+              ga += round.standing.goalsAgainst
+              if (round.standing.rank != null && (bestRank === null || round.standing.rank < bestRank)) {
+                bestRank = round.standing.rank
+                bestRankRoundType = round.roundType
+              }
+            }
+          }
+        }
+
+        return {
+          ...entry,
+          totals: { gamesPlayed: gp, wins: w, draws: d, losses: l, goalsFor: gf, goalsAgainst: ga, goalDifference: gf - ga },
+          bestRank,
+          bestRankRoundType,
+        }
+      })
+      .sort((a, b) => new Date(b.season.seasonStart).getTime() - new Date(a.season.seasonStart).getTime())
+
+    // Top 3 scorers per season
+    const scorersBySeason = new Map<string, typeof allScorers>()
+    for (const s of allScorers) {
+      const arr = scorersBySeason.get(s.seasonId) ?? []
+      if (arr.length < 3) {
+        arr.push(s)
+        scorersBySeason.set(s.seasonId, arr)
+      }
+    }
+
+    // Best goalie per season (lowest GAA)
+    const goaliesBySeason = new Map<string, (typeof allGoalies)[0]>()
+    for (const g of allGoalies) {
+      if (!goaliesBySeason.has(g.seasonId)) {
+        goaliesBySeason.set(g.seasonId, g)
+      }
+    }
+
+    return {
+      team: {
+        id: team.id,
+        name: team.name,
+        shortName: team.shortName,
+        city: team.city,
+        logoUrl: team.logoUrl,
+        teamPhotoUrl: team.teamPhotoUrl,
+        homeVenue: team.homeVenue,
+        primaryColor: team.primaryColor,
+      },
+      seasons,
+      contracts,
+      topScorers: Array.from(scorersBySeason.values()).flat(),
+      topGoalies: Array.from(goaliesBySeason.values()),
+    }
+  }),
+
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     await ctx.db.team.deleteMany({
       where: { id: input.id, organizationId: ctx.organizationId },

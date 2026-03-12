@@ -112,7 +112,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       formData.append("file", file)
       formData.append("type", "photo")
 
-      const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3001"
+      const apiUrl = import.meta.env.VITE_API_URL ?? "http://api.puckhub.localhost"
       const res = await fetch(`${apiUrl}/api/upload`, {
         method: "POST",
         body: formData,

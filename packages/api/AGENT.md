@@ -40,11 +40,13 @@ src/
 | `*` | `/api/trpc/*` | tRPC handler |
 | `POST` | `/api/upload` | File upload (logo/photo, max 5MB, images only) |
 | `GET` | `/api/uploads/*` | Static file serving |
+| `GET` | `/api/domain-check` | Domain validation for Caddy on-demand TLS (checks `WebsiteConfig`) |
+| `POST` | `/api/webhooks/stripe` | Stripe webhook endpoint (stub) |
 | `GET` | `/api/health` | Health check |
 
-## Routers (25)
+## Routers (29)
 
-`bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `player` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users`
+`bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
 
 ## Procedure Types
 
@@ -100,5 +102,6 @@ export const myRouter = router({
 
 - Better Auth with email/password + passkey + TOTP-based 2FA
 - Session duration: 7 days
-- Trusted origins: `TRUSTED_ORIGINS` env var (comma-separated) or `http://localhost:3000`
+- Cross-subdomain cookies: enabled via `COOKIE_DOMAIN` (defaults to `puckhub.localhost`)
+- Trusted origins: `TRUSTED_ORIGINS` env var (comma-separated) or `http://admin.puckhub.localhost,http://platform.puckhub.localhost`
 - Serialization: superjson transformer
