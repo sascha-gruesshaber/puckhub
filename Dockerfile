@@ -21,9 +21,6 @@ WORKDIR /app
 # ============================================================================
 FROM base AS builder
 
-ARG VITE_API_URL=
-ARG PLATFORM_BASE_PATH=/
-
 # Copy package manifests first (Docker layer caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
@@ -43,10 +40,10 @@ RUN pnpm install --frozen-lockfile
 # Copy source code (.dockerignore excludes node_modules, dist, .output at all depths)
 COPY . .
 
-# Build frontends with production base/API settings
-RUN VITE_API_URL="${VITE_API_URL}" pnpm --filter @puckhub/admin run build
-RUN VITE_API_URL="${VITE_API_URL}" VITE_BASE_PATH="${PLATFORM_BASE_PATH}" pnpm --filter @puckhub/platform run build
-RUN VITE_API_URL="${VITE_API_URL}" pnpm --filter @puckhub/league-site run build
+# Build frontends (API URL and base domain are derived at runtime from hostname)
+RUN pnpm --filter @puckhub/admin run build
+RUN pnpm --filter @puckhub/platform run build
+RUN pnpm --filter @puckhub/league-site run build
 
 # Remove caches not needed at runtime
 RUN rm -rf .turbo node_modules/.cache

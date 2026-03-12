@@ -14,6 +14,7 @@ import {
 import { createFileRoute } from "@tanstack/react-router"
 import { Building2, Check, Copy, CreditCard, Download, ExternalLink, Globe, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
+import { getBaseDomain } from "@/env"
 import { trpc } from "@/trpc"
 
 export const Route = createFileRoute("/_authed/organizations/")({
@@ -115,7 +116,7 @@ function OrganizationsPage() {
 
   const setActiveMutation = trpc.organization.setActiveForAdmin.useMutation({
     onSuccess: () => {
-      window.open("http://admin.puckhub.localhost", "_blank")
+      window.open(`${window.location.protocol}//admin.${getBaseDomain()}`, "_blank")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -398,13 +399,13 @@ function OrganizationsPage() {
                 <div className="flex items-center gap-2 mt-0.5">
                   {org.slug && (
                     <a
-                      href={`http://${org.slug}.${import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}`}
+                      href={`${window.location.protocol}//${org.slug}.${getBaseDomain()}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                     >
                       <Globe className="h-3 w-3" />
-                      {org.slug}.{import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}
+                      {org.slug}.{getBaseDomain()}
                     </a>
                   )}
                 </div>
@@ -504,7 +505,7 @@ function OrganizationsPage() {
               />
               {form.slug && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  URL: <span className="font-mono">{form.slug}.{import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}</span>
+                  URL: <span className="font-mono">{form.slug}.{getBaseDomain()}</span>
                 </p>
               )}
             </FormField>
@@ -761,7 +762,7 @@ function OrganizationsPage() {
               />
               {editForm.slug && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  URL: <span className="font-mono">{editForm.slug}.{import.meta.env.VITE_BASE_DOMAIN || "puckhub.eu"}</span>
+                  URL: <span className="font-mono">{editForm.slug}.{getBaseDomain()}</span>
                 </p>
               )}
             </FormField>

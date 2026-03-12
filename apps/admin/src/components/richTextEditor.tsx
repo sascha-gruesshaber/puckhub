@@ -55,6 +55,7 @@ import {
   Youtube as YoutubeIcon,
 } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
+import { getApiUrl } from "@/env"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -112,7 +113,7 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       formData.append("file", file)
       formData.append("type", "photo")
 
-      const apiUrl = import.meta.env.VITE_API_URL ?? "http://api.puckhub.localhost"
+      const apiUrl = getApiUrl()
       const res = await fetch(`${apiUrl}/api/upload`, {
         method: "POST",
         body: formData,

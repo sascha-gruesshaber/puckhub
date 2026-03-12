@@ -1,6 +1,7 @@
 import { cn } from "@puckhub/ui"
 import { Image, Loader2, X } from "lucide-react"
 import { useCallback, useRef, useState } from "react"
+import { getApiUrl } from "@/env"
 
 interface ImageUploadProps {
   value?: string | null
@@ -23,7 +24,7 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
         formData.append("file", file)
         formData.append("type", type)
 
-        const apiUrl = import.meta.env.VITE_API_URL ?? "http://api.puckhub.localhost"
+        const apiUrl = getApiUrl()
         const res = await fetch(`${apiUrl}/api/upload`, {
           method: "POST",
           body: formData,

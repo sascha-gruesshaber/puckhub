@@ -6,7 +6,7 @@ import { routeTree } from "./routeTree.gen"
 export function getRouter() {
   const router = createRouter({
     routeTree,
-    basepath: import.meta.env.VITE_BASE_PATH ?? "/",
+    basepath: "/",
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadDelay: 100,

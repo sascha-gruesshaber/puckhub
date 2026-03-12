@@ -414,7 +414,9 @@ function WebsitePage() {
     toast.success("Copied!")
   }
 
-  const webUrl = (import.meta.env.VITE_WEB_URL as string) || "http://web.puckhub.localhost"
+  const webUrl = typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname.split(".").map((p, i) => i === 0 ? "web" : p).join(".")}`
+    : "http://web.puckhub.localhost"
   const previewUrl = organization ? `${webUrl}?orgId=${organization.id}` : webUrl
 
   const deviceWidths: Record<DeviceMode, number | "100%"> = {
