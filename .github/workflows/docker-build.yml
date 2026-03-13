@@ -84,6 +84,7 @@ jobs:
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
             VERSION=${{ steps.meta.outputs.version }}
+            BRANCH=${{ github.ref_name }}
 
       - name: Generate image summary
         run: |

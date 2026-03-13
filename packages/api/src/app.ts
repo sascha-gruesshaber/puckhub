@@ -103,5 +103,16 @@ app.get("/api/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() })
 })
 
+// Version info
+app.get("/api/version", (c) => {
+  return c.json({
+    app: "api",
+    version: process.env.APP_VERSION ?? "dev",
+    commit: process.env.APP_COMMIT ?? "unknown",
+    branch: process.env.APP_BRANCH ?? "unknown",
+    buildDate: process.env.APP_BUILD_DATE ?? "unknown",
+  })
+})
+
 export { app }
 export type { AppRouter } from "./trpc"

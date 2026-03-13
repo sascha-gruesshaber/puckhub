@@ -58,10 +58,16 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 puckhub
 
-# Shared OCI labels
+# Build metadata → runtime env vars
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION
+ARG BRANCH
+
+ENV APP_VERSION=${VERSION}
+ENV APP_COMMIT=${VCS_REF}
+ENV APP_BUILD_DATE=${BUILD_DATE}
+ENV APP_BRANCH=${BRANCH}
 
 LABEL org.opencontainers.image.title="PuckHub" \
       org.opencontainers.image.description="Ice hockey league management system" \
