@@ -46,9 +46,31 @@ import { GameStatus, RoundType, OrgRole } from '@puckhub/db'
 import { recalculateStandings, recalculatePlayerStats, recalculateGoalieStats } from '@puckhub/db/services'
 ```
 
-## When Extending Schema
+## When Extending Schema -- CRITICAL
+
+**Every schema change MUST have a corresponding migration. No exceptions.**
+
+Production uses `prisma migrate deploy` which only applies committed migration files.
+If you change the schema without creating a migration, production will break with
+`ColumnNotFound` / `P2022` errors at runtime. This has happened before and caused
+production outages.
+
+### Required workflow
 
 1. Edit `prisma/schema.prisma`.
 2. Run `pnpm db:generate`.
-3. For local evolution use `pnpm db:migrate:create` (preferred for tracked changes).
-4. Commit the generated migration folder under `prisma/migrations/`.
+3. **Immediately** create a migration: `pnpm db:migrate:create` — give it a descriptive name.
+4. Verify the generated SQL in `prisma/migrations/<timestamp>_<name>/migration.sql`.
+5. Commit the migration folder together with the schema change — never one without the other.
+
+### Rules for AI agents
+
+- If you modify `schema.prisma` (add/remove/rename columns, add models, change defaults),
+  you MUST generate or hand-write a migration SQL file before considering the task complete.
+- If generating a migration is not possible (e.g. no local database running), you MUST
+  explicitly warn the user: **"A migration is required for this schema change. Run
+  `pnpm db:migrate:create` before deploying."**
+- Never assume `prisma db push` covers production — it does not. Only committed migration
+  files in `prisma/migrations/` are applied in production.
+- When renaming a column, use `ALTER TABLE ... RENAME COLUMN` instead of drop+add to
+  preserve existing data.

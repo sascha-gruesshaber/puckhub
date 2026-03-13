@@ -114,7 +114,7 @@ jobs:
             ["admin"]="z8uae7wusm0mrwciub1pdlsc"
             ["platform"]="npuggfu15bwbi78fifi9qfot"
             ["league-site"]="gawwisg6og45069vs4iw5l12"
-            ["marketing-site"]="MARKETING_SITE_UUID"
+            ["marketing-site"]="vswoggggksg2libzsuuevfpf"
           )
 
           for app in "${!apps[@]}"; do
@@ -141,4 +141,4 @@ jobs:
           echo "| admin | \`z8uae7wusm0mrwciub1pdlsc\` |" >> $GITHUB_STEP_SUMMARY
           echo "| platform | \`npuggfu15bwbi78fifi9qfot\` |" >> $GITHUB_STEP_SUMMARY
           echo "| league-site | \`gawwisg6og45069vs4iw5l12\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| marketing-site | \`MARKETING_SITE_UUID\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| marketing-site | \`vswoggggksg2libzsuuevfpf\` |" >> $GITHUB_STEP_SUMMARY
