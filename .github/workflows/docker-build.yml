@@ -97,3 +97,42 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  deploy-coolify:
+    runs-on: ubuntu-latest
+    needs: build-images
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    steps:
+      - name: Trigger Coolify Deployments
+        run: |
+          declare -A apps=(
+            ["api"]="gg2jvzuela1o5935uppb0379"
+            ["admin"]="z8uae7wusm0mrwciub1pdlsc"
+            ["platform"]="npuggfu15bwbi78fifi9qfot"
+            ["league-site"]="gawwisg6og45069vs4iw5l12"
+          )
+
+          for app in "${!apps[@]}"; do
+            uuid="${apps[$app]}"
+            echo "Deploying $app (uuid: $uuid)..."
+            response=$(curl -s -w "\n%{http_code}" \
+              -X GET "https://coolify.gruesshaber.eu/api/v1/deploy?uuid=${uuid}&force=false" \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}")
+            http_code=$(echo "$response" | tail -1)
+            body=$(echo "$response" | head -n -1)
+            echo "  Response ($http_code): $body"
+            if [ "$http_code" -ge 400 ]; then
+              echo "::warning::Failed to trigger deployment for $app (HTTP $http_code)"
+            fi
+          done
+
+      - name: Deployment summary
+        run: |
+          echo "## Coolify Deployments Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| App | UUID |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| api | \`gg2jvzuela1o5935uppb0379\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| admin | \`z8uae7wusm0mrwciub1pdlsc\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| platform | \`npuggfu15bwbi78fifi9qfot\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| league-site | \`gawwisg6og45069vs4iw5l12\` |" >> $GITHUB_STEP_SUMMARY
