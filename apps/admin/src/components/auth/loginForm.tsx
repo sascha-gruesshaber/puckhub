@@ -9,9 +9,10 @@ interface LoginFormProps {
   onError: (msg: string) => void
   prefillEmail?: string
   prefillPassword?: string
+  redirect?: string
 }
 
-function LoginForm({ onError, prefillEmail, prefillPassword }: LoginFormProps) {
+function LoginForm({ onError, prefillEmail, prefillPassword, redirect }: LoginFormProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const navigate = useNavigate()
@@ -28,6 +29,8 @@ function LoginForm({ onError, prefillEmail, prefillPassword }: LoginFormProps) {
       const result = await signIn.email({ email, password })
       if (result.error) {
         onError(result.error.message ?? tErrors("AUTH_NOT_AUTHENTICATED"))
+      } else if (redirect) {
+        window.location.href = redirect
       } else {
         navigate({ to: "/" })
       }

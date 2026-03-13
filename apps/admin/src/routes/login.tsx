@@ -10,6 +10,7 @@ export interface LoginSearch {
   mode?: "2fa"
   email?: string
   password?: string
+  redirect?: string
 }
 
 export const Route = createFileRoute("/login")({
@@ -18,12 +19,13 @@ export const Route = createFileRoute("/login")({
     mode: search.mode === "2fa" ? "2fa" : undefined,
     email: typeof search.email === "string" ? search.email : undefined,
     password: typeof search.password === "string" ? search.password : undefined,
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
 })
 
 function LoginPage() {
   const { t } = useTranslation("common")
-  const { mode, email: prefillEmail, password: prefillPassword } = Route.useSearch()
+  const { mode, email: prefillEmail, password: prefillPassword, redirect } = Route.useSearch()
   const [error, setError] = useState("")
 
   // 2FA verification mode
@@ -52,7 +54,7 @@ function LoginPage() {
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
           {/* Password login */}
-          <LoginForm onError={setError} prefillEmail={prefillEmail} prefillPassword={prefillPassword} />
+          <LoginForm onError={setError} prefillEmail={prefillEmail} prefillPassword={prefillPassword} redirect={redirect} />
 
           {/* Divider */}
           <div className="relative">

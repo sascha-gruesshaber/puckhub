@@ -1,8 +1,9 @@
+import { Button } from "@puckhub/ui"
 import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
-import { Building2, Clock, CreditCard, LayoutDashboard, Users } from "lucide-react"
+import { Building2, Clock, CreditCard, LayoutDashboard, LogOut, Users } from "lucide-react"
 import { Suspense } from "react"
 import { TopBar } from "~/components/topBar"
-import { useSession } from "@/auth-client"
+import { signOut, useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 
 export const Route = createFileRoute("/_authed")({
@@ -41,6 +42,14 @@ function AuthedLayout() {
   // Check platform admin role
   const userRole = (session.user as any)?.role
   if (userRole !== "admin") {
+    const handleSignOut = async () => {
+      await signOut()
+      // Redirect to admin login after sign-out
+      const parts = window.location.hostname.split(".")
+      parts[0] = "admin"
+      window.location.href = `${window.location.protocol}//${parts.join(".")}/login`
+    }
+
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "#f8fafc" }}>
         <div className="max-w-sm text-center">
@@ -48,6 +57,13 @@ function AuthedLayout() {
           <p className="mt-2 text-sm text-muted-foreground">
             You need a platform admin role to access this application.
           </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Signed in as <strong>{session.user.email}</strong>
+          </p>
+          <Button variant="outline" className="mt-4" onClick={handleSignOut}>
+            <LogOut size={16} className="mr-2" />
+            Sign out
+          </Button>
         </div>
       </div>
     )
