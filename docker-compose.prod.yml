@@ -62,7 +62,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-puckhub}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-puckhub}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_URL: ${AUTH_URL:-http://localhost}
-      API_PORT: 3001
+      API_PORT: 3000
       AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
       UPLOAD_DIR: /app/uploads
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-https://admin.puckhub.eu,https://platform.puckhub.eu}
@@ -78,7 +78,7 @@ services:
     networks:
       - puckhub
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -112,11 +112,11 @@ services:
       - api
     environment:
       NODE_ENV: production
-      PORT: 3002
+      PORT: 3000
     networks:
       - puckhub
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3002/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -131,11 +131,11 @@ services:
       - api
     environment:
       NODE_ENV: production
-      PORT: 3003
+      PORT: 3000
     networks:
       - puckhub
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3003/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3

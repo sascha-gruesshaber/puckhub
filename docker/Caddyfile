@@ -1,6 +1,6 @@
 {
   on_demand_tls {
-    ask http://api:3001/api/domain-check
+    ask http://api:3000/api/domain-check
   }
 }
 
@@ -13,19 +13,19 @@
 
 # API
 api.{$BASE_DOMAIN} {
-  reverse_proxy api:3001
+  reverse_proxy api:3000
 }
 
 # Admin (proxy /api/uploads to API so image URLs work cross-subdomain)
 admin.{$BASE_DOMAIN} {
   @uploads path /api/uploads/*
-  reverse_proxy @uploads api:3001
+  reverse_proxy @uploads api:3000
   reverse_proxy admin:3000
 }
 
 # Platform
 platform.{$BASE_DOMAIN} {
-  reverse_proxy platform:3002
+  reverse_proxy platform:3000
 }
 
 # Wildcard catch-all → league-site
@@ -34,6 +34,6 @@ platform.{$BASE_DOMAIN} {
     on_demand
   }
   @uploads path /api/uploads/*
-  reverse_proxy @uploads api:3001
-  reverse_proxy league-site:3003
+  reverse_proxy @uploads api:3000
+  reverse_proxy league-site:3000
 }

@@ -1,0 +1,184 @@
+# PuckHub Coolify Deployment (Docker Compose + Traefik)
+# Copyright (c) 2025 Sascha Grüßhaber
+#
+# Deploy via Coolify as a Docker Compose resource.
+# PostgreSQL is managed by Coolify separately — set DATABASE_URL in Coolify UI.
+# Traefik is Coolify's built-in reverse proxy — no ports or networks needed.
+#
+# Phase 1: Static subdomains only (HTTP-01 certs, no DNS-01 config needed)
+# Phase 2: Enable league-site wildcard routing (requires DNS-01 + Netcup config)
+#
+# Required Coolify env vars (set in UI):
+#   DATABASE_URL, AUTH_SECRET, AUTH_URL, BASE_DOMAIN, COOKIE_DOMAIN,
+#   SUBDOMAIN_SUFFIX, BETTER_AUTH_BASE_URL, TRUSTED_ORIGINS,
+#   PASSKEY_RP_ID, PASSKEY_ORIGIN, CNAME_TARGET,
+#   DEFAULT_USER_EMAIL, DEFAULT_USER_PASSWORD, AUTO_MIGRATE
+
+services:
+  # ── API Server (Hono + tRPC + Better Auth) ──────────────────────
+  api:
+    image: ghcr.io/sascha-gruesshaber/puckhub-api:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+      UPLOAD_DIR: /app/uploads
+      DATABASE_URL: ${DATABASE_URL}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL}
+      AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
+      TRUSTED_ORIGINS: ${TRUSTED_ORIGINS}
+      CNAME_TARGET: ${CNAME_TARGET}
+      SUBDOMAIN_SUFFIX: ${SUBDOMAIN_SUFFIX}
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN}
+      BETTER_AUTH_BASE_URL: ${BETTER_AUTH_BASE_URL}
+      PASSKEY_RP_ID: ${PASSKEY_RP_ID}
+      PASSKEY_ORIGIN: ${PASSKEY_ORIGIN}
+      DEFAULT_USER_EMAIL: ${DEFAULT_USER_EMAIL:-}
+      DEFAULT_USER_PASSWORD: ${DEFAULT_USER_PASSWORD:-}
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - coolify
+      - default
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      # ── API router: api.puckhub.gruesshaber.eu ──
+      - traefik.enable=true
+      - traefik.http.routers.puckhub-api.rule=Host(`api.puckhub.gruesshaber.eu`)
+      - traefik.http.routers.puckhub-api.entrypoints=https
+      - traefik.http.routers.puckhub-api.tls=true
+      - traefik.http.routers.puckhub-api.tls.certresolver=letsencrypt
+      - traefik.http.routers.puckhub-api.service=puckhub-api-svc
+      - traefik.http.services.puckhub-api-svc.loadbalancer.server.port=3000
+      # ── Admin upload proxy: admin subdomain /api/uploads/* → API ──
+      - traefik.http.routers.puckhub-admin-uploads.rule=Host(`admin.puckhub.gruesshaber.eu`) && PathPrefix(`/api/uploads`)
+      - traefik.http.routers.puckhub-admin-uploads.entrypoints=https
+      - traefik.http.routers.puckhub-admin-uploads.tls=true
+      - traefik.http.routers.puckhub-admin-uploads.tls.certresolver=letsencrypt
+      - traefik.http.routers.puckhub-admin-uploads.priority=100
+      - traefik.http.routers.puckhub-admin-uploads.service=puckhub-api-svc
+      ## ── Phase 2: League upload proxy (uncomment when DNS-01 is configured) ──
+      # - "traefik.http.routers.puckhub-league-uploads.rule=HostRegexp(`^.+\\.puckhub\\.gruesshaber\\.eu$$`) && PathPrefix(`/api/uploads`)"
+      # - traefik.http.routers.puckhub-league-uploads.entrypoints=https
+      # - traefik.http.routers.puckhub-league-uploads.tls=true
+      # - traefik.http.routers.puckhub-league-uploads.tls.certresolver=letsencrypt-dns
+      # - traefik.http.routers.puckhub-league-uploads.tls.domains[0].main=puckhub.gruesshaber.eu
+      # - traefik.http.routers.puckhub-league-uploads.tls.domains[0].sans=*.puckhub.gruesshaber.eu
+      # - traefik.http.routers.puckhub-league-uploads.priority=90
+      # - traefik.http.routers.puckhub-league-uploads.service=puckhub-api-svc
+
+  # ── Admin UI (TanStack Start) ───────────────────────────────────
+  admin:
+    image: ghcr.io/sascha-gruesshaber/puckhub-admin:latest
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      VITE_API_URL: http://api:3000
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.puckhub-admin.rule=Host(`admin.puckhub.gruesshaber.eu`)
+      - traefik.http.routers.puckhub-admin.entrypoints=https
+      - traefik.http.routers.puckhub-admin.tls=true
+      - traefik.http.routers.puckhub-admin.tls.certresolver=letsencrypt
+      - traefik.http.routers.puckhub-admin.priority=50
+      - traefik.http.routers.puckhub-admin.service=puckhub-admin-svc
+      - traefik.http.services.puckhub-admin-svc.loadbalancer.server.port=3000
+
+  # ── Platform UI (TanStack Start) ────────────────────────────────
+  platform:
+    image: ghcr.io/sascha-gruesshaber/puckhub-platform:latest
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      VITE_API_URL: http://api:3000
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.puckhub-platform.rule=Host(`platform.puckhub.gruesshaber.eu`)
+      - traefik.http.routers.puckhub-platform.entrypoints=https
+      - traefik.http.routers.puckhub-platform.tls=true
+      - traefik.http.routers.puckhub-platform.tls.certresolver=letsencrypt
+      - traefik.http.routers.puckhub-platform.service=puckhub-platform-svc
+      - traefik.http.services.puckhub-platform-svc.loadbalancer.server.port=3000
+    networks:
+      - coolify
+      - default
+
+  ## ── Phase 2: League Site (uncomment when DNS-01 is configured) ──
+  # league-site:
+  #   image: ghcr.io/sascha-gruesshaber/puckhub-league-site:latest
+  #   restart: unless-stopped
+  #   depends_on:
+  #     api:
+  #       condition: service_healthy
+  #   environment:
+  #     NODE_ENV: production
+  #     PORT: 3000
+  #     VITE_API_URL: http://api:3000
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   labels:
+  #     - traefik.enable=true
+  #     - "traefik.http.routers.puckhub-league.rule=HostRegexp(`^.+\\.puckhub\\.gruesshaber\\.eu$$`)"
+  #     - traefik.http.routers.puckhub-league.entrypoints=https
+  #     - traefik.http.routers.puckhub-league.tls=true
+  #     - traefik.http.routers.puckhub-league.tls.certresolver=letsencrypt-dns
+  #     - traefik.http.routers.puckhub-league.tls.domains[0].main=puckhub.gruesshaber.eu
+  #     - traefik.http.routers.puckhub-league.tls.domains[0].sans=*.puckhub.gruesshaber.eu
+  #     - traefik.http.routers.puckhub-league.priority=10
+  #     - traefik.http.routers.puckhub-league.service=puckhub-league-svc
+  #     - traefik.http.services.puckhub-league-svc.loadbalancer.server.port=3000
+
+  # ── Landing Page (static placeholder) ───────────────────────────
+  landing:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - ./docker/www:/usr/share/nginx/html:ro
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.puckhub-landing.rule=Host(`puckhub.gruesshaber.eu`) || Host(`www.puckhub.gruesshaber.eu`)"
+      - traefik.http.routers.puckhub-landing.entrypoints=https
+      - traefik.http.routers.puckhub-landing.tls=true
+      - traefik.http.routers.puckhub-landing.tls.certresolver=letsencrypt
+      - traefik.http.routers.puckhub-landing.priority=110
+      - traefik.http.routers.puckhub-landing.service=puckhub-landing-svc
+      - traefik.http.services.puckhub-landing-svc.loadbalancer.server.port=80
+
+volumes:
+  uploads:
+    driver: local
+
+networks:
+  coolify:
+    external: true

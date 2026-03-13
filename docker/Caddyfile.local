@@ -1,0 +1,26 @@
+# Caddyfile for local Docker testing (all services in containers)
+# Same subdomain routing as production, but HTTP-only on puckhub.localhost
+
+{
+	auto_https off
+}
+
+http://api.puckhub.localhost {
+	reverse_proxy api:3000
+}
+
+http://admin.puckhub.localhost {
+	@uploads path /api/uploads/*
+	reverse_proxy @uploads api:3000
+	reverse_proxy admin:3000
+}
+
+http://platform.puckhub.localhost {
+	reverse_proxy platform:3000
+}
+
+http://*.puckhub.localhost {
+	@uploads path /api/uploads/*
+	reverse_proxy @uploads api:3000
+	reverse_proxy league-site:3000
+}

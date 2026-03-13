@@ -1,0 +1,146 @@
+# PuckHub - Local Docker Testing
+# Tests production images locally before pushing to registry.
+#
+# Prerequisites: scripts/docker-build.sh
+# Usage:        scripts/docker-test.sh [--keep]
+# Manual:       docker compose -f docker-compose.local.yml up -d
+#
+# Access (requires *.puckhub.localhost DNS — see dev setup):
+#   Admin:    http://admin.puckhub.localhost
+#   API:      http://api.puckhub.localhost/api/health
+#   Platform: http://platform.puckhub.localhost
+
+services:
+  # ── Reverse Proxy (HTTP-only, same routing as production) ─────
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/Caddyfile.local:/etc/caddy/Caddyfile:ro
+    depends_on:
+      api:
+        condition: service_healthy
+      admin:
+        condition: service_healthy
+      platform:
+        condition: service_healthy
+    networks:
+      - puckhub
+
+  # ── Database ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: puckhub
+      POSTGRES_USER: puckhub
+      POSTGRES_PASSWORD: puckhub_local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puckhub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata_local:/var/lib/postgresql/data
+    networks:
+      - puckhub
+
+  # ── API Server ────────────────────────────────────────────────
+  api:
+    image: puckhub-api:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: "3000"
+      UPLOAD_DIR: /app/uploads
+      DATABASE_URL: postgresql://puckhub:puckhub_local@postgres:5432/puckhub
+      AUTH_SECRET: local-test-secret-not-for-production
+      AUTH_URL: http://api.puckhub.localhost
+      AUTO_MIGRATE: "true"
+      TRUSTED_ORIGINS: http://admin.puckhub.localhost,http://platform.puckhub.localhost,http://api.puckhub.localhost
+      CNAME_TARGET: sites.puckhub.localhost
+      SUBDOMAIN_SUFFIX: .puckhub.localhost
+      BASE_DOMAIN: puckhub.localhost
+      COOKIE_DOMAIN: .puckhub.localhost
+      BETTER_AUTH_BASE_URL: http://api.puckhub.localhost
+      PASSKEY_RP_ID: puckhub.localhost
+      PASSKEY_ORIGIN: http://admin.puckhub.localhost
+      DEFAULT_USER_EMAIL: ${DEFAULT_USER_EMAIL:-admin@puckhub.local}
+      DEFAULT_USER_PASSWORD: ${DEFAULT_USER_PASSWORD:-admin123}
+    volumes:
+      - uploads_local:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', r => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - puckhub
+
+  # ── Admin UI ──────────────────────────────────────────────────
+  admin:
+    image: puckhub-admin:local
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      VITE_API_URL: http://api:3000
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', r => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - puckhub
+
+  # ── Platform UI ───────────────────────────────────────────────
+  platform:
+    image: puckhub-platform:local
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      VITE_API_URL: http://api:3000
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', r => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - puckhub
+
+  # ── League Site ───────────────────────────────────────────────
+  league-site:
+    image: puckhub-league-site:local
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      VITE_API_URL: http://api:3000
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', r => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - puckhub
+
+volumes:
+  pgdata_local:
+  uploads_local:
+
+networks:
+  puckhub:
+    driver: bridge

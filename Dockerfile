@@ -71,12 +71,10 @@ COPY --from=builder --chown=puckhub:nodejs /app/pnpm-lock.yaml ./
 COPY --from=builder --chown=puckhub:nodejs /app/pnpm-workspace.yaml ./
 COPY --from=builder --chown=puckhub:nodejs /app/tsconfig.base.json ./
 COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/package.json ./apps/admin/
-COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/package.json ./apps/platform/
-COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/package.json ./apps/league-site/
-COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/dist ./apps/admin/dist
-COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/dist ./apps/platform/dist
-COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/dist ./apps/league-site/dist
+# Nitro bundles a standalone server into .output/ (no node_modules needed at runtime)
+COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
+COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/.output ./apps/platform/.output
+COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/.output ./apps/league-site/.output
 
 # Shared OCI labels
 ARG BUILD_DATE
@@ -97,14 +95,16 @@ LABEL org.opencontainers.image.title="PuckHub" \
 # Switch to non-root user
 USER puckhub
 
+# All services expose port 3000 — reverse proxy handles external routing
 # ============================================================================
 # API runtime image
 # ============================================================================
 FROM runner-base AS api-runner
 
-EXPOSE 3001
+ENV API_PORT=3000
+EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 WORKDIR /app/packages/api
 CMD ["node", "--import", "tsx", "src/index.ts"]
@@ -120,30 +120,30 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 WORKDIR /app/apps/admin
-CMD ["node", "dist/server/server.js"]
+CMD ["node", ".output/server/index.mjs"]
 
 # ============================================================================
 # Platform runtime image
 # ============================================================================
 FROM runner-base AS platform-runner
 
-ENV PORT=3002
-EXPOSE 3002
+ENV PORT=3000
+EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3002/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 WORKDIR /app/apps/platform
-CMD ["node", "dist/server/server.js"]
+CMD ["node", ".output/server/index.mjs"]
 
 # ============================================================================
 # League-site runtime image
 # ============================================================================
 FROM runner-base AS league-site-runner
 
-ENV PORT=3003
-EXPOSE 3003
+ENV PORT=3000
+EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3003/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 WORKDIR /app/apps/league-site
-CMD ["node", "dist/server/server.js"]
+CMD ["node", ".output/server/index.mjs"]
