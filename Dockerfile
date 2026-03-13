@@ -3,8 +3,8 @@
 # Licensed under Custom Source-Available License
 
 # Build arguments
-ARG NODE_VERSION=20
-ARG PNPM_VERSION=10.28.2
+ARG NODE_VERSION=24
+ARG PNPM_VERSION=10.32.1
 
 # ============================================================================
 # Base stage with Node.js and pnpm
