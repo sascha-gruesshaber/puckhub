@@ -49,32 +49,14 @@ RUN pnpm --filter @puckhub/league-site run build
 RUN rm -rf .turbo node_modules/.cache
 
 # ============================================================================
-# Runtime base stage shared by API/Admin/Platform runners
+# Shared runtime base (Node.js + non-root user, no app files)
 # ============================================================================
-FROM base AS runner-base
+FROM node:${NODE_VERSION}-alpine AS runner-base
 
-# Set production environment
 ENV NODE_ENV=production
 
-# Add non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 puckhub
-
-# Create necessary directories
-RUN mkdir -p /app/uploads && \
-    chown -R puckhub:nodejs /app
-
-# Copy workspace runtime files
-COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=puckhub:nodejs /app/package.json ./
-COPY --from=builder --chown=puckhub:nodejs /app/pnpm-lock.yaml ./
-COPY --from=builder --chown=puckhub:nodejs /app/pnpm-workspace.yaml ./
-COPY --from=builder --chown=puckhub:nodejs /app/tsconfig.base.json ./
-COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
-# Nitro bundles a standalone server into .output/ (no node_modules needed at runtime)
-COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
-COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/.output ./apps/platform/.output
-COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/.output ./apps/league-site/.output
 
 # Shared OCI labels
 ARG BUILD_DATE
@@ -92,17 +74,26 @@ LABEL org.opencontainers.image.title="PuckHub" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.documentation="https://github.com/sascha-gruesshaber/puckhub#readme"
 
-# Switch to non-root user
-USER puckhub
-
 # All services expose port 3000 — reverse proxy handles external routing
+EXPOSE 3000
+
 # ============================================================================
-# API runtime image
+# API runtime image (needs node_modules + packages for tsx runtime)
 # ============================================================================
 FROM runner-base AS api-runner
 
+RUN mkdir -p /app/uploads && chown -R puckhub:nodejs /app
+WORKDIR /app
+
+COPY --from=builder --chown=puckhub:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=puckhub:nodejs /app/package.json ./
+COPY --from=builder --chown=puckhub:nodejs /app/pnpm-lock.yaml ./
+COPY --from=builder --chown=puckhub:nodejs /app/pnpm-workspace.yaml ./
+COPY --from=builder --chown=puckhub:nodejs /app/tsconfig.base.json ./
+COPY --from=builder --chown=puckhub:nodejs /app/packages ./packages
+
+USER puckhub
 ENV API_PORT=3000
-EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(1))"
 
@@ -110,12 +101,15 @@ WORKDIR /app/packages/api
 CMD ["node", "--import", "tsx", "src/index.ts"]
 
 # ============================================================================
-# Admin runtime image
+# Admin runtime image (Nitro standalone bundle — no node_modules needed)
 # ============================================================================
 FROM runner-base AS admin-runner
 
+WORKDIR /app
+COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
+
+USER puckhub
 ENV PORT=3000
-EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
@@ -123,12 +117,15 @@ WORKDIR /app/apps/admin
 CMD ["node", ".output/server/index.mjs"]
 
 # ============================================================================
-# Platform runtime image
+# Platform runtime image (Nitro standalone bundle — no node_modules needed)
 # ============================================================================
 FROM runner-base AS platform-runner
 
+WORKDIR /app
+COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/.output ./apps/platform/.output
+
+USER puckhub
 ENV PORT=3000
-EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
@@ -136,12 +133,15 @@ WORKDIR /app/apps/platform
 CMD ["node", ".output/server/index.mjs"]
 
 # ============================================================================
-# League-site runtime image
+# League-site runtime image (Nitro standalone bundle — no node_modules needed)
 # ============================================================================
 FROM runner-base AS league-site-runner
 
+WORKDIR /app
+COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/.output ./apps/league-site/.output
+
+USER puckhub
 ENV PORT=3000
-EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
