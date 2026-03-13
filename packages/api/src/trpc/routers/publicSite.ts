@@ -5,21 +5,28 @@ import { getEligibleGameIds } from "./_helpers"
 export const publicSiteRouter = router({
   resolveByDomain: publicProcedure.input(z.object({ domain: z.string() })).query(async ({ ctx, input }) => {
     const suffix = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
-    const orClauses: { domain?: string; subdomain?: string }[] = [{ domain: input.domain }, { subdomain: input.domain }]
-    if (input.domain.endsWith(suffix)) {
-      const prefix = input.domain.slice(0, -suffix.length)
-      if (prefix) orClauses.push({ subdomain: prefix })
+
+    // Try to match by custom domain on websiteConfig
+    let config = await ctx.db.websiteConfig.findFirst({
+      where: { isActive: true, domain: input.domain },
+      include: { organization: { select: { id: true, name: true, slug: true, logo: true } } },
+    })
+
+    // Try to match by organization slug (subdomain prefix)
+    if (!config) {
+      // Extract slug from subdomain: "demo-league.puckhub.gruesshaber.eu" → "demo-league"
+      let slug: string | null = null
+      if (input.domain.endsWith(suffix)) {
+        slug = input.domain.slice(0, -suffix.length) || null
+      }
+      if (slug) {
+        config = await ctx.db.websiteConfig.findFirst({
+          where: { isActive: true, organization: { slug } },
+          include: { organization: { select: { id: true, name: true, slug: true, logo: true } } },
+        })
+      }
     }
 
-    const config = await ctx.db.websiteConfig.findFirst({
-      where: {
-        isActive: true,
-        OR: orClauses,
-      },
-      include: {
-        organization: { select: { id: true, name: true, logo: true } },
-      },
-    })
     if (!config) return null
 
     const [settings, subscription] = await Promise.all([
@@ -36,14 +43,16 @@ export const publicSiteRouter = router({
       advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
     }
 
-    return { config, settings, organization: config.organization, features }
+    // Expose org slug as subdomain on config for backward compat
+    const configWithSubdomain = { ...config, subdomain: config.organization.slug }
+    return { config: configWithSubdomain, settings, organization: config.organization, features }
   }),
 
   getConfig: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
     const config = await ctx.db.websiteConfig.findUnique({
       where: { organizationId: input.organizationId },
       include: {
-        organization: { select: { id: true, name: true, logo: true } },
+        organization: { select: { id: true, name: true, slug: true, logo: true } },
       },
     })
     if (!config) return null
@@ -62,7 +71,8 @@ export const publicSiteRouter = router({
       advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
     }
 
-    return { config, settings, organization: config.organization, features }
+    const configWithSubdomain = { ...config, subdomain: config.organization.slug }
+    return { config: configWithSubdomain, settings, organization: config.organization, features }
   }),
 
   getCurrentSeason: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {

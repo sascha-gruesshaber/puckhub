@@ -79,17 +79,21 @@ app.get("/api/domain-check", async (c) => {
   const knownHosts = [baseDomain, `www.${baseDomain}`, `admin.${baseDomain}`, `platform.${baseDomain}`, `api.${baseDomain}`]
   if (knownHosts.includes(domain)) return c.text("ok", 200)
 
-  // Check if it matches an active websiteConfig (by custom domain or subdomain prefix)
-  const orClauses: { domain?: string; subdomain?: string }[] = [{ domain }]
-  if (domain.endsWith(suffix)) {
-    const prefix = domain.slice(0, -suffix.length)
-    if (prefix) orClauses.push({ subdomain: prefix })
-  }
-
-  const config = await db.websiteConfig.findFirst({
-    where: { isActive: true, OR: orClauses },
+  // Check if it matches an active websiteConfig (by custom domain or org slug)
+  let config = await db.websiteConfig.findFirst({
+    where: { isActive: true, domain },
     select: { id: true },
   })
+
+  if (!config && domain.endsWith(suffix)) {
+    const slug = domain.slice(0, -suffix.length)
+    if (slug) {
+      config = await db.websiteConfig.findFirst({
+        where: { isActive: true, organization: { slug } },
+        select: { id: true },
+      })
+    }
+  }
 
   return config ? c.text("ok", 200) : c.text("not found", 404)
 })

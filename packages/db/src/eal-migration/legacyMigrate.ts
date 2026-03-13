@@ -359,11 +359,10 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     },
   })
 
-  // Create website config so the league-site can resolve by subdomain
+  // Create website config (subdomain derived from organization.slug)
   await db.websiteConfig.create({
     data: {
       organizationId: ORG_ID,
-      subdomain: ORG_ID,
       isActive: true,
       templatePreset: 'classic',
     },

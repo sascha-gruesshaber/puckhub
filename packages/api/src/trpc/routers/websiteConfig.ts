@@ -27,19 +27,16 @@ export const websiteConfigRouter = router({
   get: orgProcedure.query(async ({ ctx }) => {
     const row = await ctx.db.websiteConfig.findUnique({
       where: { organizationId: ctx.organizationId },
+      include: { organization: { select: { slug: true } } },
     })
-    return row ?? null
+    if (!row) return null
+    return { ...row, subdomain: row.organization.slug }
   }),
 
   update: orgAdminProcedure
     .input(
       z.object({
         domain: z
-          .string()
-          .transform((v) => v.trim().toLowerCase() || null)
-          .nullable()
-          .optional(),
-        subdomain: z
           .string()
           .transform((v) => v.trim().toLowerCase() || null)
           .nullable()
@@ -67,9 +64,6 @@ export const websiteConfigRouter = router({
       const data: Record<string, unknown> = { ...input }
       if (typeof input.domain === "string") {
         data.domain = cleanDomain(input.domain) || null
-      }
-      if (typeof input.subdomain === "string") {
-        data.subdomain = cleanDomain(input.subdomain) || null
       }
 
       const existing = await ctx.db.websiteConfig.findUnique({

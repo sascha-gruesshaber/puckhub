@@ -195,7 +195,8 @@
       "savedNote": "Die Vorschau zeigt den gespeicherten Stand. Speichere deine Änderungen, um Aktualisierungen zu sehen.",
       "desktop": "Desktop",
       "tablet": "Tablet",
-      "mobile": "Mobil"
+      "mobile": "Mobil",
+      "noSubdomain": "Konfiguriere zuerst eine Subdomain, um die Vorschau zu aktivieren"
     },
     "images": {
       "title": "Bilder",

@@ -267,7 +267,7 @@ function OrganizationsPage() {
   function validateEdit(): boolean {
     const next: Partial<Record<keyof EditForm, string>> = {}
     if (!editForm.name.trim()) next.name = "Name is required"
-    if (!editForm.slug.trim()) next.slug = "Slug is required"
+    if (!editForm.slug.trim()) next.slug = "Subdomain is required"
     else if (!/^[a-z0-9-]+$/.test(editForm.slug)) next.slug = "Only lowercase letters, numbers and hyphens"
     setEditErrors(next)
     return Object.keys(next).length === 0
@@ -497,7 +497,7 @@ function OrganizationsPage() {
               />
             </FormField>
 
-            <FormField label="Slug">
+            <FormField label="Subdomain">
               <Input
                 value={form.slug}
                 onChange={(e) => setField("slug", e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
@@ -752,7 +752,7 @@ function OrganizationsPage() {
               />
             </FormField>
 
-            <FormField label="Slug" error={editErrors.slug} required>
+            <FormField label="Subdomain" error={editErrors.slug} required>
               <Input
                 value={editForm.slug}
                 onChange={(e) => {

@@ -870,7 +870,6 @@ model WebsiteConfig {
   id             String   @id @default(uuid()) @db.Uuid
   organizationId String   @unique @map("organization_id")
   domain         String?  @unique
-  subdomain      String?  @unique
   isActive       Boolean  @default(false) @map("is_active")
   logoUrl        String?  @map("logo_url")
   faviconUrl     String?  @map("favicon_url")

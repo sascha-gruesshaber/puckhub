@@ -414,10 +414,9 @@ function WebsitePage() {
     toast.success("Copied!")
   }
 
-  const webUrl = typeof window !== "undefined"
-    ? `${window.location.protocol}//${window.location.hostname.split(".").map((p, i) => i === 0 ? "web" : p).join(".")}`
-    : "http://web.puckhub.localhost"
-  const previewUrl = organization ? `${webUrl}?orgId=${organization.id}` : webUrl
+  const previewUrl = config?.subdomain && organization
+    ? `${typeof window !== "undefined" ? window.location.protocol : "https:"}//${config.subdomain}${dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}?orgId=${organization.id}`
+    : null
 
   const deviceWidths: Record<DeviceMode, number | "100%"> = {
     desktop: "100%",
@@ -455,6 +454,8 @@ function WebsitePage() {
             type="button"
             variant={showPreview ? "default" : "outline"}
             onClick={() => setShowPreview(!showPreview)}
+            disabled={!previewUrl}
+            title={!previewUrl ? t("website.preview.noSubdomain") : undefined}
           >
             <Eye className="w-4 h-4 mr-2" />
             {showPreview ? t("website.preview.close") : t("website.preview.open")}
@@ -463,7 +464,7 @@ function WebsitePage() {
       />
 
       {/* Preview Panel */}
-      {showPreview && (
+      {showPreview && previewUrl && (
         <Card>
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">

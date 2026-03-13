@@ -195,7 +195,8 @@
       "savedNote": "Preview shows the saved state. Save your changes first to see updates.",
       "desktop": "Desktop",
       "tablet": "Tablet",
-      "mobile": "Mobile"
+      "mobile": "Mobile",
+      "noSubdomain": "Configure a subdomain first to enable the preview"
     },
     "images": {
       "title": "Images",

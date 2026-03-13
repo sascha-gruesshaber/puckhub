@@ -223,11 +223,10 @@ export const organizationRouter = router({
           },
         })
 
-        // Create website config with subdomain = org slug
+        // Create website config (subdomain derived from organization.slug)
         await tx.websiteConfig.create({
           data: {
             organizationId: orgId,
-            subdomain: orgSlug,
             isActive: true,
             templatePreset: "classic",
           },
@@ -294,12 +293,18 @@ export const organizationRouter = router({
         if (existing) throw createAppError("CONFLICT", APP_ERROR_CODES.ORG_SLUG_CONFLICT)
       }
 
-      // If slug changed, also update the websiteConfig subdomain
+      // Ensure websiteConfig exists when slug changes (subdomain is derived from org.slug)
       if (input.slug && input.slug !== org.slug) {
-        await ctx.db.websiteConfig.updateMany({
-          where: { organizationId: input.id },
-          data: { subdomain: input.slug },
-        })
+        const existing = await ctx.db.websiteConfig.findUnique({ where: { organizationId: input.id } })
+        if (!existing) {
+          await ctx.db.websiteConfig.create({
+            data: {
+              organizationId: input.id,
+              isActive: true,
+              templatePreset: "classic",
+            },
+          })
+        }
       }
 
       return ctx.db.organization.update({

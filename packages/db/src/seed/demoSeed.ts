@@ -674,6 +674,20 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     })
   }
 
+  // ── 1e. Website config (subdomain derived from organization.slug) ────
+  console.log("[demo-seed] Creating website config...")
+  await db.websiteConfig.upsert({
+    where: { organizationId: DEMO_ORG_ID },
+    create: {
+      organizationId: DEMO_ORG_ID,
+      isActive: true,
+      templatePreset: "classic",
+    },
+    update: {
+      isActive: true,
+    },
+  })
+
   // ── 2. Reference data ────────────────────────────────────────────────
   console.log("[demo-seed] Ensuring penalty types exist...")
   await db.penaltyType.createMany({ data: PENALTY_TYPES, skipDuplicates: true })
