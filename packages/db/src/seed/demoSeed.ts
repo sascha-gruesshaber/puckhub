@@ -1380,7 +1380,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     {
       organizationId: DEMO_ORG_ID,
       name: "Karlsruhe Utilities",
-      websiteUrl: "https://www.stadtwerke-karlsruhe.de",
+      websiteUrl: "https://example.com/karlsruhe-utilities",
       hoverText: "Official energy partner",
       sortOrder: 1,
       isActive: true,
@@ -1389,7 +1389,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     {
       organizationId: DEMO_ORG_ID,
       name: "Mueller Auto Group",
-      websiteUrl: "https://www.autohaus-mueller.de",
+      websiteUrl: "https://example.com/mueller-auto",
       hoverText: "Local mobility partner",
       teamId: insertedTeams[0]?.id,
       sortOrder: 2,
@@ -1399,7 +1399,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     {
       organizationId: DEMO_ORG_ID,
       name: "Swabian Brewery",
-      websiteUrl: "https://www.brauerei-schwaben.de",
+      websiteUrl: "https://example.com/swabian-brewery",
       hoverText: "Refreshment partner",
       teamId: insertedTeams[1]?.id,
       sortOrder: 3,
@@ -1409,7 +1409,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     {
       organizationId: DEMO_ORG_ID,
       name: "SportShop24",
-      websiteUrl: "https://www.sportshop24.de",
+      websiteUrl: "https://example.com/sportshop24",
       hoverText: "Equipment partner",
       sortOrder: 4,
       isActive: true,
