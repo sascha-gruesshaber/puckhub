@@ -109,7 +109,7 @@ WORKDIR /app
 COPY --from=builder --chown=puckhub:nodejs /app/apps/admin/.output ./apps/admin/.output
 
 USER puckhub
-ENV PORT=3000
+ENV NITRO_PORT=3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
@@ -125,7 +125,7 @@ WORKDIR /app
 COPY --from=builder --chown=puckhub:nodejs /app/apps/platform/.output ./apps/platform/.output
 
 USER puckhub
-ENV PORT=3000
+ENV NITRO_PORT=3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
@@ -141,7 +141,7 @@ WORKDIR /app
 COPY --from=builder --chown=puckhub:nodejs /app/apps/league-site/.output ./apps/league-site/.output
 
 USER puckhub
-ENV PORT=3000
+ENV NITRO_PORT=3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 

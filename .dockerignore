@@ -12,6 +12,7 @@
 .env
 .env.local
 .env.*.local
+.npmrc
 
 # Version control
 .git

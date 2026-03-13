@@ -19,11 +19,11 @@
     "test:e2e": "pnpm --filter @puckhub/admin test",
     "db:generate": "pnpm --filter @puckhub/db db:generate",
     "db:reset": "pnpm --filter @puckhub/db db:reset",
-    "docker:build": "bash scripts/docker-build.sh",
-    "docker:test": "bash scripts/docker-test.sh",
-    "docker:test:keep": "bash scripts/docker-test.sh --keep",
-    "docker:test:down": "bash scripts/docker-test.sh --down",
-    "docker:push": "bash scripts/docker-push.sh"
+    "docker:build": "node scripts/docker-build.mjs",
+    "docker:test": "node scripts/docker-test.mjs",
+    "docker:test:keep": "node scripts/docker-test.mjs --keep",
+    "docker:test:down": "node scripts/docker-test.mjs --down",
+    "docker:push": "node scripts/docker-push.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
