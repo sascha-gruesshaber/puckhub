@@ -27,7 +27,7 @@ if (args.includes("--logs") || args.includes("-l")) {
 }
 
 // Preflight: check images exist
-for (const img of ["puckhub-api", "puckhub-admin", "puckhub-platform", "puckhub-league-site"]) {
+for (const img of ["puckhub-api", "puckhub-admin", "puckhub-platform", "puckhub-league-site", "puckhub-marketing-site"]) {
   try { quiet(`docker image inspect ${img}:local`) }
   catch { console.error(`Image ${img}:local not found. Run: pnpm docker:build`); process.exit(1) }
 }
@@ -38,7 +38,7 @@ run(`${COMPOSE} up -d`)
 
 // Wait for health
 console.log("\nWaiting for services to become healthy...")
-const services = ["api", "admin", "platform", "league-site"]
+const services = ["api", "admin", "platform", "league-site", "marketing-site"]
 for (const svc of services) {
   process.stdout.write(`  ${svc.padEnd(15)}`)
   const timeout = 120_000
@@ -82,6 +82,7 @@ function check(name, url, expect) {
 check("API health (via Caddy)", "http://api.puckhub.localhost/api/health", "200")
 check("Admin UI (via Caddy)", "http://admin.puckhub.localhost/", "200")
 check("Platform UI (via Caddy)", "http://platform.puckhub.localhost/", "200")
+check("Marketing Site (via Caddy)", "http://puckhub.localhost/", "200")
 
 console.log(`\nResults: ${pass} passed, ${fail} failed`)
 
@@ -94,9 +95,10 @@ if (fail > 0) {
 if (keep) {
   console.log(`
 Stack is running. Access:
-  Admin:    http://admin.puckhub.localhost
-  API:      http://api.puckhub.localhost/api/health
-  Platform: http://platform.puckhub.localhost
+  Admin:      http://admin.puckhub.localhost
+  API:        http://api.puckhub.localhost/api/health
+  Platform:   http://platform.puckhub.localhost
+  Marketing:  http://puckhub.localhost
 
   Default login: admin@puckhub.local / admin123
 

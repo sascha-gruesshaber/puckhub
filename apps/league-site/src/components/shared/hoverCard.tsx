@@ -101,7 +101,7 @@ function HoverCard({
             ref={cardRef}
             onMouseEnter={cancelHide}
             onMouseLeave={hide}
-            className={`fixed z-50 w-[300px] rounded-xl border border-league-text/10 bg-white shadow-xl shadow-black/8 ${className ?? ""}`}
+            className={`fixed z-50 w-[300px] rounded-xl border border-league-text/10 bg-league-surface shadow-xl shadow-black/8 ${className ?? ""}`}
             style={{
               top: placement === "bottom" ? position.top : undefined,
               bottom: placement === "top" ? window.innerHeight - position.top : undefined,

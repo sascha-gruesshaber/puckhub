@@ -154,7 +154,7 @@ function HomePage() {
         {isLoading ? (
           <StandingsTableSkeleton />
         ) : data?.standings && data.standings.length > 0 ? (
-          <div className="rounded-lg border border-league-text/10 bg-white overflow-hidden">
+          <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">

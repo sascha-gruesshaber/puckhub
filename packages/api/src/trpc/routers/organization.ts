@@ -232,6 +232,81 @@ export const organizationRouter = router({
           },
         })
 
+        // Create default pages based on locale
+        const isGerman = input.leagueSettings.locale?.startsWith("de") ?? true
+
+        const defaultPages = isGerman
+          ? [
+              { title: "Impressum", slug: "impressum", content: "<h2>Impressum</h2><p>Hier steht Ihr Impressum.</p>", menuLocations: ["footer"], sortOrder: 100 },
+              { title: "Datenschutz", slug: "datenschutz", content: "<h2>Datenschutzerklärung</h2><p>Hier steht Ihre Datenschutzerklärung.</p>", menuLocations: ["footer"], sortOrder: 101 },
+              { title: "Kontakt", slug: "kontakt", content: "<h2>Kontakt</h2><p>Hier stehen Ihre Kontaktdaten.</p>", menuLocations: ["footer", "main_nav"], sortOrder: 102 },
+            ]
+          : [
+              { title: "Legal Notice", slug: "legal-notice", content: "<h2>Legal Notice</h2><p>Your legal notice goes here.</p>", menuLocations: ["footer"], sortOrder: 100 },
+              { title: "Privacy Policy", slug: "privacy-policy", content: "<h2>Privacy Policy</h2><p>Your privacy policy goes here.</p>", menuLocations: ["footer"], sortOrder: 101 },
+              { title: "Contact", slug: "contact", content: "<h2>Contact</h2><p>Your contact information goes here.</p>", menuLocations: ["footer", "main_nav"], sortOrder: 102 },
+            ]
+
+        await tx.page.createMany({
+          data: defaultPages.map((p) => ({ organizationId: orgId, ...p, status: "published" as const })),
+        })
+
+        // Create system route pages for navigation
+        const systemRoutePages = isGerman
+          ? [
+              { title: "Start", slug: "_route-home", routePath: "/", menuLocations: ["main_nav"], sortOrder: 0 },
+              { title: "Tabelle", slug: "_route-standings", routePath: "/standings", menuLocations: ["main_nav"], sortOrder: 1 },
+              { title: "Spielplan", slug: "_route-schedule", routePath: "/schedule", menuLocations: ["main_nav"], sortOrder: 2 },
+              { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ["main_nav"], sortOrder: 3 },
+              { title: "Statistiken", slug: "_route-stats", routePath: "/stats", menuLocations: ["main_nav"], sortOrder: 4 },
+              { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ["main_nav"], sortOrder: 5 },
+            ]
+          : [
+              { title: "Home", slug: "_route-home", routePath: "/", menuLocations: ["main_nav"], sortOrder: 0 },
+              { title: "Standings", slug: "_route-standings", routePath: "/standings", menuLocations: ["main_nav"], sortOrder: 1 },
+              { title: "Schedule", slug: "_route-schedule", routePath: "/schedule", menuLocations: ["main_nav"], sortOrder: 2 },
+              { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ["main_nav"], sortOrder: 3 },
+              { title: "Statistics", slug: "_route-stats", routePath: "/stats", menuLocations: ["main_nav"], sortOrder: 4 },
+              { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ["main_nav"], sortOrder: 5 },
+            ]
+
+        await tx.page.createMany({
+          data: systemRoutePages.map((p) => ({
+            organizationId: orgId,
+            ...p,
+            isSystemRoute: true,
+            status: "published" as const,
+            content: "",
+          })),
+        })
+
+        // Create default jerseys based on locale
+        const templates = await tx.trikotTemplate.findMany()
+        const oneColor = templates.find((t: any) => t.templateType === "one_color")
+        const twoColor = templates.find((t: any) => t.templateType === "two_color")
+
+        if (oneColor && twoColor) {
+          const defaultTrikots = isGerman
+            ? [
+                { name: "Weiß", templateId: oneColor.id, primaryColor: "#FFFFFF", secondaryColor: null },
+                { name: "Schwarz", templateId: oneColor.id, primaryColor: "#000000", secondaryColor: null },
+                { name: "Schwarz-Weiß", templateId: twoColor.id, primaryColor: "#000000", secondaryColor: "#FFFFFF" },
+                { name: "Grün-Weiß", templateId: twoColor.id, primaryColor: "#228B22", secondaryColor: "#FFFFFF" },
+                { name: "Blau-Weiß", templateId: twoColor.id, primaryColor: "#1E90FF", secondaryColor: "#FFFFFF" },
+              ]
+            : [
+                { name: "White", templateId: oneColor.id, primaryColor: "#FFFFFF", secondaryColor: null },
+                { name: "Black", templateId: oneColor.id, primaryColor: "#000000", secondaryColor: null },
+                { name: "Black and White", templateId: twoColor.id, primaryColor: "#000000", secondaryColor: "#FFFFFF" },
+                { name: "Green and White", templateId: twoColor.id, primaryColor: "#228B22", secondaryColor: "#FFFFFF" },
+                { name: "Blue and White", templateId: twoColor.id, primaryColor: "#1E90FF", secondaryColor: "#FFFFFF" },
+              ]
+
+          await tx.trikot.createMany({
+            data: defaultTrikots.map((t) => ({ organizationId: orgId, ...t })),
+          })
+        }
+
         // Assign plan subscription
         if (planId) {
           const now = new Date()

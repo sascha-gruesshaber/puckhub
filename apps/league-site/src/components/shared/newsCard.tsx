@@ -17,7 +17,7 @@ export function NewsCard({ id, title, shortText, publishedAt, authorName, classN
       to="/news/$newsId"
       params={{ newsId: id }}
       className={cn(
-        "group block rounded-lg border border-league-text/10 bg-white p-5 transition-all hover:shadow-md hover:border-league-primary/30",
+        "group block rounded-lg border border-league-text/10 bg-league-surface p-5 transition-all hover:shadow-md hover:border-league-primary/30",
         className,
       )}
     >

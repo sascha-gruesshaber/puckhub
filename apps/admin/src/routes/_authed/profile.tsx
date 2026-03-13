@@ -24,6 +24,8 @@ function ProfilePage() {
     onSuccess: () => utils.users.me.invalidate(),
   })
 
+  const isDemoUser = me?.isDemoUser ?? false
+
   async function handleChangePassword(values: { currentPassword: string; newPassword: string }) {
     try {
       const result = await authClient.changePassword({
@@ -45,7 +47,7 @@ function ProfilePage() {
     <div>
       <PageHeader title={t("profile.title")} description={t("profile.description")} />
 
-      {me?.mustChangePassword && (
+      {me?.mustChangePassword && !isDemoUser && (
         <div className="mt-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
           <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
           <p className="text-sm font-medium text-amber-800">
@@ -59,9 +61,26 @@ function ProfilePage() {
           <LanguageSection />
         </ProfileSection>
 
-        <ProfileSection title="Security" description="Password, two-factor, and passkeys">
-          <ChangePasswordCard onSubmit={handleChangePassword} />
-          <TwoFactorSection />
+        <ProfileSection title={t("security.title")} description={t("security.description")}>
+          <ChangePasswordCard
+            onSubmit={handleChangePassword}
+            disabled={isDemoUser}
+            disabledReason={isDemoUser ? t("security.demoRestricted") : undefined}
+            title={t("security.changePassword.title")}
+            description={t("security.changePassword.description")}
+            currentPasswordLabel={t("security.changePassword.currentPassword")}
+            newPasswordLabel={t("security.changePassword.newPassword")}
+            confirmPasswordLabel={t("security.changePassword.confirmPassword")}
+            currentPasswordPlaceholder={t("security.changePassword.currentPasswordPlaceholder")}
+            newPasswordPlaceholder={t("security.changePassword.newPasswordPlaceholder")}
+            confirmPasswordPlaceholder={t("security.changePassword.confirmPasswordPlaceholder")}
+            submitLabel={t("security.changePassword.submit")}
+            submittingLabel={t("security.changePassword.submitting")}
+            minLengthMessage={t("security.changePassword.minLength")}
+            mismatchMessage={t("security.changePassword.mismatch")}
+            successMessage={t("security.changePassword.success")}
+          />
+          <TwoFactorSection disabled={isDemoUser} disabledReason={isDemoUser ? t("security.demoRestricted") : undefined} />
           <PasskeySection />
         </ProfileSection>
       </div>

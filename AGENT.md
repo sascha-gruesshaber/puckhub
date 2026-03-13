@@ -13,6 +13,7 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (`admin.` subdomain, port 3000), i18n (DE/EN) |
 | `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (`platform.` subdomain, port 3002) |
 | `apps/league-site` | `@puckhub/league-site` | Public league website (`*.` wildcard subdomain, port 3003) — standings, schedules, stats, news |
+| `apps/marketing-site` | `@puckhub/marketing-site` | Marketing landing page (bare domain, port 3004) — features, pricing, demo CTA |
 | `packages/api` | `@puckhub/api` | Hono server + tRPC (29 routers) + Better Auth (`api.` subdomain, port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
@@ -76,10 +77,11 @@ Copy `.env.example` to `.env`. Key variables:
 ## Docker
 
 - **Development**: `docker/docker-compose.yml` — PostgreSQL 16 + pgAdmin (port 5050) + Caddy dev proxy (port 80) for subdomain routing (`*.puckhub.localhost`)
-- **Dev Caddy**: `docker/Caddyfile.dev` — HTTP-only reverse proxy mapping `admin.puckhub.localhost` → `:3000`, `api.puckhub.localhost` → `:3001`, `platform.puckhub.localhost` → `:3002`, `*.puckhub.localhost` → `:3003`
-- **Production**: `docker-compose.prod.yml` — Caddy (subdomain-based reverse proxy + on-demand TLS) + PostgreSQL 16 + API + Admin + Platform + League-site containers
-- **Prod Caddy**: `docker/Caddyfile` — subdomain routing (`api.`, `admin.`, `platform.`, `*.` wildcard for league sites), static landing page on bare domain
-- **Landing page**: `docker/www/index.html` — static placeholder page served on bare domain
+- **Dev Caddy**: `docker/Caddyfile.dev` — HTTP-only reverse proxy mapping `admin.puckhub.localhost` → `:3000`, `api.puckhub.localhost` → `:3001`, `platform.puckhub.localhost` → `:3002`, `puckhub.localhost` → `:3004` (marketing-site), `*.puckhub.localhost` → `:3003` (league-site)
+- **Local testing**: `docker-compose.local.yml` — same topology as production but with locally-built images (`*:local` tags), HTTP-only Caddy, used by `scripts/docker-test.mjs`
+- **Local Caddy**: `docker/Caddyfile.local` — HTTP-only reverse proxy matching production routing (bare domain → marketing-site, `admin.` → admin, `api.` → api, `platform.` → platform, `*.` → league-site)
+- **Production**: `docker-compose.prod.yml` — Caddy (subdomain-based reverse proxy + on-demand TLS) + PostgreSQL 16 + API + Admin + Platform + League-site + Marketing-site containers
+- **Prod Caddy**: `docker/Caddyfile` — subdomain routing (`api.`, `admin.`, `platform.`, `*.` wildcard for league sites), bare domain → marketing-site
 
 ## Conventions
 
@@ -97,6 +99,8 @@ Copy `.env.example` to `.env`. Key variables:
 Each package has its own `AGENT.md` with detailed context:
 - [`apps/admin/AGENT.md`](apps/admin/AGENT.md) — routes, components, auth/tRPC client
 - [`apps/platform/AGENT.md`](apps/platform/AGENT.md) — platform admin dashboard, routes, global management
+- [`apps/league-site/AGENT.md`](apps/league-site/AGENT.md) — public league frontend, standings, schedules, stats
+- [`apps/marketing-site/AGENT.md`](apps/marketing-site/AGENT.md) — marketing landing page, pricing, legal pages
 - [`packages/api/AGENT.md`](packages/api/AGENT.md) — routers, procedures, middleware
 - [`packages/db/AGENT.md`](packages/db/AGENT.md) — schema, migrations, seeds, patterns
 - [`packages/ui/AGENT.md`](packages/ui/AGENT.md) — components, design patterns

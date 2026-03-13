@@ -1,6 +1,7 @@
-import { Badge, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@puckhub/ui"
+import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { AlertTriangle, Calendar, CheckCircle2, Clock, ShieldAlert, Trophy, Users } from "lucide-react"
+import { AlertTriangle, Calendar, CheckCircle2, ChevronDown, ChevronUp, Clock, ShieldAlert, Trophy, Users } from "lucide-react"
+import { useState } from "react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
 import { PlayerHoverCard } from "~/components/playerHoverCard"
@@ -123,10 +124,12 @@ function MissingReportsCard({
             <Skeleton className="h-5 w-3/4" />
           </div>
         ) : reports.length === 0 ? (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <CheckCircle2 size={14} className="text-emerald-500" />
-            {t("dashboard.missingReports.empty")}
-          </p>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3">
+              <CheckCircle2 size={24} className="text-emerald-500" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">{t("dashboard.missingReports.empty")}</p>
+          </div>
         ) : (
           <div className="space-y-1">
             {reports.map((game) => (
@@ -189,7 +192,12 @@ function UpcomingGamesCard({
             <Skeleton className="h-5 w-3/4" />
           </div>
         ) : games.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("dashboard.upcomingGames.empty")}</p>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3">
+              <Calendar size={24} className="text-blue-500" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">{t("dashboard.upcomingGames.empty")}</p>
+          </div>
         ) : (
           <div className="space-y-1">
             {games.map((game) => (
@@ -229,6 +237,8 @@ function UpcomingGamesCard({
 // ---------------------------------------------------------------------------
 // Active Suspensions Card
 // ---------------------------------------------------------------------------
+const SUSPENSIONS_COLLAPSED_COUNT = 3
+
 function ActiveSuspensionsCard({
   suspensions,
   isLoading,
@@ -244,6 +254,10 @@ function ActiveSuspensionsCard({
   isLoading: boolean
   t: (key: string) => string
 }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasMore = suspensions.length > SUSPENSIONS_COLLAPSED_COUNT
+  const visible = expanded ? suspensions : suspensions.slice(0, SUSPENSIONS_COLLAPSED_COUNT)
+
   return (
     <Card>
       <CardHeader>
@@ -252,11 +266,33 @@ function ActiveSuspensionsCard({
             <ShieldAlert size={16} className="text-red-500" />
             <CardTitle className="text-sm font-medium">{t("dashboard.activeSuspensions.title")}</CardTitle>
           </div>
-          {!isLoading && suspensions.length > 0 && (
-            <Badge variant="secondary" className="text-red-600 bg-red-500/10">
-              {t("dashboard.activeSuspensions.count").replace("{count}", String(suspensions.length))}
-            </Badge>
-          )}
+          <div className="flex items-center gap-1.5">
+            {!isLoading && hasMore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-muted-foreground"
+                onClick={() => setExpanded((prev) => !prev)}
+              >
+                {expanded ? (
+                  <>
+                    {t("dashboard.activeSuspensions.collapse")}
+                    <ChevronUp size={14} className="ml-1" />
+                  </>
+                ) : (
+                  <>
+                    {t("dashboard.activeSuspensions.showAll").replace("{count}", String(suspensions.length))}
+                    <ChevronDown size={14} className="ml-1" />
+                  </>
+                )}
+              </Button>
+            )}
+            {!isLoading && suspensions.length > 0 && (
+              <Badge variant="secondary" className="text-red-600 bg-red-500/10">
+                {t("dashboard.activeSuspensions.count").replace("{count}", String(suspensions.length))}
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -266,13 +302,15 @@ function ActiveSuspensionsCard({
             <Skeleton className="h-5 w-full" />
           </div>
         ) : suspensions.length === 0 ? (
-          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-            <CheckCircle2 size={14} className="text-emerald-500" />
-            {t("dashboard.activeSuspensions.empty")}
-          </p>
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3">
+              <ShieldAlert size={24} className="text-emerald-500" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">{t("dashboard.activeSuspensions.empty")}</p>
+          </div>
         ) : (
           <div className="space-y-2.5">
-            {suspensions.map((s) => {
+            {visible.map((s) => {
               const progress = s.suspendedGames > 0 ? (s.servedGames / s.suspendedGames) * 100 : 0
               return (
                 <div key={s.id} className="rounded-lg border border-border/50 px-3 py-2.5">

@@ -15,7 +15,7 @@ const namespace = process.env.NAMESPACE || "sascha-gruesshaber"
 const sourceTag = process.argv[2] || "local"
 const pushTags = process.argv.length > 3 ? process.argv.slice(3) : ["latest"]
 
-const images = ["puckhub-api", "puckhub-admin", "puckhub-platform", "puckhub-league-site"]
+const images = ["puckhub-api", "puckhub-admin", "puckhub-platform", "puckhub-league-site", "puckhub-marketing-site"]
 
 console.log(`Registry:   ${registry}/${namespace}`)
 console.log(`Source tag:  ${sourceTag}`)

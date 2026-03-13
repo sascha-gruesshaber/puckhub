@@ -106,6 +106,7 @@ model User {
   role               String?
   banned             Boolean?  @default(false)
   mustChangePassword Boolean   @default(false)
+  isDemoUser         Boolean   @default(false)
   banReason        String?
   banExpires       DateTime?
   createdAt        DateTime  @default(now())
@@ -747,10 +748,11 @@ model Page {
   slug          String
   content       String         @default("")
   status        PageStatus     @default(draft)
-  isStatic      Boolean        @default(false) @map("is_static")
   parentId      String?        @map("parent_id") @db.Uuid
   menuLocations MenuLocation[] @map("menu_locations")
   sortOrder     Int            @default(0) @map("sort_order")
+  isSystemRoute Boolean        @default(false) @map("is_system_route")
+  routePath     String?        @map("route_path")
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 

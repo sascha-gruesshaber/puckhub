@@ -98,7 +98,7 @@ export const subscriptionRouter = router({
       ctx.db.player.count({ where: { organizationId: ctx.organizationId } }),
       ctx.db.season.count({ where: { organizationId: ctx.organizationId } }),
       ctx.db.news.count({ where: { organizationId: ctx.organizationId } }),
-      ctx.db.page.count({ where: { organizationId: ctx.organizationId } }),
+      ctx.db.page.count({ where: { organizationId: ctx.organizationId, isSystemRoute: false } }),
       ctx.db.sponsor.count({ where: { organizationId: ctx.organizationId } }),
       ctx.db.member.count({
         where: {

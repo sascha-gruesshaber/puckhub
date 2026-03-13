@@ -23,30 +23,41 @@ function slugify(text: string): string {
 }
 
 const FORBIDDEN_SLUGS = [
+  // German route equivalents (reserved for i18n routing)
   "mannschaften",
   "spielergebnisse",
   "tabelle",
   "statistiken",
-  "news",
   "spielplan",
-  "login",
-  "api",
-  "admin",
   "saison",
   "saisons",
-  "teams",
   "spieler",
   "spiele",
   "ergebnisse",
+  "profil",
+  "suche",
+  // English league-site routes
+  "standings",
+  "schedule",
+  "stats",
+  "news",
+  "teams",
+  // System routes
+  "login",
+  "api",
+  "admin",
   "uploads",
   "auth",
   "setup",
   "settings",
-  "profil",
-  "suche",
+  // System route page slugs
+  "_route-home",
+  "_route-standings",
+  "_route-schedule",
+  "_route-teams",
+  "_route-stats",
+  "_route-news",
 ]
-
-const STATIC_SLUGS = ["impressum", "datenschutz", "kontakt"]
 
 // ---------------------------------------------------------------------------
 // Slug validation
@@ -62,7 +73,7 @@ async function validateSlug(
     throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_INVALID_SLUG)
   }
 
-  if (FORBIDDEN_SLUGS.includes(slug) || STATIC_SLUGS.includes(slug)) {
+  if (FORBIDDEN_SLUGS.includes(slug)) {
     throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_SLUG_RESERVED)
   }
 
@@ -231,7 +242,7 @@ export const pageRouter = router({
       requireRole(ctx, "editor")
 
       const plan = await getOrgPlan(ctx.db, ctx.organizationId)
-      const pageCount = await ctx.db.page.count({ where: { organizationId: ctx.organizationId } })
+      const pageCount = await ctx.db.page.count({ where: { organizationId: ctx.organizationId, isSystemRoute: false } })
       checkLimit(plan, "maxPages", pageCount)
 
       const slug = slugify(input.title)
@@ -259,9 +270,8 @@ export const pageRouter = router({
           slug,
           content: input.content,
           status: input.status,
-          isStatic: false,
           parentId,
-          menuLocations: parentId ? [] : input.menuLocations,
+          menuLocations: input.menuLocations,
           sortOrder: input.sortOrder,
         },
       })
@@ -291,22 +301,24 @@ export const pageRouter = router({
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
       }
 
-      // Static pages: title locked
-      if (existing.isStatic && data.title && data.title !== existing.title) {
-        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_STATIC_TITLE_LOCKED)
-      }
+      // System routes: keep slug fixed, prevent parentId and content changes
+      const isSystemRoute = existing.isSystemRoute
 
-      // Determine new slug if title changed on dynamic page
+      // Determine new slug if title changed
       let slug = existing.slug
-      const parentId = data.parentId !== undefined ? (data.parentId ?? null) : existing.parentId
+      const parentId = isSystemRoute
+        ? existing.parentId
+        : data.parentId !== undefined
+          ? (data.parentId ?? null)
+          : existing.parentId
 
-      if (data.title && data.title !== existing.title && !existing.isStatic) {
+      if (!isSystemRoute && data.title && data.title !== existing.title) {
         slug = slugify(data.title)
         await validateSlug(ctx.db, slug, parentId, ctx.organizationId, id)
       }
 
       // Validate parent constraints if parentId is changing
-      if (data.parentId !== undefined && data.parentId !== existing.parentId) {
+      if (!isSystemRoute && data.parentId !== undefined && data.parentId !== existing.parentId) {
         if (data.parentId) {
           const parent = await ctx.db.page.findFirst({
             where: {
@@ -323,18 +335,17 @@ export const pageRouter = router({
         }
       }
 
-      // Sub-pages forced to empty menuLocations
-      const menuLocations = parentId ? [] : (data.menuLocations ?? existing.menuLocations)
+      const menuLocations = data.menuLocations ?? existing.menuLocations
 
       const updateData: Record<string, unknown> = {
         slug,
         menuLocations,
         updatedAt: new Date(),
       }
-      if (data.title && !existing.isStatic) updateData.title = data.title
-      if (data.content !== undefined) updateData.content = data.content
+      if (data.title) updateData.title = data.title
+      if (!isSystemRoute && data.content !== undefined) updateData.content = data.content
       if (data.status) updateData.status = data.status
-      if (data.parentId !== undefined) updateData.parentId = parentId
+      if (!isSystemRoute && data.parentId !== undefined) updateData.parentId = parentId
       if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder
 
       const page = await ctx.db.page.update({
@@ -352,8 +363,8 @@ export const pageRouter = router({
     if (!existing) {
       throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
     }
-    if (existing.isStatic) {
-      throw createAppError("FORBIDDEN", APP_ERROR_CODES.PAGE_STATIC_CANNOT_DELETE)
+    if (existing.isSystemRoute) {
+      throw createAppError("FORBIDDEN", APP_ERROR_CODES.PAGE_SYSTEM_ROUTE_CANNOT_DELETE)
     }
     await ctx.db.page.deleteMany({
       where: { id: input.id, organizationId: ctx.organizationId },
@@ -386,7 +397,7 @@ export const pageRouter = router({
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_INVALID_SLUG)
       }
 
-      if (FORBIDDEN_SLUGS.includes(slug) || STATIC_SLUGS.includes(slug)) {
+      if (FORBIDDEN_SLUGS.includes(slug)) {
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_SLUG_RESERVED)
       }
 

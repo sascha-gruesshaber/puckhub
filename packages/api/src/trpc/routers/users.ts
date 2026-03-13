@@ -389,7 +389,7 @@ export const usersRouter = router({
   me: protectedProcedure.query(async ({ ctx }) => {
     const user = await ctx.db.user.findUnique({
       where: { id: ctx.user.id },
-      select: { id: true, mustChangePassword: true },
+      select: { id: true, mustChangePassword: true, isDemoUser: true },
     })
     return user
   }),

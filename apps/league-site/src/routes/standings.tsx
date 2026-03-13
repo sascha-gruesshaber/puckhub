@@ -140,7 +140,7 @@ function StandingsPage() {
         {isLoading ? (
           <StandingsTableSkeleton />
         ) : standings && standings.length > 0 ? (
-          <div className="rounded-lg border border-league-text/10 bg-white overflow-x-auto">
+          <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-x-auto">
             <table className="w-full text-sm min-w-[640px]">
               <thead>
                 <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">

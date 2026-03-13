@@ -4,9 +4,14 @@ import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { authClient, useSession } from "../../../lib/auth-client"
 
+interface TwoFactorSectionProps {
+  disabled?: boolean
+  disabledReason?: string
+}
+
 type Phase = "idle" | "password" | "qr" | "backup-codes" | "disable-confirm"
 
-function TwoFactorSection() {
+function TwoFactorSection({ disabled = false, disabledReason }: TwoFactorSectionProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const { data: session } = useSession()
@@ -144,7 +149,15 @@ function TwoFactorSection() {
   }
 
   return (
-    <Card>
+    <div className={disabled ? "group/disabled relative" : undefined}>
+      {disabled && disabledReason && (
+        <div className="pointer-events-none absolute inset-x-0 -top-9 z-10 flex justify-center opacity-0 transition-opacity group-hover/disabled:opacity-100">
+          <span className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg">
+            {disabledReason}
+          </span>
+        </div>
+      )}
+    <Card className={disabled ? "opacity-60 pointer-events-none select-none" : undefined}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -297,6 +310,7 @@ function TwoFactorSection() {
         )}
       </CardContent>
     </Card>
+    </div>
   )
 }
 

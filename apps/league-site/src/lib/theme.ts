@@ -3,6 +3,7 @@ export interface ThemeColors {
   secondary: string
   accent: string
   background: string
+  surface: string
   text: string
   headerBg: string
   headerText: string
@@ -34,6 +35,7 @@ export const presets: Record<string, ThemePreset> = {
       secondary: "220 13% 46%",
       accent: "38 92% 50%",
       background: "0 0% 98%",
+      surface: "0 0% 100%",
       text: "220 20% 15%",
       headerBg: "220 70% 15%",
       headerText: "0 0% 98%",
@@ -60,6 +62,7 @@ export const presets: Record<string, ThemePreset> = {
       secondary: "220 13% 46%",
       accent: "142 76% 36%",
       background: "0 0% 100%",
+      surface: "0 0% 100%",
       text: "220 20% 10%",
       headerBg: "0 0% 100%",
       headerText: "220 20% 10%",
@@ -86,6 +89,7 @@ export const presets: Record<string, ThemePreset> = {
       secondary: "220 9% 46%",
       accent: "48 96% 53%",
       background: "220 20% 8%",
+      surface: "220 18% 13%",
       text: "0 0% 95%",
       headerBg: "220 20% 5%",
       headerText: "0 0% 98%",
@@ -129,6 +133,7 @@ export function resolveTheme(config: WebsiteConfig): { colors: ThemeColors; layo
     secondary: config.colorSecondary ?? preset.colors.secondary,
     accent: config.colorAccent ?? preset.colors.accent,
     background: config.colorBackground ?? preset.colors.background,
+    surface: preset.colors.surface,
     text: config.colorText ?? preset.colors.text,
     headerBg: config.colorHeaderBg ?? preset.colors.headerBg,
     headerText: config.colorHeaderText ?? preset.colors.headerText,
@@ -147,6 +152,7 @@ export function generateCssVariables(colors: ThemeColors): string {
   --league-secondary: ${colors.secondary};
   --league-accent: ${colors.accent};
   --league-bg: ${colors.background};
+  --league-surface: ${colors.surface};
   --league-text: ${colors.text};
   --league-header-bg: ${colors.headerBg};
   --league-header-text: ${colors.headerText};

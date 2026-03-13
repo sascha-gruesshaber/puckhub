@@ -1,0 +1,224 @@
+PuckHub CMS -- Custom Source-Available License
+
+Copyright (c) 2025 Sascha Gruesshaber. All rights reserved.
+
+
+1. DEFINITIONS
+
+"Software" refers to PuckHub CMS, including all source code, documentation,
+configuration files, assets, and associated materials contained in this
+repository.
+
+"Author" refers to Sascha Gruesshaber, the copyright holder.
+
+"You" (or "Your") refers to the individual or organization using the Software.
+
+"Competing Service" means any publicly available or commercially offered
+product or service that provides ice hockey league management, sports league
+management, or substantially similar functionality to PuckHub CMS, whether
+offered as SaaS, hosted, or otherwise.
+
+"Self-Hosting" means installing and running the Software on infrastructure
+that You control for Your own organization's exclusive use.
+
+"Contribution" means any code, documentation, or other material submitted to
+this repository via pull request, patch, or other means.
+
+
+2. GRANT OF RIGHTS
+
+Subject to the terms and conditions of this license, the Author grants You a
+limited, non-exclusive, non-transferable, revocable license to:
+
+  a) View, read, and study the source code for reference and learning purposes.
+
+  b) Fork and modify the source code for the purpose of submitting
+     Contributions back to this repository, or for Your own internal use,
+     provided that such modifications remain subject to this license.
+
+  c) Self-host and run the Software for personal, non-commercial use or for
+     internal use within Your own organization (e.g. Your own ice hockey league,
+     club, or organization), provided that such use does not constitute
+     operating a Competing Service.
+
+
+3. RESTRICTIONS
+
+You may NOT, without prior written permission from the Author:
+
+  a) Use the Software, in whole or in part, to operate, offer, or provide a
+     Competing Service, whether commercial or free.
+
+  b) Sell, rent, lease, sublicense, or redistribute the Software or any
+     derivative works as a standalone product or service.
+
+  c) Offer the Software as a hosted service, managed hosting, or SaaS offering
+     to other leagues, organizations, or third parties.
+
+  d) Rebrand, white-label, or extract substantial portions of the Software
+     for use in competing or commercial products.
+
+  e) Remove, alter, or obscure any copyright notices, license terms, or
+     attribution notices contained in the Software.
+
+  f) Use the name "PuckHub," the Author's name, or any associated trademarks
+     to endorse or promote products or services derived from this Software
+     without prior written consent.
+
+  g) Represent or imply that a derivative work is officially endorsed by or
+     affiliated with the Author or PuckHub.
+
+
+4. COMMERCIAL LICENSING
+
+If You wish to use the Software in any manner not permitted under Section 2,
+including but not limited to resale, redistribution, managed hosting, or SaaS
+offerings, You must obtain a Commercial License by contacting:
+
+  Sascha Gruesshaber
+  Email: sascha@gruesshaber.eu
+  GitHub: https://github.com/sascha-gruesshaber/
+
+Commercial licenses are negotiated on a case-by-case basis.
+
+
+5. CONTRIBUTIONS
+
+By submitting a Contribution to this repository, You grant the Author a
+perpetual, worldwide, non-exclusive, royalty-free, irrevocable license to use,
+reproduce, modify, distribute, sublicense, and otherwise exploit Your
+Contribution as part of the Software, under any license terms the Author
+chooses.
+
+You retain ownership of Your Contributions. You represent that You have the
+legal right to grant this license for Your Contribution.
+
+
+6. ATTRIBUTION
+
+If You use, modify, or self-host the Software (where permitted), You must:
+
+  a) Retain all copyright and license notices.
+
+  b) Include a prominent notice that the original Software is licensed under
+     this license.
+
+  c) Provide attribution to Sascha Gruesshaber as the original author.
+
+
+7. DISCLAIMER OF WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE," WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND
+NON-INFRINGEMENT.
+
+THE AUTHOR MAKES NO WARRANTY THAT THE SOFTWARE WILL BE UNINTERRUPTED,
+ERROR-FREE, SECURE, OR FREE OF VIRUSES OR OTHER HARMFUL COMPONENTS.
+
+THE ENTIRE RISK AS TO THE QUALITY, PERFORMANCE, ACCURACY, AND RELIABILITY OF
+THE SOFTWARE REMAINS WITH YOU.
+
+NO ADVICE OR INFORMATION, WHETHER ORAL OR WRITTEN, OBTAINED FROM THE AUTHOR
+OR THROUGH THE SOFTWARE SHALL CREATE ANY WARRANTY NOT EXPRESSLY STATED IN
+THIS LICENSE.
+
+
+8. SELF-HOSTING DISCLAIMER
+
+IF YOU CHOOSE TO SELF-HOST THE SOFTWARE, YOU DO SO ENTIRELY AT YOUR OWN RISK.
+WITHOUT LIMITING THE GENERALITY OF SECTION 7, THE AUTHOR SPECIFICALLY
+DISCLAIMS ANY AND ALL LIABILITY ARISING FROM SELF-HOSTED DEPLOYMENTS,
+INCLUDING BUT NOT LIMITED TO:
+
+  a) DATA LOSS, DATA CORRUPTION, OR INABILITY TO ACCESS DATA, REGARDLESS OF
+     CAUSE.
+
+  b) SECURITY VULNERABILITIES, BREACHES, UNAUTHORIZED ACCESS, OR EXPOSURE OF
+     SENSITIVE INFORMATION.
+
+  c) SERVICE DOWNTIME, INTERRUPTIONS, DEGRADED PERFORMANCE, OR COMPLETE
+     FAILURE OF THE SOFTWARE.
+
+  d) INCOMPATIBILITY WITH YOUR INFRASTRUCTURE, OPERATING SYSTEM, DATABASE,
+     OR ANY THIRD-PARTY SOFTWARE OR SERVICES.
+
+  e) ANY COSTS INCURRED FOR HOSTING, MAINTENANCE, TROUBLESHOOTING, DATA
+     RECOVERY, OR INCIDENT RESPONSE.
+
+YOU ARE SOLELY RESPONSIBLE FOR:
+
+  - SECURING YOUR DEPLOYMENT AND ALL ASSOCIATED INFRASTRUCTURE.
+  - IMPLEMENTING AND MAINTAINING ADEQUATE BACKUP AND DISASTER RECOVERY
+    PROCEDURES.
+  - ENSURING COMPLIANCE WITH ALL APPLICABLE LAWS, REGULATIONS, AND INDUSTRY
+    STANDARDS, INCLUDING DATA PROTECTION AND PRIVACY LAWS.
+  - EVALUATING WHETHER THE SOFTWARE IS SUITABLE FOR YOUR INTENDED USE.
+
+THE AUTHOR IS UNDER NO OBLIGATION TO PROVIDE SUPPORT, MAINTENANCE, UPDATES,
+SECURITY PATCHES, BUG FIXES, OR TECHNICAL ASSISTANCE FOR SELF-HOSTED
+INSTANCES.
+
+
+9. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+CONSEQUENTIAL, OR PUNITIVE DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
+OF SUBSTITUTE GOODS OR SERVICES, LOSS OF USE, LOSS OF DATA, LOSS OF PROFITS,
+LOSS OF GOODWILL, BUSINESS INTERRUPTION, OR ANY OTHER COMMERCIAL DAMAGES OR
+LOSSES) ARISING OUT OF OR IN CONNECTION WITH THE USE, INABILITY TO USE, OR
+PERFORMANCE OF THE SOFTWARE, HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE), EVEN IF THE AUTHOR HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGES.
+
+THIS LIMITATION APPLIES REGARDLESS OF WHETHER THE DAMAGES ARISE FROM USE OR
+MISUSE OF THE SOFTWARE, FROM INABILITY TO USE THE SOFTWARE, OR FROM THE
+INTERRUPTION, SUSPENSION, OR TERMINATION OF THE SOFTWARE.
+
+IN JURISDICTIONS THAT DO NOT ALLOW THE EXCLUSION OR LIMITATION OF LIABILITY
+FOR CONSEQUENTIAL OR INCIDENTAL DAMAGES, THE AUTHOR'S LIABILITY SHALL BE
+LIMITED TO THE GREATEST EXTENT PERMITTED BY LAW.
+
+
+10. TERMINATION
+
+This license is effective until terminated. Your rights under this license
+will terminate automatically without notice if You fail to comply with any of
+its terms. Upon termination, You must cease all use of the Software and
+destroy any copies in Your possession.
+
+The Author reserves the right to revoke this license at any time, for any
+reason, with or without notice.
+
+
+11. UPDATES AND MODIFICATIONS
+
+The Author reserves the right to:
+
+  a) Release updates and new versions under this or different licensing terms.
+
+  b) Offer the Software under additional or alternative licenses.
+
+  c) Modify the terms of this license for future releases. Existing releases
+     remain under their original terms.
+
+
+12. GENERAL
+
+  a) This license constitutes the entire agreement between You and the Author
+     regarding the Software and supersedes all prior agreements and
+     understandings.
+
+  b) If any provision of this license is held to be unenforceable, the
+     remaining provisions shall continue in full force and effect.
+
+  c) The failure of the Author to enforce any right or provision of this
+     license shall not constitute a waiver of such right or provision.
+
+  d) This license shall be governed by and construed in accordance with the
+     laws of Germany, without regard to its conflict of law provisions.
+
+  e) Any disputes arising under this license shall be subject to the exclusive
+     jurisdiction of the courts located in Germany.

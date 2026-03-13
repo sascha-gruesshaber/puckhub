@@ -131,7 +131,6 @@ export const dashboardRouter = router({
 
     // --- Upcoming Games ---
     const now = new Date()
-    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
     let upcomingGames: Array<{
       id: string
       scheduledAt: Date | null
@@ -144,7 +143,7 @@ export const dashboardRouter = router({
         where: {
           roundId: { in: roundIds },
           status: "scheduled",
-          scheduledAt: { gt: now, lt: in7Days },
+          scheduledAt: { gt: now },
         },
         select: {
           id: true,
@@ -154,7 +153,7 @@ export const dashboardRouter = router({
           awayTeam: { select: { id: true, shortName: true, logoUrl: true } },
         },
         orderBy: { scheduledAt: "asc" },
-        take: 5,
+        take: 3,
       })
     }
 

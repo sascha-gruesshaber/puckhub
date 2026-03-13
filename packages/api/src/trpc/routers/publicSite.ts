@@ -3,6 +3,41 @@ import { publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
 
 export const publicSiteRouter = router({
+  listPlans: publicProcedure.query(async ({ ctx }) => {
+    return ctx.db.plan.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        sortOrder: true,
+        priceMonthly: true,
+        priceYearly: true,
+        currency: true,
+        maxTeams: true,
+        maxPlayers: true,
+        maxDivisionsPerSeason: true,
+        maxSeasons: true,
+        maxNewsArticles: true,
+        maxPages: true,
+        maxSponsors: true,
+        featureCustomDomain: true,
+        featureWebsiteBuilder: true,
+        featureSponsorMgmt: true,
+        featureTrikotDesigner: true,
+        featureExportImport: true,
+        featureGameReports: true,
+        featurePlayerStats: true,
+        featureScheduler: true,
+        featureScheduledNews: true,
+        featureAdvancedRoles: true,
+        featureAdvancedStats: true,
+      },
+    })
+  }),
+
   resolveByDomain: publicProcedure.input(z.object({ domain: z.string() })).query(async ({ ctx, input }) => {
     const suffix = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
 
@@ -530,6 +565,23 @@ export const publicSiteRouter = router({
   getPageBySlug: publicProcedure
     .input(z.object({ organizationId: z.string(), slug: z.string() }))
     .query(async ({ ctx, input }) => {
+      const parts = input.slug.split("/")
+
+      if (parts.length === 2) {
+        // Nested: parentSlug/childSlug
+        const parent = await ctx.db.page.findFirst({
+          where: { organizationId: input.organizationId, slug: parts[0]!, status: "published", parentId: null },
+          select: { id: true },
+        })
+        if (parent) {
+          const child = await ctx.db.page.findFirst({
+            where: { organizationId: input.organizationId, slug: parts[1]!, status: "published", parentId: parent.id },
+            select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true },
+          })
+          if (child) return child
+        }
+      }
+
       // Check direct page first
       const page = await ctx.db.page.findFirst({
         where: { organizationId: input.organizationId, slug: input.slug, status: "published" },
@@ -564,7 +616,22 @@ export const publicSiteRouter = router({
           menuLocations: { has: input.location },
         },
         orderBy: { sortOrder: "asc" },
-        select: { id: true, title: true, slug: true, menuLocations: true, sortOrder: true },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          menuLocations: true,
+          sortOrder: true,
+          isSystemRoute: true,
+          routePath: true,
+          parentId: true,
+          parent: { select: { slug: true } },
+          children: {
+            where: { status: "published" },
+            orderBy: { sortOrder: "asc" },
+            select: { id: true, title: true, slug: true, sortOrder: true },
+          },
+        },
       })
     }),
 

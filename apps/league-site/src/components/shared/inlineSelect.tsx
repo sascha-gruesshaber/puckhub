@@ -26,7 +26,7 @@ export function InlineSelect<T extends string>({
   return (
     <div className={cn("relative inline-flex", className)}>
       {/* Visible styled display */}
-      <span className="inline-flex items-center gap-1.5 rounded-lg border border-league-text/15 bg-white px-3 py-1.5 text-sm font-medium text-league-text pointer-events-none">
+      <span className="inline-flex items-center gap-1.5 rounded-lg border border-league-text/15 bg-league-surface px-3 py-1.5 text-sm font-medium text-league-text pointer-events-none">
         {icon}
         <span className="truncate max-w-[160px]">{selectedLabel}</span>
         <ChevronDown className="h-3.5 w-3.5 text-league-text/40 flex-shrink-0" />

@@ -1,169 +1,132 @@
-# PuckHub
+# PuckHub CMS
 
-Ice hockey league management platform. Built for regional ice hockey leagues to manage seasons, teams, players, game schedules, live scoring, standings, and statistics.
+Ice Hockey League Management Platform -- a multi-tenant SaaS system for managing seasons, teams, players, games, standings, statistics, and public league websites.
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | [Hono](https://hono.dev) (HTTP) + [tRPC](https://trpc.io) (type-safe API, 25 routers) |
-| **ORM** | [Prisma](https://www.prisma.io) (PostgreSQL, schema in `packages/db/prisma/schema.prisma`) |
-| **Auth** | [Better Auth](https://www.better-auth.com) (self-hosted, email/password) |
-| **Frontend** | [TanStack Start](https://tanstack.com/start) (SSR + Router + Query, React 19) |
-| **UI** | [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com) style components |
-| **i18n** | German (primary) + English, JSON locale files with React Context |
-| **Monorepo** | [Turborepo](https://turbo.build) + [pnpm](https://pnpm.io) workspaces |
-| **Database** | PostgreSQL 16 (Docker for local dev) |
+- **Monorepo**: Turborepo + pnpm workspaces
+- **Backend**: Hono + tRPC + Better Auth
+- **Database**: Prisma v7 + PostgreSQL
+- **Frontend**: TanStack Start (React 19) + Vite
+- **UI**: Tailwind CSS + shadcn/ui-style components
+- **Infrastructure**: Docker multi-stage builds, Caddy reverse proxy, Coolify deployment
 
-## Features
-
-- **Season Management** — Create seasons with date ranges, divisions, rounds (regular, playoffs, playdowns, relegation, etc.)
-- **Structure Builder** — Visual React Flow canvas to design season structure (divisions, rounds, team assignments)
-- **Team & Player Management** — Teams with logos/colors/venues, player profiles with photos, contract/roster management
-- **Game Scheduling** — Round-robin scheduler, calendar view, unscheduled game sidebar
-- **Game Reports** — Full game report editor with lineup management, goal/penalty tracking, timeline view, multi-game suspensions
-- **Standings & Statistics** — Auto-calculated standings, player/goalie stats with season/team filters
-- **Content Management** — News articles (draft/published), CMS pages with menu locations, sponsor management
-- **Jersey Management** — Trikot templates, team jersey assignments with color customization
-- **Venue Management** — Venues with addresses, linked to teams and games
-- **User Management** — Role-based access via Better Auth organizations (owner, admin, member)
-- **Setup Wizard** — Guided onboarding for first-time league setup
-- **Multi-language** — Full German and English UI with language picker
-
-## Monorepo Structure
+## Project Structure
 
 ```
-puckhub.cms/
-├── apps/
-│   ├── admin/          # TanStack Start admin CMS (27 routes, ~65 components)
-│   ├── platform/       # TanStack Start platform app (served at /platform in production)
-│   └── web/            # Future public-facing site
-├── packages/
-│   ├── api/            # Hono + tRPC server, 25 routers, 3 services (@puckhub/api)
-│   ├── db/             # Prisma schema + migrations + seeds (@puckhub/db)
-│   ├── config/         # Minimal — runtime config in DB (@puckhub/config)
-│   └── ui/             # Shared UI components — 11 files, 13+ exports (@puckhub/ui)
-├── docker/             # Docker Compose + pgAdmin config
+apps/
+  admin/            League admin dashboard (TanStack Start, admin.{domain})
+  platform/         Global SaaS management UI (TanStack Start, platform.{domain})
+  league-site/      Public league frontend (TanStack Start, *.{domain} wildcard)
+  marketing-site/   Marketing landing page (TanStack Start, {domain})
+
+packages/
+  api/              Hono server + tRPC API + Better Auth (api.{domain})
+  db/               Prisma schema, migrations, seeds
+  ui/               Shared UI components
+  config/           Shared configuration
 ```
+
+Each service runs on its own subdomain, routed via Caddy reverse proxy.
 
 ## Prerequisites
 
-- **Node.js** 20+
-- **pnpm** 10+
-- **Docker** (for PostgreSQL)
+- Node.js 24+
+- pnpm 10+
+- Docker and Docker Compose
 
 ## Getting Started
 
-1. **Clone and install dependencies:**
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/sascha-gruesshaber/puckhub.cms.git
+   cd puckhub.cms
+   ```
+
+2. **Install dependencies**
+
    ```bash
    pnpm install
    ```
 
-2. **Set up environment:**
+3. **Configure environment**
+
    ```bash
    cp .env.example .env
-   # Edit .env with your settings
    ```
 
-3. **Start development:**
+   Edit `.env` and set at least `AUTH_SECRET` and `DATABASE_URL`. See `.env.example` for all available variables.
+
+4. **Set up local DNS**
+
+   Add wildcard DNS for `*.puckhub.localhost` pointing to `127.0.0.1`. This can be done via a hosts file entry or dnsmasq.
+
+5. **Start development**
+
    ```bash
    pnpm dev
    ```
 
-   This starts:
-   - Docker containers (PostgreSQL + pgAdmin)
-   - API server at `http://localhost:3001` (auto-runs migrations and seed on startup)
-   - Admin app at `http://localhost:3000`
-   - pgAdmin at `http://localhost:5050` (auto-configured, login: `admin@puckhub.local` / `admin`)
+   This starts Docker services (PostgreSQL, pgAdmin, Caddy dev proxy) and all dev servers. The admin dashboard will be available at `http://admin.puckhub.localhost`.
 
-4. **Complete setup:** Navigate to `http://localhost:3000` and follow the onboarding wizard to configure your league and create your admin account.
-
-## Available Commands
+### Individual Commands
 
 ```bash
-pnpm dev                # Start Docker (DB + pgAdmin) + all dev servers
+pnpm dev:docker:up      # Start Docker containers only (DB + pgAdmin + Caddy)
+pnpm dev:docker:down    # Stop Docker containers
+pnpm dev:servers        # Start all dev servers via Turborepo
 pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
+pnpm test:api           # Run API tests only
+pnpm test:e2e           # Run Playwright E2E tests
 pnpm lint               # TypeScript type-check across all packages
+pnpm format             # Format all files with Biome
 pnpm db:generate        # Generate Prisma client
-pnpm db:reset           # Reset database via @puckhub/db seed reset utility
-pnpm dev:docker:up      # Start Docker containers only
-pnpm dev:docker:down    # Stop Docker containers only
+pnpm db:reset           # Reset database and re-seed
 ```
 
-## Production Containers
+## Docker
 
-- **App images**:
-- `ghcr.io/sascha-gruesshaber/puckhub-api`
-- `ghcr.io/sascha-gruesshaber/puckhub-admin`
-- `ghcr.io/sascha-gruesshaber/puckhub-platform`
-- **Edge**: Caddy routes traffic on one host:
-- `/` -> admin
-- `/platform` -> platform
-- `/api` -> api
+A single multi-stage `Dockerfile` produces five images: `puckhub-api`, `puckhub-admin`, `puckhub-platform`, `puckhub-league-site`, and `puckhub-marketing-site`.
 
-Note: CI currently builds all three images but temporarily does **not** push them to GHCR.
+```bash
+pnpm docker:build           # Build all 5 images locally
+pnpm docker:test            # Full-stack local test (start, smoke test, stop)
+pnpm docker:test --keep     # Start and keep running for manual testing
+pnpm docker:test --down     # Tear down local test stack
+pnpm docker:push            # Push images to GHCR
+```
 
-## Settings
+## Deployment
 
-League settings (name, locale, timezone, scoring) are configured through the admin UI at **Settings > Einstellungen**. These are stored in the database and can be changed at any time.
+Production deployment uses GitHub Actions for CI/CD:
 
-## Roadmap
+1. Push to `main` triggers image builds.
+2. Images are pushed to GitHub Container Registry (GHCR).
+3. Coolify watches GHCR and auto-deploys updated images.
+4. Caddy handles TLS termination and subdomain routing in production.
 
-1. ~~**Foundation** - Monorepo, schema, API, auth, admin shell~~
-2. ~~**Core Data** - Season setup, teams, players, roster management~~
-3. ~~**Game Management** - Round-robin scheduler, game reports, auto standings~~
-4. **Statistics** - Standings engine, player/goalie stats, filters
-5. ~~**Content** - News, pages, sponsors, document management~~
-6. **Public Site** - SSR fan-facing website with live standings
+## Disclaimer -- No Warranty
 
-## 📄 License & Usage
+**IMPORTANT: Please read this section carefully before self-hosting PuckHub CMS.**
 
-PuckHub is **source-available** software with a custom commercial license.
+This software is provided strictly **"AS IS"**, without warranty of any kind, express or implied. By using, deploying, or self-hosting this software, you acknowledge and agree that:
 
-### ✅ You CAN:
-- View and study the source code
-- Self-host for your own ice hockey league
-- Modify for your own organization's internal use
-- Contribute improvements back to the project
+- **No guarantees are made** regarding the software's fitness for any particular purpose, reliability, availability, or correctness.
+- **Self-hosting is entirely at your own risk.** The author assumes no responsibility whatsoever for any consequences arising from self-hosted deployments.
+- **The author is not liable** for any data loss, data corruption, security breaches, unauthorized access, downtime, service interruptions, or any other damages -- whether direct, indirect, incidental, special, or consequential -- that may result from the use of this software.
+- **No support or maintenance is guaranteed** for self-hosted instances. The author is under no obligation to provide bug fixes, security patches, updates, or technical assistance.
+- **You are solely responsible** for securing your deployment, maintaining backups, and ensuring compliance with applicable laws and regulations.
 
-### ❌ You CANNOT (without a commercial license):
-- Resell or distribute this software
-- Offer it as a hosted service to other leagues
-- Create competing commercial products
-- Remove or modify license notices
+For the full terms, see the [LICENSE](LICENSE) file.
 
-### 💼 Commercial Licensing
+## License
 
-Want to resell PuckHub or offer it as a service? Contact me for commercial licensing options:
+PuckHub CMS is released under a **Custom Source-Available License**. This is **not** an open-source license.
 
-**Sascha Grüßhaber**
-📧 Email: sascha@gruesshaber.eu
-🔗 GitHub: [@sascha-gruesshaber](https://github.com/sascha-gruesshaber)
+The source code is available for reference, learning, and contribution purposes. You may view, fork, and submit contributions. However, using this code to operate a competing commercial service is prohibited without prior written permission.
 
-**Read the full license:** [LICENSE.md](LICENSE.md)
+See [LICENSE](LICENSE) for the complete terms.
 
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) and [Contributor License Agreement](CLA.md) before submitting pull requests.
-
-**Ways to contribute:**
-- 🐛 Report bugs
-- 💡 Suggest features
-- 📝 Improve documentation
-- 🌍 Enhance translations (German/English)
-- 🔧 Submit bug fixes or improvements
-
-## Support
-
-- **Documentation**: See `AGENT.md` and package-level `AGENT.md` files in `apps/` and `packages/`
-- **Issues**: [GitHub Issues](https://github.com/sascha-gruesshaber/puckhub/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/sascha-gruesshaber/puckhub/discussions)
-- **Contact**: sascha@gruesshaber.eu
-
----
-
-**PuckHub** — Professional ice hockey league management system
-Copyright © 2025-2026 Sascha Grüßhaber. All rights reserved.
-Licensed under [Custom Source-Available License](LICENSE.md)
+Copyright (c) 2025 Sascha Gruesshaber

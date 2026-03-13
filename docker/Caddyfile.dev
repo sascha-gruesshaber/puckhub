@@ -19,6 +19,15 @@ http://platform.puckhub.localhost {
 	reverse_proxy host.docker.internal:3002
 }
 
+# Marketing site (bare domain)
+http://puckhub.localhost {
+	reverse_proxy host.docker.internal:3004
+}
+
+http://www.puckhub.localhost {
+	redir http://puckhub.localhost{uri} permanent
+}
+
 # Wildcard catch-all → league-site
 http://*.puckhub.localhost {
 	reverse_proxy host.docker.internal:3003

@@ -9,7 +9,8 @@ import { cleanOrgUploads, generateSeedImages } from "./seedImages"
 // Constants
 // ---------------------------------------------------------------------------
 export const DEMO_ORG_ID = "demo-league"
-const DEMO_EMAIL_DOMAIN = "@demo.puckhub.local"
+const DEMO_EMAIL_SUFFIX = process.env.SUBDOMAIN_SUFFIX || ".puckhub.localhost"
+const DEMO_EMAIL_DOMAIN = `@${DEMO_ORG_ID}${DEMO_EMAIL_SUFFIX}`
 
 // ---------------------------------------------------------------------------
 // Team data
@@ -531,6 +532,7 @@ async function createDemoUsers(
         name: userDef.name,
         emailVerified: true,
         role: userDef.platformRole,
+        isDemoUser: true,
       },
     })
 
@@ -1487,6 +1489,17 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   // ── 15. Pages ────────────────────────────────────────────────────────
   console.log("[demo-seed] Seeding pages...")
 
+  // System route pages (navigation entries)
+  const systemRoutePages: any[] = [
+    { organizationId: DEMO_ORG_ID, title: "Home", slug: "_route-home", routePath: "/", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 0 },
+    { organizationId: DEMO_ORG_ID, title: "Standings", slug: "_route-standings", routePath: "/standings", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 1 },
+    { organizationId: DEMO_ORG_ID, title: "Schedule", slug: "_route-schedule", routePath: "/schedule", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 2 },
+    { organizationId: DEMO_ORG_ID, title: "Teams", slug: "_route-teams", routePath: "/teams", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 3 },
+    { organizationId: DEMO_ORG_ID, title: "Statistics", slug: "_route-stats", routePath: "/stats", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 4 },
+    { organizationId: DEMO_ORG_ID, title: "News", slug: "_route-news", routePath: "/news", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 5 },
+  ]
+  await db.page.createMany({ data: systemRoutePages })
+
   const topLevelPages: any[] = [
     {
       organizationId: DEMO_ORG_ID,
@@ -1495,7 +1508,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Legal Notice</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Represented by: Max Mustermann (President)</p><h3>Contact</h3><p>Email: info@puckhub-demo.de<br/>Phone: +49 721 12345678</p>",
       status: "published",
-      isStatic: true,
       menuLocations: ["footer"],
       sortOrder: 100,
     },
@@ -1506,7 +1518,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Privacy Policy</h2><p>This page explains what personal data is collected when using this website and how it is processed.</p><p>We handle personal data confidentially and in accordance with applicable regulations.</p>",
       status: "published",
-      isStatic: true,
       menuLocations: ["footer"],
       sortOrder: 101,
     },
@@ -1517,7 +1528,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         '<h2>Contact</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Email: <a href="mailto:info@puckhub-demo.de">info@puckhub-demo.de</a><br/>Phone: +49 721 12345678</p><h3>Office hours</h3><p>Mon-Fri: 9:00 AM - 5:00 PM</p>',
       status: "published",
-      isStatic: true,
       menuLocations: ["footer", "main_nav"],
       sortOrder: 102,
     },
@@ -1528,7 +1538,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>About PuckHub Demo League</h2><p>The demo league was founded in 2015 and has grown into a stable regional competition.</p><p>Today, <strong>10 teams</strong> compete across regular season and postseason rounds.</p><h3>Core values</h3><ul><li>Fair play on and off the ice</li><li>Community and team spirit</li><li>Accessible hockey for everyone</li></ul>",
       status: "published",
-      isStatic: false,
       menuLocations: ["main_nav"],
       sortOrder: 1,
     },
@@ -1539,7 +1548,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Rules and guidance</h2><p>IIHF rules apply with local recreational adjustments.</p><h3>Game format</h3><ul><li>3 x 15-minute periods</li><li>5-minute intermissions</li></ul><h3>Safety rules</h3><ul><li>No full body checking</li><li>Protective equipment is mandatory</li></ul>",
       status: "published",
-      isStatic: false,
       menuLocations: ["main_nav", "footer"],
       sortOrder: 2,
     },
@@ -1550,7 +1558,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Tryout sessions</h2><p>Interested in playing? Teams regularly host beginner-friendly tryout sessions.</p><p>Basic gear can be rented at most arenas. Contact your preferred team by email to register.</p>",
       status: "draft",
-      isStatic: false,
       menuLocations: [],
       sortOrder: 3,
     },
@@ -1569,7 +1576,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Board and operations</h2><p><strong>President:</strong> Max Mustermann</p><p><strong>Vice President:</strong> Thomas Schmidt</p><p><strong>Treasurer:</strong> Sandra Weber</p>",
       status: "published",
-      isStatic: false,
       parentId: aboutLeague.id,
       menuLocations: [],
       sortOrder: 1,
@@ -1581,7 +1587,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>League history</h2><p>Founded in 2015 with four teams, the league expanded to ten teams by 2024 and now runs full seasonal operations.</p>",
       status: "published",
-      isStatic: false,
       parentId: aboutLeague.id,
       menuLocations: [],
       sortOrder: 2,
@@ -1593,7 +1598,6 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Penalty guide</h2><p>In addition to IIHF rules, recreational safety standards are strictly enforced.</p><ul><li>Minor penalties: 2 minutes</li><li>Major penalties: 5 minutes</li><li>Misconduct penalties as applicable</li></ul>",
       status: "published",
-      isStatic: false,
       parentId: rulesPage.id,
       menuLocations: [],
       sortOrder: 1,
@@ -1645,7 +1649,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     `   • ${newsValues.length} news (${newsValues.filter((n: any) => n.status === "published").length} published, ${newsValues.filter((n: any) => n.status === "draft").length} draft)`,
   )
   console.log(
-    `   • ${topLevelPages.length + subPages.length} pages (${topLevelPages.filter((p: any) => p.isStatic).length} static, ${subPages.length} sub-pages, ${aliasValues.length} aliases)`,
+    `   • ${systemRoutePages.length + topLevelPages.length + subPages.length} pages (${systemRoutePages.length} system routes, ${subPages.length} sub-pages, ${aliasValues.length} aliases)`,
   )
   console.log(
     `   • ${reportGames.length} game reports (${totalGoals} goals, ${totalPenalties} penalties, ${totalSuspensions} suspensions, ${lineupValues.length} lineup entries)`,

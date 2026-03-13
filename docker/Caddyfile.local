@@ -19,6 +19,10 @@ http://platform.puckhub.localhost {
 	reverse_proxy platform:3000
 }
 
+http://puckhub.localhost {
+	reverse_proxy marketing-site:3000
+}
+
 http://*.puckhub.localhost {
 	@uploads path /api/uploads/*
 	reverse_proxy @uploads api:3000

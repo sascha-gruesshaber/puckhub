@@ -10,6 +10,8 @@ export interface ChangePasswordValues {
 
 export interface ChangePasswordCardProps {
   onSubmit: (values: ChangePasswordValues) => Promise<void>
+  disabled?: boolean
+  disabledReason?: string
   title?: string
   description?: string
   currentPasswordLabel?: string
@@ -34,6 +36,8 @@ function formatUnknownError(err: unknown) {
 
 export function ChangePasswordCard({
   onSubmit,
+  disabled = false,
+  disabledReason,
   title = "Change Password",
   description = "Update your sign-in password.",
   currentPasswordLabel = "Current password",
@@ -85,64 +89,76 @@ export function ChangePasswordCard({
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="mb-4">
-          <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+    <div className={disabled ? "group/disabled relative" : undefined}>
+      {disabled && disabledReason && (
+        <div className="pointer-events-none absolute inset-x-0 -top-9 z-10 flex justify-center opacity-0 transition-opacity group-hover/disabled:opacity-100">
+          <span className="rounded-md bg-foreground px-2.5 py-1 text-xs font-medium text-background shadow-lg">
+            {disabledReason}
+          </span>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="current-password" className="mb-1.5 block text-sm font-medium">
-              {currentPasswordLabel}
-            </label>
-            <Input
-              id="current-password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder={currentPasswordPlaceholder}
-              required
-            />
+      )}
+      <Card className={disabled ? "opacity-60 pointer-events-none select-none" : undefined}>
+        <CardContent className="p-6">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold">{title}</h2>
+            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
 
-          <div>
-            <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium">
-              {newPasswordLabel}
-            </label>
-            <Input
-              id="new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder={newPasswordPlaceholder}
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="current-password" className="mb-1.5 block text-sm font-medium">
+                {currentPasswordLabel}
+              </label>
+              <Input
+                id="current-password"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder={currentPasswordPlaceholder}
+                required
+                disabled={disabled}
+              />
+            </div>
 
-          <div>
-            <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium">
-              {confirmPasswordLabel}
-            </label>
-            <Input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder={confirmPasswordPlaceholder}
-              required
-            />
-          </div>
+            <div>
+              <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium">
+                {newPasswordLabel}
+              </label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder={newPasswordPlaceholder}
+                required
+                disabled={disabled}
+              />
+            </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          {success && <p className="text-sm text-emerald-600">{success}</p>}
+            <div>
+              <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium">
+                {confirmPasswordLabel}
+              </label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder={confirmPasswordPlaceholder}
+                required
+                disabled={disabled}
+              />
+            </div>
 
-          <Button type="submit" disabled={submitting}>
-            {submitting ? submittingLabel : submitLabel}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            {success && <p className="text-sm text-emerald-600">{success}</p>}
+
+            <Button type="submit" disabled={submitting || disabled}>
+              {submitting ? submittingLabel : submitLabel}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

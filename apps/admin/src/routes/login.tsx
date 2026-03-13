@@ -8,18 +8,22 @@ import { useTranslation } from "~/i18n/use-translation"
 
 export interface LoginSearch {
   mode?: "2fa"
+  email?: string
+  password?: string
 }
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
     mode: search.mode === "2fa" ? "2fa" : undefined,
+    email: typeof search.email === "string" ? search.email : undefined,
+    password: typeof search.password === "string" ? search.password : undefined,
   }),
 })
 
 function LoginPage() {
   const { t } = useTranslation("common")
-  const { mode } = Route.useSearch()
+  const { mode, email: prefillEmail, password: prefillPassword } = Route.useSearch()
   const [error, setError] = useState("")
 
   // 2FA verification mode
@@ -48,7 +52,7 @@ function LoginPage() {
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
           {/* Password login */}
-          <LoginForm onError={setError} />
+          <LoginForm onError={setError} prefillEmail={prefillEmail} prefillPassword={prefillPassword} />
 
           {/* Divider */}
           <div className="relative">

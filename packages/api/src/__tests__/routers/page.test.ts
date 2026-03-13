@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, beforeEach } from "vitest"
 import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 describe("page router", () => {
@@ -38,7 +38,6 @@ describe("page router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const page = await admin.page.create({ title: "Über die Liga", status: "published" })
       expect(page?.slug).toBe("ueber-die-liga")
-      expect(page?.isStatic).toBe(false)
     })
 
     it("generates correct slug from German umlauts", async () => {
@@ -62,11 +61,6 @@ describe("page router", () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.page.create({ title: "Test Seite" })
       await expect(admin.page.create({ title: "Test Seite" })).rejects.toThrow("PAGE_SLUG_CONFLICT")
-    })
-
-    it("rejects slugs matching static page slugs", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.create({ title: "Impressum" })).rejects.toThrow("PAGE_SLUG_RESERVED")
     })
 
     it("rejects title that produces empty slug", async () => {
@@ -108,7 +102,7 @@ describe("page router", () => {
       expect(child?.slug).toBe("vorstand")
     })
 
-    it("forces empty menuLocations on sub-pages", async () => {
+    it("allows menuLocations on sub-pages", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const parent = await admin.page.create({ title: "Infos" })
       const child = await admin.page.create({
@@ -116,7 +110,7 @@ describe("page router", () => {
         parentId: parent?.id,
         menuLocations: ["main_nav"],
       })
-      expect(child?.menuLocations).toEqual([])
+      expect(child?.menuLocations).toEqual(["main_nav"])
     })
 
     it("rejects nested sub-pages (parent is already a child)", async () => {
@@ -261,57 +255,6 @@ describe("page router", () => {
     })
   })
 
-  describe("static pages", () => {
-    async function insertStaticPage(overrides: Record<string, unknown> = {}) {
-      const db = getTestDb()
-      const page = await db.page.create({
-        data: {
-          organizationId: TEST_ORG_ID,
-          title: "Impressum",
-          slug: "test-impressum",
-          content: "<p>Test</p>",
-          status: "published",
-          isStatic: true,
-          menuLocations: ["footer"],
-          ...overrides,
-        },
-      })
-      return page
-    }
-
-    it("allows updating content of static pages", async () => {
-      const page = await insertStaticPage()
-      const admin = createTestCaller({ asAdmin: true })
-      const updated = await admin.page.update({
-        id: page.id,
-        content: "<p>Neuer Impressum Text</p>",
-      })
-      expect(updated?.content).toBe("<p>Neuer Impressum Text</p>")
-    })
-
-    it("allows updating menuLocations of static pages", async () => {
-      const page = await insertStaticPage()
-      const admin = createTestCaller({ asAdmin: true })
-      const updated = await admin.page.update({
-        id: page.id,
-        menuLocations: ["main_nav", "footer"],
-      })
-      expect(updated?.menuLocations).toEqual(["main_nav", "footer"])
-    })
-
-    it("prevents changing title of static pages", async () => {
-      const page = await insertStaticPage()
-      const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.update({ id: page.id, title: "Neuer Titel" })).rejects.toThrow("PAGE_STATIC_TITLE_LOCKED")
-    })
-
-    it("prevents deleting static pages", async () => {
-      const page = await insertStaticPage()
-      const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.delete({ id: page.id })).rejects.toThrow("PAGE_STATIC_CANNOT_DELETE")
-    })
-  })
-
   describe("aliases", () => {
     it("creates an alias with auto-generated slug", async () => {
       const admin = createTestCaller({ asAdmin: true })
@@ -405,6 +348,67 @@ describe("page router", () => {
       const page = await admin.page.create({ title: "Delete Auth" })
       const caller = createTestCaller()
       await expect(caller.page.delete({ id: page?.id })).rejects.toThrow("Not authenticated")
+    })
+  })
+
+  describe("system route pages", () => {
+    async function createSystemRoutePage() {
+      const db = getTestDb()
+      const page = await db.page.create({
+        data: {
+          organizationId: TEST_ORG_ID,
+          title: "Start",
+          slug: "_route-home",
+          routePath: "/",
+          content: "",
+          status: "published",
+          isSystemRoute: true,
+          menuLocations: ["main_nav"],
+          sortOrder: 0,
+        },
+      })
+      return page
+    }
+
+    it("cannot delete system route pages", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const systemPage = await createSystemRoutePage()
+      await expect(admin.page.delete({ id: systemPage.id })).rejects.toThrow(
+        "PAGE_SYSTEM_ROUTE_CANNOT_DELETE",
+      )
+    })
+
+    it("can update title of system route pages (slug stays fixed)", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const systemPage = await createSystemRoutePage()
+      const updated = await admin.page.update({
+        id: systemPage.id,
+        title: "Home Page",
+      })
+      expect(updated?.title).toBe("Home Page")
+      expect(updated?.slug).toBe("_route-home")
+    })
+
+    it("can update menuLocations and sortOrder of system route pages", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const systemPage = await createSystemRoutePage()
+      const updated = await admin.page.update({
+        id: systemPage.id,
+        menuLocations: ["main_nav", "footer"],
+        sortOrder: 10,
+      })
+      expect(updated?.menuLocations).toEqual(["main_nav", "footer"])
+      expect(updated?.sortOrder).toBe(10)
+    })
+
+    it("can set status to draft to hide from navigation", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const systemPage = await createSystemRoutePage()
+      const updated = await admin.page.update({
+        id: systemPage.id,
+        status: "draft",
+      })
+      expect(updated?.status).toBe("draft")
     })
   })
 })

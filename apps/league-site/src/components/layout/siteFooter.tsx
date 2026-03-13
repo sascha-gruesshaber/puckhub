@@ -2,6 +2,14 @@ import { Link } from "@tanstack/react-router"
 import { useOrg, useSettings } from "~/lib/context"
 import { trpc } from "../../../lib/trpc"
 
+function getPageLink(page: { isSystemRoute: boolean; routePath: string | null; slug: string; parentId: string | null; parent: { slug: string } | null }) {
+  if (page.isSystemRoute && page.routePath) {
+    return { to: page.routePath as any, params: undefined }
+  }
+  const slug = page.parentId && page.parent ? `${page.parent.slug}/${page.slug}` : page.slug
+  return { to: "/$slug" as const, params: { slug } }
+}
+
 export function SiteFooter() {
   const org = useOrg()
   const settings = useSettings()
@@ -15,6 +23,9 @@ export function SiteFooter() {
     { organizationId: org.id },
     { staleTime: 300_000 },
   )
+
+  // Only show top-level footer pages (sub-pages that individually have footer location are shown via parent)
+  const topLevelFooterPages = footerPages?.filter((p) => !p.parentId)
 
   return (
     <footer className="bg-league-footer-bg text-league-footer-text">
@@ -52,18 +63,21 @@ export function SiteFooter() {
             &copy; {new Date().getFullYear()} {settings.leagueName}
           </div>
 
-          {footerPages && footerPages.length > 0 && (
+          {topLevelFooterPages && topLevelFooterPages.length > 0 && (
             <nav className="flex gap-4 text-sm">
-              {footerPages.map((page) => (
-                <Link
-                  key={page.id}
-                  to="/$slug"
-                  params={{ slug: page.slug }}
-                  className="opacity-70 hover:opacity-100 transition-opacity"
-                >
-                  {page.title}
-                </Link>
-              ))}
+              {topLevelFooterPages.map((page) => {
+                const link = getPageLink(page)
+                return (
+                  <Link
+                    key={page.id}
+                    to={link.to}
+                    params={link.params}
+                    className="opacity-70 hover:opacity-100 transition-opacity"
+                  >
+                    {page.title}
+                  </Link>
+                )
+              })}
             </nav>
           )}
 

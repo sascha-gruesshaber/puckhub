@@ -46,7 +46,7 @@ export function TeamChipRow({ teams, value, onChange, allLabel = "Alle Teams", c
   const chipBase =
     "flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 scroll-snap-align-start"
   const chipActive = "bg-league-primary text-white shadow-sm"
-  const chipInactive = "bg-white border border-league-text/15 text-league-text/70 hover:border-league-primary/40 hover:text-league-text"
+  const chipInactive = "bg-league-surface border border-league-text/15 text-league-text/70 hover:border-league-primary/40 hover:text-league-text"
 
   return (
     <div className={cn("relative", className)}>

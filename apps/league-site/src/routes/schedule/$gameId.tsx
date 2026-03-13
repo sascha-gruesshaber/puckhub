@@ -58,7 +58,7 @@ function GameDetailPage() {
         </div>
 
         {/* Score header */}
-        <div className="bg-white rounded-xl border border-league-text/10 p-6 sm:p-8 mb-8">
+        <div className="bg-league-surface rounded-xl border border-league-text/10 p-6 sm:p-8 mb-8">
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             {/* Home team */}
             <div className="text-center flex-1">
@@ -100,7 +100,7 @@ function GameDetailPage() {
         {goals.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-bold mb-3">Tore</h3>
-            <div className="rounded-lg border border-league-text/10 bg-white overflow-hidden divide-y divide-league-text/5">
+            <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden divide-y divide-league-text/5">
               {goals.map((event) => {
                 const isHome = event.team.id === game.homeTeamId
                 return (
@@ -135,7 +135,7 @@ function GameDetailPage() {
         {penalties.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-bold mb-3">Strafen</h3>
-            <div className="rounded-lg border border-league-text/10 bg-white overflow-hidden divide-y divide-league-text/5">
+            <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden divide-y divide-league-text/5">
               {penalties.map((event) => (
                 <div key={event.id} className="flex items-center px-4 py-3 text-sm">
                   <div className="flex-1">
@@ -167,7 +167,7 @@ function GameDetailPage() {
                 { team: game.homeTeam, lineup: homeLineup },
                 { team: game.awayTeam, lineup: awayLineup },
               ].map(({ team, lineup }) => (
-                <div key={team.id} className="rounded-lg border border-league-text/10 bg-white overflow-hidden">
+                <div key={team.id} className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
                   <div className="px-4 py-2 bg-league-text/[0.03] font-semibold text-sm flex items-center gap-2">
                     <TeamLogo name={team.name} logoUrl={team.logoUrl} size="sm" />
                     {team.shortName}

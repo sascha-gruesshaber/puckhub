@@ -41,7 +41,7 @@ export function GameCard({
       to="/schedule/$gameId"
       params={{ gameId: id }}
       className={cn(
-        "block rounded-lg border border-league-text/10 bg-white p-4 transition-all hover:shadow-md hover:border-league-primary/30",
+        "block rounded-lg border border-league-text/10 bg-league-surface p-4 transition-all hover:shadow-md hover:border-league-primary/30",
         className,
       )}
     >

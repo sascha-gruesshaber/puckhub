@@ -12,7 +12,7 @@ interface SummaryCardProps {
 
 function SummaryCard({ icon, label, value, sublabel, color }: SummaryCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-league-text/10 p-5 shadow-sm">
+    <div className="bg-league-surface rounded-xl border border-league-text/10 p-5 shadow-sm">
       <div className="flex items-center gap-3 mb-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-lg"

@@ -17,6 +17,8 @@ services:
         condition: service_healthy
       league-site:
         condition: service_healthy
+      marketing-site:
+        condition: service_healthy
     environment:
       BASE_DOMAIN: ${BASE_DOMAIN:-puckhub.eu}
     volumes:
@@ -126,6 +128,25 @@ services:
   league-site:
     image: ghcr.io/sascha-gruesshaber/puckhub-league-site:latest
     container_name: puckhub-league-site
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    networks:
+      - puckhub
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PuckHub Marketing Site (public landing page)
+  marketing-site:
+    image: ghcr.io/sascha-gruesshaber/puckhub-marketing-site:latest
+    container_name: puckhub-marketing-site
     restart: unless-stopped
     depends_on:
       - api

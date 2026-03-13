@@ -61,6 +61,21 @@
   "security": {
     "title": "Sicherheit",
     "description": "Verwalte deine Anmeldemethoden und Sicherheitseinstellungen",
+    "changePassword": {
+      "title": "Passwort ändern",
+      "description": "Aktualisiere dein Anmeldepasswort.",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Neues Passwort bestätigen",
+      "currentPasswordPlaceholder": "Aktuelles Passwort",
+      "newPasswordPlaceholder": "Mindestens 6 Zeichen",
+      "confirmPasswordPlaceholder": "Neues Passwort wiederholen",
+      "submit": "Passwort ändern",
+      "submitting": "Speichern...",
+      "minLength": "Neues Passwort ist zu kurz.",
+      "mismatch": "Passwörter stimmen nicht überein.",
+      "success": "Passwort aktualisiert."
+    },
     "twoFactor": {
       "title": "Zwei-Faktor-Authentifizierung (2FA)",
       "description": "Schütze dein Konto mit einem zusätzlichen Sicherheitsfaktor",
@@ -106,7 +121,8 @@
       "namePlaceholder": "z.B. MacBook Touch ID",
       "platform": "Plattform",
       "crossPlatform": "Sicherheitsschlüssel"
-    }
+    },
+    "demoRestricted": "Passwort- und Zwei-Faktor-Änderungen sind für Demo-Accounts deaktiviert."
   },
   "settings": {
     "title": "Einstellungen",
@@ -185,7 +201,9 @@
       "colorGroupPage": "Seite",
       "colorGroupHeader": "Header",
       "colorGroupFooter": "Footer",
-      "resetColor": "Auf Vorlagenwert zurücksetzen"
+      "resetColor": "Auf Vorlagenwert zurücksetzen",
+      "unsavedHint": "Du hast ungespeicherte Änderungen. Speichere, um sie auf deiner Website zu sehen.",
+      "presetChangeWarning": "Ein Vorlagenwechsel setzt alle benutzerdefinierten Farbeinstellungen zurück. Fortfahren?"
     },
     "preview": {
       "title": "Vorschau",
@@ -196,7 +214,8 @@
       "desktop": "Desktop",
       "tablet": "Tablet",
       "mobile": "Mobil",
-      "noSubdomain": "Konfiguriere zuerst eine Subdomain, um die Vorschau zu aktivieren"
+      "noSubdomain": "Konfiguriere zuerst eine Subdomain, um die Vorschau zu aktivieren",
+      "reload": "Vorschau neu laden"
     },
     "images": {
       "title": "Bilder",
@@ -379,14 +398,16 @@
     },
     "upcomingGames": {
       "title": "Kommende Spiele",
-      "empty": "Keine Spiele in den nächsten 7 Tagen.",
+      "empty": "Keine anstehenden Spiele.",
       "at": "in"
     },
     "activeSuspensions": {
       "title": "Aktive Sperren",
       "empty": "Keine aktiven Sperren.",
       "remaining": "{served}/{total} Spiele",
-      "count": "{count} aktiv"
+      "count": "{count} aktiv",
+      "showAll": "Alle {count}",
+      "collapse": "Weniger"
     },
     "topScorers": {
       "title": "Top Scorer",
@@ -692,7 +713,8 @@
     },
     "validation": {
       "titleRequired": "Titel ist erforderlich"
-    }
+    },
+    "systemRouteInfo": "Dies ist ein System-Navigationseintrag. Du kannst ihn umbenennen, die Sichtbarkeit, Menüposition und Sortierung ändern. Der URL-Pfad und Inhalt können nicht geändert werden."
   },
   "pagesCreate": {
     "title": "Neue Seite",
@@ -770,12 +792,12 @@
     },
     "status": {
       "draft": "Entwurf",
-      "published": "Veröffentlicht",
-      "static": "Statisch"
+      "published": "Veröffentlicht"
     },
     "menu": {
       "nav": "Nav",
-      "footer": "Footer"
+      "footer": "Footer",
+      "route": "Route"
     },
     "meta": {
       "sortOrder": "Sortierung: {{value}}"

@@ -61,6 +61,21 @@
   "security": {
     "title": "Security",
     "description": "Manage your sign-in methods and security settings",
+    "changePassword": {
+      "title": "Change Password",
+      "description": "Update your sign-in password.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "currentPasswordPlaceholder": "Current password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirmPasswordPlaceholder": "Repeat new password",
+      "submit": "Change password",
+      "submitting": "Saving...",
+      "minLength": "New password is too short.",
+      "mismatch": "Passwords do not match.",
+      "success": "Password updated."
+    },
     "twoFactor": {
       "title": "Two-Factor Authentication (2FA)",
       "description": "Protect your account with an additional security factor",
@@ -106,7 +121,8 @@
       "namePlaceholder": "e.g. MacBook Touch ID",
       "platform": "Platform",
       "crossPlatform": "Security key"
-    }
+    },
+    "demoRestricted": "Password and two-factor changes are disabled for demo accounts."
   },
   "settings": {
     "title": "Settings",
@@ -185,7 +201,9 @@
       "colorGroupPage": "Page",
       "colorGroupHeader": "Header",
       "colorGroupFooter": "Footer",
-      "resetColor": "Reset to preset default"
+      "resetColor": "Reset to preset default",
+      "unsavedHint": "You have unsaved changes. Save to see them on your website.",
+      "presetChangeWarning": "Switching presets will reset all custom color settings. Continue?"
     },
     "preview": {
       "title": "Preview",
@@ -196,7 +214,8 @@
       "desktop": "Desktop",
       "tablet": "Tablet",
       "mobile": "Mobile",
-      "noSubdomain": "Configure a subdomain first to enable the preview"
+      "noSubdomain": "Configure a subdomain first to enable the preview",
+      "reload": "Reload preview"
     },
     "images": {
       "title": "Images",
@@ -379,14 +398,16 @@
     },
     "upcomingGames": {
       "title": "Upcoming Games",
-      "empty": "No games in the next 7 days.",
+      "empty": "No upcoming games.",
       "at": "at"
     },
     "activeSuspensions": {
       "title": "Active Suspensions",
       "empty": "No active suspensions.",
       "remaining": "{served}/{total} games",
-      "count": "{count} active"
+      "count": "{count} active",
+      "showAll": "All {count}",
+      "collapse": "Less"
     },
     "topScorers": {
       "title": "Top Scorers",
@@ -692,7 +713,8 @@
     },
     "validation": {
       "titleRequired": "Title is required"
-    }
+    },
+    "systemRouteInfo": "This is a system navigation entry. You can rename it, change its visibility, menu placement, and sort order. The URL path and content cannot be changed."
   },
   "pagesCreate": {
     "title": "New page",
@@ -770,12 +792,12 @@
     },
     "status": {
       "draft": "Draft",
-      "published": "Published",
-      "static": "Static"
+      "published": "Published"
     },
     "menu": {
       "nav": "Nav",
-      "footer": "Footer"
+      "footer": "Footer",
+      "route": "Route"
     },
     "meta": {
       "sortOrder": "Sort order: {{value}}"

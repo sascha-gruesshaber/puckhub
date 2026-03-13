@@ -191,7 +191,7 @@ function PlayerTable({ stats, activeTab, advancedStats }: { stats: any[]; active
   }
 
   return (
-    <div className="rounded-lg border border-league-text/10 bg-white overflow-x-auto">
+    <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-x-auto">
       <table className="w-full text-sm min-w-[500px]">
         <thead>
           <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">
@@ -278,7 +278,7 @@ function GoalieSection({ title, stats, startRank, advancedStats }: { title?: str
   return (
     <>
       {title && <h3 className="text-sm font-medium text-league-text/60 mb-2 mt-4">{title}</h3>}
-      <div className="rounded-lg border border-league-text/10 bg-white overflow-x-auto mb-4">
+      <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-x-auto mb-4">
         <table className="w-full text-sm min-w-[500px]">
           <thead>
             <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">
@@ -386,7 +386,7 @@ function PenaltyTable({ stats, advancedStats }: { stats: any[]; advancedStats: b
   }
 
   return (
-    <div className="rounded-lg border border-league-text/10 bg-white overflow-x-auto">
+    <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-x-auto">
       <table className="w-full text-sm min-w-[500px]">
         <thead>
           <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">

@@ -5,21 +5,20 @@ import {
   CheckCircle,
   Copy,
   ExternalLink,
-  Eye,
   Globe,
   Image,
   Loader2,
   Monitor,
   Palette,
+  RefreshCw,
   RotateCcw,
   Save,
   Search,
   Smartphone,
   Tablet,
-  X,
   XCircle,
 } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { FeatureGate } from "~/components/featureGate"
 import { ImageUpload } from "~/components/imageUpload"
@@ -283,8 +282,10 @@ function WebsitePage() {
   )
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [showPreview, setShowPreview] = useState(false)
   const [deviceMode, setDeviceMode] = useState<DeviceMode>("desktop")
+  const [previewKey, setPreviewKey] = useState(0)
+  const [appearanceDirty, setAppearanceDirty] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   const [dnsResult, setDnsResult] = useState<{
     status: "valid" | "invalid" | "error"
     message: string
@@ -312,6 +313,7 @@ function WebsitePage() {
         seoTitle: config.seoTitle ?? "",
         seoDescription: config.seoDescription ?? "",
       })
+      setAppearanceDirty(false)
     }
   }, [config])
 
@@ -319,6 +321,8 @@ function WebsitePage() {
     onSuccess: () => {
       toast.success(t("website.saved"))
       void utils.websiteConfig.get.invalidate()
+      setPreviewKey((k) => k + 1)
+      setAppearanceDirty(false)
     },
     onError: (err) => {
       toast.error(resolveTranslatedError(err, tErrors))
@@ -363,6 +367,7 @@ function WebsitePage() {
   function handleColorChange(field: ColorField, hex: string) {
     const hsl = hexToHslString(hex)
     setForm((prev) => ({ ...prev, [field]: hsl }))
+    setAppearanceDirty(true)
   }
 
   function getColorHex(field: ColorField): string {
@@ -371,9 +376,20 @@ function WebsitePage() {
     return hslStringToHex(hsl)
   }
 
+  function hasCustomColors(): boolean {
+    return COLOR_FIELDS.some((f) => isColorDifferentFromPreset(f))
+  }
+
   function handlePresetSelect(presetKey: string) {
+    if (presetKey === form.templatePreset) return
     const preset = presets[presetKey]
     if (!preset) return
+
+    if (hasCustomColors()) {
+      const confirmed = window.confirm(t("website.appearance.presetChangeWarning"))
+      if (!confirmed) return
+    }
+
     setForm((prev) => ({
       ...prev,
       templatePreset: presetKey,
@@ -387,6 +403,7 @@ function WebsitePage() {
       colorFooterBg: preset.colors.footerBg,
       colorFooterText: preset.colors.footerText,
     }))
+    setAppearanceDirty(true)
   }
 
   function getPresetDefault(field: ColorField): string | null {
@@ -449,95 +466,7 @@ function WebsitePage() {
       <PageHeader
         title={t("website.title")}
         description={t("website.description")}
-        action={
-          <Button
-            type="button"
-            variant={showPreview ? "default" : "outline"}
-            onClick={() => setShowPreview(!showPreview)}
-            disabled={!previewUrl}
-            title={!previewUrl ? t("website.preview.noSubdomain") : undefined}
-          >
-            <Eye className="w-4 h-4 mr-2" />
-            {showPreview ? t("website.preview.close") : t("website.preview.open")}
-          </Button>
-        }
       />
-
-      {/* Preview Panel */}
-      {showPreview && previewUrl && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">{t("website.preview.title")}</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center rounded-md border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode("desktop")}
-                    className={`p-1.5 rounded-l-md transition-colors ${deviceMode === "desktop" ? "bg-muted" : "hover:bg-muted/50"}`}
-                    title={t("website.preview.desktop")}
-                  >
-                    <Monitor className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode("tablet")}
-                    className={`p-1.5 border-x border-border transition-colors ${deviceMode === "tablet" ? "bg-muted" : "hover:bg-muted/50"}`}
-                    title={t("website.preview.tablet")}
-                  >
-                    <Tablet className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode("mobile")}
-                    className={`p-1.5 rounded-r-md transition-colors ${deviceMode === "mobile" ? "bg-muted" : "hover:bg-muted/50"}`}
-                    title={t("website.preview.mobile")}
-                  >
-                    <Smartphone className="w-4 h-4" />
-                  </button>
-                </div>
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  {t("website.preview.openNewTab")}
-                </a>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0"
-                  onClick={() => setShowPreview(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <div
-                className="border border-border rounded-lg overflow-hidden shadow-sm transition-all duration-300"
-                style={{
-                  width: deviceWidths[deviceMode] === "100%" ? "100%" : deviceWidths[deviceMode],
-                  maxWidth: "100%",
-                }}
-              >
-                <iframe
-                  src={previewUrl}
-                  title="Website preview"
-                  className="w-full border-0"
-                  style={{ height: 600 }}
-                />
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              {t("website.preview.savedNote")}
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       <TabNavigation groups={buildWebsiteTabGroups(t)} activeTab={activeTab} onTabChange={setTab} />
 
@@ -687,6 +616,14 @@ function WebsitePage() {
         {activeTab === "appearance" && (
           <Card>
             <CardContent className="p-6 space-y-6">
+              {/* Unsaved changes hint */}
+              {appearanceDirty && (
+                <div className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white">
+                  <Save className="h-4 w-4 flex-shrink-0" />
+                  {t("website.appearance.unsavedHint")}
+                </div>
+              )}
+
               {/* Preset Cards */}
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-3">
@@ -729,7 +666,10 @@ function WebsitePage() {
                             {isColorDifferentFromPreset(field) && (
                               <button
                                 type="button"
-                                onClick={() => resetColorToPreset(field)}
+                                onClick={() => {
+                                  resetColorToPreset(field)
+                                  setAppearanceDirty(true)
+                                }}
                                 className="text-muted-foreground hover:text-foreground transition-colors"
                                 title={t("website.appearance.resetColor")}
                               >
@@ -830,6 +770,85 @@ function WebsitePage() {
           </Button>
         </div>
       </form>
+
+      {/* Preview Panel — visible when website is active */}
+      {form.isActive && previewUrl && (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">{t("website.preview.title")}</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center rounded-md border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setDeviceMode("desktop")}
+                    className={`p-1.5 rounded-l-md transition-colors ${deviceMode === "desktop" ? "bg-muted" : "hover:bg-muted/50"}`}
+                    title={t("website.preview.desktop")}
+                  >
+                    <Monitor className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeviceMode("tablet")}
+                    className={`p-1.5 border-x border-border transition-colors ${deviceMode === "tablet" ? "bg-muted" : "hover:bg-muted/50"}`}
+                    title={t("website.preview.tablet")}
+                  >
+                    <Tablet className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeviceMode("mobile")}
+                    className={`p-1.5 rounded-r-md transition-colors ${deviceMode === "mobile" ? "bg-muted" : "hover:bg-muted/50"}`}
+                    title={t("website.preview.mobile")}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                  </button>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 gap-1"
+                  onClick={() => setPreviewKey((k) => k + 1)}
+                  title={t("website.preview.reload")}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </Button>
+                <a
+                  href={previewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {t("website.preview.openNewTab")}
+                </a>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <div
+                className="border border-border rounded-lg overflow-hidden shadow-sm transition-all duration-300"
+                style={{
+                  width: deviceWidths[deviceMode] === "100%" ? "100%" : deviceWidths[deviceMode],
+                  maxWidth: "100%",
+                }}
+              >
+                <iframe
+                  key={previewKey}
+                  ref={iframeRef}
+                  src={previewUrl}
+                  title="Website preview"
+                  className="w-full border-0"
+                  style={{ height: 600 }}
+                />
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              {t("website.preview.savedNote")}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
     </FeatureGate>
   )

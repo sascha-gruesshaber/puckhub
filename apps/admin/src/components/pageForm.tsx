@@ -16,11 +16,11 @@ export interface PageFormData {
 
 interface PageFormProps {
   initialData?: PageFormData
-  isStatic?: boolean
   currentSlug?: string
   onSubmit: (data: PageFormData) => void
   isPending: boolean
   submitLabel?: string
+  isSystemRoute?: boolean
 }
 
 interface FormState {
@@ -43,11 +43,11 @@ const emptyForm: FormState = {
 
 export function PageForm({
   initialData,
-  isStatic = false,
   currentSlug,
   onSubmit,
   isPending,
   submitLabel,
+  isSystemRoute,
 }: PageFormProps) {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
@@ -113,7 +113,7 @@ export function PageForm({
       content: form.content,
       status: form.status,
       parentId: form.parentId,
-      menuLocations: isSubPage ? [] : form.menuLocations,
+      menuLocations: form.menuLocations,
       sortOrder: form.sortOrder,
     })
   }
@@ -130,12 +130,17 @@ export function PageForm({
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
         {/* Main content area */}
         <div className="space-y-5">
+          {isSystemRoute && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              {t("pageForm.systemRouteInfo")}
+            </div>
+          )}
+
           <FormField label={t("pageForm.fields.title")} error={errors.title} required>
             <Input
               value={form.title}
               onChange={(e) => setField("title", e.target.value)}
               placeholder={t("pageForm.fields.titlePlaceholder")}
-              disabled={isStatic}
             />
           </FormField>
 
@@ -145,14 +150,16 @@ export function PageForm({
             </div>
           )}
 
-          <div>
-            <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.content")}</Label>
-            <RichTextEditor
-              content={form.content}
-              onChange={(html) => setField("content", html)}
-              placeholder={t("pageForm.fields.contentPlaceholder")}
-            />
-          </div>
+          {!isSystemRoute && (
+            <div>
+              <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.content")}</Label>
+              <RichTextEditor
+                content={form.content}
+                onChange={(html) => setField("content", html)}
+                placeholder={t("pageForm.fields.contentPlaceholder")}
+              />
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -179,8 +186,8 @@ export function PageForm({
               </div>
             </div>
 
-            {/* Parent page dropdown (hidden for static, hidden if page has children) */}
-            {!isStatic && !hasChildren && (
+            {/* Parent page dropdown (hidden for system routes, hidden if page has children) */}
+            {!hasChildren && !isSystemRoute && (
               <div>
                 <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.parentPage")}</Label>
                 <select
@@ -200,8 +207,8 @@ export function PageForm({
               </div>
             )}
 
-            {/* Menu locations (hidden/disabled for sub-pages) */}
-            {!isSubPage && (
+            {/* Menu locations */}
+            {(
               <div>
                 <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.menuLocations")}</Label>
                 <div className="space-y-2">

@@ -7,14 +7,16 @@ import { signIn } from "../../../lib/auth-client"
 
 interface LoginFormProps {
   onError: (msg: string) => void
+  prefillEmail?: string
+  prefillPassword?: string
 }
 
-function LoginForm({ onError }: LoginFormProps) {
+function LoginForm({ onError, prefillEmail, prefillPassword }: LoginFormProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const navigate = useNavigate()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState(prefillEmail ?? "")
+  const [password, setPassword] = useState(prefillPassword ?? "")
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {

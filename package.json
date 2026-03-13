@@ -19,6 +19,7 @@
     "test:e2e": "pnpm --filter @puckhub/admin test",
     "db:generate": "pnpm --filter @puckhub/db db:generate",
     "db:reset": "pnpm --filter @puckhub/db db:reset",
+    "capture:screenshots": "node --import tsx scripts/capture-screenshots.ts",
     "docker:build": "node scripts/docker-build.mjs",
     "docker:test": "node scripts/docker-test.mjs",
     "docker:test:keep": "node scripts/docker-test.mjs --keep",
@@ -37,7 +38,9 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
     "concurrently": "^9.2.1",
+    "playwright": "^1.52.0",
     "turbo": "^2.8.16",
+    "tsx": "^4.19.0",
     "typescript": "^5.9.3",
     "wait-on": "^9.0.4"
   }

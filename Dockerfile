@@ -26,6 +26,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/
 COPY apps/platform/package.json ./apps/platform/
 COPY apps/league-site/package.json ./apps/league-site/
+COPY apps/marketing-site/package.json ./apps/marketing-site/
 COPY packages/api/package.json ./packages/api/
 COPY packages/db/package.json ./packages/db/
 COPY packages/config/package.json ./packages/config/
@@ -44,6 +45,7 @@ COPY . .
 RUN pnpm --filter @puckhub/admin run build
 RUN pnpm --filter @puckhub/platform run build
 RUN pnpm --filter @puckhub/league-site run build
+RUN pnpm --filter @puckhub/marketing-site run build
 
 # Remove caches not needed at runtime
 RUN rm -rf .turbo node_modules/.cache
@@ -152,4 +154,20 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
 
 WORKDIR /app/apps/league-site
+CMD ["node", ".output/server/index.mjs"]
+
+# ============================================================================
+# Marketing-site runtime image (Nitro standalone bundle — no node_modules needed)
+# ============================================================================
+FROM runner-base AS marketing-site-runner
+
+WORKDIR /app
+COPY --from=builder --chown=puckhub:nodejs /app/apps/marketing-site/.output ./apps/marketing-site/.output
+
+USER puckhub
+ENV NITRO_PORT=3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode < 500 ? 0 : 1)}).on('error', () => process.exit(1))"
+
+WORKDIR /app/apps/marketing-site
 CMD ["node", ".output/server/index.mjs"]

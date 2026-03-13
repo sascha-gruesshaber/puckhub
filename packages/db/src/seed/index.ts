@@ -1,4 +1,5 @@
 import type { Database } from "../index"
+import type { MenuLocation } from "../generated/prisma/enums"
 
 function slugify(text: string): string {
   return text
@@ -76,7 +77,7 @@ export async function runSeed(db: Database) {
       maxSeasons: 2,
       maxAdmins: 2,
       maxNewsArticles: 10,
-      maxPages: 3,
+      maxPages: 5,
       maxSponsors: 0,
       maxDocuments: 0,
       storageQuotaMb: 50,
@@ -204,6 +205,56 @@ export async function runSeed(db: Database) {
       }
     }
     console.log(`Ensured ${orgs.length} organization(s) have slug + Free plan subscription.`)
+  }
+
+  // ─── Backfill system route pages for existing orgs ────────────────────────
+  console.log("Backfilling system route pages for existing orgs...")
+  const allOrgs = await db.organization.findMany({
+    select: { id: true },
+  })
+
+  for (const org of allOrgs) {
+    const existingSystemRoutes = await db.page.count({
+      where: { organizationId: org.id, isSystemRoute: true },
+    })
+    if (existingSystemRoutes > 0) continue
+
+    // Determine locale from system settings
+    const settings = await db.systemSettings.findUnique({
+      where: { organizationId: org.id },
+      select: { locale: true },
+    })
+    const isGerman = settings?.locale?.startsWith("de") ?? true
+
+    const ml: MenuLocation[] = ["main_nav"]
+    const systemRoutePages = isGerman
+      ? [
+          { title: "Start", slug: "_route-home", routePath: "/", menuLocations: ml, sortOrder: 0 },
+          { title: "Tabelle", slug: "_route-standings", routePath: "/standings", menuLocations: ml, sortOrder: 1 },
+          { title: "Spielplan", slug: "_route-schedule", routePath: "/schedule", menuLocations: ml, sortOrder: 2 },
+          { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 3 },
+          { title: "Statistiken", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 4 },
+          { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ml, sortOrder: 5 },
+        ]
+      : [
+          { title: "Home", slug: "_route-home", routePath: "/", menuLocations: ml, sortOrder: 0 },
+          { title: "Standings", slug: "_route-standings", routePath: "/standings", menuLocations: ml, sortOrder: 1 },
+          { title: "Schedule", slug: "_route-schedule", routePath: "/schedule", menuLocations: ml, sortOrder: 2 },
+          { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 3 },
+          { title: "Statistics", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 4 },
+          { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ml, sortOrder: 5 },
+        ]
+
+    await db.page.createMany({
+      data: systemRoutePages.map((p) => ({
+        organizationId: org.id,
+        ...p,
+        isSystemRoute: true,
+        status: "published" as const,
+        content: "",
+      })),
+    })
+    console.log(`  Created system route pages for org ${org.id}`)
   }
 
   console.log("Seed complete.")

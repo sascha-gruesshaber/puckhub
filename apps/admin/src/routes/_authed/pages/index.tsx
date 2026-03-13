@@ -1,6 +1,6 @@
 import { Badge, Button, FormField, Input, Label, toast } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ChevronRight, FileText, Link2, Lock, Pencil, Plus, Trash2, X } from "lucide-react"
+import { ChevronRight, FileText, Link2, Navigation, Pencil, Plus, Trash2, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
@@ -136,6 +136,7 @@ function PagesPage() {
     if (!topLevelPages.length) return []
     const result: { id: string; title: string }[] = []
     for (const p of topLevelPages) {
+      if (p.isSystemRoute) continue
       result.push({ id: p.id, title: p.title })
       for (const c of p.children ?? []) {
         result.push({ id: c.id, title: `${p.title} / ${c.title}` })
@@ -255,10 +256,10 @@ function PagesPage() {
                             <Badge variant={isDraft ? "outline" : "default"} className="shrink-0 text-[10px]">
                               {isDraft ? t("pagesPage.status.draft") : t("pagesPage.status.published")}
                             </Badge>
-                            {p.isStatic && (
-                              <Badge variant="secondary" className="shrink-0 text-[10px]">
-                                <Lock className="mr-1 h-3 w-3" aria-hidden="true" />
-                                {t("pagesPage.status.static")}
+                            {p.isSystemRoute && (
+                              <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400 text-blue-600">
+                                <Navigation className="h-2.5 w-2.5 mr-1" />
+                                {t("pagesPage.menu.route")}
                               </Badge>
                             )}
                             {p.menuLocations.includes("main_nav") && (
@@ -273,7 +274,7 @@ function PagesPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                            <span className="font-mono">{fullSlug}</span>
+                            <span className="font-mono">{p.isSystemRoute && p.routePath ? p.routePath : fullSlug}</span>
                             <span className="text-border">|</span>
                             <span>{t("pagesPage.meta.sortOrder", { value: p.sortOrder })}</span>
                           </div>
@@ -281,7 +282,7 @@ function PagesPage() {
 
                         {/* Actions */}
                         <div className="flex items-center gap-1 shrink-0">
-                          {!isChild && !p.isStatic && (
+                          {!isChild && !p.isSystemRoute && (
                             <Link to="/pages/new" search={{ parent: p.id }}>
                               <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
                                 <Plus className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
@@ -295,7 +296,7 @@ function PagesPage() {
                               <span className="hidden md:inline">{t("pagesPage.actions.edit")}</span>
                             </Button>
                           </Link>
-                          {!(isChild ? false : p.isStatic) && (
+                          {!p.isSystemRoute && (
                             <Button
                               variant="ghost"
                               size="sm"

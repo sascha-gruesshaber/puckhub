@@ -16,6 +16,7 @@ const targets = [
   { app: "admin", target: "admin-runner" },
   { app: "platform", target: "platform-runner" },
   { app: "league-site", target: "league-site-runner" },
+  { app: "marketing-site", target: "marketing-site-runner" },
 ]
 
 console.log(`Building PuckHub Docker images (tag: ${tag})...\n`)

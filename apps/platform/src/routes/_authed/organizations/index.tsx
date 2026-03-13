@@ -29,9 +29,10 @@ interface OrgForm {
   leagueName: string
   leagueShortName: string
   planId: string
+  locale: string
 }
 
-const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "", planId: "" }
+const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "", planId: "", locale: "de-DE" }
 
 interface EditForm {
   name: string
@@ -193,6 +194,7 @@ function OrganizationsPage() {
       leagueSettings: {
         leagueName: form.leagueName.trim(),
         leagueShortName: form.leagueShortName.trim(),
+        locale: form.locale,
       },
     })
   }
@@ -526,6 +528,17 @@ function OrganizationsPage() {
                 </select>
               </FormField>
             )}
+
+            <FormField label="Language">
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={form.locale}
+                onChange={(e) => setField("locale", e.target.value)}
+              >
+                <option value="de-DE">Deutsch</option>
+                <option value="en-US">English</option>
+              </select>
+            </FormField>
 
             <FormField label="Owner Name" error={errors.ownerName} required>
               <Input

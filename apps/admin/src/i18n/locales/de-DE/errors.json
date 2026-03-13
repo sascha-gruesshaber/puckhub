@@ -1,5 +1,6 @@
 {
   "AUTH_NOT_AUTHENTICATED": "Nicht angemeldet",
+  "DEMO_USER_RESTRICTED": "Diese Aktion ist für Demo-Accounts deaktiviert.",
   "AUTH_NOT_ADMIN": "Keine Administratorrechte",
   "ORG_NOT_FOUND": "Organisation nicht gefunden",
   "ORG_INVITATION_ALREADY_SENT": "Einladung bereits gesendet",
@@ -41,8 +42,7 @@
   "PAGE_SLUG_RESERVED": "Der Slug ist reserviert",
   "PAGE_PARENT_NOT_FOUND": "Übergeordnete Seite nicht gefunden",
   "PAGE_NESTING_LIMIT": "Unterseiten können nur eine Ebene tief verschachtelt werden",
-  "PAGE_STATIC_TITLE_LOCKED": "Der Titel einer statischen Seite kann nicht geändert werden",
-  "PAGE_STATIC_CANNOT_DELETE": "Statische Seiten können nicht gelöscht werden",
+  "PAGE_SYSTEM_ROUTE_CANNOT_DELETE": "System-Navigationseinträge können nicht gelöscht werden",
   "INSUFFICIENT_ROLE": "Unzureichende Berechtigungen",
   "SETUP_ALREADY_COMPLETED": "Setup wurde bereits abgeschlossen",
   "VALIDATION_REQUIRED": "Bitte alle Pflichtfelder ausfüllen",

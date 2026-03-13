@@ -4,11 +4,13 @@
   }
 }
 
-# Bare domain + www → static placeholder page
-{$BASE_DOMAIN}, www.{$BASE_DOMAIN} {
-  root * /srv/www
-  file_server
-  try_files {path} /index.html
+# Marketing site (bare domain)
+{$BASE_DOMAIN} {
+  reverse_proxy marketing-site:3000
+}
+
+www.{$BASE_DOMAIN} {
+  redir https://{$BASE_DOMAIN}{uri} permanent
 }
 
 # API

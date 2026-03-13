@@ -79,10 +79,10 @@ function EditPagePage() {
       <PageHeader title={t("pagesEdit.title")} description={page.title} />
       <PageForm
         initialData={initialData}
-        isStatic={page.isStatic}
         currentSlug={page.slug}
         onSubmit={handleSubmit}
         isPending={updateMutation.isPending}
+        isSystemRoute={page.isSystemRoute}
       />
     </div>
   )

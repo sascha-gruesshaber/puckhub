@@ -63,7 +63,7 @@ function TeamDetailPage() {
         </Link>
 
         {/* Team header */}
-        <div className="bg-white rounded-xl border border-league-text/10 p-6 sm:p-8 mb-8">
+        <div className="bg-league-surface rounded-xl border border-league-text/10 p-6 sm:p-8 mb-8">
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <TeamLogo name={team.name} logoUrl={team.logoUrl} size="lg" />
             <div className={cn("text-center sm:text-left")}>
@@ -124,7 +124,7 @@ function TeamDetailPage() {
                     <h3 className="text-sm font-semibold text-league-text/50 uppercase tracking-wider mb-2">
                       {positionLabels[pos] ?? pos}
                     </h3>
-                    <div className="rounded-lg border border-league-text/10 bg-white overflow-hidden divide-y divide-league-text/5">
+                    <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden divide-y divide-league-text/5">
                       {players.map((p) => (
                         <div key={p.playerId} className="flex items-center px-4 py-3">
                           <span className="w-10 text-league-text/40 tabular-nums font-bold text-sm">

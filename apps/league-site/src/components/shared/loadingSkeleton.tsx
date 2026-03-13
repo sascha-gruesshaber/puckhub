@@ -10,7 +10,7 @@ export function Skeleton({ className }: SkeletonProps) {
 
 export function GameCardSkeleton() {
   return (
-    <div className="rounded-lg border border-league-text/10 bg-white p-4">
+    <div className="rounded-lg border border-league-text/10 bg-league-surface p-4">
       <Skeleton className="h-3 w-24 mb-3" />
       <div className="flex items-center gap-3">
         <div className="flex-1 flex items-center gap-2 justify-end">
@@ -30,7 +30,7 @@ export function GameCardSkeleton() {
 
 export function NewsCardSkeleton() {
   return (
-    <div className="rounded-lg border border-league-text/10 bg-white p-5">
+    <div className="rounded-lg border border-league-text/10 bg-league-surface p-5">
       <Skeleton className="h-6 w-3/4 mb-2" />
       <Skeleton className="h-4 w-full mb-1" />
       <Skeleton className="h-4 w-2/3 mb-3" />
@@ -41,7 +41,7 @@ export function NewsCardSkeleton() {
 
 export function StandingsTableSkeleton() {
   return (
-    <div className="rounded-lg border border-league-text/10 bg-white overflow-hidden">
+    <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-league-text/5 last:border-0">
           <Skeleton className="h-4 w-6" />
@@ -60,7 +60,7 @@ export function StandingsTableSkeleton() {
 
 export function StatsTableSkeleton() {
   return (
-    <div className="rounded-lg border border-league-text/10 bg-white overflow-hidden">
+    <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
       {Array.from({ length: 10 }).map((_, i) => (
         <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-league-text/5 last:border-0">
           <Skeleton className="h-4 w-6" />
