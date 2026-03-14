@@ -20,9 +20,10 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
   const [search, setSearch] = useState("")
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return teams
+    const sorted = [...teams].sort((a, b) => a.name.localeCompare(b.name, "de"))
+    if (!search.trim()) return sorted
     const q = search.toLowerCase()
-    return teams.filter((t) => t.name.toLowerCase().includes(q) || t.shortName.toLowerCase().includes(q))
+    return sorted.filter((t) => t.name.toLowerCase().includes(q) || t.shortName.toLowerCase().includes(q))
   }, [teams, search])
 
   return (

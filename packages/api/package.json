@@ -28,6 +28,8 @@
     "dotenv": "^16.5.0",
     "hono": "^4.7.0",
     "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.2",
+    "openai": "^6.29.0",
     "superjson": "^2.2.0",
     "tsx": "^4.19.0",
     "zod": "^3.24.0"
@@ -35,6 +37,7 @@
   "devDependencies": {
     "@testcontainers/postgresql": "^11.11.0",
     "@types/node": "^22.0.0",
+    "@types/nodemailer": "^7.0.11",
     "postgres": "^3.4.8",
     "testcontainers": "^11.11.0",
     "typescript": "^5.8.0",

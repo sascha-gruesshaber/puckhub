@@ -13,3 +13,15 @@ export function getApiUrl(): string {
   }
   return process.env.VITE_API_URL ?? "http://api.puckhub.localhost"
 }
+
+/** Marketing site runs on the bare domain (strip the league slug subdomain). */
+export function getMarketingUrl(): string {
+  if (typeof window !== "undefined") {
+    const parts = window.location.hostname.split(".")
+    parts.shift()
+    return `${window.location.protocol}//${parts.join(".")}`
+  }
+  return process.env.VITE_BASE_DOMAIN
+    ? `http://${process.env.VITE_BASE_DOMAIN}`
+    : "http://puckhub.localhost"
+}

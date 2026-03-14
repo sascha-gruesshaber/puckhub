@@ -115,6 +115,7 @@ function SponsorsPage() {
     const assignedTeamIds = new Set(sponsors.filter((s) => s.teamId && seasonTeamIds.has(s.teamId)).map((s) => s.teamId))
     const opts: FilterDropdownOption[] = seasonTeams
       .filter((t) => assignedTeamIds.has(t.id))
+      .sort((a, b) => a.name.localeCompare(b.name, "de"))
       .map((t) => ({
         value: t.shortName,
         label: t.shortName,
@@ -378,7 +379,7 @@ function SponsorsPage() {
         }
         filters={
           <FilterBar
-            label={t("statsPage.filters.label")}
+            label={t("filters")}
             search={{ value: search, onChange: setSearch, placeholder: t("sponsorsPage.searchPlaceholder") }}
           >
             {isLoading ? (

@@ -163,7 +163,7 @@ function RosterPage() {
           }
           filters={
             <FilterBar
-              label={t("statsPage.filters.label")}
+              label={t("filters")}
               search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }}
             >
               <TeamFilterPills

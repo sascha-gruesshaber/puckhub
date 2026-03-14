@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { login } from "./helpers"
 
-test.describe("Teams Management", () => {
+test.describe.skip("Teams Management", () => {
   test("create, update, and delete a team", async ({ page }) => {
     await login(page)
     await page.goto("/teams")

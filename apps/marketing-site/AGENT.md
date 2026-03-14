@@ -31,8 +31,11 @@ Public marketing landing page for PuckHub, served on the bare domain (`puckhub.e
 | `lib/trpc.ts` | tRPC client setup |
 | `src/routes/index.tsx` | Landing page (assembles all sections) |
 | `src/routes/impressum.tsx` | Legal: Impressum |
-| `src/routes/datenschutz.tsx` | Legal: Datenschutz |
+| `src/routes/datenschutz.tsx` | Legal: Datenschutz (GDPR privacy policy) |
+| `src/components/features.tsx` | Feature carousel with screenshots (dashboard, season builder, game reports, etc.) |
+| `src/components/featureShowcase.tsx` | Detailed feature spotlights (AI recaps, trikot designer, CMS, roles, scheduling, stats) |
 | `src/components/pricing.tsx` | Dynamic pricing from DB |
+| `src/components/demoCta.tsx` | Demo CTA + dialog with role-based demo login (magic link to admin portal) |
 
 ## Docker & Deployment
 
@@ -44,9 +47,22 @@ Public marketing landing page for PuckHub, served on the bare domain (`puckhub.e
 - **Health check**: `GET http://localhost:3000/` (HTTP 2xx/3xx/4xx = healthy)
 - **Scripts**: included in `scripts/docker-build.mjs`, `scripts/docker-push.mjs`, and `scripts/docker-test.mjs`
 
+## i18n
+
+- `src/i18n/translations.ts` — translation strings for DE/EN
+- `src/i18n/index.tsx` — i18n provider and `useTranslation()` hook
+- German is primary, English available via language toggle
+
+## E2E Testing
+
+- **Framework**: Playwright (Chromium only)
+- **Test dir**: `e2e/` (2 spec files)
+- **Specs**: `landing`, `legal-pages`
+- **Isolation**: Root `e2e/global-setup.ts` / `e2e/global-teardown.ts` (shared across all apps)
+- **Run**: `pnpm test:e2e:marketing`
+
 ## Conventions
 
-- German UI text (marketing copy)
 - Brand colors defined in `tailwind.config.ts` under `brand.*`
 - Font: Outfit (same as admin app)
 - No `.js` extensions in imports

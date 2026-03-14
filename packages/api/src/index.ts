@@ -15,6 +15,18 @@ try {
   const { ensureDefaultUser } = await import("./lib/ensureDefaultUser")
   await ensureDefaultUser()
 
+  // Ensure system sub-route pages exist for all organizations
+  const { ensureSystemPages } = await import("./services/ensureSystemPages")
+  const { db: sysDb } = await import("@puckhub/db")
+  const allOrgs = await sysDb.organization.findMany({ select: { id: true } })
+  for (const org of allOrgs) {
+    const settings = await sysDb.systemSettings.findUnique({
+      where: { organizationId: org.id },
+      select: { locale: true },
+    })
+    await ensureSystemPages(sysDb, org.id, settings?.locale ?? undefined)
+  }
+
   // Register and start job scheduler
   const { Scheduler, setSchedulerInstance } = await import("./lib/scheduler")
   const { createDemoResetJob } = await import("./lib/jobs/demoResetJob")

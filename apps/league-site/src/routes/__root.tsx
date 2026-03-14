@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { SiteLayout } from "~/components/layout/siteLayout"
 import { ConfigContext, FeaturesContext, OrgContext, SeasonContext, SettingsContext, ThemeContext } from "~/lib/context"
 import { generateCssVariables, resolveTheme } from "~/lib/theme"
@@ -19,13 +19,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "PuckHub" },
     ],
-    links: [
-      { rel: "stylesheet", href: leagueCss },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap",
-      },
-    ],
+    links: [{ rel: "stylesheet", href: leagueCss }],
   }),
   component: RootComponent,
 })
@@ -90,6 +84,12 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
     { organizationId: orgId! },
     { enabled: !!orgId, staleTime: 300_000 },
   )
+
+  const locale = siteData?.settings?.locale ?? "en"
+  // Keep <html lang> in sync with the org locale
+  useEffect(() => {
+    document.documentElement.lang = locale.split("-")[0] ?? "en"
+  }, [locale])
 
   if (isLoading) {
     return (
@@ -175,11 +175,11 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    <html lang="en">
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen font-sans" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <body className="min-h-screen font-sans" style={{ fontFamily: "'Inter Variable', system-ui, sans-serif" }}>
         {children}
         <Scripts />
       </body>

@@ -402,11 +402,7 @@ describe("authorization", () => {
         await expect(caller.users.delete({ id: "some-id" })).rejects.toThrow("Not authenticated")
       })
 
-      it("resetPassword requires auth", async () => {
-        await expect(caller.users.resetPassword({ id: "some-id", password: "newpass123" })).rejects.toThrow(
-          "Not authenticated",
-        )
-      })
+      // resetPassword was removed in magic-link migration
 
       it("updateRole requires auth", async () => {
         await expect(caller.users.updateRole({ userId: "some-id", role: "admin" })).rejects.toThrow("Not authenticated")

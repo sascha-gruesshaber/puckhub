@@ -22,6 +22,7 @@
     "tailwind-merge": "^3.0.0"
   },
   "devDependencies": {
+    "@fontsource-variable/outfit": "^5.2.8",
     "@types/react": "^19.1.0",
     "react": "^19.1.0",
     "typescript": "^5.8.0"

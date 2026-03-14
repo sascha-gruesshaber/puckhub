@@ -1,6 +1,6 @@
 # PuckHub CMS
 
-Ice Hockey League Management Platform -- a multi-tenant SaaS system for managing seasons, teams, players, games, standings, statistics, and public league websites.
+Ice Hockey League Management Platform -- a multi-tenant SaaS system for managing seasons, teams, players, games, and public league websites with AI-powered game recaps, passwordless authentication (magic links + passkeys), and localized German/English URLs.
 
 ## Tech Stack
 
@@ -21,7 +21,7 @@ apps/
   marketing-site/   Marketing landing page (TanStack Start, {domain})
 
 packages/
-  api/              Hono server + tRPC API + Better Auth (api.{domain})
+  api/              Hono server + tRPC API + Better Auth + AI recaps (api.{domain})
   db/               Prisma schema, migrations, seeds
   ui/               Shared UI components
   config/           Shared configuration
@@ -56,7 +56,7 @@ Each service runs on its own subdomain, routed via Caddy reverse proxy.
    cp .env.example .env
    ```
 
-   Edit `.env` and set at least `AUTH_SECRET` and `DATABASE_URL`. See `.env.example` for all available variables.
+   Edit `.env` and set at least `AUTH_SECRET` and `DATABASE_URL`. For AI game recaps, set `OPENROUTER_API_KEY`. For email (magic links), configure `SMTP_*` variables. See `.env.example` for all available variables.
 
 4. **Set up local DNS**
 

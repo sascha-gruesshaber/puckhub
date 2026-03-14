@@ -1,6 +1,5 @@
-import { ChangePasswordCard, toast } from "@puckhub/ui"
+import { toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { AlertTriangle } from "lucide-react"
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { PageHeader } from "~/components/pageHeader"
@@ -19,42 +18,13 @@ function ProfilePage() {
   const { t: tErrors } = useTranslation("errors")
   const { data: session } = useSession()
   const { data: me } = trpc.users.me.useQuery()
-  const utils = trpc.useUtils()
-  const clearFlagMutation = trpc.users.clearMustChangePassword.useMutation({
-    onSuccess: () => utils.users.me.invalidate(),
-  })
 
   const isDemoUser = me?.isDemoUser ?? false
-
-  async function handleChangePassword(values: { currentPassword: string; newPassword: string }) {
-    try {
-      const result = await authClient.changePassword({
-        currentPassword: values.currentPassword,
-        newPassword: values.newPassword,
-        revokeOtherSessions: false,
-      })
-      if ((result as any)?.error) {
-        throw new Error((result as any).error.message ?? "Could not update password.")
-      }
-      // Clear the mustChangePassword flag after successful password change
-      clearFlagMutation.mutate()
-    } catch (err) {
-      throw new Error(resolveTranslatedError(err, tErrors))
-    }
-  }
 
   return (
     <div>
       <PageHeader title={t("profile.title")} description={t("profile.description")} />
 
-      {me?.mustChangePassword && !isDemoUser && (
-        <div className="mt-4 flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm font-medium text-amber-800">
-            You must change your password before continuing.
-          </p>
-        </div>
-      )}
       <div className="mt-6 grid gap-6 xl:grid-cols-2 items-start">
         <ProfileSection title={`${t("profile.personalInfo")} & ${t("profile.languagePreference")}`} description={t("profile.description")}>
           {session && <PersonalInfoSection session={session} />}
@@ -62,24 +32,6 @@ function ProfilePage() {
         </ProfileSection>
 
         <ProfileSection title={t("security.title")} description={t("security.description")}>
-          <ChangePasswordCard
-            onSubmit={handleChangePassword}
-            disabled={isDemoUser}
-            disabledReason={isDemoUser ? t("security.demoRestricted") : undefined}
-            title={t("security.changePassword.title")}
-            description={t("security.changePassword.description")}
-            currentPasswordLabel={t("security.changePassword.currentPassword")}
-            newPasswordLabel={t("security.changePassword.newPassword")}
-            confirmPasswordLabel={t("security.changePassword.confirmPassword")}
-            currentPasswordPlaceholder={t("security.changePassword.currentPasswordPlaceholder")}
-            newPasswordPlaceholder={t("security.changePassword.newPasswordPlaceholder")}
-            confirmPasswordPlaceholder={t("security.changePassword.confirmPasswordPlaceholder")}
-            submitLabel={t("security.changePassword.submit")}
-            submittingLabel={t("security.changePassword.submitting")}
-            minLengthMessage={t("security.changePassword.minLength")}
-            mismatchMessage={t("security.changePassword.mismatch")}
-            successMessage={t("security.changePassword.success")}
-          />
           <TwoFactorSection disabled={isDemoUser} disabledReason={isDemoUser ? t("security.demoRestricted") : undefined} />
           <PasskeySection />
         </ProfileSection>

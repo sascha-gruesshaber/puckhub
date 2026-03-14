@@ -2,6 +2,7 @@ import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgProcedure, platformAdminProcedure, router } from "../init"
+import { getMonthlyTokenUsage } from "../../services/aiRecapService"
 
 export const subscriptionRouter = router({
   /** Platform admin: assign or change a plan for an organization */
@@ -108,10 +109,16 @@ export const subscriptionRouter = router({
       }),
     ])
 
+    const aiTokensUsed = await getMonthlyTokenUsage(ctx.db, ctx.organizationId)
+
     return {
       subscription,
       plan: subscription?.plan ?? null,
       usage: { teams, players, seasons, news, pages, sponsors, admins },
+      aiUsage: {
+        tokensUsed: aiTokensUsed,
+        tokenLimit: (subscription?.plan as any)?.aiMonthlyTokenLimit ?? null,
+      },
     }
   }),
 })

@@ -7,6 +7,10 @@
  */
 export function getApiUrl(): string {
   if (typeof window !== "undefined") {
+    // Prefer explicit VITE_API_URL (set in E2E / dev-without-Caddy mode)
+    const envUrl = import.meta.env?.VITE_API_URL
+    if (envUrl) return envUrl
+    // Fall back to hostname derivation (works with Caddy subdomain routing)
     const parts = window.location.hostname.split(".")
     parts[0] = "api"
     return `${window.location.protocol}//${parts.join(".")}`

@@ -49,6 +49,8 @@ interface PlanForm {
   featureScheduledNews: boolean
   featureAdvancedRoles: boolean
   featureAdvancedStats: boolean
+  featureAiRecaps: boolean
+  aiMonthlyTokenLimit: number | null
 }
 
 const emptyForm: PlanForm = {
@@ -80,6 +82,8 @@ const emptyForm: PlanForm = {
   featureScheduledNews: false,
   featureAdvancedRoles: false,
   featureAdvancedStats: false,
+  featureAiRecaps: false,
+  aiMonthlyTokenLimit: null,
 }
 
 function slugify(text: string): string {
@@ -240,6 +244,8 @@ function PlansPage() {
       featureScheduledNews: plan.featureScheduledNews,
       featureAdvancedRoles: plan.featureAdvancedRoles,
       featureAdvancedStats: plan.featureAdvancedStats,
+      featureAiRecaps: plan.featureAiRecaps,
+      aiMonthlyTokenLimit: plan.aiMonthlyTokenLimit,
     })
     setDialogOpen(true)
   }
@@ -472,8 +478,19 @@ function PlansPage() {
                 <FeatureToggle label="Scheduled News" checked={form.featureScheduledNews} onChange={(v) => setForm((p) => ({ ...p, featureScheduledNews: v }))} />
                 <FeatureToggle label="Advanced Roles" checked={form.featureAdvancedRoles} onChange={(v) => setForm((p) => ({ ...p, featureAdvancedRoles: v }))} />
                 <FeatureToggle label="Advanced Statistics" checked={form.featureAdvancedStats} onChange={(v) => setForm((p) => ({ ...p, featureAdvancedStats: v }))} />
+                <FeatureToggle label="AI Recaps" checked={form.featureAiRecaps} onChange={(v) => setForm((p) => ({ ...p, featureAiRecaps: v }))} />
               </div>
             </div>
+
+            {/* AI Limits */}
+            {form.featureAiRecaps && (
+              <div>
+                <h4 className="text-sm font-semibold mb-3">AI Limits</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <LimitInput label="Monthly Token Budget" value={form.aiMonthlyTokenLimit} onChange={(v) => setForm((p) => ({ ...p, aiMonthlyTokenLimit: v }))} />
+                </div>
+              </div>
+            )}
 
             <DialogFooter className="p-0 pt-2">
               <Button type="button" variant="outline" onClick={closeDialog}>

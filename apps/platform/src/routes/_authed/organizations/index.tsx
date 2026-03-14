@@ -12,7 +12,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Check, Copy, CreditCard, Download, ExternalLink, Globe, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react"
+import { Building2, CreditCard, Download, ExternalLink, Globe, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import { getBaseDomain } from "@/env"
 import { trpc } from "@/trpc"
@@ -26,13 +26,12 @@ interface OrgForm {
   slug: string
   ownerEmail: string
   ownerName: string
-  leagueName: string
   leagueShortName: string
   planId: string
   locale: string
 }
 
-const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueName: "", leagueShortName: "", planId: "", locale: "de-DE" }
+const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueShortName: "", planId: "", locale: "de-DE" }
 
 interface EditForm {
   name: string
@@ -56,18 +55,17 @@ function OrganizationsPage() {
   const { data: plans } = trpc.plan.list.useQuery()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [form, setForm] = useState<OrgForm>(emptyForm)
+
+  function openCreateDialog() {
+    const freePlan = plans?.find((p: any) => p.slug === "free")
+    setForm({ ...emptyForm, planId: freePlan?.id ?? "" })
+    setErrors({})
+    setDialogOpen(true)
+  }
   const [errors, setErrors] = useState<Partial<Record<keyof OrgForm, string>>>({})
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingOrg, setDeletingOrg] = useState<{ id: string; name: string } | null>(null)
-
-  // Credentials dialog state
-  const [credentialsDialog, setCredentialsDialog] = useState<{
-    open: boolean
-    email: string
-    password: string
-  }>({ open: false, email: "", password: "" })
-  const [copied, setCopied] = useState(false)
 
   // Export state
   const [exportingOrgId, setExportingOrgId] = useState<string | null>(null)
@@ -91,15 +89,7 @@ function OrganizationsPage() {
       utils.organization.listAll.invalidate()
       setDialogOpen(false)
       setForm(emptyForm)
-      if (data.isNewUser && data.generatedPassword) {
-        setCredentialsDialog({
-          open: true,
-          email: form.ownerEmail,
-          password: data.generatedPassword,
-        })
-      } else {
-        toast.success("League created")
-      }
+      toast.success(data.isNewUser ? "League created — invite sent to owner" : "League created")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -163,19 +153,12 @@ function OrganizationsPage() {
     if (!form.slug || form.slug === slugify(form.name)) {
       setForm((prev) => ({ ...prev, slug: slugify(value) }))
     }
-    // Auto-fill league name
-    if (!form.leagueName || form.leagueName === form.name) {
-      setField("leagueName", value)
-    }
   }
 
   function validate(): boolean {
     const next: Partial<Record<keyof OrgForm, string>> = {}
     if (!form.name.trim()) next.name = "Name is required"
-    if (!form.ownerEmail.trim()) next.ownerEmail = "Owner email is required"
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.ownerEmail)) next.ownerEmail = "Invalid email"
-    if (!form.ownerName.trim()) next.ownerName = "Owner name is required"
-    if (!form.leagueName.trim()) next.leagueName = "League name is required"
+    if (form.ownerEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.ownerEmail)) next.ownerEmail = "Invalid email"
     if (!form.leagueShortName.trim()) next.leagueShortName = "Short name is required"
     setErrors(next)
     return Object.keys(next).length === 0
@@ -188,21 +171,15 @@ function OrganizationsPage() {
     createMutation.mutate({
       name: form.name.trim(),
       slug: form.slug.trim() || undefined,
-      ownerEmail: form.ownerEmail.trim(),
-      ownerName: form.ownerName.trim(),
+      ownerEmail: form.ownerEmail.trim() || undefined,
+      ownerName: form.ownerName.trim() || undefined,
       planId: form.planId || undefined,
       leagueSettings: {
-        leagueName: form.leagueName.trim(),
+        leagueName: form.name.trim(),
         leagueShortName: form.leagueShortName.trim(),
         locale: form.locale,
       },
     })
-  }
-
-  async function handleCopyPassword() {
-    await navigator.clipboard.writeText(credentialsDialog.password)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
   }
 
   async function handleExport(orgId: string, orgName: string) {
@@ -345,7 +322,7 @@ function OrganizationsPage() {
             <Upload className="mr-2 h-4 w-4" />
             Import League
           </Button>
-          <Button variant="accent" onClick={() => setDialogOpen(true)}>
+          <Button variant="accent" onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
             New League
           </Button>
@@ -366,7 +343,7 @@ function OrganizationsPage() {
           <Building2 size={32} className="mx-auto mb-3 text-muted-foreground" />
           <p className="font-medium text-foreground">No leagues yet</p>
           <p className="mt-1 text-sm text-muted-foreground">Create the first league to get started.</p>
-          <Button variant="accent" className="mt-4" onClick={() => setDialogOpen(true)}>
+          <Button variant="accent" className="mt-4" onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Create League
           </Button>
@@ -483,22 +460,34 @@ function OrganizationsPage() {
 
       {/* Create League Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogClose onClick={() => setDialogOpen(false)} />
           <DialogHeader>
             <DialogTitle>Create League</DialogTitle>
-            <DialogDescription>Create a new league with an initial owner.</DialogDescription>
+            <DialogDescription>Set up a new league. You can assign an owner later.</DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-2">
-            <FormField label="League Name" error={errors.name} required>
-              <Input
-                value={form.name}
-                onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g. Oberliga Baden-Württemberg"
-              />
-            </FormField>
+          <form onSubmit={handleSubmit} className="space-y-5 p-6 pt-2">
+            {/* League identity */}
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <FormField label="League Name" error={errors.name} required>
+                <Input
+                  value={form.name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  placeholder="e.g. Oberliga Baden-Württemberg"
+                />
+              </FormField>
+              <FormField label="Short Name" error={errors.leagueShortName} required>
+                <Input
+                  className="w-24"
+                  value={form.leagueShortName}
+                  onChange={(e) => setField("leagueShortName", e.target.value)}
+                  placeholder="OBWL"
+                />
+              </FormField>
+            </div>
 
+            {/* Subdomain */}
             <FormField label="Subdomain">
               <Input
                 value={form.slug}
@@ -507,130 +496,71 @@ function OrganizationsPage() {
               />
               {form.slug && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  URL: <span className="font-mono">{form.slug}.{getBaseDomain()}</span>
+                  <span className="font-mono">{form.slug}.{getBaseDomain()}</span>
                 </p>
               )}
             </FormField>
 
-            {plans && plans.length > 0 && (
-              <FormField label="Plan">
+            {/* Plan & Language side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              {plans && plans.length > 0 && (
+                <FormField label="Plan">
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={form.planId}
+                    onChange={(e) => setForm((p) => ({ ...p, planId: e.target.value }))}
+                  >
+                    {plans.filter((p) => p.isActive).map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              )}
+              <FormField label="Language">
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={form.planId}
-                  onChange={(e) => setForm((p) => ({ ...p, planId: e.target.value }))}
+                  value={form.locale}
+                  onChange={(e) => setField("locale", e.target.value)}
                 >
-                  <option value="">Free (default)</option>
-                  {plans.filter((p) => p.isActive).map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </option>
-                  ))}
+                  <option value="de-DE">Deutsch</option>
+                  <option value="en-US">English</option>
                 </select>
               </FormField>
-            )}
+            </div>
 
-            <FormField label="Language">
-              <select
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                value={form.locale}
-                onChange={(e) => setField("locale", e.target.value)}
-              >
-                <option value="de-DE">Deutsch</option>
-                <option value="en-US">English</option>
-              </select>
-            </FormField>
+            {/* Owner — optional */}
+            <div className="rounded-lg border border-border/50 bg-muted/20 px-4 py-3 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Owner (optional)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Name" error={errors.ownerName}>
+                  <Input
+                    value={form.ownerName}
+                    onChange={(e) => setField("ownerName", e.target.value)}
+                    placeholder="Max Mustermann"
+                  />
+                </FormField>
+                <FormField label="Email" error={errors.ownerEmail}>
+                  <Input
+                    type="email"
+                    value={form.ownerEmail}
+                    onChange={(e) => setField("ownerEmail", e.target.value)}
+                    placeholder="admin@league.de"
+                  />
+                </FormField>
+              </div>
+            </div>
 
-            <FormField label="Owner Name" error={errors.ownerName} required>
-              <Input
-                value={form.ownerName}
-                onChange={(e) => setField("ownerName", e.target.value)}
-                placeholder="e.g. Max Mustermann"
-              />
-            </FormField>
-
-            <FormField label="Owner Email" error={errors.ownerEmail} required>
-              <Input
-                type="email"
-                value={form.ownerEmail}
-                onChange={(e) => setField("ownerEmail", e.target.value)}
-                placeholder="admin@league.de"
-              />
-            </FormField>
-
-            <FormField label="League Name" error={errors.leagueName} required>
-              <Input
-                value={form.leagueName}
-                onChange={(e) => setField("leagueName", e.target.value)}
-                placeholder="e.g. Oberliga Baden-Württemberg"
-              />
-            </FormField>
-
-            <FormField label="League Short Name" error={errors.leagueShortName} required>
-              <Input
-                value={form.leagueShortName}
-                onChange={(e) => setField("leagueShortName", e.target.value)}
-                placeholder="e.g. OBWL"
-              />
-            </FormField>
-
-            <DialogFooter className="p-0 pt-2">
+            <DialogFooter className="p-0 pt-1">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" variant="accent" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Creating..." : "Create"}
+                {createMutation.isPending ? "Creating..." : "Create League"}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Credentials Dialog */}
-      <Dialog
-        open={credentialsDialog.open}
-        onOpenChange={(open) => {
-          if (!open) {
-            setCredentialsDialog({ open: false, email: "", password: "" })
-            setCopied(false)
-          }
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>League Created</DialogTitle>
-            <DialogDescription>
-              A new user account has been created for the owner. Save these credentials — the password cannot be
-              retrieved later.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 p-6 pt-2">
-            <FormField label="Email">
-              <Input value={credentialsDialog.email} readOnly />
-            </FormField>
-
-            <FormField label="Password">
-              <div className="flex gap-2">
-                <Input value={credentialsDialog.password} readOnly className="font-mono" />
-                <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword} title="Copy password">
-                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </FormField>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="accent"
-              onClick={() => {
-                setCredentialsDialog({ open: false, email: "", password: "" })
-                setCopied(false)
-                toast.success("League created")
-              }}
-            >
-              Close
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { publicProcedure, router } from "../init"
+import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { getEligibleGameIds } from "./_helpers"
 
 export const publicSiteRouter = router({
@@ -168,7 +169,7 @@ export const publicSiteRouter = router({
     const seasonId = currentSeason?.id
 
     // Run all queries in parallel
-    const [latestResults, upcomingGames, news, standings, sponsors] = await Promise.all([
+    const [latestResults, upcomingGames, standings, sponsors] = await Promise.all([
       // Latest 5 completed games
       seasonId
         ? ctx.db.game.findMany({
@@ -206,20 +207,6 @@ export const publicSiteRouter = router({
           })
         : [],
 
-      // Latest 4 published news
-      ctx.db.news.findMany({
-        where: { organizationId: orgId, status: "published" },
-        orderBy: { publishedAt: "desc" },
-        take: 4,
-        select: {
-          id: true,
-          title: true,
-          shortText: true,
-          publishedAt: true,
-          author: { select: { name: true } },
-        },
-      }),
-
       // Standings from the first regular round of the first division
       seasonId
         ? (async () => {
@@ -250,7 +237,7 @@ export const publicSiteRouter = router({
       }),
     ])
 
-    return { currentSeason, latestResults, upcomingGames, news, standings, sponsors }
+    return { currentSeason, latestResults, upcomingGames, standings, sponsors }
   }),
 
   getStandings: publicProcedure
@@ -259,7 +246,7 @@ export const publicSiteRouter = router({
       return ctx.db.standing.findMany({
         where: { roundId: input.roundId, organizationId: input.organizationId },
         orderBy: [{ totalPoints: "desc" }, { gamesPlayed: "asc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-        include: { team: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } } },
+        include: { team: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true, city: true, homeVenue: true, website: true } } },
       })
     }),
 
@@ -384,6 +371,26 @@ export const publicSiteRouter = router({
           },
         },
       })
+
+      if (!game) return game
+
+      // Lazy AI recap generation for completed games
+      if (
+        game.status === "completed" &&
+        game.recapTitle === null &&
+        !game.recapGenerating
+      ) {
+        const eligibility = await checkRecapEligibility(ctx.db, input.organizationId)
+
+        if (eligibility.eligible) {
+          generateAndPersistRecap(ctx.db, game.id, input.organizationId).catch((err) =>
+            console.error("[ai-recap] Lazy generation failed:", err),
+          )
+          // Signal client to poll for result
+          ;(game as any).recapGenerating = true
+        }
+      }
+
       return game
     }),
 
@@ -502,7 +509,7 @@ export const publicSiteRouter = router({
       z.object({
         organizationId: z.string(),
         cursor: z.string().uuid().optional(),
-        limit: z.number().int().min(1).max(50).default(12),
+        limit: z.number().int().min(1).max(200).default(20),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -629,7 +636,7 @@ export const publicSiteRouter = router({
           children: {
             where: { status: "published" },
             orderBy: { sortOrder: "asc" },
-            select: { id: true, title: true, slug: true, sortOrder: true },
+            select: { id: true, title: true, slug: true, sortOrder: true, routePath: true, isSystemRoute: true },
           },
         },
       })
@@ -645,6 +652,7 @@ export const publicSiteRouter = router({
         organizationId: z.string(),
         seasonId: z.string().uuid(),
         teamId: z.string().uuid().optional(),
+        position: z.enum(["forward", "defense"]).optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -654,7 +662,7 @@ export const publicSiteRouter = router({
       }
       if (input.teamId) where.teamId = input.teamId
 
-      return ctx.db.playerSeasonStat.findMany({
+      const stats = await ctx.db.playerSeasonStat.findMany({
         where,
         include: {
           player: true,
@@ -662,6 +670,19 @@ export const publicSiteRouter = router({
         },
         orderBy: [{ totalPoints: "desc" }, { goals: "desc" }, { assists: "desc" }],
       })
+
+      if (input.position) {
+        const playerIds = [...new Set(stats.map((s: any) => s.playerId))]
+        if (playerIds.length === 0) return []
+        const contracts = await ctx.db.contract.findMany({
+          where: { playerId: { in: playerIds } },
+          select: { playerId: true, teamId: true, position: true },
+        })
+        const positionMap = new Map(contracts.map((c: any) => [`${c.playerId}:${c.teamId}`, c.position]))
+        return stats.filter((s: any) => positionMap.get(`${s.playerId}:${s.teamId}`) === input.position)
+      }
+
+      return stats
     }),
 
   getGoalieStats: publicProcedure
@@ -780,5 +801,319 @@ export const publicSiteRouter = router({
           totalCount: entry.totalCount,
         }))
         .sort((a, b) => b.totalMinutes - a.totalMinutes)
+    }),
+
+  getTeamPenaltyStats: publicProcedure
+    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
+      if (gameIds.length === 0) return []
+
+      const penaltyAgg = await ctx.db.gameEvent.findMany({
+        where: {
+          gameId: { in: gameIds },
+          organizationId: input.organizationId,
+          eventType: "penalty",
+        },
+        select: { teamId: true, penaltyMinutes: true, penaltyTypeId: true },
+      })
+
+      type TeamPenalty = {
+        teamId: string
+        totalMinutes: number
+        totalCount: number
+        byType: Map<string, { count: number; minutes: number }>
+      }
+
+      const teamMap = new Map<string, TeamPenalty>()
+      for (const row of penaltyAgg) {
+        let entry = teamMap.get(row.teamId)
+        if (!entry) {
+          entry = { teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
+          teamMap.set(row.teamId, entry)
+        }
+        const mins = Number(row.penaltyMinutes ?? 0)
+        entry.totalMinutes += mins
+        entry.totalCount++
+        const typeId = row.penaltyTypeId ?? "unknown"
+        const typeEntry = entry.byType.get(typeId)
+        if (typeEntry) {
+          typeEntry.count++
+          typeEntry.minutes += mins
+        } else {
+          entry.byType.set(typeId, { count: 1, minutes: mins })
+        }
+      }
+
+      const penaltyTypes = await ctx.db.penaltyType.findMany()
+      const typeMapLookup = new Map(penaltyTypes.map((pt: any) => [pt.id, pt]))
+
+      const teamIds = Array.from(teamMap.keys())
+      const teams =
+        teamIds.length > 0
+          ? await ctx.db.team.findMany({
+              where: { id: { in: teamIds } },
+              select: { id: true, name: true, shortName: true, logoUrl: true },
+            })
+          : []
+      const teamLookup = new Map(teams.map((t: any) => [t.id, t]))
+
+      return Array.from(teamMap.values())
+        .map((entry) => ({
+          team: teamLookup.get(entry.teamId) ?? null,
+          totalMinutes: entry.totalMinutes,
+          totalCount: entry.totalCount,
+          breakdown: Array.from(entry.byType.entries()).map(([typeId, data]) => ({
+            penaltyType: typeMapLookup.get(typeId) ?? null,
+            count: data.count,
+            minutes: data.minutes,
+          })),
+        }))
+        .sort((a, b) => b.totalMinutes - a.totalMinutes)
+    }),
+
+  getSeasonRoundInfo: publicProcedure
+    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.division.findMany({
+        where: { seasonId: input.seasonId, organizationId: input.organizationId },
+        include: { rounds: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      })
+    }),
+
+  getPlayerCareerStats: publicProcedure
+    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.playerSeasonStat.findMany({
+        where: { playerId: input.playerId, organizationId: input.organizationId },
+        include: {
+          season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+        },
+        orderBy: { season: { seasonStart: "asc" } },
+      })
+    }),
+
+  getGoalieCareerStats: publicProcedure
+    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.goalieSeasonStat.findMany({
+        where: { playerId: input.playerId, organizationId: input.organizationId },
+        include: {
+          season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+        },
+        orderBy: { season: { seasonStart: "asc" } },
+      })
+    }),
+
+  getPlayerSuspensions: publicProcedure
+    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.gameSuspension.findMany({
+        where: { playerId: input.playerId, organizationId: input.organizationId },
+        include: {
+          game: {
+            select: {
+              id: true,
+              scheduledAt: true,
+              homeTeam: { select: { id: true, shortName: true, logoUrl: true } },
+              awayTeam: { select: { id: true, shortName: true, logoUrl: true } },
+              round: {
+                select: {
+                  name: true,
+                  division: { select: { name: true, season: { select: { name: true } } } },
+                },
+              },
+            },
+          },
+          gameEvent: { select: { penaltyType: { select: { name: true, shortName: true } } } },
+          team: { select: { id: true, shortName: true, logoUrl: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      })
+    }),
+
+  getPlayerContracts: publicProcedure
+    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.contract.findMany({
+        where: { playerId: input.playerId, organizationId: input.organizationId },
+        include: { team: true, startSeason: true, endSeason: true },
+        orderBy: { createdAt: "desc" },
+      })
+    }),
+
+  getPlayerById: publicProcedure
+    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.player.findFirst({
+        where: { id: input.playerId, organizationId: input.organizationId },
+      })
+    }),
+
+  getTeamHistory: publicProcedure
+    .input(z.object({ organizationId: z.string(), teamId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const { teamId } = input
+      const orgId = input.organizationId
+
+      const [team, teamDivisions, allScorers, allGoalies] = await Promise.all([
+        ctx.db.team.findFirst({
+          where: { id: teamId, organizationId: orgId },
+        }),
+        ctx.db.teamDivision.findMany({
+          where: { teamId, organizationId: orgId },
+          include: {
+            division: {
+              include: {
+                season: true,
+                rounds: {
+                  include: { standings: { where: { teamId }, take: 1 } },
+                  orderBy: { sortOrder: "asc" },
+                },
+              },
+            },
+          },
+        }),
+        ctx.db.playerSeasonStat.findMany({
+          where: { teamId, organizationId: orgId },
+          include: { player: { select: { firstName: true, lastName: true } } },
+          orderBy: { totalPoints: "desc" },
+        }),
+        ctx.db.goalieSeasonStat.findMany({
+          where: { teamId, organizationId: orgId },
+          include: { player: { select: { firstName: true, lastName: true } } },
+          orderBy: { gaa: "asc" },
+        }),
+      ])
+
+      if (!team) return null
+
+      const seasonMap = new Map<
+        string,
+        {
+          season: { id: string; name: string; seasonStart: Date; seasonEnd: Date }
+          divisions: Array<{
+            id: string
+            name: string
+            rounds: Array<{
+              id: string
+              name: string
+              roundType: string
+              standing: {
+                gamesPlayed: number
+                wins: number
+                draws: number
+                losses: number
+                goalsFor: number
+                goalsAgainst: number
+                goalDifference: number
+                points: number
+                totalPoints: number
+                rank: number | null
+              } | null
+            }>
+          }>
+        }
+      >()
+
+      for (const td of teamDivisions) {
+        const s = td.division.season
+        if (!seasonMap.has(s.id)) {
+          seasonMap.set(s.id, {
+            season: { id: s.id, name: s.name, seasonStart: s.seasonStart, seasonEnd: s.seasonEnd },
+            divisions: [],
+          })
+        }
+        seasonMap.get(s.id)!.divisions.push({
+          id: td.division.id,
+          name: td.division.name,
+          rounds: td.division.rounds.map((r) => ({
+            id: r.id,
+            name: r.name,
+            roundType: r.roundType,
+            standing: r.standings[0]
+              ? {
+                  gamesPlayed: r.standings[0].gamesPlayed,
+                  wins: r.standings[0].wins,
+                  draws: r.standings[0].draws,
+                  losses: r.standings[0].losses,
+                  goalsFor: r.standings[0].goalsFor,
+                  goalsAgainst: r.standings[0].goalsAgainst,
+                  goalDifference: r.standings[0].goalDifference,
+                  points: r.standings[0].points,
+                  totalPoints: r.standings[0].totalPoints,
+                  rank: r.standings[0].rank,
+                }
+              : null,
+          })),
+        })
+      }
+
+      const seasons = Array.from(seasonMap.values())
+        .map((entry) => {
+          let gp = 0, w = 0, d = 0, l = 0, gf = 0, ga = 0
+          let bestRank: number | null = null
+          let bestRankRoundType: string | null = null
+
+          for (const div of entry.divisions) {
+            for (const round of div.rounds) {
+              if (round.standing) {
+                gp += round.standing.gamesPlayed
+                w += round.standing.wins
+                d += round.standing.draws
+                l += round.standing.losses
+                gf += round.standing.goalsFor
+                ga += round.standing.goalsAgainst
+                if (round.standing.rank != null && (bestRank === null || round.standing.rank < bestRank)) {
+                  bestRank = round.standing.rank
+                  bestRankRoundType = round.roundType
+                }
+              }
+            }
+          }
+
+          return {
+            ...entry,
+            totals: { gamesPlayed: gp, wins: w, draws: d, losses: l, goalsFor: gf, goalsAgainst: ga, goalDifference: gf - ga },
+            bestRank,
+            bestRankRoundType,
+          }
+        })
+        .sort((a, b) => new Date(b.season.seasonStart).getTime() - new Date(a.season.seasonStart).getTime())
+
+      const scorersBySeason = new Map<string, typeof allScorers>()
+      for (const s of allScorers) {
+        const arr = scorersBySeason.get(s.seasonId) ?? []
+        if (arr.length < 3) {
+          arr.push(s)
+          scorersBySeason.set(s.seasonId, arr)
+        }
+      }
+
+      const goaliesBySeason = new Map<string, (typeof allGoalies)[0]>()
+      for (const g of allGoalies) {
+        if (!goaliesBySeason.has(g.seasonId)) {
+          goaliesBySeason.set(g.seasonId, g)
+        }
+      }
+
+      return {
+        team: {
+          id: team.id,
+          name: team.name,
+          shortName: team.shortName,
+          city: team.city,
+          logoUrl: team.logoUrl,
+          teamPhotoUrl: team.teamPhotoUrl,
+          homeVenue: team.homeVenue,
+          primaryColor: team.primaryColor,
+        },
+        seasons,
+        topScorers: Array.from(scorersBySeason.values()).flat(),
+        topGoalies: Array.from(goaliesBySeason.values()),
+      }
     }),
 })

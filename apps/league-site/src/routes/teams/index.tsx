@@ -4,6 +4,7 @@ import { EmptyState } from "~/components/shared/emptyState"
 import { Skeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { useOrg, useSeason } from "~/lib/context"
+import { useT } from "~/lib/i18n"
 import { trpc } from "../../../lib/trpc"
 
 export const Route = createFileRoute("/teams/")({
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/teams/")({
 })
 
 function TeamsPage() {
+  const t = useT()
   const org = useOrg()
   const season = useSeason()
 
@@ -22,7 +24,7 @@ function TeamsPage() {
 
   return (
     <div className="animate-fade-in">
-      <SectionWrapper title="Teams">
+      <SectionWrapper title={t.teams.title}>
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -35,7 +37,7 @@ function TeamsPage() {
           </div>
         ) : teams && teams.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {teams.map((team) => (
+            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "de")).map((team) => (
               <Link
                 key={team.id}
                 to="/teams/$teamId"
@@ -56,7 +58,7 @@ function TeamsPage() {
             ))}
           </div>
         ) : (
-          <EmptyState title="Keine Teams vorhanden" />
+          <EmptyState title={t.teams.noTeams} />
         )}
       </SectionWrapper>
     </div>

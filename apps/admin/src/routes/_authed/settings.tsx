@@ -1,10 +1,11 @@
 import { Button, Card, CardContent, Input, toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Save, Settings } from "lucide-react"
+import { Save, Settings, Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { PageHeader } from "~/components/pageHeader"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -31,6 +32,7 @@ function SettingsPage() {
   const { t: tErrors } = useTranslation("errors")
   const { data: settings, isLoading } = trpc.settings.get.useQuery()
   const utils = trpc.useUtils()
+  const { canUseFeature } = usePlanLimits()
 
   const [form, setForm] = useState({
     leagueName: "",
@@ -220,6 +222,79 @@ function SettingsPage() {
           </CardContent>
         </Card>
       </form>
+
+      {/* AI Features section */}
+      {canUseFeature("featureAiRecaps") && <AiSettingsSection />}
     </div>
+  )
+}
+
+function AiSettingsSection() {
+  const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
+  const utils = trpc.useUtils()
+
+  const { data: aiUsage } = trpc.aiRecap.getUsage.useQuery(undefined, { staleTime: 30_000 })
+
+  const setAiEnabled = trpc.organization.setAiEnabled.useMutation({
+    onSuccess: () => {
+      utils.aiRecap.getUsage.invalidate()
+      toast.success(t("settings.saved"))
+    },
+    onError: (err) => toast.error(resolveTranslatedError(err, tErrors)),
+  })
+
+  if (!aiUsage) return null
+
+  const usagePercent = aiUsage.limit ? Math.min(100, Math.round((aiUsage.used / aiUsage.limit) * 100)) : 0
+
+  return (
+    <Card>
+      <CardContent className="p-6 space-y-4">
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-500" />
+          {t("settingsAi.title")}
+        </h3>
+        <p className="text-xs text-muted-foreground">{t("settingsAi.description")}</p>
+
+        {/* Toggle */}
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={aiUsage.aiEnabled}
+            onChange={(e) => setAiEnabled.mutate({ enabled: e.target.checked })}
+            disabled={setAiEnabled.isPending}
+            className="accent-primary w-4 h-4"
+          />
+          <div>
+            <span className="text-sm font-medium">{t("settingsAi.enableToggle")}</span>
+            <p className="text-xs text-muted-foreground">{t("settingsAi.enableDescription")}</p>
+          </div>
+        </label>
+
+        {/* Token usage */}
+        {aiUsage.aiEnabled && (
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium">{t("settingsAi.usage")}</span>
+              <span className="text-muted-foreground tabular-nums">
+                {aiUsage.limit
+                  ? t("settingsAi.usageLabel", { used: aiUsage.used.toLocaleString(), limit: aiUsage.limit.toLocaleString() })
+                  : t("settingsAi.usageUnlimited", { used: aiUsage.used.toLocaleString() })}
+              </span>
+            </div>
+            {aiUsage.limit && (
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all ${usagePercent >= 80 ? "bg-amber-500" : "bg-primary"}`}
+                  style={{ width: `${usagePercent}%` }}
+                />
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">{t("settingsAi.resetHint")}</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

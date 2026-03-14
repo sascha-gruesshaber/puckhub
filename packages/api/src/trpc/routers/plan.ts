@@ -36,6 +36,8 @@ const planInputSchema = z.object({
   featureScheduledNews: z.boolean().default(false),
   featureAdvancedRoles: z.boolean().default(false),
   featureAdvancedStats: z.boolean().default(false),
+  featureAiRecaps: z.boolean().default(false),
+  aiMonthlyTokenLimit: z.number().int().min(0).nullable().default(null),
 })
 
 export const planRouter = router({

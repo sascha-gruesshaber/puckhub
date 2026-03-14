@@ -1,8 +1,10 @@
-import { hashPassword } from "better-auth/crypto"
 import { z } from "zod"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { sendEmail } from "../../lib/email"
+import { inviteEmail } from "../../lib/emailTemplates"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
+import { ensureSystemPages } from "../../services/ensureSystemPages"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 
 const ORG_ROLE_VALUES = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"] as const
@@ -112,8 +114,8 @@ export const organizationRouter = router({
         name: z.string().min(1),
         slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
         logo: z.string().nullish(),
-        ownerEmail: z.string().email(),
-        ownerName: z.string().min(1),
+        ownerEmail: z.string().email().optional(),
+        ownerName: z.string().min(1).optional(),
         planId: z.string().uuid().optional(),
         leagueSettings: z.object({
           leagueName: z.string().min(1),
@@ -129,7 +131,6 @@ export const organizationRouter = router({
     .mutation(async ({ ctx, input }) => {
       const orgId = crypto.randomUUID()
       let isNewUser = false
-      let generatedPassword: string | undefined
 
       // Generate or validate slug
       let orgSlug = input.slug || slugify(input.name)
@@ -149,43 +150,29 @@ export const organizationRouter = router({
         if (freePlan) planId = freePlan.id
       }
 
-      // Look up or create user
-      const existingUser = await ctx.db.user.findFirst({ where: { email: input.ownerEmail } })
-      let ownerUserId: string
+      // Look up or create user (only if owner email provided)
+      let ownerUserId: string | null = null
 
-      if (existingUser) {
-        ownerUserId = existingUser.id
-      } else {
-        // Generate secure random password
-        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*"
-        const bytes = new Uint8Array(16)
-        crypto.getRandomValues(bytes)
-        generatedPassword = Array.from(bytes, (b) => chars[b % chars.length]).join("")
-        isNewUser = true
-        ownerUserId = crypto.randomUUID()
+      if (input.ownerEmail) {
+        const existingUser = await ctx.db.user.findFirst({ where: { email: input.ownerEmail } })
+
+        if (existingUser) {
+          ownerUserId = existingUser.id
+        } else {
+          isNewUser = true
+          ownerUserId = crypto.randomUUID()
+        }
       }
 
       const result = await ctx.db.$transaction(async (tx: any) => {
-        // Create user + account if new
-        if (isNewUser) {
+        // Create user if new (no password — they'll use magic link)
+        if (isNewUser && ownerUserId) {
           await tx.user.create({
             data: {
               id: ownerUserId,
-              email: input.ownerEmail,
-              name: input.ownerName,
+              email: input.ownerEmail!,
+              name: input.ownerName || input.ownerEmail!.split("@")[0],
               emailVerified: true,
-              mustChangePassword: true,
-            },
-          })
-
-          const hashedPw = await hashPassword(generatedPassword!)
-          await tx.account.create({
-            data: {
-              id: crypto.randomUUID(),
-              accountId: ownerUserId,
-              providerId: "credential",
-              password: hashedPw,
-              userId: ownerUserId,
             },
           })
         }
@@ -199,22 +186,25 @@ export const organizationRouter = router({
           },
         })
 
-        const ownerMemberId = crypto.randomUUID()
-        await tx.member.create({
-          data: {
-            id: ownerMemberId,
-            userId: ownerUserId,
-            organizationId: orgId,
-            role: "member",
-          },
-        })
+        // Create member + owner role only if owner specified
+        if (ownerUserId) {
+          const ownerMemberId = crypto.randomUUID()
+          await tx.member.create({
+            data: {
+              id: ownerMemberId,
+              userId: ownerUserId,
+              organizationId: orgId,
+              role: "member",
+            },
+          })
 
-        await tx.memberRole.create({
-          data: {
-            memberId: ownerMemberId,
-            role: "owner",
-          },
-        })
+          await tx.memberRole.create({
+            data: {
+              memberId: ownerMemberId,
+              role: "owner",
+            },
+          })
+        }
 
         await tx.systemSettings.create({
           data: {
@@ -252,33 +242,7 @@ export const organizationRouter = router({
         })
 
         // Create system route pages for navigation
-        const systemRoutePages = isGerman
-          ? [
-              { title: "Start", slug: "_route-home", routePath: "/", menuLocations: ["main_nav"], sortOrder: 0 },
-              { title: "Tabelle", slug: "_route-standings", routePath: "/standings", menuLocations: ["main_nav"], sortOrder: 1 },
-              { title: "Spielplan", slug: "_route-schedule", routePath: "/schedule", menuLocations: ["main_nav"], sortOrder: 2 },
-              { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ["main_nav"], sortOrder: 3 },
-              { title: "Statistiken", slug: "_route-stats", routePath: "/stats", menuLocations: ["main_nav"], sortOrder: 4 },
-              { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ["main_nav"], sortOrder: 5 },
-            ]
-          : [
-              { title: "Home", slug: "_route-home", routePath: "/", menuLocations: ["main_nav"], sortOrder: 0 },
-              { title: "Standings", slug: "_route-standings", routePath: "/standings", menuLocations: ["main_nav"], sortOrder: 1 },
-              { title: "Schedule", slug: "_route-schedule", routePath: "/schedule", menuLocations: ["main_nav"], sortOrder: 2 },
-              { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ["main_nav"], sortOrder: 3 },
-              { title: "Statistics", slug: "_route-stats", routePath: "/stats", menuLocations: ["main_nav"], sortOrder: 4 },
-              { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ["main_nav"], sortOrder: 5 },
-            ]
-
-        await tx.page.createMany({
-          data: systemRoutePages.map((p) => ({
-            organizationId: orgId,
-            ...p,
-            isSystemRoute: true,
-            status: "published" as const,
-            content: "",
-          })),
-        })
+        await ensureSystemPages(tx as any, orgId, input.leagueSettings.locale)
 
         // Create default jerseys based on locale
         const templates = await tx.trikotTemplate.findMany()
@@ -327,7 +291,18 @@ export const organizationRouter = router({
         return org
       })
 
-      return { organization: result, isNewUser, generatedPassword }
+      // Send invite email to owner if new user
+      if (isNewUser && input.ownerEmail) {
+        const adminUrl = process.env.TRUSTED_ORIGINS?.split(",")[0]?.trim() ?? "http://admin.puckhub.localhost"
+        const loginUrl = `${adminUrl}/login`
+        await sendEmail({
+          to: input.ownerEmail,
+          subject: `Welcome to PuckHub — ${input.name}`,
+          html: inviteEmail(loginUrl, input.name),
+        })
+      }
+
+      return { organization: result, isNewUser }
     }),
 
   update: orgAdminProcedure
@@ -602,6 +577,10 @@ export const organizationRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (ctx.organizationId === "demo-league") {
+        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+      }
+
       const memberRecord = await ctx.db.member.findFirst({
         where: { id: input.memberId, organizationId: ctx.organizationId },
       })
@@ -643,9 +622,26 @@ export const organizationRouter = router({
       })
     }),
 
+  setAiEnabled: orgAdminProcedure
+    .input(z.object({ enabled: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.organizationId === "demo-league") {
+        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "AI features cannot be enabled for demo organizations")
+      }
+      await ctx.db.organization.update({
+        where: { id: ctx.organizationId },
+        data: { aiEnabled: input.enabled },
+      })
+      return { success: true }
+    }),
+
   removeMemberRole: orgAdminProcedure
     .input(z.object({ memberRoleId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      if (ctx.organizationId === "demo-league") {
+        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+      }
+
       const memberRole = await ctx.db.memberRole.findUnique({
         where: { id: input.memberRoleId },
         include: {

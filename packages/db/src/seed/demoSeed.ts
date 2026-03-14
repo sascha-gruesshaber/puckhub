@@ -1,4 +1,3 @@
-import { hashPassword } from "better-auth/crypto"
 import type { Database } from "../index"
 import type { OrgRole } from "../generated/prisma/enums"
 import { recalculateStandings } from "../services/standingsService"
@@ -261,15 +260,6 @@ const SEASON_STRUCTURE_TEMPLATES: Array<{ divisions: DivisionDef[] }> = [
   {
     divisions: [
       {
-        name: "Recreational League",
-        rounds: [{ name: "Regular Season", roundType: "regular" }],
-        teamIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-      },
-    ],
-  },
-  {
-    divisions: [
-      {
         name: "1. Liga",
         rounds: [
           { name: "Regular Season", roundType: "regular" },
@@ -284,6 +274,15 @@ const SEASON_STRUCTURE_TEMPLATES: Array<{ divisions: DivisionDef[] }> = [
           { name: "Playdowns", roundType: "playdowns" },
         ],
         teamIndices: [5, 6, 7, 8, 9],
+      },
+    ],
+  },
+  {
+    divisions: [
+      {
+        name: "Recreational League",
+        rounds: [{ name: "Regular Season", roundType: "regular" }],
+        teamIndices: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
       },
     ],
   },
@@ -493,7 +492,6 @@ const DEMO_USERS = [
   {
     email: `admin${DEMO_EMAIL_DOMAIN}`,
     name: "Demo Admin",
-    password: "demo1234",
     platformRole: "user" as const,
     memberRole: "owner" as const,
     memberRoles: ["owner"] as OrgRole[],
@@ -501,7 +499,6 @@ const DEMO_USERS = [
   {
     email: `editor${DEMO_EMAIL_DOMAIN}`,
     name: "Demo Editor",
-    password: "demo1234",
     platformRole: "user" as const,
     memberRole: "member" as const,
     memberRoles: ["editor"] as OrgRole[],
@@ -509,7 +506,6 @@ const DEMO_USERS = [
   {
     email: `reporter${DEMO_EMAIL_DOMAIN}`,
     name: "Demo Reporter",
-    password: "demo1234",
     platformRole: "user" as const,
     memberRole: "member" as const,
     memberRoles: ["game_reporter"] as OrgRole[],
@@ -523,7 +519,6 @@ async function createDemoUsers(
 
   for (const userDef of DEMO_USERS) {
     const userId = crypto.randomUUID()
-    const hashedPw = await hashPassword(userDef.password)
 
     await db.user.create({
       data: {
@@ -533,16 +528,6 @@ async function createDemoUsers(
         emailVerified: true,
         role: userDef.platformRole,
         isDemoUser: true,
-      },
-    })
-
-    await db.account.create({
-      data: {
-        id: crypto.randomUUID(),
-        accountId: userId,
-        providerId: "credential",
-        password: hashedPw,
-        userId,
       },
     })
 
@@ -653,6 +638,11 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   // ── 1d. Assign Pro plan (unlimited features) ──────────────────────────
   const proPlan = await db.plan.findUnique({ where: { slug: "pro" } })
   if (proPlan) {
+    // Ensure Pro plan has AI features
+    await db.plan.update({
+      where: { id: proPlan.id },
+      data: { featureAiRecaps: true, aiMonthlyTokenLimit: 500000 },
+    })
     console.log("[demo-seed] Assigning Pro plan to demo org...")
     const now = new Date()
     const farFuture = new Date(now)
@@ -899,6 +889,112 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     }
   }
   const insertedGames = await db.game.createManyAndReturn({ data: gamesValues })
+
+  // ── 9b. Fake AI Recaps for completed games ─────────────────────────
+  const completedGames = insertedGames.filter((g) => g.status === "completed" && g.homeScore !== null)
+  const teamNameById = new Map(insertedTeams.map((t) => [t.id, t.name]))
+
+  function generateFakeRecap(home: string, away: string, homeScore: number, awayScore: number, location: string | null) {
+    const winner = homeScore > awayScore ? home : away
+    const loser = homeScore > awayScore ? away : home
+    const winScore = Math.max(homeScore, awayScore)
+    const loseScore = Math.min(homeScore, awayScore)
+    const diff = winScore - loseScore
+    const isDraw = homeScore === awayScore
+    const venue = location ?? "home ice"
+
+    if (isDraw) {
+      return {
+        title: `${home} and ${away} battle to a ${homeScore}–${awayScore} draw at ${venue}`,
+        content: [
+          `<p>In a fiercely contested matchup at ${venue}, <strong>${home}</strong> and <strong>${away}</strong> skated to a hard-fought ${homeScore}–${awayScore} draw. Both teams delivered a physical, gritty performance and refused to give an inch throughout the sixty minutes.</p>`,
+          `<h3>1st Period</h3>`,
+          `<p>The opening frame saw an end-to-end affair with both goaltenders forced into spectacular saves early on. ${home} controlled possession for long stretches but couldn't find the breakthrough, as ${away}'s defensive structure held firm. The period ended with the teams locked at 0–0.</p>`,
+          `<h3>2nd Period</h3>`,
+          `<p>${home} turned up the pressure in the middle frame and were rewarded when they finally broke the deadlock. But ${away} responded almost immediately with a clinical counter-attack, restoring parity and sending the home crowd into a nervous silence.</p>`,
+          `<h3>3rd Period</h3>`,
+          `<p>Both teams pushed hard for the winner in the final period, trading chances at a frantic pace. In the end, neither side could find the decisive goal, and the teams had to settle for a point each — a fair result given the balance of play.</p>`,
+        ].join("\n"),
+      }
+    }
+
+    if (diff >= 4) {
+      return {
+        title: `${winner} dominate in commanding ${winScore}–${loseScore} victory over ${loser}`,
+        content: [
+          `<p>In a one-sided affair at ${venue}, <strong>${winner}</strong> put on an offensive masterclass to cruise to a dominant ${homeScore}–${awayScore} win over <strong>${loser}</strong>. The result was never in doubt as ${winner} controlled the game from start to finish.</p>`,
+          `<h3>1st Period</h3>`,
+          `<p>${winner} came out firing from the opening face-off and wasted no time establishing their authority. Two quick goals in the opening minutes stunned ${loser} and set the tone for what would become a long evening for the visitors. The defensive pressure was relentless, and ${loser} struggled to create any meaningful chances of their own.</p>`,
+          `<h3>2nd Period</h3>`,
+          `<p>${loser} tried to regroup during the intermission, but ${winner} picked up right where they left off. A power-play goal midway through the period extended the lead further, and the floodgates opened. ${winner}'s passing game was crisp and clinical, carving through the opposition defense almost at will.</p>`,
+          `<h3>3rd Period</h3>`,
+          `<p>With the game already well beyond reach, ${winner} showed no mercy in the final frame, adding to their tally and capping off an emphatic performance. ${loser} managed a consolation effort late on, but it was merely a footnote in an otherwise dominant display.</p>`,
+          `<p>An outstanding evening for ${winner}, who demonstrated their quality across all three periods. ${loser} will need to regroup quickly and put this result behind them ahead of their next fixture.</p>`,
+        ].join("\n"),
+      }
+    }
+
+    if (diff >= 2) {
+      return {
+        title: `${winner} secure convincing ${winScore}–${loseScore} win against ${loser}`,
+        content: [
+          `<p><strong>${winner}</strong> earned a well-deserved ${homeScore}–${awayScore} victory over <strong>${loser}</strong> at ${venue}. A strong start and disciplined defensive play proved to be the winning formula on the night.</p>`,
+          `<h3>1st Period</h3>`,
+          `<p>Both teams started cautiously, feeling each other out in the early exchanges. ${winner} found the breakthrough midway through the period with a well-worked goal that rewarded their patient build-up play. ${loser} responded with increased pressure but couldn't find the equalizer before the horn.</p>`,
+          `<h3>2nd Period</h3>`,
+          `<p>The middle frame belonged to ${winner}. A quick double strike early in the period extended the lead and took the wind out of ${loser}'s sails. The penalty kill also stood strong, denying ${loser} on two power-play opportunities and maintaining the comfortable cushion.</p>`,
+          `<h3>3rd Period</h3>`,
+          `<p>${loser} threw everything forward in a desperate attempt to get back into the game and managed to pull one back. However, ${winner} remained composed, managing the clock effectively and sealing the victory with a late empty-net goal.</p>`,
+          `<p>A professional performance from ${winner}, who showed maturity beyond the scoreline. ${loser} showed fight in the third but ultimately left it too late to mount a serious comeback.</p>`,
+        ].join("\n"),
+      }
+    }
+
+    return {
+      title: `${winner} edge past ${loser} in a tight ${winScore}–${loseScore} contest`,
+      content: [
+        `<p>It was a nail-biter at ${venue} as <strong>${winner}</strong> held on for a narrow ${homeScore}–${awayScore} victory over <strong>${loser}</strong>. The game could have gone either way, with both teams creating quality chances throughout.</p>`,
+        `<h3>1st Period</h3>`,
+        `<p>A cagey opening period saw both teams respect each other's threats. Chances were at a premium as the defenses dominated, with both goaltenders called into action only sparingly. The frame ended scoreless, setting the stage for an intense middle twenty minutes.</p>`,
+        `<h3>2nd Period</h3>`,
+        `<p>The deadlock was finally broken when ${winner} capitalized on a turnover in the neutral zone, converting a clinical two-on-one rush. ${loser} hit back almost immediately with a power-play goal, and the seesaw battle continued with end-to-end action that had the crowd on the edge of their seats.</p>`,
+        `<h3>3rd Period</h3>`,
+        `<p>With everything on the line, both teams traded blows in a tense final period. ${winner} found the decisive goal with just minutes remaining, sending the home fans into raptures. ${loser} pulled their goaltender in a last-ditch effort but couldn't find the equalizer.</p>`,
+        `<p>A gutsy win for ${winner}, who showed real character when it mattered most. ${loser} can hold their heads high after a spirited performance that deserved more.</p>`,
+      ].join("\n"),
+    }
+  }
+
+  // Add recaps to all completed games in the current and previous season
+  const roundToSeasonId = new Map<string, string>()
+  for (const round of insertedRounds) {
+    const division = insertedDivisions.find((d) => d.id === round.divisionId)
+    if (division) roundToSeasonId.set(round.id, division.seasonId)
+  }
+  const currentSeasonId = seasonByYear.get(CURRENT_SEASON_START_YEAR)?.id
+  const lastSeasonId = seasonByYear.get(CURRENT_SEASON_START_YEAR - 1)?.id
+  const recentSeasonIds = new Set([currentSeasonId, lastSeasonId].filter(Boolean))
+
+  const gamesForRecap = completedGames.filter((g) => {
+    const seasonId = roundToSeasonId.get(g.roundId)
+    return seasonId != null && recentSeasonIds.has(seasonId)
+  })
+  if (gamesForRecap.length > 0) {
+    console.log(`[demo-seed] Adding AI recaps to ${gamesForRecap.length} completed games (current + last season)...`)
+    for (const game of gamesForRecap) {
+      const homeName = teamNameById.get(game.homeTeamId) ?? "Home"
+      const awayName = teamNameById.get(game.awayTeamId) ?? "Away"
+      const recap = generateFakeRecap(homeName, awayName, game.homeScore!, game.awayScore!, game.location)
+      await db.game.update({
+        where: { id: game.id },
+        data: {
+          recapTitle: recap.title,
+          recapContent: recap.content,
+          recapGeneratedAt: new Date(game.finalizedAt!.getTime() + 30 * 60 * 1000),
+        },
+      })
+    }
+  }
 
   // ── 10. Players ──────────────────────────────────────────────────────
   console.log("[demo-seed] Seeding 100 players...")
@@ -1483,6 +1579,282 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       authorId: adminUserId,
       createdAt: new Date("2025-01-05T11:00:00Z"),
     },
+    // ── Additional news for realistic pagination ──
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Heidelberg Wolves announce new coaching staff",
+      shortText: "Former pro-league assistant joins as head coach.",
+      content:
+        "<h2>New era in Heidelberg</h2><p>The Wolves have hired a new coaching team to lead the franchise into the next chapter.</p><p>The incoming head coach brings over 15 years of experience from higher-level leagues.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-09-20T08:00:00Z"),
+      createdAt: new Date("2024-09-20T08:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Preseason tournament results",
+      shortText: "Karlsruhe takes the preseason cup after a dominant weekend.",
+      content:
+        "<h2>Preseason wrap-up</h2><p>All ten teams competed in a two-day round-robin to warm up for the regular season.</p><p>Eisbären Karlsruhe went undefeated, winning four straight games including a convincing 5-1 final.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-09-28T17:00:00Z"),
+      createdAt: new Date("2024-09-28T17:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Opening night recap: thrilling start to the season",
+      shortText: "Five games produce 34 goals on a memorable opening night.",
+      content:
+        "<h2>What a start</h2><p>The 2024/25 season opened with a bang as five simultaneous games delivered drama across the board.</p><p>Highlights include a hat trick by Karlsruhe's top scorer and a last-second equalizer in Freiburg.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-10-15T21:30:00Z"),
+      createdAt: new Date("2024-10-15T21:30:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Mannheimer Pinguine extend winning streak to five",
+      shortText: "Strong defensive play anchors Mannheim's hot start.",
+      content:
+        "<h2>Dominant stretch</h2><p>Mannheim's penalty kill has been nearly perfect over the last five games, allowing just one power-play goal.</p><p>The Pinguine sit atop the table with a comfortable margin heading into November.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-10-22T19:00:00Z"),
+      createdAt: new Date("2024-10-22T19:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Referee seminar: rule changes explained",
+      shortText: "Officials and team captains attended a league-wide rules briefing.",
+      content:
+        "<h2>Rules update</h2><p>The league hosted a seminar to walk through updated rules for the current season.</p><p>Key topics included hybrid icing enforcement, delay-of-game penalties, and overtime procedures.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-10-28T10:00:00Z"),
+      createdAt: new Date("2024-10-28T10:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Injury report: Stuttgarter Eishexen lose captain for four weeks",
+      shortText: "A lower-body injury sidelines the veteran defenseman.",
+      content:
+        "<h2>Tough blow</h2><p>Stuttgart's captain suffered an injury in Saturday's game against Ulm and will miss approximately four weeks.</p><p>The team has called up a prospect from their development squad to fill the roster spot.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-11-05T12:00:00Z"),
+      createdAt: new Date("2024-11-05T12:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Freiburger Falken host charity game for youth hockey",
+      shortText: "All proceeds go to the local youth development program.",
+      content:
+        "<h2>Giving back</h2><p>The Falken organized a special exhibition game to raise funds for youth hockey in the Freiburg region.</p><p>Over 800 fans attended and the event raised more than €5,000 for equipment and ice time.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-11-10T15:00:00Z"),
+      createdAt: new Date("2024-11-10T15:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Player of the month: October honors go to Mannheim's goaltender",
+      shortText: "A .942 save percentage earned the league's top individual award.",
+      content:
+        "<h2>October MVP</h2><p>Mannheim's starting goaltender posted a stellar .942 save percentage across eight starts in October.</p><p>He recorded two shutouts and allowed more than two goals only once during the month.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-11-02T09:00:00Z"),
+      createdAt: new Date("2024-11-02T09:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Ulmer Bisons snap losing streak with dramatic OT winner",
+      shortText: "A five-game slide ends on a highlight-reel goal.",
+      content:
+        "<h2>Back on track</h2><p>Ulm's losing streak came to an end in dramatic fashion when a rookie forward scored in overtime against Reutlingen.</p><p>The goal came on a 2-on-1 rush with just 30 seconds remaining in the extra period.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-11-15T20:30:00Z"),
+      createdAt: new Date("2024-11-15T20:30:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Tübinger Eisbären promote three from junior team",
+      shortText: "Young talent gets a chance as injuries mount.",
+      content:
+        "<h2>Youth movement</h2><p>Tübingen have called up three players from their under-20 squad to address a growing injury list.</p><p>All three are expected to slot into the bottom six and see power-play time immediately.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-11-25T11:00:00Z"),
+      createdAt: new Date("2024-11-25T11:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Pforzheim Hurricanes unveil alternate jersey",
+      shortText: "A black-and-gold design pays tribute to the city's heritage.",
+      content:
+        "<h2>New threads</h2><p>Pforzheim revealed their new alternate jersey at a fan event downtown.</p><p>The design features a gold lightning bolt across the chest, inspired by the city's jewelry-making tradition.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-12-01T14:00:00Z"),
+      createdAt: new Date("2024-12-01T14:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Heilbronner Yetis trade for experienced defenseman",
+      shortText: "A mid-season acquisition shores up the blue line.",
+      content:
+        "<h2>Trade alert</h2><p>Heilbronn acquired a veteran defenseman in exchange for a draft pick and a prospect.</p><p>The new addition brings leadership and a physical presence to a young defensive corps.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-12-05T16:30:00Z"),
+      createdAt: new Date("2024-12-05T16:30:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Reutlinger Foxes win winter classic outdoors",
+      shortText: "Over 2,000 fans braved the cold for a special open-air matchup.",
+      content:
+        "<h2>Winter classic success</h2><p>Reutlingen hosted the league's first outdoor game at the city's main sports complex.</p><p>Despite near-freezing temperatures, the atmosphere was electric as the Foxes won 4-2 against Heidelberg.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-12-14T18:00:00Z"),
+      createdAt: new Date("2024-12-14T18:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "League introduces live-streaming for all games",
+      shortText: "Every regular-season and playoff game will be available online.",
+      content:
+        "<h2>Watch from anywhere</h2><p>Starting in January, all league games will be streamed live on the league's new platform.</p><p>Fans can purchase a season pass or single-game access at affordable prices.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2024-12-22T10:00:00Z"),
+      createdAt: new Date("2024-12-22T10:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Season resumes after holiday break",
+      shortText: "Teams return to competitive action this weekend.",
+      content:
+        "<h2>Welcome back</h2><p>After a two-week break over the holidays, all ten teams are back in action.</p><p>The race for playoff spots heats up with 14 regular-season games remaining per team.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-01-11T09:00:00Z"),
+      createdAt: new Date("2025-01-11T09:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Karlsruhe retakes top spot after weekend sweep",
+      shortText: "Two convincing road wins push the Eisbären back to first.",
+      content:
+        "<h2>Statement weekend</h2><p>Karlsruhe picked up six points with wins in Pforzheim (4-1) and Heilbronn (3-0).</p><p>Their goaltender stopped 54 of 55 shots across both games to earn player-of-the-week honors.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-01-19T20:00:00Z"),
+      createdAt: new Date("2025-01-19T20:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Player of the month: December goes to Freiburg forward",
+      shortText: "Nine goals and six assists in eight games earn the honor.",
+      content:
+        "<h2>December MVP</h2><p>Freiburg's top-line forward put together a dominant December, leading the league in points during the month.</p><p>His nine goals included three game-winners, propelling the Falken into a playoff spot.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-01-08T09:00:00Z"),
+      createdAt: new Date("2025-01-08T09:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "All-star game rosters announced",
+      shortText: "Fan voting and coaching staff picks determine the final squads.",
+      content:
+        "<h2>Stars on ice</h2><p>The league's annual all-star game rosters have been finalized. Each team is represented by at least one player.</p><p>The event takes place on February 8 in Mannheim, including a skills competition the night before.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-01-25T12:00:00Z"),
+      createdAt: new Date("2025-01-25T12:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Stuttgart captain returns ahead of schedule",
+      shortText: "The veteran defenseman is cleared for full contact after just three weeks.",
+      content:
+        "<h2>Welcome back, captain</h2><p>Stuttgart's captain has been medically cleared to return, one week ahead of the original timeline.</p><p>He is expected to slot back into the top pair and resume his role on the first power-play unit.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-01-28T14:00:00Z"),
+      createdAt: new Date("2025-01-28T14:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Trade deadline day: four deals completed",
+      shortText: "Teams make final roster moves before the February 5 cutoff.",
+      content:
+        "<h2>Deadline drama</h2><p>Four trades were completed on deadline day as contenders bolstered their rosters for the playoff push.</p><p>The biggest move saw Mannheim acquire a scoring winger from Tübingen in exchange for two prospects.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-02-05T18:00:00Z"),
+      createdAt: new Date("2025-02-05T18:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "All-star weekend recap: Mannheim dazzles",
+      shortText: "The host city delivered a memorable event with record attendance.",
+      content:
+        "<h2>A night to remember</h2><p>Over 3,500 fans packed into Mannheim's arena for the all-star festivities.</p><p>The skills competition was highlighted by a jaw-dropping shootout round, and the exhibition game finished 8-7.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-02-09T21:00:00Z"),
+      createdAt: new Date("2025-02-09T21:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Playoff race tightens: four teams separated by two points",
+      shortText: "Positions 3 through 6 remain wide open with five games left.",
+      content:
+        "<h2>Down to the wire</h2><p>With five regular-season games remaining, the battle for playoff seeding is as close as it gets.</p><p>Stuttgart, Freiburg, Heidelberg, and Heilbronn are all within two points of each other.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-02-15T16:00:00Z"),
+      createdAt: new Date("2025-02-15T16:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "League awards voting opens for regular season honors",
+      shortText: "Coaches and media vote for MVP, best goaltender, and rookie of the year.",
+      content:
+        "<h2>Cast your votes</h2><p>Voting is now open for the three major individual awards of the regular season.</p><p>Winners will be announced at a ceremony before game one of the playoff finals.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-02-20T10:00:00Z"),
+      createdAt: new Date("2025-02-20T10:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Regular season ends: final standings confirmed",
+      shortText: "Karlsruhe finishes first, Mannheim second — playoffs begin next weekend.",
+      content:
+        "<h2>Season wrap</h2><p>The regular season is in the books. Karlsruhe clinched the top seed with a final-day win over Stuttgart.</p><p>Playoff matchups: (1) Karlsruhe vs (6) Heilbronn, (2) Mannheim vs (5) Heidelberg, (3) Stuttgart vs (4) Freiburg.</p>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-03-01T22:00:00Z"),
+      createdAt: new Date("2025-03-01T22:00:00Z"),
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Playoff preview: first round matchups analyzed",
+      shortText: "Breaking down the three best-of-three series.",
+      content:
+        "<h2>Playoff time</h2><p>The first round of the playoffs begins this Saturday. Here's a quick look at each matchup:</p><ul><li><strong>Karlsruhe vs Heilbronn:</strong> Experience vs youth — Karlsruhe is the heavy favorite.</li><li><strong>Mannheim vs Heidelberg:</strong> A rivalry game that could go either way.</li><li><strong>Stuttgart vs Freiburg:</strong> Two evenly matched teams with playoff pedigree.</li></ul>",
+      status: "published",
+      authorId: adminUserId,
+      publishedAt: new Date("2025-03-05T11:00:00Z"),
+      createdAt: new Date("2025-03-05T11:00:00Z"),
+    },
   ]
   await db.news.createMany({ data: newsValues })
 
@@ -1496,9 +1868,22 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     { organizationId: DEMO_ORG_ID, title: "Schedule", slug: "_route-schedule", routePath: "/schedule", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 2 },
     { organizationId: DEMO_ORG_ID, title: "Teams", slug: "_route-teams", routePath: "/teams", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 3 },
     { organizationId: DEMO_ORG_ID, title: "Statistics", slug: "_route-stats", routePath: "/stats", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 4 },
-    { organizationId: DEMO_ORG_ID, title: "News", slug: "_route-news", routePath: "/news", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 5 },
   ]
-  await db.page.createMany({ data: systemRoutePages })
+  const insertedSystemRoutes = await db.page.createManyAndReturn({ data: systemRoutePages })
+
+  // Sub-route system pages (children of top-level routes)
+  const statsPageId = insertedSystemRoutes.find((p) => p.slug === "_route-stats")!.id
+  const teamsPageId = insertedSystemRoutes.find((p) => p.slug === "_route-teams")!.id
+
+  const systemSubRoutePages: any[] = [
+    { organizationId: DEMO_ORG_ID, title: "Scorers", slug: "_route-stats-scorers", routePath: "/stats/scorers", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 0, parentId: statsPageId },
+    { organizationId: DEMO_ORG_ID, title: "Goals", slug: "_route-stats-goals", routePath: "/stats/goals", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 1, parentId: statsPageId },
+    { organizationId: DEMO_ORG_ID, title: "Assists", slug: "_route-stats-assists", routePath: "/stats/assists", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 2, parentId: statsPageId },
+    { organizationId: DEMO_ORG_ID, title: "Penalties", slug: "_route-stats-penalties", routePath: "/stats/penalties", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 3, parentId: statsPageId },
+    { organizationId: DEMO_ORG_ID, title: "Goalies", slug: "_route-stats-goalies", routePath: "/stats/goalies", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 4, parentId: statsPageId },
+    { organizationId: DEMO_ORG_ID, title: "Team Comparison", slug: "_route-teams-compare", routePath: "/stats/compare-teams", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 0, parentId: teamsPageId },
+  ]
+  await db.page.createMany({ data: systemSubRoutePages })
 
   const topLevelPages: any[] = [
     {
@@ -1528,7 +1913,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         '<h2>Contact</h2><p>PuckHub Demo League e.V.<br/>Sample Street 1<br/>76131 Karlsruhe</p><p>Email: <a href="mailto:info@puckhub-demo.de">info@puckhub-demo.de</a><br/>Phone: +49 721 12345678</p><h3>Office hours</h3><p>Mon-Fri: 9:00 AM - 5:00 PM</p>',
       status: "published",
-      menuLocations: ["footer", "main_nav"],
+      menuLocations: ["footer"],
       sortOrder: 102,
     },
     {
@@ -1649,9 +2034,10 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     `   • ${newsValues.length} news (${newsValues.filter((n: any) => n.status === "published").length} published, ${newsValues.filter((n: any) => n.status === "draft").length} draft)`,
   )
   console.log(
-    `   • ${systemRoutePages.length + topLevelPages.length + subPages.length} pages (${systemRoutePages.length} system routes, ${subPages.length} sub-pages, ${aliasValues.length} aliases)`,
+    `   • ${systemRoutePages.length + systemSubRoutePages.length + topLevelPages.length + subPages.length} pages (${systemRoutePages.length} system routes, ${systemSubRoutePages.length} system sub-routes, ${subPages.length} custom sub-pages, ${aliasValues.length} aliases)`,
   )
   console.log(
     `   • ${reportGames.length} game reports (${totalGoals} goals, ${totalPenalties} penalties, ${totalSuspensions} suspensions, ${lineupValues.length} lineup entries)`,
   )
+  console.log(`   • ${gamesForRecap.length} AI recaps (current + last season)`)
 }

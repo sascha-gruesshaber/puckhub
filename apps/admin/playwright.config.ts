@@ -8,8 +8,8 @@ export default defineConfig({
   timeout: 60_000,
   workers: 1,
   retries: 0,
-  globalSetup: "./e2e/global-setup.ts",
-  globalTeardown: "./e2e/global-teardown.ts",
+  globalSetup: "../../e2e/global-setup.ts",
+  globalTeardown: "../../e2e/global-teardown.ts",
   use: {
     baseURL: `http://localhost:${ADMIN_PORT}`,
     trace: "on-first-retry",

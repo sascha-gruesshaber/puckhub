@@ -140,18 +140,11 @@ describe("organization router", () => {
       expect(result.organization).toBeDefined()
       expect(result.organization.name).toBe("New Hockey League")
       expect(result.isNewUser).toBe(true)
-      expect(result.generatedPassword).toBeDefined()
-      expect(typeof result.generatedPassword).toBe("string")
 
-      // Verify user was created
+      // Verify user was created (no password/credential account — magic link)
       const user = await db.user.findFirst({ where: { email: "newowner@example.com" } })
       expect(user).not.toBeNull()
       expect(user?.name).toBe("New Owner")
-
-      // Verify account was created
-      const account = await db.account.findFirst({ where: { userId: user!.id } })
-      expect(account).not.toBeNull()
-      expect(account?.providerId).toBe("credential")
 
       // Verify member (owner) was created
       const member = await db.member.findFirst({
@@ -197,7 +190,6 @@ describe("organization router", () => {
 
       expect(result.organization.name).toBe("Second League for Admin")
       expect(result.isNewUser).toBe(false)
-      expect(result.generatedPassword).toBeUndefined()
 
       // Verify member was created for existing user
       const member = await db.member.findFirst({

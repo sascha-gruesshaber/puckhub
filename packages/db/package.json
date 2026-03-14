@@ -8,6 +8,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./services": "./src/services/index.ts",
+    "./seed": "./src/seed/index.ts",
     "./seed/demoSeed": "./src/seed/demoSeed.ts"
   },
   "scripts": {

@@ -5,8 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        display: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Inter Variable", "system-ui", "sans-serif"],
+        display: ["Inter Variable", "system-ui", "sans-serif"],
       },
       colors: {
         "league-primary": "hsl(var(--league-primary) / <alpha-value>)",

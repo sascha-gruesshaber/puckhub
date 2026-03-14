@@ -1,5 +1,8 @@
-import { Globe, MapPin } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { ArrowRight, Globe, MapPin } from "lucide-react"
 import type { ReactNode } from "react"
+import { useT } from "~/lib/i18n"
+import { useBackPath } from "~/lib/utils"
 import { HoverCard } from "./hoverCard"
 
 interface TeamHoverCardProps {
@@ -10,6 +13,7 @@ interface TeamHoverCardProps {
   city?: string | null
   homeVenue?: string | null
   website?: string | null
+  teamId?: string | null
   children: ReactNode
   disabled?: boolean
 }
@@ -22,6 +26,7 @@ function TeamHoverCard({
   city,
   homeVenue,
   website,
+  teamId,
   children,
   disabled,
 }: TeamHoverCardProps) {
@@ -36,6 +41,7 @@ function TeamHoverCard({
           city={city}
           homeVenue={homeVenue}
           website={website}
+          teamId={teamId}
         />
       )}
       disabled={disabled}
@@ -53,9 +59,12 @@ function TeamHoverCardContent({
   city,
   homeVenue,
   website,
+  teamId,
 }: Omit<TeamHoverCardProps, "children" | "disabled">) {
+  const t = useT()
   const initials = (shortName ?? name).substring(0, 2).toUpperCase()
   const accentColor = primaryColor || "hsl(var(--league-primary))"
+  const backPath = useBackPath()
 
   return (
     <div className="overflow-hidden rounded-xl">
@@ -115,10 +124,26 @@ function TeamHoverCardContent({
               </a>
             </div>
           )}
-          {!homeVenue && !website && (
-            <p className="text-xs text-league-text/30 italic">Keine weiteren Informationen</p>
+          {!homeVenue && !website && !teamId && (
+            <p className="text-xs text-league-text/30 italic">{t.teamHoverCard.noMoreInfo}</p>
           )}
         </div>
+
+        {/* Link to team page */}
+        {teamId && (
+          <div className="mt-3 pt-3 border-t border-league-text/[0.08]">
+            <Link
+              to="/teams/$teamId"
+              params={{ teamId }}
+              search={{ from: backPath }}
+              className="flex items-center justify-between w-full text-xs font-medium transition-colors"
+              style={{ color: accentColor }}
+            >
+              <span>{t.teamHoverCard.viewTeamPage}</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

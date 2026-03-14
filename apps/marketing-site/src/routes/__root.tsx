@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
 import { useState } from "react"
+import { LocaleProvider, useLocale, useT } from "~/i18n"
 import marketingCss from "~/styles/marketing.css?url"
 import { createTRPCClient, trpc } from "../../lib/trpc"
 
@@ -13,20 +14,8 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "PuckHub – Die All-in-One Plattform für Eishockey-Ligen" },
-      {
-        name: "description",
-        content:
-          "Verwalte deine Eishockey-Liga komplett digital: Saisonplanung, Spielberichte, Statistiken, Tabellen und eine eigene Liga-Website – alles in einer Plattform.",
-      },
     ],
-    links: [
-      { rel: "stylesheet", href: marketingCss },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap",
-      },
-    ],
+    links: [{ rel: "stylesheet", href: marketingCss }],
   }),
   component: RootComponent,
 })
@@ -46,20 +35,27 @@ function RootComponent() {
   const [trpcClient] = useState(() => createTRPCClient())
 
   return (
-    <RootDocument>
+    <LocaleProvider>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
-          <Outlet />
+          <RootDocument>
+            <Outlet />
+          </RootDocument>
         </QueryClientProvider>
       </trpc.Provider>
-    </RootDocument>
+    </LocaleProvider>
   )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const locale = useLocale()
+  const t = useT()
+
   return (
-    <html lang="de">
+    <html lang={locale}>
       <head>
+        <title>{t.meta.title}</title>
+        <meta name="description" content={t.meta.description} />
         <HeadContent />
       </head>
       <body className="min-h-screen font-sans">

@@ -26,6 +26,7 @@ type FeatureKey =
   | "featureScheduledNews"
   | "featureAdvancedRoles"
   | "featureAdvancedStats"
+  | "featureAiRecaps"
 
 /** Map from LimitKey → usage field name */
 const LIMIT_USAGE_MAP: Record<string, keyof Usage> = {

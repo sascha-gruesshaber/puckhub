@@ -5,6 +5,7 @@
   "saving": "Saving...",
   "create": "Create",
   "cancel": "Cancel",
+  "filters": "Filters",
   "draft": "Draft",
   "published": "Published",
   "logout": "Sign out",
@@ -18,8 +19,6 @@
     },
     "items": {
       "games": "Games",
-      "standings": "Standings",
-      "stats": "Stats",
       "seasonStructure": "Season structure",
       "roster": "Roster",
       "teams": "Teams",
@@ -39,10 +38,15 @@
     "title": "PuckHub Admin",
     "subtitle": "Sign in to continue",
     "email": "Email",
-    "password": "Password",
     "emailPlaceholder": "admin@puckhub.eu",
-    "submit": "Sign in",
-    "submitting": "Signing in...",
+    "or": "or",
+    "magicLink": {
+      "submit": "Send login link",
+      "submitting": "Sending...",
+      "checkInbox": "Check your inbox",
+      "sentTo": "We sent a login link to {{email}}",
+      "resend": "Send again"
+    },
     "passkey": {
       "signIn": "Sign in with Passkey",
       "signingIn": "Verifying passkey..."
@@ -61,21 +65,6 @@
   "security": {
     "title": "Security",
     "description": "Manage your sign-in methods and security settings",
-    "changePassword": {
-      "title": "Change Password",
-      "description": "Update your sign-in password.",
-      "currentPassword": "Current password",
-      "newPassword": "New password",
-      "confirmPassword": "Confirm new password",
-      "currentPasswordPlaceholder": "Current password",
-      "newPasswordPlaceholder": "At least 6 characters",
-      "confirmPasswordPlaceholder": "Repeat new password",
-      "submit": "Change password",
-      "submitting": "Saving...",
-      "minLength": "New password is too short.",
-      "mismatch": "Passwords do not match.",
-      "success": "Password updated."
-    },
     "twoFactor": {
       "title": "Two-Factor Authentication (2FA)",
       "description": "Protect your account with an additional security factor",
@@ -431,218 +420,6 @@
       "viewReport": "Report"
     }
   },
-  "statsPage": {
-    "title": "Statistics",
-    "placeholder": "The stats view will be implemented here.",
-    "noSeason": "Please select a working season to view statistics.",
-    "noData": "No statistics data for this season.",
-    "noDataDescription": "Games need to be played and completed first.",
-    "tabs": {
-      "overview": "Overview",
-      "scorers": "Scorers",
-      "goals": "Goals",
-      "assists": "Assists",
-      "penalties": "Penalties",
-      "goalies": "Goalies",
-      "teams": "Teams"
-    },
-    "tabGroups": {
-      "skaters": "Skater Stats"
-    },
-    "roundInfo": {
-      "title": "Counted rounds",
-      "playerStats": "Player stats",
-      "goalieStats": "Goalie stats",
-      "allRounds": "All rounds",
-      "noRounds": "No rounds configured"
-    },
-    "overview": {
-      "topScorer": "Top Scorer",
-      "bestGoalie": "Best Goalie",
-      "mostPenalties": "Most Penalty Minutes",
-      "gamesPlayed": "Games Played",
-      "points": "Points",
-      "gaa": "Goals Against Average",
-      "pim": "Penalty Minutes",
-      "goalsLong": "Goals",
-      "assistsLong": "Assists",
-      "gamesPlayedLong": "Games Played"
-    },
-    "scorers": {
-      "title": "Scorer Rankings",
-      "rank": "#",
-      "player": "Player",
-      "team": "Team",
-      "gamesPlayed": "GP",
-      "goals": "G",
-      "assists": "A",
-      "totalPoints": "Pts",
-      "pointsPerGame": "Pts/GP",
-      "chartTitle": "Top 15 Scorers"
-    },
-    "goalsTab": {
-      "title": "Goal Scorer Rankings",
-      "chartTitle": "Top 15 Goal Scorers"
-    },
-    "assistsTab": {
-      "title": "Assist Rankings",
-      "chartTitle": "Top 15 Assist Leaders"
-    },
-    "penalties": {
-      "title": "Penalty Minute Rankings",
-      "rank": "#",
-      "player": "Player",
-      "team": "Team",
-      "totalMinutes": "PIM",
-      "totalCount": "Pen",
-      "breakdown": "Breakdown",
-      "chartTitle": "Top 15 Players by PIM",
-      "teamChartTitle": "Penalty Minutes per Team",
-      "typeChartTitle": "Distribution by Penalty Type",
-      "unknownType": "Unknown"
-    },
-    "goalies": {
-      "title": "Goalie Rankings",
-      "qualified": "Qualified",
-      "belowThreshold": "Below Minimum Games",
-      "minGamesInfo": "Minimum {{min}} games to qualify",
-      "rank": "#",
-      "player": "Player",
-      "team": "Team",
-      "gamesPlayed": "GP",
-      "goalsAgainst": "GA",
-      "gaa": "GAA",
-      "saves": "SV",
-      "savePercentage": "SV%",
-      "shutouts": "SO",
-      "chartTitle": "Goalie GAA (qualified)"
-    },
-    "teamsTab": {
-      "title": "Team Comparison",
-      "selectRound": "Select round",
-      "standings": "Standings",
-      "rank": "#",
-      "team": "Team",
-      "gamesPlayed": "GP",
-      "wins": "W",
-      "draws": "D",
-      "losses": "L",
-      "goalsFor": "GF",
-      "goalsAgainst": "GA",
-      "goalDifference": "GD",
-      "points": "Pts",
-      "penaltyComparison": "Penalty Comparison",
-      "radarTitle": "Team Comparison",
-      "selectTeams": "Select teams (min. 2)",
-      "noStandings": "No standings data for this round.",
-      "radarWins": "Wins",
-      "radarLosses": "Losses",
-      "radarGoalsFor": "Goals",
-      "radarGoalsAgainst": "Goals Against",
-      "radarPim": "Penalty Minutes",
-      "chartRadar": "Radar",
-      "chartBar": "Bar Chart"
-    },
-    "filters": {
-      "label": "Filters",
-      "allTeams": "All Teams",
-      "allPositions": "All Positions",
-      "forward": "Forwards",
-      "defense": "Defense"
-    },
-    "tooltips": {
-      "gp": "Games Played",
-      "g": "Goals",
-      "a": "Assists",
-      "pts": "Points",
-      "pim": "Penalty In Minutes",
-      "pen": "Number of Penalties",
-      "ga": "Goals Against",
-      "gaa": "Goals Against Average",
-      "gaPerGp": "Goals Against per Game",
-      "w": "Wins",
-      "d": "Draws",
-      "l": "Losses",
-      "gf": "Goals For",
-      "gaTeam": "Goals Against",
-      "gd": "Goal Difference"
-    },
-    "recalculate": "Recalculate",
-    "recalculating": "Recalculating statistics…",
-    "recalculateSuccess": "Statistics have been recalculated."
-  },
-  "standingsPage": {
-    "title": "Standings",
-    "description": "Current standings by round",
-    "noSeason": "Please select a season first.",
-    "noData": "No standings data",
-    "noDataDescription": "No results available for this round yet.",
-    "columns": {
-      "rank": "#",
-      "team": "Team",
-      "form": "Form",
-      "gamesPlayed": "GP",
-      "wins": "W",
-      "draws": "D",
-      "losses": "L",
-      "goalsFor": "GF",
-      "goalsAgainst": "GA",
-      "goalDifference": "GD",
-      "points": "Pts",
-      "bonusPoints": "BP",
-      "totalPoints": "Tot"
-    },
-    "tooltips": {
-      "rank": "Position",
-      "gamesPlayed": "Games played",
-      "wins": "Wins",
-      "draws": "Draws",
-      "losses": "Losses",
-      "goalsFor": "Goals for",
-      "goalsAgainst": "Goals against",
-      "goalDifference": "Goal difference",
-      "points": "Points",
-      "bonusPoints": "Bonus points",
-      "totalPoints": "Total points",
-      "formWin": "Win",
-      "formDraw": "Draw",
-      "formLoss": "Loss"
-    },
-    "form": {
-      "win": "W",
-      "draw": "D",
-      "loss": "L"
-    },
-    "zones": {
-      "promotion": "Promotion zone",
-      "relegation": "Relegation zone"
-    },
-    "recalculate": {
-      "button": "Recalculate",
-      "round": "Recalculate round",
-      "allRounds": "Recalculate all rounds",
-      "loading": "Calculating…",
-      "success": "Standings have been recalculated.",
-      "allSuccess": "All rounds have been recalculated."
-    },
-    "bonusPoints": {
-      "title": "Bonus Points",
-      "add": "Add",
-      "edit": "Edit",
-      "delete": "Delete",
-      "team": "Team",
-      "points": "Points",
-      "reason": "Reason",
-      "reasonPlaceholder": "e.g. Penalty, license violation…",
-      "actions": "Actions",
-      "noEntries": "No bonus points recorded.",
-      "created": "Bonus points added.",
-      "updated": "Bonus points updated.",
-      "deleted": "Bonus points deleted.",
-      "confirmDelete": "Delete bonus points?",
-      "confirmDeleteDescription": "This action cannot be undone. The standings will be recalculated automatically."
-    }
-  },
   "newsCreate": {
     "title": "New news",
     "description": "Create a new news post",
@@ -797,7 +574,12 @@
     "menu": {
       "nav": "Nav",
       "footer": "Footer",
-      "route": "Route"
+      "route": "Route",
+      "builtIn": "Built-in"
+    },
+    "tabs": {
+      "mainNav": "Main Navigation",
+      "footerNav": "Footer Navigation"
     },
     "meta": {
       "sortOrder": "Sort order: {{value}}"
@@ -861,7 +643,6 @@
     },
     "actions": {
       "new": "New player",
-      "history": "History",
       "edit": "Edit",
       "delete": "Delete"
     },
@@ -950,52 +731,6 @@
         "active": "Active contract"
       }
     },
-    "history": {
-      "backToPlayers": "Back to players",
-      "notFoundTitle": "Player not found",
-      "notFoundDescription": "This player does not exist or has been deleted.",
-      "ageYears": "{{age}} years",
-      "contractCount": "Contracts: {{count}}",
-      "teamCount": "Teams: {{count}}",
-      "sinceYear": "Since {{year}}",
-      "noContractsTitle": "No contract history",
-      "noContractsDescription": "No contracts have been recorded for this player yet.",
-      "careerStats": "Career Stats",
-      "seasonStats": "Season Stats",
-      "timeline": "Timeline",
-      "gp": "GP",
-      "gpFull": "Games Played",
-      "goals": "Goals",
-      "goalsFull": "Goals",
-      "assists": "Assists",
-      "assistsFull": "Assists",
-      "points": "Points",
-      "pointsFull": "Total Points",
-      "pim": "PIM",
-      "pimFull": "Penalty Minutes",
-      "ga": "GA",
-      "gaFull": "Goals Against",
-      "gaa": "GAA",
-      "gaaFull": "Goals Against Average",
-      "season": "Season",
-      "team": "Team",
-      "careerTotals": "Career Totals",
-      "noStatsTitle": "No statistics available",
-      "noStatsDescription": "No season statistics have been recorded for this player yet.",
-      "chartProgression": "Points Progression",
-      "chartGoalieProgression": "GAA Progression",
-      "chartPenaltyPerSeason": "Penalty Minutes per Season",
-      "filterAll": "All",
-      "filterSigned": "Signed",
-      "filterTransfer": "Transfer",
-      "filterPositionChange": "Position Change",
-      "filterSuspensions": "Suspensions",
-      "suspensionMatchPenalty": "Match Penalty",
-      "suspensionGameMisconduct": "Game Misconduct",
-      "suspensionGamesInfo": "{{served}} / {{total}} served",
-      "suspensionLabel": "Suspension",
-      "noSuspensions": "No suspensions"
-    },
     "toast": {
       "created": "Player created",
       "updated": "Player updated",
@@ -1025,6 +760,7 @@
   "usersPage": {
     "title": "Users",
     "description": "Manage users and access rights",
+    "demoRestricted": "User management is disabled for the demo league.",
     "searchPlaceholder": "Search users...",
     "count": {
       "members": "Users"
@@ -1038,9 +774,7 @@
       "edit": "Edit",
       "remove": "Remove",
       "changeRole": "Change role",
-      "manageRoles": "Manage roles",
-      "resetPassword": "Reset password",
-      "setPassword": "Set password"
+      "manageRoles": "Manage roles"
     },
     "empty": {
       "title": "No users yet",
@@ -1052,22 +786,17 @@
       "namePlaceholder": "Max Mustermann",
       "email": "Email address",
       "emailPlaceholder": "user@example.com",
-      "password": "Password",
-      "passwordPlaceholder": "At least 6 characters",
-      "newPassword": "New password",
       "role": "Role"
     },
     "dialogs": {
       "newMemberTitle": "Add new user",
       "editUserTitle": "Edit user",
-      "newMemberDescription": "Add a new user with email and password.",
+      "newMemberDescription": "Add a new user. An invite email will be sent.",
       "editUserDescription": "Change the user's basic data.",
       "changeRoleTitle": "Change role: {{name}}",
       "changeRoleDescription": "Choose the new role for this user.",
       "manageRolesTitle": "Manage roles: {{name}}",
-      "manageRolesDescription": "Add or remove roles. Team-scoped roles can be limited to specific teams.",
-      "resetPasswordTitle": "Reset password",
-      "resetPasswordDescription": "Set a new password for {{name}}."
+      "manageRolesDescription": "Add or remove roles. Team-scoped roles can be limited to specific teams."
     },
     "orgRoles": {
       "owner": {
@@ -1105,9 +834,7 @@
     "validation": {
       "nameRequired": "Name is required",
       "emailRequired": "Email is required",
-      "emailInvalid": "Invalid email address",
-      "passwordRequired": "Password is required",
-      "passwordMin": "At least 6 characters"
+      "emailInvalid": "Invalid email address"
     },
     "deleteDialog": {
       "title": "Remove user",
@@ -1120,7 +847,6 @@
       "roleUpdated": "Role updated",
       "roleAdded": "Role added",
       "roleRemoved": "Role removed",
-      "passwordReset": "Password reset",
       "error": "Error",
       "createError": "Could not add user",
       "saveError": "Could not save user",
@@ -1208,7 +934,6 @@
       "new": "New team",
       "edit": "Edit",
       "delete": "Delete",
-      "history": "History",
       "trikots": "Jerseys",
       "saving": "Saving..."
     },
@@ -1247,7 +972,6 @@
     "hoverCard": {
       "noContactData": "No contact details available",
       "roster": "Roster",
-      "history": "History",
       "edit": "Edit"
     },
     "dialogs": {
@@ -1315,42 +1039,6 @@
         "assignmentUpdated": "Assignment updated",
         "assignmentRemoved": "Assignment removed"
       }
-    },
-    "history": {
-      "backToTeams": "Back to Teams",
-      "notFoundTitle": "Team not found",
-      "notFoundDescription": "The requested team does not exist or has been deleted.",
-      "allTimeStats": "All-Time Stats",
-      "seasons": "Seasons",
-      "games": "Games",
-      "gamesShort": "GP",
-      "winRate": "Win Rate",
-      "bestFinish": "Best Finish",
-      "goalDifference": "Goal Diff.",
-      "seasonCount": "{{count}} Seasons",
-      "gameCount": "{{count}} Games",
-      "seasonBySeasonTitle": "Season by Season",
-      "noSeasons": "No season data available.",
-      "noSeasonsTitle": "No Season History",
-      "noSeasonsDescription": "This team has not participated in any season yet.",
-      "expand": "Show details",
-      "collapse": "Hide details",
-      "pts": "Pts",
-      "topScorers": "Top Scorers",
-      "bestGoalie": "Best Goalie",
-      "rosterChanges": "Roster Changes",
-      "position": {
-        "forward": "Forward",
-        "defense": "Defense",
-        "goalie": "Goalie"
-      },
-      "chartRankPoints": "Wins & Ranking",
-      "chartWins": "Wins",
-      "chartRank": "Rank",
-      "chartGoals": "Goals",
-      "chartGoalsFor": "Goals For",
-      "chartGoalsAgainst": "Goals Against",
-      "chartGoalDiff": "Goal Difference"
     },
     "toast": {
       "created": "Team created",
@@ -1873,6 +1561,22 @@
       "confirmTitle": "Reopen game?",
       "confirmDescription": "The game will be set back to «Scheduled». Suspensions will be reversed."
     },
+    "notes": {
+      "label": "Game Notes",
+      "placeholder": "Optional notes about the game (used for AI recap generation)...",
+      "saved": "Notes saved"
+    },
+    "recap": {
+      "title": "AI Game Recap",
+      "generatedAt": "Generated on {{date}}",
+      "generate": "Generate",
+      "regenerate": "Regenerate",
+      "regenerating": "Regenerating...",
+      "generating": "Game recap is being generated...",
+      "generatingHint": "The AI game recap is currently being generated. Please refresh the page in a few seconds.",
+      "regenerated": "Game recap is being regenerated",
+      "noRecap": "No AI game recap available"
+    },
     "toast": {
       "lineupSaved": "Lineup saved",
       "lineupError": "Could not save lineup",
@@ -1888,5 +1592,17 @@
       "gameCompleted": "Game completed",
       "gameReopened": "Game reopened"
     }
+  },
+  "settingsAi": {
+    "title": "AI Features",
+    "description": "Configure AI-powered features for your league.",
+    "enableToggle": "Enable AI Features",
+    "enableDescription": "Enables AI-powered game recaps for completed games.",
+    "usage": "Token Usage",
+    "usageLabel": "{{used}} / {{limit}} Tokens",
+    "usageUnlimited": "{{used}} / ∞ Tokens",
+    "resetHint": "Resets on the 1st of each month.",
+    "unavailable": "AI features are not available on your current plan.",
+    "headerChip": "AI {{percent}}%"
   }
 }

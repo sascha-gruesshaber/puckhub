@@ -56,7 +56,13 @@ const FORBIDDEN_SLUGS = [
   "_route-schedule",
   "_route-teams",
   "_route-stats",
-  "_route-news",
+  // System sub-route page slugs
+  "_route-stats-scorers",
+  "_route-stats-goals",
+  "_route-stats-assists",
+  "_route-stats-penalties",
+  "_route-stats-goalies",
+  "_route-teams-compare",
 ]
 
 // ---------------------------------------------------------------------------
@@ -117,7 +123,11 @@ export const pageRouter = router({
     requireRole(ctx, "editor")
     return ctx.db.page.findMany({
       where: { organizationId: ctx.organizationId },
-      include: { children: true },
+      include: {
+        children: {
+          orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+        },
+      },
       orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
     })
   }),
@@ -259,6 +269,9 @@ export const pageRouter = router({
         if (parent.parentId) {
           throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_NESTING_LIMIT)
         }
+        if (parent.isSystemRoute) {
+          throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_NESTING_LIMIT)
+        }
       }
 
       await validateSlug(ctx.db, slug, parentId, ctx.organizationId)
@@ -332,6 +345,9 @@ export const pageRouter = router({
           if (parent.parentId) {
             throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_NESTING_LIMIT)
           }
+          if (parent.isSystemRoute) {
+            throw createAppError("BAD_REQUEST", APP_ERROR_CODES.PAGE_NESTING_LIMIT)
+          }
         }
       }
 
@@ -352,7 +368,34 @@ export const pageRouter = router({
         where: { id },
         data: updateData,
       })
+
+      // Cascade: when a parent page is hidden, also hide all children
+      if (data.status === "draft" && !existing.parentId) {
+        await ctx.db.page.updateMany({
+          where: { parentId: id, organizationId: ctx.organizationId },
+          data: { status: "draft", updatedAt: new Date() },
+        })
+      }
+
       return page
+    }),
+
+  reorder: orgProcedure
+    .input(
+      z.object({
+        items: z.array(z.object({ id: z.string().uuid(), sortOrder: z.number().int() })),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      requireRole(ctx, "editor")
+      await Promise.all(
+        input.items.map((item) =>
+          ctx.db.page.updateMany({
+            where: { id: item.id, organizationId: ctx.organizationId },
+            data: { sortOrder: item.sortOrder },
+          }),
+        ),
+      )
     }),
 
   delete: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {

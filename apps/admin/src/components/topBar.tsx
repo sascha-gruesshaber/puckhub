@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
-import { ArrowLeftRight, Calendar, Check, ChevronDown, LogOut, Plus, User } from "lucide-react"
+import { ArrowLeftRight, Calendar, Check, ChevronDown, LogOut, Plus, Sparkles, User } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { useOrganization } from "~/contexts/organizationContext"
@@ -18,7 +18,10 @@ export function TopBar() {
   return (
     <div className="topbar" style={{ height: TOPBAR_CONTROL_HEIGHT }}>
       <SeasonSection />
-      <UserSection />
+      <div className="flex items-center gap-1">
+        <AiUsageIndicator />
+        <UserSection />
+      </div>
     </div>
   )
 }
@@ -185,6 +188,34 @@ function SeasonSection() {
         </div>
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// AI Usage Indicator (between season and user)
+// ---------------------------------------------------------------------------
+function AiUsageIndicator() {
+  const { data: aiUsage } = trpc.aiRecap.getUsage.useQuery(undefined, { staleTime: 60_000 })
+
+  if (!aiUsage?.aiEnabled || !aiUsage?.featureAvailable) return null
+
+  const percent = aiUsage.limit ? Math.min(100, Math.round((aiUsage.used / aiUsage.limit) * 100)) : null
+
+  if (percent === null) return null
+
+  return (
+    <Link
+      to="/settings"
+      className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+        percent >= 80
+          ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
+          : "text-muted-foreground bg-muted/50 hover:bg-muted"
+      }`}
+      title={`AI: ${aiUsage.used.toLocaleString()} / ${aiUsage.limit?.toLocaleString()} tokens`}
+    >
+      <Sparkles className="w-3 h-3" />
+      <span className="tabular-nums">{percent}%</span>
+    </Link>
   )
 }
 

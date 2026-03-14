@@ -68,9 +68,13 @@ export function PageForm({
 
   // Fetch top-level pages for parent dropdown
   const { data: allPages } = trpc.page.list.useQuery()
-  const topLevelPages = useMemo(() => (allPages ?? []).filter((p) => !p.parentId), [allPages])
+  const topLevelPages = useMemo(
+    () => (allPages ?? []).filter((p) => !p.parentId && !p.isSystemRoute),
+    [allPages],
+  )
 
   const isSubPage = !!form.parentId
+  const isChildSystemRoute = isSystemRoute && !!form.parentId
 
   // Compute slug preview
   const slugPreview = useMemo(() => {
@@ -207,8 +211,8 @@ export function PageForm({
               </div>
             )}
 
-            {/* Menu locations */}
-            {(
+            {/* Menu locations (hidden for child system routes — they're always menu-less) */}
+            {!isChildSystemRoute && (
               <div>
                 <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.menuLocations")}</Label>
                 <div className="space-y-2">
@@ -234,14 +238,16 @@ export function PageForm({
               </div>
             )}
 
-            {/* Sort order */}
-            <FormField label={t("pageForm.fields.sortOrder")}>
-              <Input
-                type="number"
-                value={form.sortOrder}
-                onChange={(e) => setField("sortOrder", parseInt(e.target.value, 10) || 0)}
-              />
-            </FormField>
+            {/* Sort order — only shown as fallback; primary ordering is via drag-and-drop in the page list */}
+            {!isChildSystemRoute && (
+              <FormField label={t("pageForm.fields.sortOrder")}>
+                <Input
+                  type="number"
+                  value={form.sortOrder}
+                  onChange={(e) => setField("sortOrder", parseInt(e.target.value, 10) || 0)}
+                />
+              </FormField>
+            )}
 
             <div className="flex flex-col gap-2 pt-2">
               <Button type="submit" variant="accent" disabled={isPending} className="w-full">

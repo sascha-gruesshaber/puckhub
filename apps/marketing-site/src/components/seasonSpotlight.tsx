@@ -1,7 +1,9 @@
 import { ArrowRight } from "lucide-react"
 import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
+import { useT } from "~/i18n"
 
 export function SeasonSpotlight() {
+  const t = useT()
   const reveal = useScrollReveal()
 
   return (
@@ -11,22 +13,16 @@ export function SeasonSpotlight() {
           {/* Text */}
           <div>
             <div className="inline-flex items-center rounded-full bg-brand-gold/10 px-3 py-1 text-xs font-semibold text-brand-gold mb-6">
-              Highlight Feature
+              {t.seasonSpotlight.badge}
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold mb-6">
-              Visueller Saison-Struktur-Builder
+              {t.seasonSpotlight.title}
             </h2>
             <p className="text-lg text-brand-slate mb-6 leading-relaxed">
-              Erstelle komplexe Saisonhierarchien per Drag & Drop auf einem interaktiven Canvas.
-              Definiere Divisionen, Runden und Spielpläne – alles visuell und intuitiv.
+              {t.seasonSpotlight.description}
             </p>
             <div className="space-y-4">
-              {[
-                { label: "Saison", desc: "Der übergreifende Zeitraum deiner Liga" },
-                { label: "Division", desc: "Spielklassen oder Altersgruppen" },
-                { label: "Runde", desc: "Vorrunde, Playoffs, Relegation" },
-                { label: "Spiele", desc: "Automatischer Spielplan pro Runde" },
-              ].map((item, i) => (
+              {t.seasonSpotlight.steps.map((item, i) => (
                 <div key={item.label} className="flex items-start gap-3">
                   <div className="flex items-center justify-center shrink-0 mt-1">
                     {i > 0 && (
@@ -51,7 +47,7 @@ export function SeasonSpotlight() {
             <div className="rounded-xl border border-white/10 bg-brand-navy-light shadow-2xl overflow-hidden">
               <img
                 src="/screenshots/season-builder.png"
-                alt="Saison-Struktur-Builder"
+                alt={t.seasonSpotlight.imgAlt}
                 className="w-full"
                 loading="lazy"
                 onError={(e) => {
@@ -59,7 +55,7 @@ export function SeasonSpotlight() {
                   target.style.display = "none"
                   target.parentElement!.insertAdjacentHTML(
                     "beforeend",
-                    '<div class="aspect-video bg-gradient-to-br from-brand-navy-light to-brand-navy flex items-center justify-center text-brand-slate/40 text-lg p-8 text-center">Season Structure Builder Preview</div>',
+                    `<div class="aspect-video bg-gradient-to-br from-brand-navy-light to-brand-navy flex items-center justify-center text-brand-slate/40 text-lg p-8 text-center">${t.seasonSpotlight.imgAlt}</div>`,
                   )
                 }}
               />

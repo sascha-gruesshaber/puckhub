@@ -1,6 +1,6 @@
-import { Button, toast } from "@puckhub/ui"
+import { Button, Card, CardContent, toast } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft, CheckCircle2, ClipboardList, RotateCcw, Users } from "lucide-react"
+import { ArrowLeft, CheckCircle2, ClipboardList, Loader2, RefreshCw, RotateCcw, Sparkles, StickyNote, Users } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
@@ -10,6 +10,7 @@ import { GameTimeline } from "~/components/gameReport/gameTimeline"
 import { LineupEditor } from "~/components/gameReport/lineupEditor"
 import { SuspensionWarnings } from "~/components/gameReport/suspensionWarnings"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
+import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -30,15 +31,36 @@ function GameReportPage() {
   const utils = trpc.useUtils()
   const [activeTab, setActiveTab] = useState<Tab>("report")
   const initialTabSet = useRef(false)
+  const { canUseFeature } = usePlanLimits()
 
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   const [showReopenConfirm, setShowReopenConfirm] = useState(false)
+  const [notes, setNotes] = useState("")
+  const notesInitialized = useRef(false)
 
   const reportQuery = trpc.gameReport.getReport.useQuery({ gameId })
   const penaltyTypesQuery = trpc.gameReport.getPenaltyTypes.useQuery()
 
   const game = reportQuery.data
+  const isRecapGenerating = !!(game as any)?.recapGenerating
+
+  // Poll while recap is generating
+  useEffect(() => {
+    if (!isRecapGenerating) return
+    const interval = setInterval(() => {
+      utils.gameReport.getReport.invalidate({ gameId })
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isRecapGenerating, gameId, utils])
   const gameSeasonId = game?.round?.division?.seasonId
+
+  // Initialize notes from game data
+  useEffect(() => {
+    if (game && !notesInitialized.current) {
+      notesInitialized.current = true
+      setNotes(game.notes ?? "")
+    }
+  }, [game])
 
   const completeGame = trpc.game.complete.useMutation({
     onSuccess: () => {
@@ -56,6 +78,22 @@ function GameReportPage() {
       utils.game.listForSeason.invalidate()
       setShowReopenConfirm(false)
       toast.success(t("gameReport.toast.gameReopened"))
+    },
+    onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
+  })
+
+  const updateNotes = trpc.game.update.useMutation({
+    onSuccess: () => {
+      utils.gameReport.getReport.invalidate({ gameId })
+      toast.success(t("gameReport.notes.saved"))
+    },
+    onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
+  })
+
+  const regenerateRecap = trpc.aiRecap.regenerate.useMutation({
+    onSuccess: () => {
+      utils.gameReport.getReport.invalidate({ gameId })
+      toast.success(t("gameReport.recap.regenerated"))
     },
     onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
@@ -224,6 +262,75 @@ function GameReportPage() {
         </div>
       )}
 
+      {/* AI Recap section (when completed and AI feature available) */}
+      {isCompleted && canUseFeature("featureAiRecaps") && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                {t("gameReport.recap.title")}
+              </h3>
+              {!(game as any).recapGenerating && canUseFeature("featureAiRecaps") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => regenerateRecap.mutate({ gameId })}
+                  disabled={regenerateRecap.isPending}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${regenerateRecap.isPending ? "animate-spin" : ""}`} />
+                  {regenerateRecap.isPending
+                    ? t("gameReport.recap.regenerating")
+                    : (game as any).recapTitle
+                      ? t("gameReport.recap.regenerate")
+                      : t("gameReport.recap.generate")}
+                </Button>
+              )}
+            </div>
+
+            {(game as any).recapGenerating ? (
+              <div className="space-y-3">
+                <div className="h-5 w-3/4 bg-muted animate-pulse rounded" />
+                <div className="space-y-2">
+                  <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-5/6 bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-full bg-muted animate-pulse rounded" />
+                  <div className="h-3 w-2/3 bg-muted animate-pulse rounded" />
+                </div>
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5 pt-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {t("gameReport.recap.generating")}
+                </p>
+              </div>
+            ) : (game as any).recapTitle ? (
+              <div className="content-enter">
+                <h4 className="font-semibold text-base mb-2">{(game as any).recapTitle}</h4>
+                <div
+                  className="prose prose-sm max-w-none text-muted-foreground [&>h3]:mt-5 [&>h3]:mb-1.5 [&>h3]:text-sm [&>h3]:font-semibold [&>h3]:tracking-wide [&>h3]:uppercase [&>h3]:text-foreground/70 [&>h3:first-child]:mt-0 [&>p:first-child]:mt-0 [&>h3+p+p]:mt-4 [&>p:last-child]:mt-5"
+                  dangerouslySetInnerHTML={{ __html: (game as any).recapContent ?? "" }}
+                />
+                {(game as any).recapGeneratedAt && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    {t("gameReport.recap.generatedAt", {
+                      date: new Date((game as any).recapGeneratedAt).toLocaleDateString(i18n.language, {
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                    })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("gameReport.recap.noRecap")}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Suspension warnings (from other games) */}
       <SuspensionWarnings
         suspensions={game.activeSuspensions}
@@ -238,6 +345,34 @@ function GameReportPage() {
         homeTeamId={game.homeTeamId}
         readOnly={readOnly}
       />
+
+      {/* Notes section */}
+      <Card>
+        <CardContent className="p-5">
+          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+            <StickyNote className="w-4 h-4 text-muted-foreground" />
+            {t("gameReport.notes.label")}
+          </h3>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t("gameReport.notes.placeholder")}
+            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"
+            rows={3}
+          />
+          {notes !== (game.notes ?? "") && (
+            <div className="flex justify-end mt-2">
+              <Button
+                size="sm"
+                onClick={() => updateNotes.mutate({ id: gameId, notes: notes || null })}
+                disabled={updateNotes.isPending}
+              >
+                {updateNotes.isPending ? t("saving") : t("save")}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Tab bar */}
       <div className="flex gap-1 border-b">

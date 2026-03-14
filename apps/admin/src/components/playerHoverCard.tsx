@@ -1,6 +1,5 @@
 import { Badge, Skeleton } from "@puckhub/ui"
-import { Link } from "@tanstack/react-router"
-import { History, Pencil } from "lucide-react"
+import { Pencil } from "lucide-react"
 import type { ReactNode } from "react"
 import { trpc } from "@/trpc"
 import { HoverCard } from "~/components/hoverCard"
@@ -170,14 +169,6 @@ function PlayerHoverCardContent({
 
         {/* Actions */}
         <div className="mt-3 pt-3 border-t border-border/40 flex items-center gap-2">
-          <Link
-            to="/players/$playerId/history"
-            params={{ playerId }}
-            className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-          >
-            <History className="h-3 w-3" aria-hidden="true" />
-            {t("playersPage.actions.history")}
-          </Link>
           {onEdit && (
             <button
               type="button"

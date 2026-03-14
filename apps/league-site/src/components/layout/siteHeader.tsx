@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router"
 import { ChevronDown, Menu, X } from "lucide-react"
-import { useState } from "react"
-import { useOrg, useSettings, useSiteConfig } from "~/lib/context"
+import { useMemo, useState } from "react"
+import { useFeatures, useOrg, useSettings, useSiteConfig } from "~/lib/context"
+import { useT } from "~/lib/i18n"
+import { allPathVariants } from "~/lib/localizedRoutes"
 import { cn } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
@@ -13,8 +15,11 @@ type MenuPage = {
   routePath: string | null
   parentId: string | null
   parent: { slug: string } | null
-  children: { id: string; title: string; slug: string }[]
+  children: Array<{ id: string; title: string; slug: string; sortOrder?: number; routePath?: string | null; isSystemRoute?: boolean }>
 }
+
+/** Routes that require the advancedStats feature flag */
+const ADVANCED_TEAMS_ROUTES = allPathVariants("/stats/compare-teams")
 
 function getPageLink(page: Pick<MenuPage, "isSystemRoute" | "routePath" | "slug" | "parentId" | "parent">) {
   if (page.isSystemRoute && page.routePath) {
@@ -58,17 +63,28 @@ function DesktopNavItem({ page }: { page: MenuPage }) {
       {/* Dropdown */}
       <div className="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
         <div className="min-w-[180px] rounded-lg bg-league-header-bg shadow-lg ring-1 ring-white/10 py-1">
-          {page.children.map((child) => (
-            <Link
-              key={child.id}
-              to="/$slug"
-              params={{ slug: `${page.slug}/${child.slug}` }}
-              className="block px-4 py-2 text-sm transition-colors hover:bg-white/10"
-              activeProps={{ className: "bg-white/15" }}
-            >
-              {child.title}
-            </Link>
-          ))}
+          {page.children.map((child) =>
+            child.routePath ? (
+              <Link
+                key={child.id}
+                to={child.routePath as any}
+                className="block px-4 py-2 text-sm transition-colors hover:bg-white/10"
+                activeProps={{ className: "bg-white/15" }}
+              >
+                {child.title}
+              </Link>
+            ) : (
+              <Link
+                key={child.id}
+                to="/$slug"
+                params={{ slug: `${page.slug}/${child.slug}` }}
+                className="block px-4 py-2 text-sm transition-colors hover:bg-white/10"
+                activeProps={{ className: "bg-white/15" }}
+              >
+                {child.title}
+              </Link>
+            ),
+          )}
         </div>
       </div>
     </div>
@@ -81,6 +97,8 @@ export function SiteHeader() {
   const org = useOrg()
   const settings = useSettings()
   const config = useSiteConfig()
+  const features = useFeatures()
+  const t = useT()
 
   const { data: menuPages } = trpc.publicSite.getMenuPages.useQuery(
     { organizationId: org.id, location: "main_nav" },
@@ -88,7 +106,18 @@ export function SiteHeader() {
   )
 
   // Only show top-level pages (not sub-pages that individually have main_nav)
-  const topLevelMenuPages = menuPages?.filter((p) => !p.parentId)
+  // Filter out advanced-stats-only children when the feature is disabled
+  const topLevelMenuPages = useMemo(() => {
+    const pages = menuPages?.filter((p) => !p.parentId)
+    if (!pages) return pages
+    if (features.advancedStats) return pages
+    return pages.map((page) => ({
+      ...page,
+      children: page.children.filter(
+        (c) => !ADVANCED_TEAMS_ROUTES.includes(c.routePath ?? ""),
+      ),
+    }))
+  }, [menuPages, features.advancedStats])
 
   return (
     <header className="sticky top-0 z-50 bg-league-header-bg text-league-header-text shadow-md">
@@ -120,7 +149,7 @@ export function SiteHeader() {
             type="button"
             className="md:hidden p-2 rounded-md hover:bg-white/10 transition-colors"
             onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Menü öffnen"
+            aria-label={t.layout.openMenu}
           >
             {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -165,18 +194,30 @@ export function SiteHeader() {
                 </div>
                 {hasChildren && isExpanded && (
                   <div className="ml-4 border-l border-white/10 pl-2 space-y-1">
-                    {page.children.map((child) => (
-                      <Link
-                        key={child.id}
-                        to="/$slug"
-                        params={{ slug: `${page.slug}/${child.slug}` }}
-                        className="block px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 opacity-80"
-                        activeProps={{ className: "bg-white/15 opacity-100" }}
-                        onClick={() => setMobileOpen(false)}
-                      >
-                        {child.title}
-                      </Link>
-                    ))}
+                    {page.children.map((child) =>
+                      child.routePath ? (
+                        <Link
+                          key={child.id}
+                          to={child.routePath as any}
+                          className="block px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 opacity-80"
+                          activeProps={{ className: "bg-white/15 opacity-100" }}
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {child.title}
+                        </Link>
+                      ) : (
+                        <Link
+                          key={child.id}
+                          to="/$slug"
+                          params={{ slug: `${page.slug}/${child.slug}` }}
+                          className="block px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 opacity-80"
+                          activeProps={{ className: "bg-white/15 opacity-100" }}
+                          onClick={() => setMobileOpen(false)}
+                        >
+                          {child.title}
+                        </Link>
+                      ),
+                    )}
                   </div>
                 )}
               </div>

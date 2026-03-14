@@ -1,9 +1,10 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useParams } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { HtmlContent } from "~/components/shared/htmlContent"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
 import { useOrg } from "~/lib/context"
+import { useT } from "~/lib/i18n"
 import { formatDate } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
@@ -12,9 +13,10 @@ export const Route = createFileRoute("/news/$newsId")({
   head: () => ({ meta: [{ title: "Artikel" }] }),
 })
 
-function NewsDetailPage() {
-  const { newsId } = Route.useParams()
+export function NewsDetailPage() {
+  const { newsId } = useParams({ strict: false }) as { newsId: string }
   const org = useOrg()
+  const t = useT()
 
   const { data: article, isLoading } = trpc.publicSite.getNewsDetail.useQuery(
     { organizationId: org.id, newsId },
@@ -27,9 +29,9 @@ function NewsDetailPage() {
     return (
       <SectionWrapper>
         <div className="text-center py-12">
-          <h2 className="text-xl font-bold mb-2">Artikel nicht gefunden</h2>
-          <Link to="/news" className="text-league-primary hover:underline">
-            Zurück zu News
+          <h2 className="text-xl font-bold mb-2">{t.news.articleNotFound}</h2>
+          <Link to="/" className="text-league-primary hover:underline">
+            {t.news.backToNews}
           </Link>
         </div>
       </SectionWrapper>
@@ -39,9 +41,9 @@ function NewsDetailPage() {
   return (
     <div className="animate-fade-in">
       <SectionWrapper>
-        <Link to="/news" className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6">
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6">
           <ArrowLeft className="h-4 w-4" />
-          Zurück zu News
+          {t.news.backToNews}
         </Link>
 
         <article className="mx-auto max-w-3xl">

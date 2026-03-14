@@ -1,4 +1,8 @@
+import { Link } from "@tanstack/react-router"
+import { ArrowRight } from "lucide-react"
 import type { ReactNode } from "react"
+import { useT } from "~/lib/i18n"
+import { useBackPath } from "~/lib/utils"
 import { HoverCard } from "./hoverCard"
 
 interface PlayerHoverCardProps {
@@ -14,14 +18,9 @@ interface PlayerHoverCardProps {
   } | null
   nationality?: string | null
   dateOfBirth?: string | Date | null
+  playerId?: string | null
   children: ReactNode
   disabled?: boolean
-}
-
-const POSITION_LABELS: Record<string, string> = {
-  forward: "Stürmer",
-  defense: "Verteidiger",
-  goalie: "Torhüter",
 }
 
 function calcAge(dob: Date | string | null | undefined): number | null {
@@ -49,6 +48,7 @@ function PlayerHoverCard({
   team,
   nationality,
   dateOfBirth,
+  playerId,
   children,
   disabled,
 }: PlayerHoverCardProps) {
@@ -64,6 +64,7 @@ function PlayerHoverCard({
           team={team}
           nationality={nationality}
           dateOfBirth={dateOfBirth}
+          playerId={playerId}
         />
       )}
       disabled={disabled}
@@ -82,9 +83,12 @@ function PlayerHoverCardContent({
   team,
   nationality,
   dateOfBirth,
+  playerId,
 }: Omit<PlayerHoverCardProps, "children" | "disabled">) {
+  const t = useT()
   const initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase()
   const age = calcAge(dateOfBirth)
+  const backPath = useBackPath()
 
   return (
     <div className="overflow-hidden rounded-xl">
@@ -96,7 +100,7 @@ function PlayerHoverCardContent({
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-league-text/[0.06]">
             {photoUrl ? (
-              <img src={photoUrl} alt={`${firstName} ${lastName}`} className="h-full w-full object-cover" />
+              <img src={photoUrl} alt={`${firstName} ${lastName}`} className="h-full w-full object-cover object-top" />
             ) : (
               <span className="text-sm font-bold text-league-text/40">{initials}</span>
             )}
@@ -111,7 +115,7 @@ function PlayerHoverCardContent({
               )}
               {position && (
                 <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium bg-league-text/[0.06] text-league-text/70">
-                  {POSITION_LABELS[position] ?? position}
+                  {t.positionLabels[position as keyof typeof t.positionLabels] ?? position}
                 </span>
               )}
             </div>
@@ -145,7 +149,7 @@ function PlayerHoverCardContent({
             <div className="flex items-center gap-2 text-xs text-league-text/60">
               <span className="inline-block w-4 text-center shrink-0">&nbsp;</span>
               <span>
-                {age} Jahre
+                {age} {t.playerHoverCard.years}
                 {dateOfBirth && (
                   <span className="text-league-text/30 ml-1">({formatDate(dateOfBirth)})</span>
                 )}
@@ -153,6 +157,21 @@ function PlayerHoverCardContent({
             </div>
           )}
         </div>
+
+        {/* Link to player profile */}
+        {playerId && (
+          <div className="mt-3 pt-3 border-t border-league-text/[0.08]">
+            <Link
+              to="/stats/players/$playerId"
+              params={{ playerId }}
+              search={{ from: backPath }}
+              className="flex items-center justify-between w-full text-xs font-medium text-league-primary hover:text-league-primary/80 transition-colors"
+            >
+              <span>{t.playerHoverCard.viewProfile}</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   )

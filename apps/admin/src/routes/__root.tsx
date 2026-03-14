@@ -19,13 +19,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "PuckHub Admin" },
     ],
-    links: [
-      { rel: "stylesheet", href: appCss },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap",
-      },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
   component: RootComponent,
 })
@@ -78,7 +72,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body
         className="min-h-screen bg-background font-sans antialiased"
-        style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}
+        style={{ fontFamily: "'Outfit Variable', system-ui, sans-serif" }}
       >
         {children}
         <Toaster />

@@ -4,11 +4,13 @@ import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { APIError, createAuthMiddleware } from "better-auth/api"
 import { admin } from "better-auth/plugins/admin"
+import { magicLink } from "better-auth/plugins/magic-link"
 import { organization } from "better-auth/plugins/organization"
 import { twoFactor } from "better-auth/plugins/two-factor"
+import { sendEmail } from "./email"
+import { magicLinkEmail } from "./emailTemplates"
 
 const DEMO_BLOCKED_PATHS = new Set([
-  "/change-password",
   "/two-factor/enable",
   "/two-factor/disable",
 ])
@@ -18,16 +20,8 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
   database: prismaAdapter(db, {
     provider: "postgresql",
   }),
-  emailAndPassword: {
-    enabled: true,
-  },
   user: {
     additionalFields: {
-      mustChangePassword: {
-        type: "boolean",
-        defaultValue: false,
-        input: false,
-      },
       isDemoUser: {
         type: "boolean",
         defaultValue: false,
@@ -64,6 +58,17 @@ export const auth: ReturnType<typeof betterAuth> = betterAuth({
     }),
   },
   plugins: [
+    magicLink({
+      sendMagicLink: async ({ email, url }) => {
+        await sendEmail({
+          to: email,
+          subject: "Sign in to PuckHub",
+          html: magicLinkEmail(url),
+        })
+      },
+      disableSignUp: true,
+      expiresIn: 600,
+    }),
     passkey({
       rpID: process.env.PASSKEY_RP_ID ?? "puckhub.localhost",
       rpName: process.env.PASSKEY_RP_NAME ?? "PuckHub Admin",

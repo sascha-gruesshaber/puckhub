@@ -14,7 +14,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { History, Pencil, Plus, Trash2, Users } from "lucide-react"
+import { Pencil, Plus, Trash2, Users } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { RemoveDialog } from "~/components/removeDialog"
@@ -450,14 +450,6 @@ function PlayersPage() {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <Link
-            to="/players/$playerId/history"
-            params={{ playerId: player.id }}
-            className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium h-8 px-2 md:px-3 hover:bg-accent hover:text-accent-foreground transition-colors"
-          >
-            <History className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-            <span className="hidden md:inline">{t("playersPage.actions.history")}</span>
-          </Link>
           <Button variant="ghost" size="sm" onClick={() => openEdit(player)} className="text-xs h-8 px-2 md:px-3">
             <Pencil className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
             <span className="hidden md:inline">{t("playersPage.actions.edit")}</span>
@@ -492,7 +484,7 @@ function PlayersPage() {
         }
         filters={
           <FilterBar
-            label={t("statsPage.filters.label")}
+            label={t("filters")}
             search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
           >
             {isLoading ? (

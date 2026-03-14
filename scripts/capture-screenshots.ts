@@ -1,26 +1,30 @@
 /**
- * Capture marketing screenshots from the running admin demo.
+ * Capture marketing screenshots from the running demo.
+ *
+ * Automatically reseeds the demo database before capturing to ensure
+ * fresh, consistent data (AI recaps, standings, stats, etc.).
  *
  * Prerequisites:
  *   - The full dev stack must be running (pnpm dev)
- *   - Demo data must be seeded
- *   - Set DEMO_EMAIL and DEMO_PASSWORD env vars (or uses defaults)
+ *   - DATABASE_URL must be set (reads from .env)
  *
  * Usage:
- *   pnpm capture:screenshots
+ *   pnpm capture:screenshots            # reseed + capture
+ *   pnpm capture:screenshots --no-seed  # skip reseed, capture only
  */
 
-import { chromium } from "playwright"
 import { existsSync, mkdirSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+process.loadEnvFile(resolve(__dirname, "../.env"))
 
-const BASE_URL = process.env.ADMIN_URL ?? "http://admin.puckhub.localhost"
+const ADMIN_URL = process.env.ADMIN_URL ?? "http://admin.puckhub.localhost"
+const API_URL = process.env.API_URL ?? "http://api.puckhub.localhost"
+const LEAGUE_SITE_URL = process.env.LEAGUE_SITE_URL ?? "http://demo-league.puckhub.localhost"
 const SUBDOMAIN_SUFFIX = process.env.SUBDOMAIN_SUFFIX ?? ".puckhub.localhost"
 const EMAIL = process.env.DEMO_EMAIL ?? `admin@demo-league${SUBDOMAIN_SUFFIX}`
-const PASSWORD = process.env.DEMO_PASSWORD ?? "demo1234"
 const OUTPUT_DIR = resolve(__dirname, "../apps/marketing-site/public/screenshots")
 
 if (!existsSync(OUTPUT_DIR)) {
@@ -29,27 +33,69 @@ if (!existsSync(OUTPUT_DIR)) {
 
 interface ScreenshotTarget {
   name: string
+  baseUrl: "admin" | "league"
   path: string
   waitFor?: string
   delay?: number
 }
 
-const targets: ScreenshotTarget[] = [
-  { name: "dashboard", path: "/", waitFor: "main", delay: 3000 },
-  { name: "game-report", path: "/games", waitFor: "main", delay: 2000 },
-  { name: "team-list", path: "/teams", waitFor: "main", delay: 2000 },
-  { name: "player-stats", path: "/stats", waitFor: "main", delay: 2000 },
-  { name: "standings", path: "/standings", waitFor: "main", delay: 2000 },
-  { name: "website-config", path: "/website", waitFor: "main", delay: 2000 },
-  { name: "trikot-designer", path: "/trikots", waitFor: "main", delay: 2500 },
+// Admin portal screenshots
+const adminTargets: ScreenshotTarget[] = [
+  { name: "dashboard", baseUrl: "admin", path: "/", waitFor: "main", delay: 3000 },
+  { name: "game-report", baseUrl: "admin", path: "/games", waitFor: "main", delay: 2000 },
+  { name: "team-list", baseUrl: "admin", path: "/teams", waitFor: "main", delay: 2000 },
+  { name: "website-config", baseUrl: "admin", path: "/website", waitFor: "main", delay: 2000 },
+  { name: "trikot-designer", baseUrl: "admin", path: "/trikots", waitFor: "main", delay: 2500 },
+  { name: "pages-cms", baseUrl: "admin", path: "/pages", waitFor: "main", delay: 2000 },
 ]
 
+// Public league site screenshots
+const leagueTargets: ScreenshotTarget[] = [
+  { name: "league-standings", baseUrl: "league", path: "/standings", waitFor: "main", delay: 3000 },
+  { name: "league-stats", baseUrl: "league", path: "/standings", waitFor: "main", delay: 4000 },
+  { name: "league-schedule", baseUrl: "league", path: "/schedule", waitFor: "main", delay: 3000 },
+  { name: "league-home", baseUrl: "league", path: "/", waitFor: "main", delay: 3000 },
+]
+
+function getBaseUrl(type: "admin" | "league") {
+  return type === "admin" ? ADMIN_URL : LEAGUE_SITE_URL
+}
+
+async function reseedDemo() {
+  const { createPrismaClientWithUrl } = await import("../packages/db/src/index")
+  const { runSeed } = await import("../packages/db/src/seed/index")
+  const { seedDemoOrg } = await import("../packages/db/src/seed/demoSeed")
+
+  const db = createPrismaClientWithUrl(process.env.DATABASE_URL!)
+
+  console.log("Reseeding reference data...")
+  await runSeed(db)
+
+  console.log("Reseeding demo organization...")
+  await seedDemoOrg(db)
+
+  await db.$disconnect()
+  console.log("Reseed complete.\n")
+}
+
 async function main() {
-  console.log("Launching browser...")
-  const browser = await chromium.launch({ headless: true })
+  const skipSeed = process.argv.includes("--no-seed")
+
+  if (!skipSeed) {
+    await reseedDemo()
+  } else {
+    console.log("Skipping reseed (--no-seed flag)\n")
+  }
+
+  // Use Firefox because Chromium treats .localhost as a public suffix,
+  // preventing cross-subdomain cookies needed for admin auth.
+  const { firefox } = await import("playwright")
+  console.log("Launching Firefox...")
+  const browser = await firefox.launch({ headless: true })
   const context = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
+    locale: "en-US",
   })
   const page = await context.newPage()
 
@@ -58,60 +104,66 @@ async function main() {
   page.on("console", (msg) => consoleMsgs.push(`[${msg.type()}] ${msg.text()}`))
   page.on("requestfailed", (req) => consoleMsgs.push(`[FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText}`))
 
-  // Login
-  console.log(`Logging in to ${BASE_URL} as ${EMAIL}...`)
-  await page.goto(`${BASE_URL}/login`, { waitUntil: "load", timeout: 30000 })
+  // Login via demo-login API endpoint (magic link bypass for demo).
+  // Navigate the browser to the API domain and call demo-login as same-origin
+  // so the Set-Cookie header is accepted by the browser natively.
+  console.log(`Logging in via demo-login API as ${EMAIL}...`)
+  await page.goto(`${API_URL}/api/health`, { waitUntil: "load", timeout: 30000 })
 
-  // Wait for the login form to render
-  await page.waitForSelector("#email", { timeout: 15000 })
+  const loginOk = await page.evaluate(async (email: string) => {
+    const res = await fetch("/api/demo-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ email }),
+    })
+    return res.ok
+  }, EMAIL)
 
-  // Wait for React hydration — the form's onSubmit handler must be attached
-  // before we click submit, otherwise a native form POST happens instead.
-  console.log("Waiting for React hydration...")
-  await page.waitForFunction(
-    () => {
-      const form = document.querySelector("form")
-      if (!form) return false
-      return Object.keys(form).some(
-        (k) => k.startsWith("__reactFiber$") || k.startsWith("__reactProps$"),
-      )
-    },
-    { timeout: 30000 },
-  )
-  console.log("Hydrated.")
-
-  await page.fill("#email", EMAIL)
-  await page.fill("#password", PASSWORD)
-  await page.click('button[type="submit"]')
-
-  // Wait until we leave /login (redirected to dashboard or org picker)
-  try {
-    await page.waitForFunction(() => !window.location.pathname.includes("/login"), { timeout: 30000 })
-  } catch {
-    // Login didn't redirect — dump diagnostics
-    console.error("\nLogin failed — page did not redirect away from /login")
-    console.error(`Current URL: ${page.url()}`)
-    const errorText = await page.locator("[role=alert], .text-destructive, .error-message").first().textContent().catch(() => null)
-    if (errorText) console.error(`Error on page: ${errorText}`)
-    if (consoleMsgs.length) {
-      console.error("\nBrowser console/network:")
-      for (const m of consoleMsgs) console.error(`  ${m}`)
-    }
-    const debugPath = resolve(OUTPUT_DIR, "_debug-login-failure.png")
-    await page.screenshot({ path: debugPath, fullPage: true })
-    console.error(`\nDebug screenshot saved: ${debugPath}`)
+  if (!loginOk) {
+    console.error("Demo login failed")
     await browser.close()
     process.exit(1)
   }
+  console.log("Demo login successful.")
 
-  // Give the app time to fully load after redirect
-  await page.waitForTimeout(3000)
+  const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN ?? "puckhub.localhost"
+  // Override SameSite to None so the cookie is sent on cross-origin fetch
+  // from admin.puckhub.localhost to api.puckhub.localhost (useSession check).
+  const cookies = await context.cookies()
+  const sessionCookie = cookies.find((c) => c.name === "better-auth.session_token")
+  if (sessionCookie) {
+    await context.clearCookies()
+    await context.addCookies([{
+      name: sessionCookie.name,
+      value: sessionCookie.value,
+      domain: `.${COOKIE_DOMAIN}`,
+      path: "/",
+      sameSite: "None",
+      secure: false,
+    }])
+    console.log(`  Cookie overridden: SameSite=None on .${COOKIE_DOMAIN}`)
+  }
 
-  console.log(`Logged in. Current URL: ${page.url()}\n`)
+  // Navigate to admin dashboard to verify session
+  await page.goto(ADMIN_URL, { waitUntil: "domcontentloaded", timeout: 20000 })
+  await page.waitForTimeout(5000)
 
-  // Capture each page
-  for (const target of targets) {
-    const url = `${BASE_URL}${target.path}`
+  const currentUrl = page.url()
+  if (currentUrl.includes("/login")) {
+    console.error("Session not recognized by admin app — still on login page")
+    const debugPath = resolve(OUTPUT_DIR, "_debug-login-failure.png")
+    await page.screenshot({ path: debugPath, fullPage: true })
+    console.log("Continuing with league-site screenshots only...")
+  } else {
+    console.log(`Session active. Current URL: ${currentUrl}\n`)
+  }
+
+  // ─── Admin portal screenshots ───────────────────────────────────────
+
+  console.log("=== Admin Portal Screenshots ===\n")
+  for (const target of adminTargets) {
+    const url = `${getBaseUrl(target.baseUrl)}${target.path}`
     console.log(`Capturing ${target.name} (${url})...`)
 
     try {
@@ -137,23 +189,52 @@ async function main() {
     }
   }
 
-  // Team history — navigate into first team's history page
+  // AI game recap — find a completed game that has a seeded recap
+  try {
+    console.log("\nCapturing ai-game-recap...")
+
+    // Query the DB directly for a game with recap content
+    const { createPrismaClientWithUrl } = await import("../packages/db/src/index")
+    const db = createPrismaClientWithUrl(process.env.DATABASE_URL!)
+    const gameWithRecap = await db.game.findFirst({
+      where: { recapTitle: { not: null } },
+      select: { id: true },
+    })
+    await db.$disconnect()
+
+    if (gameWithRecap) {
+      const url = `${LEAGUE_SITE_URL}/schedule/${gameWithRecap.id}`
+      console.log(`  Navigating to game with recap: ${gameWithRecap.id}`)
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+      await page.waitForTimeout(4000)
+
+      const outputPath = resolve(OUTPUT_DIR, "ai-game-recap.png")
+      await page.screenshot({ path: outputPath, fullPage: false })
+      console.log(`  Saved: ${outputPath}`)
+    } else {
+      console.log("  No games with recap found, skipping")
+    }
+  } catch (err) {
+    console.error("  Error capturing ai-game-recap:", (err as Error).message)
+  }
+
+  // Team history — find a team and capture the Saisonverlauf tab
   try {
     console.log("\nCapturing team-history...")
-    await page.goto(`${BASE_URL}/teams`, { waitUntil: "domcontentloaded", timeout: 20000 })
-    await page.waitForTimeout(2000)
 
-    const teamLink = page.locator("a[href*='/teams/']").first()
-    if (await teamLink.count()) {
-      await teamLink.click()
-      await page.waitForTimeout(2000)
+    const { createPrismaClientWithUrl: createDbHistory } = await import("../packages/db/src/index")
+    const dbHistory = createDbHistory(process.env.DATABASE_URL!)
+    const teamForHistory = await dbHistory.team.findFirst({
+      where: { organization: { slug: "demo-league" } },
+      select: { id: true, name: true },
+    })
+    await dbHistory.$disconnect()
 
-      // Navigate to the history tab
-      const historyLink = page.locator("a[href*='/history']").first()
-      if (await historyLink.count()) {
-        await historyLink.click()
-        await page.waitForTimeout(3000)
-      }
+    if (teamForHistory) {
+      const url = `${LEAGUE_SITE_URL}/teams/${teamForHistory.id}?tab=history`
+      console.log(`  Navigating to team history: ${teamForHistory.name}`)
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+      await page.waitForTimeout(5000)
 
       const outputPath = resolve(OUTPUT_DIR, "team-history.png")
       await page.screenshot({ path: outputPath, fullPage: false })
@@ -165,30 +246,42 @@ async function main() {
     console.error("  Error capturing team-history:", (err as Error).message)
   }
 
-  // Season structure builder — navigate into first season
+  // Season structure builder — pick the season with the most divisions for visual impact
   try {
     console.log("\nCapturing season-builder...")
-    await page.goto(`${BASE_URL}/seasons`, { waitUntil: "domcontentloaded", timeout: 20000 })
-    await page.waitForTimeout(2000)
 
-    const seasonLink = page.locator("a[href*='/seasons/']").first()
-    if (await seasonLink.count()) {
-      await seasonLink.click()
-      await page.waitForTimeout(3000)
+    // Find the season with the most divisions directly from the DB
+    const { createPrismaClientWithUrl: createDb2 } = await import("../packages/db/src/index")
+    const db2 = createDb2(process.env.DATABASE_URL!)
+    const allSeasons = await db2.season.findMany({
+      where: { organization: { slug: "demo-league" } },
+      select: { id: true, name: true, _count: { select: { divisions: true } } },
+    })
+    await db2.$disconnect()
 
-      // Check if we landed on the structure page or need to click into it
+    const bestSeason = allSeasons.sort((a, b) => b._count.divisions - a._count.divisions)[0]
+
+    if (bestSeason) {
+      console.log(`  Using season "${bestSeason.name}" (${bestSeason._count.divisions} divisions)`)
+      await page.goto(`${ADMIN_URL}/seasons/${bestSeason.id}/structure`, {
+        waitUntil: "domcontentloaded",
+        timeout: 20000,
+      })
+
       try {
         await page.waitForSelector(".react-flow", { timeout: 8000 })
       } catch {
-        // Try clicking a "structure" tab/link if available
-        const structureLink = page.locator("a[href*='/structure']").first()
-        if (await structureLink.count()) {
-          await structureLink.click()
-          await page.waitForTimeout(2000)
-        }
+        console.log("  Warning: React Flow canvas not found")
+      }
+      await page.waitForTimeout(3000)
+
+      // Collapse the right-side structure elements panel
+      const collapseBtn = page.locator("button[style*='right: 320']").first()
+      if (await collapseBtn.count()) {
+        await collapseBtn.click()
+        await page.waitForTimeout(800)
       }
 
-      await page.waitForTimeout(2000)
       const outputPath = resolve(OUTPUT_DIR, "season-builder.png")
       await page.screenshot({ path: outputPath, fullPage: false })
       console.log(`  Saved: ${outputPath}`)
@@ -197,6 +290,36 @@ async function main() {
     }
   } catch (err) {
     console.error("  Error capturing season-builder:", (err as Error).message)
+  }
+
+  // ─── League site screenshots ────────────────────────────────────────
+
+  console.log("\n=== League Site Screenshots ===\n")
+  for (const target of leagueTargets) {
+    const url = `${getBaseUrl(target.baseUrl)}${target.path}`
+    console.log(`Capturing ${target.name} (${url})...`)
+
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+
+      if (target.waitFor) {
+        try {
+          await page.waitForSelector(target.waitFor, { timeout: 10000 })
+        } catch {
+          console.log(`  Warning: selector "${target.waitFor}" not found, taking screenshot anyway`)
+        }
+      }
+
+      if (target.delay) {
+        await page.waitForTimeout(target.delay)
+      }
+
+      const outputPath = resolve(OUTPUT_DIR, `${target.name}.png`)
+      await page.screenshot({ path: outputPath, fullPage: false })
+      console.log(`  Saved: ${outputPath}`)
+    } catch (err) {
+      console.error(`  Error capturing ${target.name}:`, (err as Error).message)
+    }
   }
 
   await browser.close()

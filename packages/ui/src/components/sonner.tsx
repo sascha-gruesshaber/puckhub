@@ -7,7 +7,7 @@ function Toaster() {
       toastOptions={{
         className: "font-sans",
         style: {
-          fontFamily: "'Outfit', system-ui, sans-serif",
+          fontFamily: "'Outfit Variable', system-ui, sans-serif",
         },
       }}
       richColors

@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router"
 import {
   FileText,
   GitBranch,
@@ -9,8 +9,6 @@ import {
   Settings,
   Shield,
   Shirt,
-  TrendingUp,
-  Trophy,
   UserCog,
   Users,
 } from "lucide-react"
@@ -66,8 +64,6 @@ const iconProps = { size: 18, strokeWidth: 1.5 } as const
 type RouteLink =
   | "/"
   | "/games"
-  | "/standings"
-  | "/stats"
   | "/teams"
   | "/players"
   | "/trikots"
@@ -167,6 +163,13 @@ function AuthedLayout() {
 function OrgGate() {
   const { organization, isLoading } = useOrganization()
 
+  // If there's a redirect param, skip the org picker and redirect immediately
+  const redirectParam = new URLSearchParams(window.location.search).get("redirect")
+  if (redirectParam && !isLoading) {
+    window.location.href = redirectParam
+    return null
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
@@ -205,19 +208,6 @@ function OrgGate() {
 // ---------------------------------------------------------------------------
 // Sidebar + Content (extracted so useWorkingSeason is inside SeasonProvider)
 // ---------------------------------------------------------------------------
-function MustChangePasswordGuard({ children }: { children: React.ReactNode }) {
-  const { data: me, isLoading: meLoading } = trpc.users.me.useQuery()
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  if (!meLoading && me?.mustChangePassword && location.pathname !== "/profile") {
-    navigate({ to: "/profile" })
-    return null
-  }
-
-  return <>{children}</>
-}
-
 function SidebarLayout() {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
@@ -249,16 +239,9 @@ function SidebarLayout() {
 
   const allNavGroups: NavGroup[] = [
     {
-      label: t("sidebar.groups.gameOperations"),
-      items: [
-        { to: "/games", label: t("sidebar.items.games"), icon: <IconPuck />, permission: "games" },
-        { to: "/standings", label: t("sidebar.items.standings"), icon: <Trophy {...iconProps} />, permission: "standings" },
-        { to: "/stats", label: t("sidebar.items.stats"), icon: <TrendingUp {...iconProps} />, permission: "stats" },
-      ],
-    },
-    {
       label: t("sidebar.groups.leagueManagement"),
       items: [
+        { to: "/games", label: t("sidebar.items.games"), icon: <IconPuck />, permission: "games" },
         {
           label: t("sidebar.items.seasonStructure"),
           icon: <GitBranch {...iconProps} />,
@@ -485,11 +468,9 @@ function SidebarLayout() {
       >
         <TopBar />
         <div className="content-enter flex-1" style={{ padding: "24px 44px" }}>
-          <MustChangePasswordGuard>
-            <Suspense fallback={<PageSkeleton />}>
-              <Outlet />
-            </Suspense>
-          </MustChangePasswordGuard>
+          <Suspense fallback={<PageSkeleton />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
 

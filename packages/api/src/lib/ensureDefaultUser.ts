@@ -1,15 +1,13 @@
-import { hashPassword } from "better-auth/crypto"
-
 /**
  * Creates the initial admin user on first startup when the database has no users.
- * Reads DEFAULT_USER_EMAIL and DEFAULT_USER_PASSWORD from environment variables.
- * Skips silently if users already exist or if env vars are not set.
+ * Reads DEFAULT_USER_EMAIL from environment variables.
+ * The user will sign in via magic link — no password needed.
+ * Skips silently if users already exist or if env var is not set.
  */
 export async function ensureDefaultUser(): Promise<void> {
   const email = process.env.DEFAULT_USER_EMAIL
-  const password = process.env.DEFAULT_USER_PASSWORD
 
-  if (!email || !password) {
+  if (!email) {
     return
   }
 
@@ -31,20 +29,8 @@ export async function ensureDefaultUser(): Promise<void> {
       name: "Admin",
       emailVerified: true,
       role: "admin",
-      mustChangePassword: true,
     },
   })
 
-  const hashedPw = await hashPassword(password)
-  await db.account.create({
-    data: {
-      id: crypto.randomUUID(),
-      accountId: userId,
-      providerId: "credential",
-      password: hashedPw,
-      userId,
-    },
-  })
-
-  console.log("Default admin user created successfully.")
+  console.log("Default admin user created successfully. Use magic link to sign in.")
 }

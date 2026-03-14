@@ -10,7 +10,7 @@ src/routes/
 ├── login.tsx               # Public login page
 └── _authed.tsx             # Protected layout (sidebar, admin role check)
     ├── index.tsx           # Dashboard (stats overview, league list)
-    ├── profile.tsx         # User profile & password management
+    ├── profile.tsx         # User profile (name, email)
     ├── settings.tsx        # Redirects to /profile
     ├── users.tsx           # Global user management
     ├── jobs.tsx            # Scheduled cron job monitoring
@@ -59,10 +59,18 @@ lib/                       # @/ alias target (at app root, outside src/)
 |-------|---------|----------------|
 | Dashboard (`/`) | Stats overview, league list, member counts | `trpc.organization.listAll`, `trpc.users.listAll` |
 | Leagues (`/organizations`) | Create/delete leagues, export/import data, login-as | `trpc.organization.create/delete/setActiveForAdmin`, `trpc.leagueTransfer.export/import` |
-| Users (`/users`) | Global user search, delete, assign/remove from leagues | `trpc.users.listAll/deleteGlobal/addToOrganization/removeFromOrganization` |
+| Users (`/users`) | Global user search, delete, assign/remove from leagues, role management | `trpc.users.listAll/deleteGlobal/addToOrganization/removeFromOrganization` |
 | Jobs (`/jobs`) | Monitor cron jobs, view history, trigger manually | `trpc.scheduler.list`, `trpc.scheduler.trigger` |
-| Plans (`/plans`) | Manage subscription plans (tiers, pricing, feature flags) | `trpc.plan.list/create/update/delete` |
-| Profile (`/profile`) | Update name, change password | `authClient.updateUser()`, `authClient.changePassword()` |
+| Plans (`/plans`) | Manage subscription plans (tiers, pricing, feature flags, AI token limits) | `trpc.plan.list/create/update/delete` |
+| Profile (`/profile`) | Update name | `authClient.updateUser()` |
+
+## E2E Testing
+
+- **Framework**: Playwright (Chromium only)
+- **Test dir**: `e2e/` (1 spec file)
+- **Specs**: `auth-redirect`
+- **Isolation**: Root `e2e/global-setup.ts` / `e2e/global-teardown.ts` (shared across all apps)
+- **Run**: `pnpm test:e2e:platform`
 
 ## Styling
 

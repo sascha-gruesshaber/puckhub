@@ -1,9 +1,7 @@
-import { Button, ChangePasswordCard, Input, toast } from "@puckhub/ui"
+import { Button, Input, toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { AlertTriangle } from "lucide-react"
 import { type FormEvent, useState } from "react"
 import { authClient, useSession } from "@/auth-client"
-import { trpc } from "@/trpc"
 
 export const Route = createFileRoute("/_authed/profile")({
   component: ProfilePage,
@@ -13,11 +11,6 @@ function ProfilePage() {
   const { data: session } = useSession()
   const [name, setName] = useState(session?.user.name ?? "")
   const [saving, setSaving] = useState(false)
-  const { data: me } = trpc.users.me.useQuery()
-  const utils = trpc.useUtils()
-  const clearFlagMutation = trpc.users.clearMustChangePassword.useMutation({
-    onSuccess: () => utils.users.me.invalidate(),
-  })
 
   async function handleSaveProfile(e: FormEvent) {
     e.preventDefault()
@@ -36,36 +29,12 @@ function ProfilePage() {
     }
   }
 
-  async function handleChangePassword(values: { currentPassword: string; newPassword: string }) {
-    const result = await authClient.changePassword({
-      currentPassword: values.currentPassword,
-      newPassword: values.newPassword,
-      revokeOtherSessions: false,
-    })
-
-    if ((result as any)?.error) {
-      throw new Error((result as any).error.message ?? "Could not update password.")
-    }
-
-    // Clear the mustChangePassword flag after successful password change
-    clearFlagMutation.mutate()
-  }
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Profile</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage your personal account settings</p>
       </div>
-
-      {me?.mustChangePassword && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm font-medium text-amber-800">
-            You must change your password before continuing.
-          </p>
-        </div>
-      )}
 
       <div className="grid gap-6 xl:grid-cols-2 items-start">
         <ProfileSection title="Account" description="Name and email settings">
@@ -106,10 +75,6 @@ function ProfilePage() {
               </div>
             </form>
           </div>
-        </ProfileSection>
-
-        <ProfileSection title="Security" description="Password and sign-in protection">
-          <ChangePasswordCard onSubmit={handleChangePassword} successMessage="Password updated successfully." />
         </ProfileSection>
       </div>
     </div>

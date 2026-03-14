@@ -234,7 +234,6 @@ export async function runSeed(db: Database) {
           { title: "Spielplan", slug: "_route-schedule", routePath: "/schedule", menuLocations: ml, sortOrder: 2 },
           { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 3 },
           { title: "Statistiken", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 4 },
-          { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ml, sortOrder: 5 },
         ]
       : [
           { title: "Home", slug: "_route-home", routePath: "/", menuLocations: ml, sortOrder: 0 },
@@ -242,7 +241,6 @@ export async function runSeed(db: Database) {
           { title: "Schedule", slug: "_route-schedule", routePath: "/schedule", menuLocations: ml, sortOrder: 2 },
           { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 3 },
           { title: "Statistics", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 4 },
-          { title: "News", slug: "_route-news", routePath: "/news", menuLocations: ml, sortOrder: 5 },
         ]
 
     await db.page.createMany({

@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react"
 import { Menu, X } from "lucide-react"
+import { useT } from "~/i18n"
 
-const navLinks = [
-  { label: "Features", href: "/#features" },
-  { label: "Preise", href: "/#pricing" },
-]
-
-export function Header({ onOpenDemo }: { onOpenDemo: () => void }) {
+export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
+  const t = useT()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const navLinks = [
+    { label: t.header.features, href: "/#features" },
+    { label: t.header.pricing, href: "/#pricing" },
+  ]
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -17,7 +19,7 @@ export function Header({ onOpenDemo }: { onOpenDemo: () => void }) {
   }, [])
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "glass" : ""}`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled || mobileOpen ? "glass" : ""}`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <a href="/" className="flex items-center gap-2">
@@ -37,13 +39,15 @@ export function Header({ onOpenDemo }: { onOpenDemo: () => void }) {
                 {link.label}
               </a>
             ))}
-            <button
-              type="button"
-              onClick={onOpenDemo}
-              className="inline-flex items-center rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-navy hover:bg-brand-gold-dark transition-colors"
-            >
-              Demo testen
-            </button>
+            {onOpenDemo && (
+              <button
+                type="button"
+                onClick={onOpenDemo}
+                className="inline-flex items-center rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-navy hover:bg-brand-gold-dark transition-colors"
+              >
+                {t.header.cta}
+              </button>
+            )}
           </nav>
 
           {/* Mobile toggle */}
@@ -69,16 +73,18 @@ export function Header({ onOpenDemo }: { onOpenDemo: () => void }) {
                 {link.label}
               </a>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setMobileOpen(false)
-                onOpenDemo()
-              }}
-              className="mt-2 inline-flex items-center rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-navy"
-            >
-              Demo testen
-            </button>
+            {onOpenDemo && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileOpen(false)
+                  onOpenDemo()
+                }}
+                className="mt-2 inline-flex items-center rounded-lg bg-brand-gold px-4 py-2 text-sm font-semibold text-brand-navy"
+              >
+                {t.header.cta}
+              </button>
+            )}
           </div>
         )}
       </div>

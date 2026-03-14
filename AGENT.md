@@ -1,6 +1,6 @@
 # PuckHub CMS
 
-Ice Hockey League Management System — admin UI + API for managing seasons, teams, players, games, standings, and statistics.
+Ice Hockey League Management Platform — multi-tenant SaaS for managing seasons, teams, players, games, and public league websites with AI-powered game recaps, passwordless authentication, and localized German/English URLs.
 
 ## Tech Stack
 
@@ -12,9 +12,9 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 |-----------|---------|-------------|
 | `apps/admin` | `@puckhub/admin` | TanStack Start admin UI (`admin.` subdomain, port 3000), i18n (DE/EN) |
 | `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (`platform.` subdomain, port 3002) |
-| `apps/league-site` | `@puckhub/league-site` | Public league website (`*.` wildcard subdomain, port 3003) — standings, schedules, stats, news |
+| `apps/league-site` | `@puckhub/league-site` | Public league website (`*.` wildcard subdomain, port 3003) — standings, schedules, stats, news, localized DE/EN routes |
 | `apps/marketing-site` | `@puckhub/marketing-site` | Marketing landing page (bare domain, port 3004) — features, pricing, demo CTA |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (29 routers) + Better Auth (`api.` subdomain, port 3001) |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (30 routers) + Better Auth + AI recap service (`api.` subdomain, port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
@@ -26,7 +26,12 @@ pnpm dev                # Start Docker (DB + pgAdmin + Caddy) + all dev servers
 pnpm build              # Build all packages and apps
 pnpm test               # Run all tests (Vitest)
 pnpm test:api           # Run API tests only
-pnpm test:e2e           # Run Playwright E2E tests (admin app)
+pnpm test:e2e           # Run Playwright E2E tests (admin app, default)
+pnpm test:e2e:admin     # Run admin E2E tests
+pnpm test:e2e:league    # Run league-site E2E tests
+pnpm test:e2e:marketing # Run marketing-site E2E tests
+pnpm test:e2e:platform  # Run platform E2E tests
+pnpm test:e2e:all       # Run all E2E tests sequentially
 pnpm lint               # TypeScript type-check across all packages
 pnpm format             # Format all files with Biome
 pnpm format:check       # Check formatting without writing
@@ -60,8 +65,7 @@ Copy `.env.example` to `.env`. Key variables:
 | `ADMIN_PORT` | `3000` | Admin dev server port |
 | `AUTO_MIGRATE` | `true` | Auto-run migrations on API startup |
 | `UPLOAD_DIR` | `./uploads` | File upload directory |
-| `DEFAULT_USER_EMAIL` | `admin@puckhub.local` | Default admin user email |
-| `DEFAULT_USER_PASSWORD` | `changeme123` | Default admin user password |
+| `DEFAULT_USER_EMAIL` | `admin@puckhub.local` | Default admin user email (magic link login) |
 | `DEMO_MODE` | `false` | Enable demo mode with periodic resets |
 | `DEMO_RESET_CRON` | `0 */4 * * *` | Cron schedule for demo data reset |
 | `PASSKEY_RP_ID` | `puckhub.localhost` | WebAuthn relying party ID |
@@ -70,9 +74,17 @@ Copy `.env.example` to `.env`. Key variables:
 | `BASE_DOMAIN` | `puckhub.localhost` | Base domain for subdomain routing |
 | `COOKIE_DOMAIN` | `puckhub.localhost` | Domain for cross-subdomain cookies |
 | `SUBDOMAIN_SUFFIX` | `.puckhub.localhost` | Suffix for league subdomains |
+| `VITE_BASE_DOMAIN` | `puckhub.localhost` | Base domain exposed to Vite frontends |
 | `TRUSTED_ORIGINS` | `http://admin.puckhub.localhost,...` | Comma-separated trusted origins for CORS/auth |
 | `BETTER_AUTH_BASE_URL` | `http://api.puckhub.localhost` | Better Auth server base URL |
 | `CNAME_TARGET` | `sites.puckhub.localhost` | CNAME target for custom domain verification |
+| `SMTP_HOST` | — | SMTP server host (falls back to console logging if unset) |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_USER` | — | SMTP username |
+| `SMTP_PASS` | — | SMTP password |
+| `SMTP_FROM` | `noreply@puckhub.eu` | Sender email address |
+| `OPENROUTER_API_KEY` | — | OpenRouter API key for AI game recaps |
+| `OPENROUTER_MODEL` | `google/gemini-3.1-flash-lite-preview` | AI model for recap generation |
 
 ## Docker
 

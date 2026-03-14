@@ -2,7 +2,7 @@
 
 Shared UI component library — shadcn/ui-style components with Tailwind CSS, CVA variants, and React 19.
 
-## Components (12 files, 15 exports)
+## Components (11 files, 13 exports)
 
 | Component | File | Pattern | Notes |
 |-----------|------|---------|-------|
@@ -16,7 +16,6 @@ Shared UI component library — shadcn/ui-style components with Tailwind CSS, CV
 | `FormField` | `form-field.tsx` | Props-based | Wraps children with label + error + description |
 | `Skeleton` | `skeleton.tsx` | Simple | CSS animation via `.skeleton` class |
 | `ColorInput` | `color-input.tsx` | Composite | Color picker + hex text input |
-| `ChangePasswordCard` | `changePasswordCard.tsx` | Composite | Password change form card |
 | `Toaster` + `toast` | `sonner.tsx` | Wrapper | Pre-configured Sonner (bottom-right, Outfit font) |
 
 ## Utility
@@ -46,6 +45,6 @@ Colors use HSL format: `--primary: 215 55% 23%` (dark blue), `--secondary: 354 8
 ## Exports
 
 ```ts
-import { Button, Card, Input, Dialog, Badge, ChangePasswordCard, ... } from '@puckhub/ui'
+import { Button, Card, Input, Dialog, Badge, ... } from '@puckhub/ui'
 import '@puckhub/ui/globals.css'  // Tailwind theme + base styles
 ```

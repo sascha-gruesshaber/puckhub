@@ -6,81 +6,49 @@ import {
   Users,
   Trophy,
   Globe,
-  History,
+  Sparkles,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react"
 import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
+import { useT } from "~/i18n"
 
-const slides = [
-  {
-    icon: LayoutDashboard,
-    title: "Dashboard",
-    description:
-      "Behalte den Überblick über deine gesamte Liga – anstehende Spiele, aktuelle Tabellen und die neuesten Ergebnisse auf einen Blick.",
-    screenshot: "/screenshots/dashboard.png",
-  },
-  {
-    icon: CalendarDays,
-    title: "Saison-Strukturen",
-    description:
-      "Erstelle komplexe Saisonpläne mit Divisionen, Runden und automatischen Spielplänen per Drag & Drop.",
-    screenshot: "/screenshots/season-builder.png",
-  },
-  {
-    icon: ClipboardList,
-    title: "Spielberichte",
-    description:
-      "Erfasse Tore, Strafen und Aufstellungen in Echtzeit direkt während des Spiels.",
-    screenshot: "/screenshots/game-report.png",
-  },
-  {
-    icon: Users,
-    title: "Spieler & Teams",
-    description:
-      "Verwalte Teams, Kader, Verträge und Transfers zentral an einem Ort.",
-    screenshot: "/screenshots/team-list.png",
-  },
-  {
-    icon: Trophy,
-    title: "Tabellen & Statistiken",
-    description:
-      "Automatische Tabellenberechnung, Spielerstatistiken und Torjägerlisten in Echtzeit.",
-    screenshot: "/screenshots/standings.png",
-  },
-  {
-    icon: Globe,
-    title: "Eigene Liga-Website",
-    description:
-      "Jede Liga bekommt eine eigene Website mit Ergebnissen, Tabellen, News und Spielplan.",
-    screenshot: "/screenshots/website-config.png",
-  },
-  {
-    icon: History,
-    title: "Historien & Karrieredaten",
-    description:
-      "Verfolge Spieler- und Team-Statistiken über mehrere Saisons hinweg mit Karriere-Übersichten und Trend-Analysen.",
-    screenshot: "/screenshots/team-history.png",
-  },
+const slideIcons = [LayoutDashboard, CalendarDays, ClipboardList, Users, Globe, Trophy, Sparkles]
+
+const slideScreenshots = [
+  "/screenshots/dashboard.png",
+  "/screenshots/season-builder.png",
+  "/screenshots/game-report.png",
+  "/screenshots/team-list.png",
+  "/screenshots/league-home.png",
+  "/screenshots/league-standings.png",
+  "/screenshots/ai-game-recap.png",
 ]
 
 const AUTOPLAY_MS = 6000
 
 export function Features() {
+  const t = useT()
   const [active, setActive] = useState(0)
   const [paused, setPaused] = useState(false)
   const reveal = useScrollReveal()
+
+  const slides = t.features.slides.map((s, i) => ({
+    ...s,
+    icon: slideIcons[i]!,
+    screenshot: slideScreenshots[i]!,
+  }))
 
   const goTo = useCallback((i: number) => setActive(i), [])
 
   const next = useCallback(
     () => setActive((i) => (i + 1) % slides.length),
-    [],
+    [slides.length],
   )
 
   const prev = useCallback(
     () => setActive((i) => (i - 1 + slides.length) % slides.length),
-    [],
+    [slides.length],
   )
 
   useEffect(() => {
@@ -98,11 +66,10 @@ export function Features() {
           {/* Header */}
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-bold">
-              Alles, was deine Liga braucht
+              {t.features.heading}
             </h2>
             <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">
-              Von der Saisonplanung bis zur öffentlichen Website – PuckHub
-              deckt den gesamten Workflow ab.
+              {t.features.subheading}
             </p>
           </div>
 
@@ -205,7 +172,7 @@ export function Features() {
               <button
                 type="button"
                 onClick={prev}
-                aria-label="Vorheriges Feature"
+                aria-label={t.features.prevLabel}
                 className="absolute left-2 sm:left-0 top-1/2 -translate-y-1/2 sm:-translate-x-1/2 lg:-translate-x-full lg:-ml-4 h-10 w-10 rounded-full bg-brand-navy-light/90 border border-white/10 flex items-center justify-center text-brand-slate hover:text-white hover:border-brand-gold/40 transition-all backdrop-blur-sm shadow-lg"
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -213,7 +180,7 @@ export function Features() {
               <button
                 type="button"
                 onClick={next}
-                aria-label="Nächstes Feature"
+                aria-label={t.features.nextLabel}
                 className="absolute right-2 sm:right-0 top-1/2 -translate-y-1/2 sm:translate-x-1/2 lg:translate-x-full lg:ml-4 h-10 w-10 rounded-full bg-brand-navy-light/90 border border-white/10 flex items-center justify-center text-brand-slate hover:text-white hover:border-brand-gold/40 transition-all backdrop-blur-sm shadow-lg"
               >
                 <ChevronRight className="h-5 w-5" />

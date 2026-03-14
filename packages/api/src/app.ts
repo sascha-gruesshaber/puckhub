@@ -22,6 +22,17 @@ app.use(
   }),
 )
 
+// Demo login — CORS must be registered before the strict origin check
+if (process.env.DEMO_MODE === "true") {
+  app.use(
+    "/api/demo-login",
+    cors({
+      origin: (origin) => origin ?? "*",
+      credentials: true,
+    }),
+  )
+}
+
 // Authenticated routes — strict origin checking (skip publicSite routes handled above)
 app.use("/api/*", async (c, next) => {
   if (c.req.path.startsWith("/api/trpc/publicSite.")) {
@@ -97,6 +108,56 @@ app.get("/api/domain-check", async (c) => {
 
   return config ? c.text("ok", 200) : c.text("not found", 404)
 })
+
+// Demo login — only available when DEMO_MODE=true
+if (process.env.DEMO_MODE === "true") {
+  app.post("/api/demo-login", async (c) => {
+    const { setSignedCookie } = await import("hono/cookie")
+    const body = await c.req.json().catch(() => null)
+    const email = body?.email
+    if (!email || typeof email !== "string") {
+      return c.json({ error: "email required" }, 400)
+    }
+
+    const user = await db.user.findFirst({
+      where: { email, isDemoUser: true },
+      select: { id: true },
+    })
+    if (!user) {
+      return c.json({ error: "demo user not found" }, 404)
+    }
+
+    // Better Auth uses signed cookies (HMAC with AUTH_SECRET).
+    // The raw token is stored in the DB; the signed token goes in the cookie.
+    const { generateId } = await import("better-auth")
+    const sessionToken = generateId(32)
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    await db.session.create({
+      data: {
+        id: crypto.randomUUID(),
+        token: sessionToken,
+        userId: user.id,
+        expiresAt,
+        ipAddress: c.req.header("x-forwarded-for") ?? null,
+        userAgent: c.req.header("user-agent") ?? null,
+      },
+    })
+
+    const cookieDomain = process.env.COOKIE_DOMAIN ?? "puckhub.localhost"
+    const secret = process.env.AUTH_SECRET ?? "dev-secret-change-me"
+
+    await setSignedCookie(c, "better-auth.session_token", sessionToken, secret, {
+      path: "/",
+      domain: cookieDomain,
+      httpOnly: true,
+      sameSite: "Lax",
+      maxAge: 7 * 24 * 60 * 60,
+      secure: c.req.url.startsWith("https"),
+    })
+
+    return c.json({ ok: true })
+  })
+}
 
 // Health check
 app.get("/api/health", (c) => {

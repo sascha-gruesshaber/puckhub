@@ -42,12 +42,11 @@ describe("users router", () => {
   })
 
   describe("create", () => {
-    it("creates a new user with credential account and org membership", async () => {
+    it("creates a new user with org membership (magic link, no password)", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const result = await admin.users.create({
         name: "New User",
         email: "new@test.local",
-        password: "password123",
       })
 
       expect(result).toBeDefined()
@@ -63,27 +62,14 @@ describe("users router", () => {
       await admin.users.create({
         name: "First",
         email: "dup@test.local",
-        password: "password123",
       })
 
       await expect(
         admin.users.create({
           name: "Second",
           email: "dup@test.local",
-          password: "password123",
         }),
       ).rejects.toThrow("USER_ALREADY_MEMBER")
-    })
-
-    it("rejects short password", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.users.create({
-          name: "Test",
-          email: "short@test.local",
-          password: "12345",
-        }),
-      ).rejects.toThrow()
     })
 
     it("rejects invalid email", async () => {
@@ -92,7 +78,6 @@ describe("users router", () => {
         admin.users.create({
           name: "Test",
           email: "not-an-email",
-          password: "password123",
         }),
       ).rejects.toThrow()
     })
@@ -202,53 +187,6 @@ describe("users router", () => {
     })
   })
 
-  describe("resetPassword", () => {
-    it("resets password for a user with an account", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-
-      // Create a user with a credential account
-      const result = await admin.users.create({
-        name: "PW User",
-        email: "pw@test.local",
-        password: "oldpassword",
-      })
-
-      // Reset should succeed without throwing
-      await admin.users.resetPassword({ id: result.userId, password: "newpassword123" })
-    })
-
-    it("throws NOT_FOUND when user has no account", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-      const db = getTestDb()
-
-      const userId = "no-account"
-      await db.user.create({
-        data: {
-          id: userId,
-          name: "No Account",
-          email: "noaccount@test.local",
-          emailVerified: false,
-        },
-      })
-      await db.member.create({
-        data: {
-          id: "no-account-member",
-          userId,
-          organizationId: TEST_ORG_ID,
-          role: "member",
-        },
-      })
-
-      await expect(admin.users.resetPassword({ id: userId, password: "newpass123" })).rejects.toThrow(
-        "ACCOUNT_NOT_FOUND",
-      )
-    })
-
-    it("rejects short password", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.users.resetPassword({ id: "test-admin-id", password: "123" })).rejects.toThrow()
-    })
-  })
 
   describe("updateRole", () => {
     it("updates a member role", async () => {
@@ -286,13 +224,12 @@ describe("users router", () => {
   // ─── me ─────────────────────────────────────────────────────────────────────
 
   describe("me", () => {
-    it("returns the current user with mustChangePassword flag", async () => {
+    it("returns the current user", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const result = await admin.users.me()
 
       expect(result).toBeDefined()
       expect(result?.id).toBe("test-admin-id")
-      expect(result?.mustChangePassword).toBeDefined()
     })
 
     it("returns user info for regular user", async () => {
@@ -306,39 +243,6 @@ describe("users router", () => {
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
       await expect(caller.users.me()).rejects.toThrow("Not authenticated")
-    })
-  })
-
-  // ─── clearMustChangePassword ──────────────────────────────────────────────
-
-  describe("clearMustChangePassword", () => {
-    it("clears the mustChangePassword flag", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-      const db = getTestDb()
-
-      // Set the flag first
-      await db.user.update({
-        where: { id: "test-admin-id" },
-        data: { mustChangePassword: true },
-      })
-
-      const result = await admin.users.clearMustChangePassword()
-      expect(result).toEqual({ ok: true })
-
-      // Verify flag is cleared
-      const user = await db.user.findUnique({ where: { id: "test-admin-id" } })
-      expect(user?.mustChangePassword).toBe(false)
-    })
-
-    it("succeeds even when flag is already false", async () => {
-      const admin = createTestCaller({ asAdmin: true })
-      const result = await admin.users.clearMustChangePassword()
-      expect(result).toEqual({ ok: true })
-    })
-
-    it("rejects unauthenticated calls", async () => {
-      const caller = createTestCaller()
-      await expect(caller.users.clearMustChangePassword()).rejects.toThrow("Not authenticated")
     })
   })
 
@@ -610,7 +514,7 @@ describe("users router", () => {
   // ─── createPlatformUser (platform admin) ──────────────────────────────────
 
   describe("createPlatformUser", () => {
-    it("creates a new platform user with generated password", async () => {
+    it("creates a new platform user (magic link, no password)", async () => {
       const platformAdmin = createPlatformAdminCaller()
       const db = getTestDb()
 
@@ -622,21 +526,12 @@ describe("users router", () => {
       expect(result).toBeDefined()
       expect(result.userId).toBeDefined()
       expect(result.email).toBe("newplatform@test.local")
-      expect(result.generatedPassword).toBeDefined()
-      expect(typeof result.generatedPassword).toBe("string")
-      expect(result.generatedPassword.length).toBeGreaterThanOrEqual(16)
 
       // Verify user was created
       const user = await db.user.findFirst({ where: { id: result.userId } })
       expect(user).not.toBeNull()
       expect(user?.name).toBe("New Platform User")
-      expect(user?.mustChangePassword).toBe(true)
       expect(user?.role).toBeNull() // no role by default
-
-      // Verify credential account was created
-      const account = await db.account.findFirst({ where: { userId: result.userId } })
-      expect(account).not.toBeNull()
-      expect(account?.providerId).toBe("credential")
     })
 
     it("creates a platform admin user when role is set", async () => {

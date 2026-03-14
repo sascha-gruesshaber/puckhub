@@ -1,6 +1,6 @@
 # @puckhub/api
 
-Hono HTTP server with tRPC routers and Better Auth. Runs on port 3001.
+Hono HTTP server with tRPC routers, Better Auth (magic link + passkey + 2FA), AI recap service, and email infrastructure. Runs on port 3001.
 
 ## Architecture
 
@@ -8,13 +8,20 @@ Hono HTTP server with tRPC routers and Better Auth. Runs on port 3001.
 src/
 ├── index.ts           # Entry point — loads env, auto-migrates, starts server
 ├── app.ts             # Hono app — CORS, auth routes, tRPC mount, uploads, health
-├── lib/auth.ts        # Better Auth config (email/password, passkey, 2FA, 7-day sessions)
+├── lib/
+│   ├── auth.ts        # Better Auth config (magic link, passkey, 2FA, 7-day sessions)
+│   ├── ensureDefaultUser.ts  # Creates default admin on first startup (magic link, no password)
+│   ├── email.ts       # SMTP via nodemailer (falls back to console if unconfigured)
+│   └── emailTemplates.ts  # HTML email templates (magic link, invite)
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
-│   └── codes.ts       # APP_ERROR_CODES enum (56 error codes)
+│   └── codes.ts       # APP_ERROR_CODES enum (59 error codes)
 ├── routes/
 │   └── upload.ts      # File upload handler (POST /api/upload)
 ├── services/
+│   ├── aiRecapService.ts          # AI game recap generation (OpenRouter + Gemini)
+│   ├── ensureSystemPages.ts       # Auto-provision system pages for organizations
+│   ├── planLimits.ts              # Plan limit checking and enforcement
 │   ├── schedulerService.ts        # Round-robin game scheduling logic
 │   └── leagueTransfer/            # League data export/import
 │       ├── index.ts               # Service entry point
@@ -29,14 +36,14 @@ src/
     ├── context.ts     # Request context (db, session, user)
     ├── client.ts      # AppRouter type export
     ├── index.ts       # Root router composition (appRouter)
-    └── routers/       # 25 feature routers
+    └── routers/       # 30 feature routers
 ```
 
 ## HTTP Routes
 
 | Method | Path | Handler |
 |--------|------|---------|
-| `*` | `/api/auth/**` | Better Auth (login, signup, session, passkey, 2FA) |
+| `*` | `/api/auth/**` | Better Auth (magic link, passkey, 2FA, session) |
 | `*` | `/api/trpc/*` | tRPC handler |
 | `POST` | `/api/upload` | File upload (logo/photo, max 5MB, images only) |
 | `GET` | `/api/uploads/*` | Static file serving |
@@ -44,9 +51,9 @@ src/
 | `POST` | `/api/webhooks/stripe` | Stripe webhook endpoint (stub) |
 | `GET` | `/api/health` | Health check |
 
-## Routers (29)
+## Routers (30)
 
-`bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
+`aiRecap` · `bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
 
 ## Procedure Types
 
@@ -90,18 +97,32 @@ export const myRouter = router({
 })
 ```
 
+## Services
+
+| Service | File | Purpose |
+|---------|------|---------|
+| AI Recap | `services/aiRecapService.ts` | Generate game recaps via OpenRouter (Gemini). 4-layer eligibility guard (not demo, aiEnabled, plan feature, token budget). Monthly token tracking per org. Fire-and-forget async generation with optimistic locking. |
+| System Pages | `services/ensureSystemPages.ts` | Auto-provision required league site pages (home, standings, schedule, etc.) on org creation. Locale-aware (DE/EN). Idempotent. |
+| Plan Limits | `services/planLimits.ts` | Check and enforce plan limits (maxTeams, maxPlayers, maxAdmins, etc.) |
+| Email | `lib/email.ts` | SMTP via nodemailer. Falls back to console logging in dev when SMTP unconfigured. |
+| Email Templates | `lib/emailTemplates.ts` | HTML templates: magic link sign-in, user invitation. PuckHub branding. |
+
 ## Testing
 
 - **Framework**: Vitest
 - **Per-test DB isolation**: Each test gets a fresh PostgreSQL database (cloned from template via testcontainers)
 - **Test caller**: `createTestCaller({ asAdmin: true })` for admin context
-- **Location**: `src/__tests__/routers/*.test.ts` (26 test files), `src/__tests__/services/*.test.ts` (1 test file)
+- **Location**: `src/__tests__/routers/*.test.ts`, `src/__tests__/services/*.test.ts`
+- **Router tests**: authorization, organization, page, users, plan, subscription, websiteConfig
+- **Service tests**: ensureSystemPages, planLimits
 - **Utils**: `src/__tests__/testUtils.ts`, `src/__tests__/globalSetup.ts`, `src/__tests__/setup.ts`
 
 ## Auth Details
 
-- Better Auth with email/password + passkey + TOTP-based 2FA
+- Better Auth with **magic link** (email) + passkey (WebAuthn) + TOTP-based 2FA
+- **No password-based login** — users authenticate via magic links sent to email
 - Session duration: 7 days
 - Cross-subdomain cookies: enabled via `COOKIE_DOMAIN` (defaults to `puckhub.localhost`)
 - Trusted origins: `TRUSTED_ORIGINS` env var (comma-separated) or `http://admin.puckhub.localhost,http://platform.puckhub.localhost`
 - Serialization: superjson transformer
+- Demo users: magic link bypassed via `/api/demo-login` endpoint

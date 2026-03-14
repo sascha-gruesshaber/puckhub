@@ -1,24 +1,21 @@
 import { Button, Input } from "@puckhub/ui"
-import { useNavigate } from "@tanstack/react-router"
+import { Mail } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { signIn } from "../../../lib/auth-client"
+import { authClient } from "../../../lib/auth-client"
 
 interface LoginFormProps {
   onError: (msg: string) => void
-  prefillEmail?: string
-  prefillPassword?: string
   redirect?: string
 }
 
-function LoginForm({ onError, prefillEmail, prefillPassword, redirect }: LoginFormProps) {
+function LoginForm({ onError, redirect }: LoginFormProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
-  const navigate = useNavigate()
-  const [email, setEmail] = useState(prefillEmail ?? "")
-  const [password, setPassword] = useState(prefillPassword ?? "")
+  const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -26,19 +23,46 @@ function LoginForm({ onError, prefillEmail, prefillPassword, redirect }: LoginFo
     setLoading(true)
 
     try {
-      const result = await signIn.email({ email, password })
+      const result = await authClient.signIn.magicLink({
+        email,
+        callbackURL: redirect || window.location.origin + "/",
+      })
       if (result.error) {
         onError(result.error.message ?? tErrors("AUTH_NOT_AUTHENTICATED"))
-      } else if (redirect) {
-        window.location.href = redirect
       } else {
-        navigate({ to: "/" })
+        setSent(true)
       }
     } catch (err) {
       onError(resolveTranslatedError(err, tErrors))
     } finally {
       setLoading(false)
     }
+  }
+
+  if (sent) {
+    return (
+      <div className="space-y-4 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <Mail className="h-6 w-6 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-base font-semibold">{t("login.magicLink.checkInbox")}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("login.magicLink.sentTo", { email })}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => {
+            setSent(false)
+            setLoading(false)
+          }}
+        >
+          {t("login.magicLink.resend")}
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -56,14 +80,8 @@ function LoginForm({ onError, prefillEmail, prefillPassword, redirect }: LoginFo
           required
         />
       </div>
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          {t("login.password")}
-        </label>
-        <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-      </div>
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? t("login.submitting") : t("login.submit")}
+        {loading ? t("login.magicLink.submitting") : t("login.magicLink.submit")}
       </Button>
     </form>
   )

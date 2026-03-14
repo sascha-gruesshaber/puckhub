@@ -3,6 +3,7 @@ import type { Database } from "@puckhub/db"
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { ensureSystemPages } from "../ensureSystemPages"
 import { IMAGE_FIELDS, rewriteNewsContent, rewriteUrls, writeAttachments } from "./attachments"
 import { EXPORT_REGISTRY, getSortedRegistryEntries, pluralize } from "./registry"
 import type { PuckHubExport } from "./schema"
@@ -256,7 +257,11 @@ export async function importLeagueData(
     await writeAttachments(data._attachments, sourceOrgId, newOrgId)
   }
 
-  // 6. Recalculate standings and stats
+  // 6. Ensure all system route pages exist (in case the export was missing some)
+  const locale = data.systemSettings?.locale
+  await ensureSystemPages(db, newOrgId, locale ?? undefined)
+
+  // 7. Recalculate standings and stats
   const seasons = await db.season.findMany({
     where: { organizationId: newOrgId },
     select: { id: true },

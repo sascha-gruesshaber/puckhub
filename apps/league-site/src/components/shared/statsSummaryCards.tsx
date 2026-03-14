@@ -1,5 +1,6 @@
 import { Award, Shield, Timer } from "lucide-react"
 import type { ReactNode } from "react"
+import { useT } from "~/lib/i18n"
 import { TeamLogo } from "./teamLogo"
 
 interface SummaryCardProps {
@@ -66,6 +67,7 @@ function playerDisplay(
 }
 
 function StatsSummaryCards({ playerStats, goalieStats, penaltyStats }: StatsSummaryCardsProps) {
+  const t = useT()
   const topScorer = playerStats[0]
   const bestGoalie = goalieStats?.qualified[0]
   const topPenalty = penaltyStats[0]
@@ -74,18 +76,18 @@ function StatsSummaryCards({ playerStats, goalieStats, penaltyStats }: StatsSumm
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       <SummaryCard
         icon={<Award className="h-5 w-5" />}
-        label="Top Scorer"
+        label={t.statsSummary.topScorer}
         value={playerDisplay(topScorer?.player, topScorer?.team)}
         sublabel={
           topScorer
-            ? `${topScorer.totalPoints} Pkt (${topScorer.goals} T + ${topScorer.assists} V) · ${topScorer.team?.shortName ?? topScorer.team?.name ?? ""}`
+            ? `${topScorer.totalPoints} ${t.abbr.pts} (${topScorer.goals} ${t.abbr.g} + ${topScorer.assists} ${t.abbr.a}) · ${topScorer.team?.shortName ?? topScorer.team?.name ?? ""}`
             : "–"
         }
         color="hsl(217, 71%, 25%)"
       />
       <SummaryCard
         icon={<Shield className="h-5 w-5" />}
-        label="Bester Torhüter"
+        label={t.statsSummary.bestGoalie}
         value={playerDisplay(bestGoalie?.player, bestGoalie?.team)}
         sublabel={
           bestGoalie
@@ -96,11 +98,11 @@ function StatsSummaryCards({ playerStats, goalieStats, penaltyStats }: StatsSumm
       />
       <SummaryCard
         icon={<Timer className="h-5 w-5" />}
-        label="Meiste Strafen"
+        label={t.statsSummary.mostPenalties}
         value={playerDisplay(topPenalty?.player, topPenalty?.team)}
         sublabel={
           topPenalty
-            ? `${topPenalty.totalMinutes} Strafmin. · ${topPenalty.team?.shortName ?? topPenalty.team?.name ?? ""}`
+            ? `${topPenalty.totalMinutes} ${t.abbr.pim} · ${topPenalty.team?.shortName ?? topPenalty.team?.name ?? ""}`
             : "–"
         }
         color="hsl(0, 84%, 60%)"

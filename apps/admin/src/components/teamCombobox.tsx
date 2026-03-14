@@ -53,9 +53,10 @@ export function TeamCombobox({
   const selectedTeam = teams.find((t) => t.id === value)
 
   const filteredTeams = useMemo(() => {
-    if (!search.trim()) return teams
+    const sorted = [...teams].sort((a, b) => a.name.localeCompare(b.name, "de"))
+    if (!search.trim()) return sorted
     const q = search.toLowerCase()
-    return teams.filter(
+    return sorted.filter(
       (t) =>
         t.name.toLowerCase().includes(q) || t.shortName.toLowerCase().includes(q) || t.city?.toLowerCase().includes(q),
     )

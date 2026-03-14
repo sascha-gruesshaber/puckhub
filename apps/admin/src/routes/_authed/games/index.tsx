@@ -480,7 +480,7 @@ function GamesPage() {
             {isStructureLoading ? (
               <FilterPillsSkeleton />
             ) : (
-              <FilterBar label={t("statsPage.filters.label")} search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}>
+              <FilterBar label={t("filters")} search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}>
                 <FilterDropdown
                   label={t("gamesPage.filters.allTeams")}
                   options={teamOptions}

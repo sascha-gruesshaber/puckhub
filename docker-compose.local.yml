@@ -70,7 +70,6 @@ services:
       PASSKEY_RP_ID: puckhub.localhost
       PASSKEY_ORIGIN: http://admin.puckhub.localhost
       DEFAULT_USER_EMAIL: ${DEFAULT_USER_EMAIL:-admin@puckhub.local}
-      DEFAULT_USER_PASSWORD: ${DEFAULT_USER_PASSWORD:-admin123}
     volumes:
       - uploads_local:/app/uploads
     healthcheck:

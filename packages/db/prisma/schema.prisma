@@ -105,7 +105,6 @@ model User {
   twoFactorEnabled Boolean?  @default(false)
   role               String?
   banned             Boolean?  @default(false)
-  mustChangePassword Boolean   @default(false)
   isDemoUser         Boolean   @default(false)
   banReason        String?
   banExpires       DateTime?
@@ -209,6 +208,7 @@ model Organization {
   slug      String   @unique
   logo      String?
   metadata  String?
+  aiEnabled Boolean  @default(false) @map("ai_enabled")
   createdAt DateTime @default(now())
 
   members        Member[]
@@ -239,6 +239,7 @@ model Organization {
   pageAliases    PageAlias[]
   websiteConfig  WebsiteConfig?
   subscription   OrgSubscription?
+  aiUsageLogs    AiUsageLog[]
 
   @@map("organization")
 }
@@ -461,6 +462,10 @@ model Game {
   awayScore      Int?       @map("away_score")
   gameNumber     Int?       @map("game_number")
   notes          String?
+  recapTitle       String?   @map("recap_title")
+  recapContent     String?   @map("recap_content")
+  recapGeneratedAt DateTime? @map("recap_generated_at") @db.Timestamptz
+  recapGenerating  Boolean   @default(false) @map("recap_generating")
   finalizedAt    DateTime?  @map("finalized_at") @db.Timestamptz
   createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -473,6 +478,7 @@ model Game {
   lineups         GameLineup[]
   suspensions     GameSuspension[]
   goalieGameStats GoalieGameStat[]
+  aiUsageLogs     AiUsageLog[]
 
   @@index([roundId], map: "games_round_id_idx")
   @@index([homeTeamId], map: "games_home_team_id_idx")
@@ -945,6 +951,8 @@ model Plan {
   featureScheduledNews  Boolean @default(false) @map("feature_scheduled_news")
   featureAdvancedRoles  Boolean @default(false) @map("feature_advanced_roles")
   featureAdvancedStats  Boolean @default(false) @map("feature_advanced_stats")
+  featureAiRecaps       Boolean @default(false) @map("feature_ai_recaps")
+  aiMonthlyTokenLimit   Int?    @map("ai_monthly_token_limit")
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
@@ -979,4 +987,24 @@ model OrgSubscription {
   @@index([organizationId], map: "org_subscriptions_org_id_idx")
   @@index([planId], map: "org_subscriptions_plan_id_idx")
   @@map("org_subscriptions")
+}
+
+// ─── AI Usage Tracking ───────────────────────────────────────────────────────
+
+model AiUsageLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @map("organization_id")
+  feature        String
+  model          String
+  inputTokens    Int      @map("input_tokens")
+  outputTokens   Int      @map("output_tokens")
+  totalTokens    Int      @map("total_tokens")
+  gameId         String?  @map("game_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  game         Game?        @relation(fields: [gameId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("ai_usage_log")
 }

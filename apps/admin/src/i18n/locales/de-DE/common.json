@@ -5,6 +5,7 @@
   "saving": "Speichern...",
   "create": "Erstellen",
   "cancel": "Abbrechen",
+  "filters": "Filter",
   "draft": "Entwurf",
   "published": "Veröffentlicht",
   "logout": "Abmelden",
@@ -18,8 +19,6 @@
     },
     "items": {
       "games": "Spiele",
-      "standings": "Tabelle",
-      "stats": "Statistiken",
       "seasonStructure": "Saisonstruktur",
       "roster": "Kader",
       "teams": "Teams",
@@ -39,10 +38,15 @@
     "title": "PuckHub Admin",
     "subtitle": "Anmelden um fortzufahren",
     "email": "E-Mail",
-    "password": "Passwort",
     "emailPlaceholder": "admin@puckhub.eu",
-    "submit": "Anmelden",
-    "submitting": "Anmelden...",
+    "or": "oder",
+    "magicLink": {
+      "submit": "Login-Link senden",
+      "submitting": "Wird gesendet...",
+      "checkInbox": "E-Mail prüfen",
+      "sentTo": "Wir haben einen Login-Link an {{email}} gesendet",
+      "resend": "Erneut senden"
+    },
     "passkey": {
       "signIn": "Mit Passkey anmelden",
       "signingIn": "Passkey wird geprüft..."
@@ -61,21 +65,6 @@
   "security": {
     "title": "Sicherheit",
     "description": "Verwalte deine Anmeldemethoden und Sicherheitseinstellungen",
-    "changePassword": {
-      "title": "Passwort ändern",
-      "description": "Aktualisiere dein Anmeldepasswort.",
-      "currentPassword": "Aktuelles Passwort",
-      "newPassword": "Neues Passwort",
-      "confirmPassword": "Neues Passwort bestätigen",
-      "currentPasswordPlaceholder": "Aktuelles Passwort",
-      "newPasswordPlaceholder": "Mindestens 6 Zeichen",
-      "confirmPasswordPlaceholder": "Neues Passwort wiederholen",
-      "submit": "Passwort ändern",
-      "submitting": "Speichern...",
-      "minLength": "Neues Passwort ist zu kurz.",
-      "mismatch": "Passwörter stimmen nicht überein.",
-      "success": "Passwort aktualisiert."
-    },
     "twoFactor": {
       "title": "Zwei-Faktor-Authentifizierung (2FA)",
       "description": "Schütze dein Konto mit einem zusätzlichen Sicherheitsfaktor",
@@ -431,218 +420,6 @@
       "viewReport": "Bericht"
     }
   },
-  "statsPage": {
-    "title": "Statistiken",
-    "placeholder": "Die Statistikansicht wird hier implementiert.",
-    "noSeason": "Bitte eine Arbeitssaison auswählen, um Statistiken zu sehen.",
-    "noData": "Keine Statistikdaten für diese Saison vorhanden.",
-    "noDataDescription": "Es müssen zuerst Spiele gespielt und abgeschlossen werden.",
-    "tabs": {
-      "overview": "Übersicht",
-      "scorers": "Scorer",
-      "goals": "Torschützen",
-      "assists": "Assists",
-      "penalties": "Strafen",
-      "goalies": "Torhüter",
-      "teams": "Teams"
-    },
-    "tabGroups": {
-      "skaters": "Feldspieler"
-    },
-    "roundInfo": {
-      "title": "Berücksichtigte Runden",
-      "playerStats": "Spielerstatistik",
-      "goalieStats": "Torwartstatistik",
-      "allRounds": "Alle Runden",
-      "noRounds": "Keine Runden konfiguriert"
-    },
-    "overview": {
-      "topScorer": "Top Scorer",
-      "bestGoalie": "Bester Torhüter",
-      "mostPenalties": "Meiste Strafminuten",
-      "gamesPlayed": "Gespielte Spiele",
-      "points": "Punkte",
-      "gaa": "Gegentorschnitt",
-      "pim": "Strafminuten",
-      "goalsLong": "Tore",
-      "assistsLong": "Vorlagen",
-      "gamesPlayedLong": "Spiele"
-    },
-    "scorers": {
-      "title": "Scorer-Rangliste",
-      "rank": "#",
-      "player": "Spieler",
-      "team": "Team",
-      "gamesPlayed": "Sp",
-      "goals": "T",
-      "assists": "V",
-      "totalPoints": "Pkt",
-      "pointsPerGame": "Pkt/Sp",
-      "chartTitle": "Top 15 Scorer"
-    },
-    "goalsTab": {
-      "title": "Torschützen-Rangliste",
-      "chartTitle": "Top 15 Torschützen"
-    },
-    "assistsTab": {
-      "title": "Assists-Rangliste",
-      "chartTitle": "Top 15 Vorlagengeber"
-    },
-    "penalties": {
-      "title": "Strafminuten-Rangliste",
-      "rank": "#",
-      "player": "Spieler",
-      "team": "Team",
-      "totalMinutes": "SM",
-      "totalCount": "Str",
-      "breakdown": "Aufschlüsselung",
-      "chartTitle": "Top 15 Spieler nach Strafminuten",
-      "teamChartTitle": "Strafminuten pro Team",
-      "typeChartTitle": "Verteilung nach Strafart",
-      "unknownType": "Unbekannt"
-    },
-    "goalies": {
-      "title": "Torhüter-Rangliste",
-      "qualified": "Qualifiziert",
-      "belowThreshold": "Unter Mindestspielen",
-      "minGamesInfo": "Mindestens {{min}} Spiele für die Qualifikation",
-      "rank": "#",
-      "player": "Spieler",
-      "team": "Team",
-      "gamesPlayed": "Sp",
-      "goalsAgainst": "GT",
-      "gaa": "GAA",
-      "saves": "SV",
-      "savePercentage": "SV%",
-      "shutouts": "SO",
-      "chartTitle": "Torhüter GAA (qualifiziert)"
-    },
-    "teamsTab": {
-      "title": "Teamvergleich",
-      "selectRound": "Runde auswählen",
-      "standings": "Tabelle",
-      "rank": "#",
-      "team": "Team",
-      "gamesPlayed": "Sp",
-      "wins": "S",
-      "draws": "U",
-      "losses": "N",
-      "goalsFor": "T+",
-      "goalsAgainst": "T-",
-      "goalDifference": "TD",
-      "points": "Pkt",
-      "penaltyComparison": "Strafvergleich",
-      "radarTitle": "Teamvergleich",
-      "selectTeams": "Teams auswählen (mind. 2)",
-      "noStandings": "Keine Tabellendaten für diese Runde.",
-      "radarWins": "Siege",
-      "radarLosses": "Niederlagen",
-      "radarGoalsFor": "Tore",
-      "radarGoalsAgainst": "Gegentore",
-      "radarPim": "Strafminuten",
-      "chartRadar": "Radar",
-      "chartBar": "Balkendiagramm"
-    },
-    "filters": {
-      "label": "Filter",
-      "allTeams": "Alle Teams",
-      "allPositions": "Alle Positionen",
-      "forward": "Stürmer",
-      "defense": "Verteidiger"
-    },
-    "tooltips": {
-      "gp": "Spiele",
-      "g": "Tore",
-      "a": "Vorlagen",
-      "pts": "Punkte",
-      "pim": "Strafminuten",
-      "pen": "Anzahl Strafen",
-      "ga": "Gegentore",
-      "gaa": "Gegentorschnitt (Goals Against Average)",
-      "gaPerGp": "Gegentore pro Spiel",
-      "w": "Siege",
-      "d": "Unentschieden",
-      "l": "Niederlagen",
-      "gf": "Erzielte Tore",
-      "gaTeam": "Kassierte Tore",
-      "gd": "Tordifferenz"
-    },
-    "recalculate": "Neu berechnen",
-    "recalculating": "Statistiken werden neu berechnet…",
-    "recalculateSuccess": "Statistiken wurden neu berechnet."
-  },
-  "standingsPage": {
-    "title": "Tabelle",
-    "description": "Aktuelle Tabellenstände nach Runde",
-    "noSeason": "Bitte wähle zuerst eine Saison aus.",
-    "noData": "Keine Tabellendaten",
-    "noDataDescription": "Für diese Runde liegen noch keine Ergebnisse vor.",
-    "columns": {
-      "rank": "#",
-      "team": "Team",
-      "form": "Form",
-      "gamesPlayed": "Sp",
-      "wins": "S",
-      "draws": "U",
-      "losses": "N",
-      "goalsFor": "T+",
-      "goalsAgainst": "T-",
-      "goalDifference": "Diff",
-      "points": "Pkt",
-      "bonusPoints": "BP",
-      "totalPoints": "Ges"
-    },
-    "tooltips": {
-      "rank": "Platz",
-      "gamesPlayed": "Spiele",
-      "wins": "Siege",
-      "draws": "Unentschieden",
-      "losses": "Niederlagen",
-      "goalsFor": "Tore erzielt",
-      "goalsAgainst": "Gegentore",
-      "goalDifference": "Tordifferenz",
-      "points": "Punkte",
-      "bonusPoints": "Bonuspunkte",
-      "totalPoints": "Gesamtpunkte",
-      "formWin": "Sieg",
-      "formDraw": "Unentschieden",
-      "formLoss": "Niederlage"
-    },
-    "form": {
-      "win": "S",
-      "draw": "U",
-      "loss": "N"
-    },
-    "zones": {
-      "promotion": "Aufstiegszone",
-      "relegation": "Abstiegszone"
-    },
-    "recalculate": {
-      "button": "Neu berechnen",
-      "round": "Runde neu berechnen",
-      "allRounds": "Alle Runden neu berechnen",
-      "loading": "Berechne…",
-      "success": "Tabelle wurde neu berechnet.",
-      "allSuccess": "Alle Runden wurden neu berechnet."
-    },
-    "bonusPoints": {
-      "title": "Bonuspunkte",
-      "add": "Hinzufügen",
-      "edit": "Bearbeiten",
-      "delete": "Löschen",
-      "team": "Team",
-      "points": "Punkte",
-      "reason": "Grund",
-      "reasonPlaceholder": "z.B. Strafe, Lizenzverstoß…",
-      "actions": "Aktionen",
-      "noEntries": "Keine Bonuspunkte vorhanden.",
-      "created": "Bonuspunkte hinzugefügt.",
-      "updated": "Bonuspunkte aktualisiert.",
-      "deleted": "Bonuspunkte gelöscht.",
-      "confirmDelete": "Bonuspunkte wirklich löschen?",
-      "confirmDeleteDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Die Tabelle wird automatisch neu berechnet."
-    }
-  },
   "newsCreate": {
     "title": "Neue News",
     "description": "Einen neuen News-Beitrag erstellen",
@@ -797,7 +574,12 @@
     "menu": {
       "nav": "Nav",
       "footer": "Footer",
-      "route": "Route"
+      "route": "Route",
+      "builtIn": "Integriert"
+    },
+    "tabs": {
+      "mainNav": "Hauptnavigation",
+      "footerNav": "Footer-Navigation"
     },
     "meta": {
       "sortOrder": "Sortierung: {{value}}"
@@ -861,7 +643,6 @@
     },
     "actions": {
       "new": "Neuer Spieler",
-      "history": "Historie",
       "edit": "Bearbeiten",
       "delete": "Löschen"
     },
@@ -950,52 +731,6 @@
         "active": "Aktiver Vertrag"
       }
     },
-    "history": {
-      "backToPlayers": "Zurück zu Spielern",
-      "notFoundTitle": "Spieler nicht gefunden",
-      "notFoundDescription": "Dieser Spieler existiert nicht oder wurde gelöscht.",
-      "ageYears": "{{age}} Jahre",
-      "contractCount": "Verträge: {{count}}",
-      "teamCount": "Teams: {{count}}",
-      "sinceYear": "Seit {{year}}",
-      "noContractsTitle": "Keine Vertragshistorie",
-      "noContractsDescription": "Für diesen Spieler wurden noch keine Verträge erfasst.",
-      "careerStats": "Karrierestatistiken",
-      "seasonStats": "Saisonstatistiken",
-      "timeline": "Zeitverlauf",
-      "gp": "SP",
-      "gpFull": "Spiele",
-      "goals": "Tore",
-      "goalsFull": "Tore",
-      "assists": "Assists",
-      "assistsFull": "Torvorlagen",
-      "points": "Punkte",
-      "pointsFull": "Gesamtpunkte",
-      "pim": "SM",
-      "pimFull": "Strafminuten",
-      "ga": "GT",
-      "gaFull": "Gegentore",
-      "gaa": "GDS",
-      "gaaFull": "Gegentorschnitt",
-      "season": "Saison",
-      "team": "Team",
-      "careerTotals": "Karriere Gesamt",
-      "noStatsTitle": "Keine Statistiken vorhanden",
-      "noStatsDescription": "Für diesen Spieler wurden noch keine Saisonstatistiken erfasst.",
-      "chartProgression": "Punkteentwicklung",
-      "chartGoalieProgression": "GDS-Entwicklung",
-      "chartPenaltyPerSeason": "Strafminuten pro Saison",
-      "filterAll": "Alle",
-      "filterSigned": "Verpflichtet",
-      "filterTransfer": "Transfer",
-      "filterPositionChange": "Positionswechsel",
-      "filterSuspensions": "Sperren",
-      "suspensionMatchPenalty": "Matchstrafe",
-      "suspensionGameMisconduct": "Spieldauer-Disziplinarstrafe",
-      "suspensionGamesInfo": "{{served}} / {{total}} abgesessen",
-      "suspensionLabel": "Sperre",
-      "noSuspensions": "Keine Sperren"
-    },
     "toast": {
       "created": "Spieler erstellt",
       "updated": "Spieler aktualisiert",
@@ -1025,6 +760,7 @@
   "usersPage": {
     "title": "Benutzer",
     "description": "Benutzer und Zugriffsrechte verwalten",
+    "demoRestricted": "Die Benutzerverwaltung ist für die Demo-Liga deaktiviert.",
     "searchPlaceholder": "Benutzer durchsuchen...",
     "count": {
       "members": "Benutzer"
@@ -1038,9 +774,7 @@
       "edit": "Bearbeiten",
       "remove": "Entfernen",
       "changeRole": "Rolle ändern",
-      "manageRoles": "Rollen verwalten",
-      "resetPassword": "Passwort zurücksetzen",
-      "setPassword": "Passwort setzen"
+      "manageRoles": "Rollen verwalten"
     },
     "empty": {
       "title": "Noch keine Benutzer",
@@ -1052,22 +786,17 @@
       "namePlaceholder": "Max Mustermann",
       "email": "E-Mail-Adresse",
       "emailPlaceholder": "benutzer@example.de",
-      "password": "Passwort",
-      "passwordPlaceholder": "Mindestens 6 Zeichen",
-      "newPassword": "Neues Passwort",
       "role": "Rolle"
     },
     "dialogs": {
       "newMemberTitle": "Neuen Benutzer hinzufügen",
       "editUserTitle": "Benutzer bearbeiten",
-      "newMemberDescription": "Füge einen neuen Benutzer mit E-Mail und Passwort hinzu.",
+      "newMemberDescription": "Füge einen neuen Benutzer hinzu. Eine Einladungs-E-Mail wird gesendet.",
       "editUserDescription": "Ändere die Grunddaten des Benutzers.",
       "changeRoleTitle": "Rolle ändern: {{name}}",
       "changeRoleDescription": "Wähle die neue Rolle für diesen Benutzer.",
       "manageRolesTitle": "Rollen verwalten: {{name}}",
-      "manageRolesDescription": "Rollen hinzufügen oder entfernen. Teamspezifische Rollen können auf bestimmte Teams beschränkt werden.",
-      "resetPasswordTitle": "Passwort zurücksetzen",
-      "resetPasswordDescription": "Neues Passwort für {{name}} festlegen."
+      "manageRolesDescription": "Rollen hinzufügen oder entfernen. Teamspezifische Rollen können auf bestimmte Teams beschränkt werden."
     },
     "orgRoles": {
       "owner": {
@@ -1105,9 +834,7 @@
     "validation": {
       "nameRequired": "Name ist erforderlich",
       "emailRequired": "E-Mail ist erforderlich",
-      "emailInvalid": "Ungültige E-Mail-Adresse",
-      "passwordRequired": "Passwort ist erforderlich",
-      "passwordMin": "Mindestens 6 Zeichen"
+      "emailInvalid": "Ungültige E-Mail-Adresse"
     },
     "deleteDialog": {
       "title": "Benutzer entfernen",
@@ -1120,7 +847,6 @@
       "roleUpdated": "Rolle aktualisiert",
       "roleAdded": "Rolle hinzugefügt",
       "roleRemoved": "Rolle entfernt",
-      "passwordReset": "Passwort zurückgesetzt",
       "error": "Fehler",
       "createError": "Fehler beim Hinzufügen",
       "saveError": "Fehler beim Speichern",
@@ -1208,7 +934,6 @@
       "new": "Neues Team",
       "edit": "Bearbeiten",
       "delete": "Löschen",
-      "history": "Historie",
       "trikots": "Trikots",
       "saving": "Speichern..."
     },
@@ -1247,7 +972,6 @@
     "hoverCard": {
       "noContactData": "Keine Kontaktdaten hinterlegt",
       "roster": "Kader",
-      "history": "Historie",
       "edit": "Bearbeiten"
     },
     "dialogs": {
@@ -1315,42 +1039,6 @@
         "assignmentUpdated": "Zuordnung aktualisiert",
         "assignmentRemoved": "Zuordnung entfernt"
       }
-    },
-    "history": {
-      "backToTeams": "Zurück zu Teams",
-      "notFoundTitle": "Team nicht gefunden",
-      "notFoundDescription": "Das angeforderte Team existiert nicht oder wurde gelöscht.",
-      "allTimeStats": "Gesamtstatistik",
-      "seasons": "Saisons",
-      "games": "Spiele",
-      "gamesShort": "Sp.",
-      "winRate": "Siegquote",
-      "bestFinish": "Beste Platzierung",
-      "goalDifference": "Tordifferenz",
-      "seasonCount": "{{count}} Saisons",
-      "gameCount": "{{count}} Spiele",
-      "seasonBySeasonTitle": "Saison für Saison",
-      "noSeasons": "Keine Saisondaten vorhanden.",
-      "noSeasonsTitle": "Keine Saisonhistorie",
-      "noSeasonsDescription": "Dieses Team hat noch an keiner Saison teilgenommen.",
-      "expand": "Details anzeigen",
-      "collapse": "Details ausblenden",
-      "pts": "Pkt.",
-      "topScorers": "Top-Scorer",
-      "bestGoalie": "Bester Torhüter",
-      "rosterChanges": "Kaderänderungen",
-      "position": {
-        "forward": "Stürmer",
-        "defense": "Verteidiger",
-        "goalie": "Torhüter"
-      },
-      "chartRankPoints": "Siege & Platzierung",
-      "chartWins": "Siege",
-      "chartRank": "Platzierung",
-      "chartGoals": "Tore",
-      "chartGoalsFor": "Erzielte Tore",
-      "chartGoalsAgainst": "Gegentore",
-      "chartGoalDiff": "Tordifferenz"
     },
     "toast": {
       "created": "Team erstellt",
@@ -1873,6 +1561,22 @@
       "confirmTitle": "Spiel wieder öffnen?",
       "confirmDescription": "Das Spiel wird zurück auf «Geplant» gesetzt. Allfällige Spielsperren werden zurückgesetzt."
     },
+    "notes": {
+      "label": "Spielnotizen",
+      "placeholder": "Optionale Notizen zum Spiel (werden für KI-Spielbericht verwendet)...",
+      "saved": "Notizen gespeichert"
+    },
+    "recap": {
+      "title": "KI-Spielbericht",
+      "generatedAt": "Erstellt am {{date}}",
+      "generate": "Generieren",
+      "regenerate": "Neu generieren",
+      "regenerating": "Wird generiert...",
+      "generating": "Spielbericht wird erstellt...",
+      "generatingHint": "Der KI-Spielbericht wird gerade erstellt. Bitte aktualisiere die Seite in einigen Sekunden.",
+      "regenerated": "Spielbericht wird neu generiert",
+      "noRecap": "Kein KI-Spielbericht verfügbar"
+    },
     "toast": {
       "lineupSaved": "Aufstellung gespeichert",
       "lineupError": "Fehler beim Speichern der Aufstellung",
@@ -1888,5 +1592,17 @@
       "gameCompleted": "Spiel abgeschlossen",
       "gameReopened": "Spiel wieder geöffnet"
     }
+  },
+  "settingsAi": {
+    "title": "KI-Funktionen",
+    "description": "KI-gestützte Funktionen für deine Liga konfigurieren.",
+    "enableToggle": "KI-Funktionen aktivieren",
+    "enableDescription": "Ermöglicht KI-gestützte Spielberichte für abgeschlossene Spiele.",
+    "usage": "Token-Verbrauch",
+    "usageLabel": "{{used}} / {{limit}} Tokens",
+    "usageUnlimited": "{{used}} / ∞ Tokens",
+    "resetHint": "Wird am 1. jedes Monats zurückgesetzt.",
+    "unavailable": "KI-Funktionen sind in deinem aktuellen Plan nicht verfügbar.",
+    "headerChip": "KI {{percent}}%"
   }
 }

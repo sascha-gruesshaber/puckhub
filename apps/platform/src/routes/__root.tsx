@@ -21,10 +21,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: dataListCss },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap",
-      },
     ],
   }),
   component: RootComponent,
@@ -75,7 +71,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body
         className="min-h-screen bg-background font-sans antialiased"
-        style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}
+        style={{ fontFamily: "'Outfit Variable', system-ui, sans-serif" }}
       >
         {children}
         <Toaster />

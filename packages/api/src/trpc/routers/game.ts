@@ -1,6 +1,7 @@
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
 import { generateRoundRobin } from "../../services/schedulerService"
+import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { orgProcedure, requireRole, router } from "../init"
@@ -221,7 +222,9 @@ export const gameRouter = router({
         requireRole(ctx, "game_manager")
       }
 
-      if (existing.status === "completed" || existing.status === "cancelled") {
+      // Allow notes-only updates on completed/cancelled games
+      const isNotesOnly = Object.keys(data).every((k) => k === "notes")
+      if ((existing.status === "completed" || existing.status === "cancelled") && !isNotesOnly) {
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_NOT_EDITABLE)
       }
 
@@ -239,6 +242,27 @@ export const gameRouter = router({
           updatedAt: new Date(),
         },
       })
+
+      // Auto-regenerate AI recap when notes change on a completed game
+      if (isNotesOnly && existing.status === "completed" && data.notes !== undefined && data.notes !== existing.notes) {
+        checkRecapEligibility(ctx.db, ctx.organizationId).then(async (eligibility) => {
+          if (eligibility.eligible) {
+            // Clear existing recap so the lock can be acquired
+            await ctx.db.game.update({
+              where: { id },
+              data: {
+                recapTitle: null,
+                recapContent: null,
+                recapGeneratedAt: null,
+                recapGenerating: false,
+              },
+            })
+            generateAndPersistRecap(ctx.db, id, ctx.organizationId).catch((err) =>
+              console.error("[ai-recap] Auto-regeneration on notes change failed:", err),
+            )
+          }
+        }).catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
+      }
 
       return game
     }),
@@ -331,6 +355,15 @@ export const gameRouter = router({
       await recalculateGoalieStats(ctx.db, seasonId)
     }
 
+    // Auto-generate AI recap (fire-and-forget)
+    checkRecapEligibility(ctx.db, ctx.organizationId).then((eligibility) => {
+      if (eligibility.eligible) {
+        generateAndPersistRecap(ctx.db, input.id, ctx.organizationId).catch((err) =>
+          console.error("[ai-recap] Auto-generation on complete failed:", err),
+        )
+      }
+    }).catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
+
     return updated
   }),
 
@@ -405,6 +438,10 @@ export const gameRouter = router({
       data: {
         status: "scheduled",
         finalizedAt: null,
+        recapTitle: null,
+        recapContent: null,
+        recapGeneratedAt: null,
+        recapGenerating: false,
         updatedAt: new Date(),
       },
     })

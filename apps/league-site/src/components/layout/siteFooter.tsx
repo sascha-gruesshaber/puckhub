@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router"
+import { getMarketingUrl } from "../../../lib/env"
 import { useOrg, useSettings } from "~/lib/context"
+import { useT } from "~/lib/i18n"
 import { trpc } from "../../../lib/trpc"
 
 function getPageLink(page: { isSystemRoute: boolean; routePath: string | null; slug: string; parentId: string | null; parent: { slug: string } | null }) {
@@ -13,6 +15,7 @@ function getPageLink(page: { isSystemRoute: boolean; routePath: string | null; s
 export function SiteFooter() {
   const org = useOrg()
   const settings = useSettings()
+  const t = useT()
 
   const { data: footerPages } = trpc.publicSite.getMenuPages.useQuery(
     { organizationId: org.id, location: "footer" },
@@ -33,7 +36,7 @@ export function SiteFooter() {
       {sponsors && sponsors.length > 0 && (
         <div className="border-b border-white/5 py-6">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <p className="text-xs uppercase tracking-wider text-center mb-4 opacity-60">Unsere Sponsoren</p>
+            <p className="text-xs uppercase tracking-wider text-center mb-4 opacity-60">{t.layout.ourSponsors}</p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {sponsors.map((sponsor) => (
                 <a
@@ -82,7 +85,15 @@ export function SiteFooter() {
           )}
 
           <div className="text-xs opacity-40">
-            Powered by PuckHub
+            Powered by{" "}
+            <a
+              href={getMarketingUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:opacity-80"
+            >
+              PuckHub
+            </a>
           </div>
         </div>
       </div>

@@ -8,8 +8,6 @@ import { useTranslation } from "~/i18n/use-translation"
 
 export interface LoginSearch {
   mode?: "2fa"
-  email?: string
-  password?: string
   redirect?: string
 }
 
@@ -17,15 +15,13 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
     mode: search.mode === "2fa" ? "2fa" : undefined,
-    email: typeof search.email === "string" ? search.email : undefined,
-    password: typeof search.password === "string" ? search.password : undefined,
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
   }),
 })
 
 function LoginPage() {
   const { t } = useTranslation("common")
-  const { mode, email: prefillEmail, password: prefillPassword, redirect } = Route.useSearch()
+  const { mode, redirect } = Route.useSearch()
   const [error, setError] = useState("")
 
   // 2FA verification mode
@@ -53,8 +49,8 @@ function LoginPage() {
           {/* Error display */}
           {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
 
-          {/* Password login */}
-          <LoginForm onError={setError} prefillEmail={prefillEmail} prefillPassword={prefillPassword} redirect={redirect} />
+          {/* Magic link login */}
+          <LoginForm onError={setError} redirect={redirect} />
 
           {/* Divider */}
           <div className="relative">
@@ -62,7 +58,7 @@ function LoginPage() {
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">oder</span>
+              <span className="bg-card px-2 text-muted-foreground">{t("login.or", { defaultValue: "or" })}</span>
             </div>
           </div>
 

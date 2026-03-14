@@ -1,4 +1,3 @@
-import { Trophy } from "lucide-react"
 import { GameStatusBadge } from "~/components/gameStatusBadge"
 import { useTranslation } from "~/i18n/use-translation"
 
@@ -11,15 +10,15 @@ interface GameReportHeaderProps {
     status: string
     scheduledAt: string | Date | null
     location: string | null
-    round: { name: string; division: { name: string } }
+    round: { name: string; roundType?: string; division: { name: string } }
   }
 }
 
 function GameReportHeader({ game }: GameReportHeaderProps) {
-  const { t } = useTranslation("common")
+  const { t, i18n } = useTranslation("common")
 
   const scheduledDate = game.scheduledAt
-    ? new Date(game.scheduledAt).toLocaleDateString("de-DE", {
+    ? new Date(game.scheduledAt).toLocaleDateString(i18n.language, {
         weekday: "short",
         day: "2-digit",
         month: "2-digit",
@@ -29,74 +28,81 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
       })
     : null
 
-  const isCompleted = game.status === "completed"
-  const homeWins = isCompleted && game.homeScore != null && game.awayScore != null && game.homeScore > game.awayScore
-  const awayWins = isCompleted && game.homeScore != null && game.awayScore != null && game.awayScore > game.homeScore
+  const done = game.status === "completed"
+  const hWins = done && game.homeScore != null && game.awayScore != null && game.homeScore > game.awayScore
+  const aWins = done && game.homeScore != null && game.awayScore != null && game.awayScore > game.homeScore
 
   return (
     <div className="sticky top-0 z-10 rounded-xl border bg-card/95 backdrop-blur-sm p-6 shadow-sm">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Home team */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="relative shrink-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">
+          <div className="min-w-0 text-right">
+            <p
+              className={`text-lg truncate ${hWins ? "font-bold text-emerald-600 dark:text-emerald-400" : done ? "font-medium text-muted-foreground" : "font-semibold text-foreground"}`}
+            >
+              {game.homeTeam.shortName}
+            </p>
+            <p className="text-xs text-muted-foreground">{t("gameReport.home")}</p>
+          </div>
+          <div className="h-12 w-12 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
             {game.homeTeam.logoUrl ? (
-              <img src={game.homeTeam.logoUrl} alt={game.homeTeam.name} className="w-12 h-12 object-contain rounded" />
+              <img src={game.homeTeam.logoUrl} alt={game.homeTeam.name} className="h-full w-full object-contain" />
             ) : (
-              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
+              <span className="text-sm font-bold text-muted-foreground/60">
                 {game.homeTeam.shortName.slice(0, 2)}
-              </div>
-            )}
-            {homeWins && (
-              <span className="absolute -top-1 -right-1 inline-flex items-center p-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 ring-2 ring-white dark:ring-gray-900">
-                <Trophy className="w-3 h-3" />
               </span>
             )}
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-lg truncate">{game.homeTeam.name}</p>
-            <p className="text-xs text-muted-foreground">{t("gameReport.home")}</p>
           </div>
         </div>
 
         {/* Score */}
-        <div className="text-center px-6">
-          <div className="text-4xl font-black tabular-nums tracking-tight">
-            {game.homeScore ?? "-"} : {game.awayScore ?? "-"}
+        <div className="text-center px-4">
+          <div className="text-3xl font-extrabold tabular-nums tracking-tight whitespace-nowrap">
+            <span className={hWins ? "text-emerald-600 dark:text-emerald-400" : ""}>
+              {game.homeScore ?? "-"}
+            </span>
+            <span className="text-muted-foreground/40 mx-2">:</span>
+            <span className={aWins ? "text-emerald-600 dark:text-emerald-400" : ""}>
+              {game.awayScore ?? "-"}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1 truncate">
+            {game.round.division.name} &mdash; {game.round.name}
           </div>
           <GameStatusBadge
             status={game.status}
             scheduledAt={game.scheduledAt}
             location={game.location}
-            className="mt-2"
+            className="mt-1.5"
             t={t}
           />
         </div>
 
         {/* Away team */}
-        <div className="flex items-center gap-3 flex-1 min-w-0 justify-end text-right">
-          <div className="min-w-0">
-            <p className="font-semibold text-lg truncate">{game.awayTeam.name}</p>
-            <p className="text-xs text-muted-foreground">{t("gameReport.away")}</p>
-          </div>
-          <div className="relative shrink-0">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="h-12 w-12 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
             {game.awayTeam.logoUrl ? (
-              <img src={game.awayTeam.logoUrl} alt={game.awayTeam.name} className="w-12 h-12 object-contain rounded" />
+              <img src={game.awayTeam.logoUrl} alt={game.awayTeam.name} className="h-full w-full object-contain" />
             ) : (
-              <div className="w-12 h-12 rounded bg-muted flex items-center justify-center text-lg font-bold text-muted-foreground">
+              <span className="text-sm font-bold text-muted-foreground/60">
                 {game.awayTeam.shortName.slice(0, 2)}
-              </div>
-            )}
-            {awayWins && (
-              <span className="absolute -top-1 -right-1 inline-flex items-center p-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/60 dark:text-amber-300 ring-2 ring-white dark:ring-gray-900">
-                <Trophy className="w-3 h-3" />
               </span>
             )}
+          </div>
+          <div className="min-w-0">
+            <p
+              className={`text-lg truncate ${aWins ? "font-bold text-emerald-600 dark:text-emerald-400" : done ? "font-medium text-muted-foreground" : "font-semibold text-foreground"}`}
+            >
+              {game.awayTeam.shortName}
+            </p>
+            <p className="text-xs text-muted-foreground">{t("gameReport.away")}</p>
           </div>
         </div>
       </div>
 
       {/* Meta line */}
-      <div className="mt-4 flex items-center justify-center gap-3 text-sm text-muted-foreground flex-wrap">
+      <div className="mt-3 flex items-center justify-center gap-3 text-sm text-muted-foreground flex-wrap">
         {scheduledDate && <span>{scheduledDate}</span>}
         {game.location && (
           <>
@@ -104,10 +110,6 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
             <span>{game.location}</span>
           </>
         )}
-        <span className="text-border">|</span>
-        <span>
-          {game.round.division.name} &mdash; {game.round.name}
-        </span>
       </div>
     </div>
   )

@@ -74,7 +74,7 @@ export function TeamChipRow({ teams, value, onChange, allLabel = "Alle Teams", c
         </button>
 
         {/* Team chips */}
-        {teams.map((team) => {
+        {[...teams].sort((a, b) => a.name.localeCompare(b.name, "de")).map((team) => {
           const isActive = value === team.id
           return (
             <button

@@ -27,6 +27,7 @@ import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
+import { useOrganization } from "~/contexts/organizationContext"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
@@ -106,11 +107,10 @@ interface MemberRoleEntry {
 interface UserForm {
   name: string
   email: string
-  password: string
   role: OrgRole
 }
 
-const emptyForm: UserForm = { name: "", email: "", password: "", role: "admin" }
+const emptyForm: UserForm = { name: "", email: "", role: "admin" }
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -121,6 +121,8 @@ function UsersPage() {
   const { t: tErrors } = useTranslation("errors")
   const { isAtLimit, usageText } = usePlanLimits()
   const atAdminLimit = isAtLimit("maxAdmins")
+  const { organization } = useOrganization()
+  const isDemoOrg = organization?.id === "demo-league"
   const { data: session } = useSession()
   const currentUserId = session?.user?.id
   const { search: searchParam, role } = Route.useSearch()
@@ -150,13 +152,6 @@ function UsersPage() {
   const [roleUserRoles, setRoleUserRoles] = useState<MemberRoleEntry[]>([])
   const [addRoleValue, setAddRoleValue] = useState<OrgRole>("game_manager")
   const [addRoleTeamId, setAddRoleTeamId] = useState<string | null>(null)
-
-  // Password reset
-  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
-  const [passwordUserId, setPasswordUserId] = useState<string | null>(null)
-  const [passwordUserName, setPasswordUserName] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [passwordError, setPasswordError] = useState("")
 
   const utils = trpc.useUtils()
   const { data: users, isLoading } = trpc.users.list.useQuery()
@@ -212,16 +207,6 @@ function UsersPage() {
   })
 
   const { data: teams } = trpc.team.list.useQuery()
-
-  const resetPasswordMutation = trpc.users.resetPassword.useMutation({
-    onSuccess: () => {
-      setPasswordDialogOpen(false)
-      setPasswordUserId(null)
-      setNewPassword("")
-      toast.success(t("usersPage.toast.passwordReset"))
-    },
-    onError: (err) => toast.error(t("usersPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
-  })
 
   const getRoleLabel = (key: OrgRole) => t(`usersPage.orgRoles.${key}.label`)
   const getRoleDescription = (key: OrgRole) => t(`usersPage.orgRoles.${key}.description`)
@@ -317,14 +302,6 @@ function UsersPage() {
     setRoleDialogOpen(true)
   }
 
-  function openPasswordDialog(user: { id: string; name: string }) {
-    setPasswordUserId(user.id)
-    setPasswordUserName(user.name)
-    setNewPassword("")
-    setPasswordError("")
-    setPasswordDialogOpen(true)
-  }
-
   function closeDialog() {
     setDialogOpen(false)
     setEditingUser(null)
@@ -337,8 +314,6 @@ function UsersPage() {
     if (!form.name.trim()) next.name = t("usersPage.validation.nameRequired")
     if (!form.email.trim()) next.email = t("usersPage.validation.emailRequired")
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) next.email = t("usersPage.validation.emailInvalid")
-    if (!editingUser && !form.password) next.password = t("usersPage.validation.passwordRequired")
-    else if (!editingUser && form.password.length < 6) next.password = t("usersPage.validation.passwordMin")
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -357,7 +332,6 @@ function UsersPage() {
       createMutation.mutate({
         name: form.name.trim(),
         email: form.email.trim(),
-        password: form.password,
         role: form.role,
       })
     }
@@ -399,16 +373,6 @@ function UsersPage() {
     )
   }
 
-  function handleResetPassword(e: React.FormEvent) {
-    e.preventDefault()
-    if (!passwordUserId) return
-    if (newPassword.length < 6) {
-      setPasswordError(t("usersPage.validation.passwordMin"))
-      return
-    }
-    resetPasswordMutation.mutate({ id: passwordUserId, password: newPassword })
-  }
-
   const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
@@ -419,7 +383,7 @@ function UsersPage() {
         action={
           <div className="flex items-center gap-2">
             <Badge variant="outline">{usageText("maxAdmins")}</Badge>
-            <Button variant="accent" onClick={openCreate} disabled={atAdminLimit} title={atAdminLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+            <Button variant="accent" onClick={openCreate} disabled={atAdminLimit || isDemoOrg} title={isDemoOrg ? t("usersPage.demoRestricted", { defaultValue: "User management is disabled for the demo league." }) : atAdminLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("usersPage.actions.newMember")}
             </Button>
@@ -427,7 +391,7 @@ function UsersPage() {
         }
         filters={
           <FilterBar
-            label={t("statsPage.filters.label")}
+            label={t("filters")}
             search={{ value: search, onChange: setSearch, placeholder: t("usersPage.searchPlaceholder") }}
           >
             {isLoading ? (
@@ -452,7 +416,7 @@ function UsersPage() {
             title={t("usersPage.empty.title")}
             description={t("usersPage.empty.description")}
             action={
-              <Button variant="accent" onClick={openCreate} disabled={atAdminLimit}>
+              <Button variant="accent" onClick={openCreate} disabled={atAdminLimit || isDemoOrg}>
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t("usersPage.empty.action")}
               </Button>
@@ -469,10 +433,10 @@ function UsersPage() {
                 rowIndex={i}
                 isLast={i === filtered.length - 1}
                 isSelf={user.id === currentUserId}
+                isDemoOrg={isDemoOrg}
                 onEdit={() => openEdit(user)}
                 onDelete={() => openDelete({ id: user.id, name: user.name })}
                 onChangeRole={() => openRoleDialog({ id: user.id, name: user.name, memberId: user.memberId, memberRoles: (user as any).memberRoles ?? [] })}
-                onResetPassword={() => openPasswordDialog({ id: user.id, name: user.name })}
                 t={t}
               />
             ))}
@@ -513,15 +477,6 @@ function UsersPage() {
 
             {!editingUser && (
               <>
-                <FormField label={t("usersPage.fields.password")} error={errors.password} required>
-                  <Input
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => setField("password", e.target.value)}
-                    placeholder={t("usersPage.fields.passwordPlaceholder")}
-                  />
-                </FormField>
-
                 <div>
                   <Label className="text-xs text-muted-foreground mb-1 block">{t("usersPage.fields.role")}</Label>
                   <div className="space-y-2">
@@ -648,21 +603,40 @@ function UsersPage() {
             <div className="border-t border-border/40 pt-4">
               <Label className="text-xs text-muted-foreground mb-2 block">{t("usersPage.roles.addRole")}</Label>
               <form onSubmit={handleAddRole} className="space-y-3">
-                <div>
-                  <select
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    value={addRoleValue}
-                    onChange={(e) => {
-                      setAddRoleValue(e.target.value as OrgRole)
-                      setAddRoleTeamId(null)
-                    }}
-                  >
-                    {ORG_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {getRoleLabel(r)}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-1.5">
+                  {ORG_ROLES.map((r) => {
+                    const meta = ROLE_META[r]
+                    return (
+                      <label
+                        key={r}
+                        className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer transition-colors ${
+                          addRoleValue === r ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="addRole"
+                          value={r}
+                          checked={addRoleValue === r}
+                          onChange={() => {
+                            setAddRoleValue(r)
+                            setAddRoleTeamId(null)
+                          }}
+                          className="sr-only"
+                        />
+                        <div
+                          className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                          style={{ background: meta.bgColor, color: meta.color }}
+                        >
+                          {meta.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{getRoleLabel(r)}</p>
+                          <p className="text-xs text-muted-foreground">{getRoleDescription(r)}</p>
+                        </div>
+                      </label>
+                    )
+                  })}
                 </div>
 
                 {TEAM_SCOPEABLE_ROLES.includes(addRoleValue) && (
@@ -695,40 +669,6 @@ function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Password Reset Dialog */}
-      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogClose onClick={() => setPasswordDialogOpen(false)} />
-          <DialogHeader>
-            <DialogTitle>{t("usersPage.dialogs.resetPasswordTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("usersPage.dialogs.resetPasswordDescription", { name: passwordUserName })}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleResetPassword} className="space-y-4 p-6 pt-2">
-            <FormField label={t("usersPage.fields.newPassword")} error={passwordError} required>
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={(e) => {
-                  setNewPassword(e.target.value)
-                  if (passwordError) setPasswordError("")
-                }}
-                placeholder={t("usersPage.fields.passwordPlaceholder")}
-              />
-            </FormField>
-            <DialogFooter className="p-0 pt-2">
-              <Button type="button" variant="outline" onClick={() => setPasswordDialogOpen(false)}>
-                {t("cancel")}
-              </Button>
-              <Button type="submit" variant="accent" disabled={resetPasswordMutation.isPending}>
-                {resetPasswordMutation.isPending ? t("saving") : t("usersPage.actions.setPassword")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
@@ -741,10 +681,10 @@ function MemberRow({
   rowIndex,
   isLast,
   isSelf,
+  isDemoOrg,
   onEdit,
   onDelete,
   onChangeRole,
-  onResetPassword,
   t,
 }: {
   user: {
@@ -759,10 +699,10 @@ function MemberRow({
   rowIndex: number
   isLast: boolean
   isSelf: boolean
+  isDemoOrg: boolean
   onEdit: () => void
   onDelete: () => void
   onChangeRole: () => void
-  onResetPassword: () => void
   t: (key: string, options?: Record<string, string | number | undefined>) => string
 }) {
   const memberRoles = user.memberRoles ?? []
@@ -839,54 +779,45 @@ function MemberRow({
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onChangeRole}
-          className="text-xs h-8 px-2 md:px-3"
-          title={t("usersPage.actions.manageRoles")}
-          aria-label={t("usersPage.actions.manageRoles")}
-        >
-          <Shield className="h-3.5 w-3.5 md:mr-1.5" />
-          <span className="hidden md:inline">{t("usersPage.actions.manageRoles")}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onResetPassword}
-          className="text-xs h-8 px-2 md:px-3"
-          title={t("usersPage.actions.resetPassword")}
-          aria-label={t("usersPage.actions.resetPassword")}
-        >
-          <KeyRound className="h-3.5 w-3.5 md:mr-1.5" />
-          <span className="hidden md:inline">{t("usersPage.actions.resetPassword")}</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onEdit}
-          className="text-xs h-8 px-2 md:px-3"
-          title={t("usersPage.actions.edit")}
-          aria-label={t("usersPage.actions.edit")}
-        >
-          <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
-          <span className="hidden md:inline">{t("usersPage.actions.edit")}</span>
-        </Button>
-        {!isSelf && (
+      {!isDemoOrg && (
+        <div className="flex items-center gap-1 shrink-0">
           <Button
             variant="ghost"
             size="sm"
-            onClick={onDelete}
-            className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-            title={t("usersPage.actions.remove")}
-            aria-label={t("usersPage.actions.remove")}
+            onClick={onChangeRole}
+            className="text-xs h-8 px-2 md:px-3"
+            title={t("usersPage.actions.manageRoles")}
+            aria-label={t("usersPage.actions.manageRoles")}
           >
-            <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
-            <span className="hidden md:inline">{t("usersPage.actions.remove")}</span>
+            <Shield className="h-3.5 w-3.5 md:mr-1.5" />
+            <span className="hidden md:inline">{t("usersPage.actions.manageRoles")}</span>
           </Button>
-        )}
-      </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onEdit}
+            className="text-xs h-8 px-2 md:px-3"
+            title={t("usersPage.actions.edit")}
+            aria-label={t("usersPage.actions.edit")}
+          >
+            <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
+            <span className="hidden md:inline">{t("usersPage.actions.edit")}</span>
+          </Button>
+          {!isSelf && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
+              title={t("usersPage.actions.remove")}
+              aria-label={t("usersPage.actions.remove")}
+            >
+              <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
+              <span className="hidden md:inline">{t("usersPage.actions.remove")}</span>
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

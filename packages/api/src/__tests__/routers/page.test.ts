@@ -410,5 +410,76 @@ describe("page router", () => {
       })
       expect(updated?.status).toBe("draft")
     })
+
+    it("child system routes can toggle status to draft", async () => {
+      const db = getTestDb()
+      const admin = createTestCaller({ asAdmin: true })
+      const parentPage = await createSystemRoutePage()
+      const childPage = await db.page.create({
+        data: {
+          organizationId: TEST_ORG_ID,
+          title: "Scorer",
+          slug: "_route-stats-scorers",
+          routePath: "/stats/scorers",
+          content: "",
+          status: "published",
+          isSystemRoute: true,
+          menuLocations: [],
+          sortOrder: 0,
+          parentId: parentPage.id,
+        },
+      })
+      const updated = await admin.page.update({
+        id: childPage.id,
+        status: "draft",
+      })
+      expect(updated?.status).toBe("draft")
+    })
+
+    it("cascades draft status to children when parent is hidden", async () => {
+      const db = getTestDb()
+      const admin = createTestCaller({ asAdmin: true })
+      const parentPage = await createSystemRoutePage()
+      await db.page.create({
+        data: {
+          organizationId: TEST_ORG_ID,
+          title: "Child 1",
+          slug: "_route-child-1",
+          routePath: "/child-1",
+          content: "",
+          status: "published",
+          isSystemRoute: true,
+          menuLocations: [],
+          sortOrder: 0,
+          parentId: parentPage.id,
+        },
+      })
+      await db.page.create({
+        data: {
+          organizationId: TEST_ORG_ID,
+          title: "Child 2",
+          slug: "_route-child-2",
+          routePath: "/child-2",
+          content: "",
+          status: "published",
+          isSystemRoute: true,
+          menuLocations: [],
+          sortOrder: 1,
+          parentId: parentPage.id,
+        },
+      })
+
+      // Toggle parent to draft
+      await admin.page.update({ id: parentPage.id, status: "draft" })
+
+      // Both children should now be draft
+      const children = await db.page.findMany({
+        where: { parentId: parentPage.id },
+        orderBy: { sortOrder: "asc" },
+      })
+      expect(children).toHaveLength(2)
+      expect(children[0]?.status).toBe("draft")
+      expect(children[1]?.status).toBe("draft")
+    })
   })
 })

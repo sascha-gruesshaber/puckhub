@@ -1,9 +1,30 @@
 import { Badge, Button, FormField, Input, Label, toast } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { ChevronRight, FileText, Link2, Navigation, Pencil, Plus, Trash2, X } from "lucide-react"
+import { ChevronRight, FileText, GripVertical, Link2, PanelTop, Pencil, Plus, Trash2, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { TabNavigation, type TabGroup } from "~/components/tabNavigation"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
@@ -30,6 +51,183 @@ export const Route = createFileRoute("/_authed/pages/")({
 const FILTER_PUBLISHED = "__published__"
 const FILTER_DRAFT = "__draft__"
 
+// ---------------------------------------------------------------------------
+// Sortable row component
+// ---------------------------------------------------------------------------
+interface PageRowData {
+  id: string
+  title: string
+  slug: string
+  status: string
+  isSystemRoute: boolean
+  routePath: string | null
+  menuLocations: string[]
+  sortOrder: number
+}
+
+function SortablePageRow({
+  page,
+  isChild,
+  parentSlug,
+  rowIndex,
+  onToggleStatus,
+  onDelete,
+  t,
+  isFiltered,
+}: {
+  page: PageRowData
+  isChild: boolean
+  parentSlug: string | null
+  rowIndex: number
+  onToggleStatus: (id: string, current: string) => void
+  onDelete: (id: string, title: string) => void
+  t: (key: string, opts?: any) => string
+  isFiltered: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: page.id, disabled: isFiltered })
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    "--row-index": rowIndex,
+  } as React.CSSProperties
+
+  const isDraft = page.status === "draft"
+  const dotColor = isDraft ? "hsl(var(--muted-foreground))" : "hsl(142 71% 45%)"
+  const dotTitle = isDraft ? t("pagesPage.status.draft") : t("pagesPage.status.published")
+  const fullSlug = parentSlug ? `/${parentSlug}/${page.slug}` : `/${page.slug}`
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative ${
+        isChild ? "pl-10 border-l-2 border-l-border/30" : ""
+      } ${rowIndex > 0 ? "border-t border-border/40" : ""} ${isDragging ? "z-10" : ""}`}
+    >
+      {/* Dashed placeholder overlay — visible only while this item is being dragged */}
+      {isDragging && (
+        <div className="absolute inset-x-2 inset-y-1 rounded-lg border-2 border-dashed border-primary/30 bg-primary/[0.04] z-10" />
+      )}
+      <div className={`data-row group flex items-center gap-3 px-4 py-3.5 transition-colors ${isDragging ? "invisible" : "hover:bg-accent/5"}`}>
+
+      {/* Drag handle */}
+      {!isFiltered && (
+        <button
+          type="button"
+          className="touch-none cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors shrink-0"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
+
+      {/* Status dot */}
+      <div
+        className="h-2.5 w-2.5 shrink-0 rounded-full"
+        style={{ background: dotColor }}
+        title={dotTitle}
+      />
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold truncate">{page.title}</h3>
+          <Badge variant={isDraft ? "outline" : "default"} className="shrink-0 text-[10px]">
+            {isDraft ? t("pagesPage.status.draft") : t("pagesPage.status.published")}
+          </Badge>
+          {page.isSystemRoute && (
+            <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400 text-blue-600">
+              <PanelTop className="h-2.5 w-2.5 mr-1" />
+              {t("pagesPage.menu.builtIn")}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+          <span className="font-mono">{page.isSystemRoute && page.routePath ? page.routePath : fullSlug}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-1 shrink-0">
+        {/* Inline visibility toggle for system routes */}
+        {page.isSystemRoute && (
+          <button
+            type="button"
+            onClick={() => onToggleStatus(page.id, page.status)}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+              page.status === "published" ? "bg-green-500" : "bg-gray-300"
+            }`}
+            title={page.status === "published" ? t("pagesPage.status.published") : t("pagesPage.status.draft")}
+          >
+            <span
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                page.status === "published" ? "translate-x-4" : "translate-x-0"
+              }`}
+            />
+          </button>
+        )}
+        {!isChild && !page.isSystemRoute && (
+          <Link to="/pages/new" search={{ parent: page.id }}>
+            <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
+              <Plus className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+              <span className="hidden md:inline">{t("pagesPage.actions.subpage")}</span>
+            </Button>
+          </Link>
+        )}
+        <Link to="/pages/$pageId/edit" params={{ pageId: page.id }}>
+          <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
+            <Pencil className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+            <span className="hidden md:inline">{t("pagesPage.actions.edit")}</span>
+          </Button>
+        </Link>
+        {!page.isSystemRoute && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(page.id, page.title)}
+            className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
+            <span className="hidden md:inline">{t("pagesPage.actions.delete")}</span>
+          </Button>
+        )}
+      </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Drag overlay preview — floating card shown while dragging
+// ---------------------------------------------------------------------------
+function DragPreview({ page }: { page: PageRowData }) {
+  const isDraft = page.status === "draft"
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.2)] ring-1 ring-black/[0.08] cursor-grabbing">
+      <GripVertical className="h-4 w-4 text-primary shrink-0" />
+      <div
+        className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white"
+        style={{ background: isDraft ? "hsl(var(--muted-foreground))" : "hsl(142 71% 45%)" }}
+      />
+      <span className="font-semibold truncate text-sm">{page.title}</span>
+      {page.isSystemRoute && (
+        <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400 text-blue-600">
+          <PanelTop className="h-2.5 w-2.5 mr-1" />
+          Built-in
+        </Badge>
+      )}
+      <span className="ml-auto text-xs text-muted-foreground font-mono shrink-0">
+        {page.isSystemRoute && page.routePath ? page.routePath : `/${page.slug}`}
+      </span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Main page component
+// ---------------------------------------------------------------------------
 function PagesPage() {
   usePermissionGuard("pages")
   const { t } = useTranslation("common")
@@ -49,6 +247,22 @@ function PagesPage() {
       navigate({ search: (prev) => ({ ...prev, status: v[0] || undefined }), replace: true }),
     [navigate],
   )
+  type PositionTab = "main_nav" | "footer"
+  const [positionTab, setPositionTab] = useState<PositionTab>("main_nav")
+
+  const positionTabGroups = useMemo<TabGroup<PositionTab>[]>(
+    () => [
+      {
+        key: "positions",
+        tabs: [
+          { id: "main_nav", label: t("pagesPage.tabs.mainNav") },
+          { id: "footer", label: t("pagesPage.tabs.footerNav") },
+        ],
+      },
+    ],
+    [t],
+  )
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingPage, setDeletingPage] = useState<{ id: string; title: string } | null>(null)
   const [aliasDialogOpen, setAliasDialogOpen] = useState(false)
@@ -57,9 +271,34 @@ function PagesPage() {
   const [deleteAliasDialogOpen, setDeleteAliasDialogOpen] = useState(false)
   const [deletingAlias, setDeletingAlias] = useState<{ id: string; slug: string } | null>(null)
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const [activeDragPage, setActiveDragPage] = useState<PageRowData | null>(null)
+
   const utils = trpc.useUtils()
   const { data: pages, isLoading } = trpc.page.list.useQuery()
   const { data: aliases } = trpc.page.listAliases.useQuery()
+
+  const updateMutation = trpc.page.update.useMutation({
+    onSuccess: () => {
+      utils.page.list.invalidate()
+    },
+    onError: (err) => {
+      toast.error(t("pagesPage.toast.updateError", { defaultValue: "Update failed" }), { description: resolveTranslatedError(err, tErrors) })
+    },
+  })
+
+  const reorderMutation = trpc.page.reorder.useMutation({
+    onSuccess: () => {
+      utils.page.list.invalidate()
+    },
+    onError: (err) => {
+      toast.error(t("pagesPage.toast.updateError", { defaultValue: "Reorder failed" }), { description: resolveTranslatedError(err, tErrors) })
+    },
+  })
 
   const deleteMutation = trpc.page.delete.useMutation({
     onSuccess: () => {
@@ -105,10 +344,24 @@ function PagesPage() {
     return pages.filter((p) => !p.parentId)
   }, [pages])
 
+  const isFiltered = search.trim().length > 0 || statusFilter.length > 0
+
   const filtered = useMemo(() => {
     if (!topLevelPages.length) return []
 
     let result = topLevelPages
+
+    // Position tab filter
+    result = result.filter(
+      (p) =>
+        p.menuLocations.includes(positionTab) ||
+        (p.children ?? []).some((c) => c.menuLocations.includes(positionTab)),
+    )
+    // Also filter children to only those matching the position
+    result = result.map((p) => {
+      const children = (p.children ?? []).filter((c) => c.menuLocations.includes(positionTab))
+      return { ...p, children }
+    })
 
     // Status filter
     if (statusFilter.includes(FILTER_PUBLISHED)) {
@@ -129,7 +382,7 @@ function PagesPage() {
     }
 
     return result
-  }, [topLevelPages, search, statusFilter])
+  }, [topLevelPages, search, statusFilter, positionTab])
 
   // All pages for alias target dropdown (built from top-level + nested children to avoid duplicates)
   const allPagesFlat = useMemo(() => {
@@ -144,6 +397,86 @@ function PagesPage() {
     }
     return result
   }, [topLevelPages])
+
+  const handleToggleStatus = useCallback(
+    (id: string, current: string) => {
+      updateMutation.mutate({ id, status: current === "published" ? "draft" : "published" })
+    },
+    [updateMutation],
+  )
+
+  const handleDelete = useCallback(
+    (id: string, title: string) => {
+      setDeletingPage({ id, title })
+      setDeleteDialogOpen(true)
+    },
+    [],
+  )
+
+  // Find a page (top-level or child) by ID for the drag overlay
+  const findPageById = useCallback(
+    (id: string): PageRowData | null => {
+      for (const p of filtered) {
+        if (p.id === id) return p
+        for (const c of p.children ?? []) {
+          if (c.id === id) return c
+        }
+      }
+      return null
+    },
+    [filtered],
+  )
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      setActiveDragPage(findPageById(event.active.id as string))
+    },
+    [findPageById],
+  )
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDragPage(null)
+  }, [])
+
+  // Handle drag end for top-level pages
+  const handleTopLevelDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setActiveDragPage(null)
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+
+      const oldIndex = filtered.findIndex((p) => p.id === active.id)
+      const newIndex = filtered.findIndex((p) => p.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      const reordered = arrayMove(filtered, oldIndex, newIndex)
+      const items = reordered.map((p, i) => ({ id: p.id, sortOrder: i }))
+      reorderMutation.mutate({ items })
+    },
+    [filtered, reorderMutation],
+  )
+
+  // Handle drag end for children within a parent
+  const handleChildDragEnd = useCallback(
+    (parentId: string) => (event: DragEndEvent) => {
+      setActiveDragPage(null)
+      const { active, over } = event
+      if (!over || active.id === over.id) return
+
+      const parent = filtered.find((p) => p.id === parentId)
+      if (!parent) return
+      const children = parent.children ?? []
+
+      const oldIndex = children.findIndex((c) => c.id === active.id)
+      const newIndex = children.findIndex((c) => c.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      const reordered = arrayMove(children, oldIndex, newIndex)
+      const items = reordered.map((c, i) => ({ id: c.id, sortOrder: i }))
+      reorderMutation.mutate({ items })
+    },
+    [filtered, reorderMutation],
+  )
 
   let globalRowIndex = 0
 
@@ -167,7 +500,7 @@ function PagesPage() {
         }
         filters={
           <FilterBar
-            label={t("statsPage.filters.label")}
+            label={t("filters")}
             search={{ value: search, onChange: setSearch, placeholder: t("pagesPage.searchPlaceholder") }}
           >
             {isLoading ? (
@@ -187,10 +520,15 @@ function PagesPage() {
           </FilterBar>
         }
       >
+        {/* Position tabs */}
+        {!isLoading && (pages?.length ?? 0) > 0 && (
+          <TabNavigation groups={positionTabGroups} activeTab={positionTab} onTabChange={setPositionTab} />
+        )}
+
         {/* Pages list */}
         {isLoading ? (
           <DataListSkeleton rows={5} showIcon={false} />
-        ) : filtered.length === 0 && !search && statusFilter.length === 0 ? (
+        ) : filtered.length === 0 && !search && statusFilter.length === 0 && !pages?.length ? (
           <EmptyState
             icon={<FileText className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("pagesPage.empty.title")}
@@ -220,101 +558,61 @@ function PagesPage() {
                   {filtered.reduce((sum, p) => sum + 1 + (p.children?.length ?? 0), 0)}
                 </span>
               </div>
-              <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-                {filtered.map((page) => {
-                  const children = page.children ?? []
-                  const allRows = [page, ...children]
+              <div className="bg-white rounded-xl shadow-sm border border-border/50">
+                <DndContext sensors={sensors} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]} onDragStart={handleDragStart} onDragEnd={handleTopLevelDragEnd} onDragCancel={handleDragCancel}>
+                  <SortableContext items={filtered.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+                    {filtered.map((page) => {
+                      const children = page.children ?? []
+                      const topRowIdx = globalRowIndex++
 
-                  return allRows.map((p, pi) => {
-                    const isChild = pi > 0
-                    const isDraft = p.status === "draft"
-                    const dotColor = isDraft ? "hsl(var(--muted-foreground))" : "hsl(142 71% 45%)"
-                    const dotTitle = isDraft ? t("pagesPage.status.draft") : t("pagesPage.status.published")
-                    const parentSlug = isChild ? page.slug : null
-                    const fullSlug = parentSlug ? `/${parentSlug}/${p.slug}` : `/${p.slug}`
-                    const rowIdx = globalRowIndex++
+                      return (
+                        <div key={page.id}>
+                          {/* Top-level page row */}
+                          <SortablePageRow
+                            page={page}
+                            isChild={false}
+                            parentSlug={null}
+                            rowIndex={topRowIdx}
+                            onToggleStatus={handleToggleStatus}
+                            onDelete={handleDelete}
+                            t={t}
+                            isFiltered={isFiltered}
+                          />
 
-                    return (
-                      <div
-                        key={p.id}
-                        className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
-                          isChild ? "pl-10 border-l-2 border-l-border/30" : ""
-                        } ${rowIdx > 0 ? "border-t border-border/40" : ""}`}
-                        style={{ "--row-index": rowIdx } as React.CSSProperties}
-                      >
-                        {/* Status dot */}
-                        <div
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ background: dotColor }}
-                          title={dotTitle}
-                        />
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold truncate">{p.title}</h3>
-                            <Badge variant={isDraft ? "outline" : "default"} className="shrink-0 text-[10px]">
-                              {isDraft ? t("pagesPage.status.draft") : t("pagesPage.status.published")}
-                            </Badge>
-                            {p.isSystemRoute && (
-                              <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400 text-blue-600">
-                                <Navigation className="h-2.5 w-2.5 mr-1" />
-                                {t("pagesPage.menu.route")}
-                              </Badge>
-                            )}
-                            {p.menuLocations.includes("main_nav") && (
-                              <Badge variant="outline" className="shrink-0 text-[10px]">
-                                {t("pagesPage.menu.nav")}
-                              </Badge>
-                            )}
-                            {p.menuLocations.includes("footer") && (
-                              <Badge variant="outline" className="shrink-0 text-[10px]">
-                                {t("pagesPage.menu.footer")}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                            <span className="font-mono">{p.isSystemRoute && p.routePath ? p.routePath : fullSlug}</span>
-                            <span className="text-border">|</span>
-                            <span>{t("pagesPage.meta.sortOrder", { value: p.sortOrder })}</span>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0">
-                          {!isChild && !p.isSystemRoute && (
-                            <Link to="/pages/new" search={{ parent: p.id }}>
-                              <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
-                                <Plus className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                                <span className="hidden md:inline">{t("pagesPage.actions.subpage")}</span>
-                              </Button>
-                            </Link>
-                          )}
-                          <Link to="/pages/$pageId/edit" params={{ pageId: p.id }}>
-                            <Button variant="ghost" size="sm" className="text-xs h-8 px-2 md:px-3">
-                              <Pencil className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                              <span className="hidden md:inline">{t("pagesPage.actions.edit")}</span>
-                            </Button>
-                          </Link>
-                          {!p.isSystemRoute && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setDeletingPage({ id: p.id, title: p.title })
-                                setDeleteDialogOpen(true)
-                              }}
-                              className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 md:mr-1.5" aria-hidden="true" />
-                              <span className="hidden md:inline">{t("pagesPage.actions.delete")}</span>
-                            </Button>
+                          {/* Children rows with their own DnD context */}
+                          {children.length > 0 && (
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} modifiers={[restrictToVerticalAxis]} onDragStart={handleDragStart} onDragEnd={handleChildDragEnd(page.id)} onDragCancel={handleDragCancel}>
+                              <SortableContext items={children.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                                {children.map((child) => {
+                                  const childRowIdx = globalRowIndex++
+                                  return (
+                                    <SortablePageRow
+                                      key={child.id}
+                                      page={child}
+                                      isChild
+                                      parentSlug={page.slug}
+                                      rowIndex={childRowIdx}
+                                      onToggleStatus={handleToggleStatus}
+                                      onDelete={handleDelete}
+                                      t={t}
+                                      isFiltered={isFiltered}
+                                    />
+                                  )
+                                })}
+                              </SortableContext>
+                              <DragOverlay dropAnimation={{ duration: 150, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+                                {activeDragPage && <DragPreview page={activeDragPage} />}
+                              </DragOverlay>
+                            </DndContext>
                           )}
                         </div>
-                      </div>
-                    )
-                  })
-                })}
+                      )
+                    })}
+                  </SortableContext>
+                  <DragOverlay dropAnimation={{ duration: 150, easing: "cubic-bezier(0.25, 1, 0.5, 1)" }}>
+                    {activeDragPage && <DragPreview page={activeDragPage} />}
+                  </DragOverlay>
+                </DndContext>
               </div>
             </div>
 

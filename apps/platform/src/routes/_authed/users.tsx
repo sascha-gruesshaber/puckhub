@@ -13,9 +13,24 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Check, Copy, Plus, Search, Shield, Trash2, UserPlus, Users, X } from "lucide-react"
+import { Building2, Crown, KeyRound, Mail, Pencil, Plus, Search, Shield, Trash2, User, UserPlus, Users, X } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
+
+type OrgRole = "owner" | "admin" | "game_manager" | "game_reporter" | "team_manager" | "editor"
+
+const iconProps = { size: 14, strokeWidth: 2 } as const
+
+const ROLE_META: Record<OrgRole, { color: string; bgColor: string; icon: React.ReactNode; label: string; description: string }> = {
+  owner: { color: "hsl(45 93% 47%)", bgColor: "hsl(45 93% 47% / 0.1)", icon: <Crown {...iconProps} />, label: "Owner", description: "Full access to all areas including organization deletion." },
+  admin: { color: "hsl(25 95% 53%)", bgColor: "hsl(25 95% 53% / 0.1)", icon: <Shield {...iconProps} />, label: "Administrator", description: "Full access to all areas except organization deletion." },
+  game_manager: { color: "hsl(142 72% 42%)", bgColor: "hsl(142 72% 42% / 0.1)", icon: <Users {...iconProps} />, label: "Game Manager", description: "Create, edit, and manage games." },
+  game_reporter: { color: "hsl(198 93% 45%)", bgColor: "hsl(198 93% 45% / 0.1)", icon: <KeyRound {...iconProps} />, label: "Game Reporter", description: "Manage game reports, lineups, and events." },
+  team_manager: { color: "hsl(262 83% 58%)", bgColor: "hsl(262 83% 58% / 0.1)", icon: <Shield {...iconProps} />, label: "Team Manager", description: "Manage team details, rosters, and contracts." },
+  editor: { color: "hsl(330 81% 60%)", bgColor: "hsl(330 81% 60% / 0.1)", icon: <User {...iconProps} />, label: "Editor", description: "Create and edit news articles and pages." },
+}
+
+const ORG_ROLES: OrgRole[] = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"]
 
 export const Route = createFileRoute("/_authed/users")({
   component: UsersPage,
@@ -53,18 +68,31 @@ function UsersPage() {
     orgName: string
   }>({ open: false, userId: "", userName: "", organizationId: "", orgName: "" })
 
+  // Change role dialog
+  const [changeRoleDialog, setChangeRoleDialog] = useState<{
+    open: boolean
+    userId: string
+    userName: string
+    organizationId: string
+    orgName: string
+    currentRole: string
+  }>({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })
+  const [newRole, setNewRole] = useState<"admin" | "owner" | "game_manager" | "game_reporter" | "team_manager" | "editor">("admin")
+
+  // Edit email dialog
+  const [editEmailDialog, setEditEmailDialog] = useState<{ open: boolean; userId: string; userName: string; currentEmail: string }>({
+    open: false,
+    userId: "",
+    userName: "",
+    currentEmail: "",
+  })
+  const [newEmail, setNewEmail] = useState("")
+  const [editEmailError, setEditEmailError] = useState("")
+
   // Create user dialog
   const [createDialog, setCreateDialog] = useState(false)
-  const [createForm, setCreateForm] = useState({ name: "", email: "", isPlatformAdmin: false })
+  const [createForm, setCreateForm] = useState({ name: "", email: "", isPlatformAdmin: false, sendInvite: true })
   const [createErrors, setCreateErrors] = useState<{ name?: string; email?: string }>({})
-
-  // Credentials dialog (shown after creating a user)
-  const [credentialsDialog, setCredentialsDialog] = useState<{
-    open: boolean
-    email: string
-    password: string
-  }>({ open: false, email: "", password: "" })
-  const [copied, setCopied] = useState(false)
 
   const utils = trpc.useUtils()
 
@@ -99,17 +127,33 @@ function UsersPage() {
     onError: (err) => toast.error("Error", { description: err.message }),
   })
 
+  const changeRoleMutation = trpc.users.changeOrganizationRole.useMutation({
+    onSuccess: () => {
+      utils.users.listAll.invalidate()
+      setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })
+      toast.success("Role updated")
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
   const createUserMutation = trpc.users.createPlatformUser.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       utils.users.listAll.invalidate()
       setCreateDialog(false)
-      setCreateForm({ name: "", email: "", isPlatformAdmin: false })
+      setCreateForm({ name: "", email: "", isPlatformAdmin: false, sendInvite: true })
       setCreateErrors({})
-      setCredentialsDialog({
-        open: true,
-        email: data.email,
-        password: data.generatedPassword,
-      })
+      toast.success("User created")
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  })
+
+  const updateEmailMutation = trpc.users.updateEmail.useMutation({
+    onSuccess: () => {
+      utils.users.listAll.invalidate()
+      setEditEmailDialog({ open: false, userId: "", userName: "", currentEmail: "" })
+      setNewEmail("")
+      setEditEmailError("")
+      toast.success("Email updated")
     },
     onError: (err) => toast.error("Error", { description: err.message }),
   })
@@ -147,16 +191,20 @@ function UsersPage() {
       name: createForm.name.trim(),
       email: createForm.email.trim(),
       role: createForm.isPlatformAdmin ? "admin" : null,
+      sendInvite: createForm.sendInvite,
     })
   }
 
-  async function handleCopyPassword() {
-    await navigator.clipboard.writeText(credentialsDialog.password)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
   const availableOrgs = allOrgs?.filter((o) => !assignDialog.existingOrgIds.includes(o.id)) ?? []
+
+  function getPrimaryRole(org: { role: string; memberRoles: { role: string; teamId: string | null }[] }): string {
+    const orgRoles = org.memberRoles.filter((r) => r.teamId === null)
+    const priority = ["owner", "admin", "game_manager", "editor", "game_reporter", "team_manager"]
+    for (const p of priority) {
+      if (orgRoles.some((r) => r.role === p)) return p
+    }
+    return org.role
+  }
 
   function roleColor(role: string) {
     switch (role) {
@@ -164,6 +212,10 @@ function UsersPage() {
         return "bg-amber-100 text-amber-800 border-amber-200"
       case "admin":
         return "bg-blue-100 text-blue-800 border-blue-200"
+      case "game_manager":
+        return "bg-green-100 text-green-800 border-green-200"
+      case "editor":
+        return "bg-purple-100 text-purple-800 border-purple-200"
       default:
         return "bg-gray-100 text-gray-600 border-gray-200"
     }
@@ -259,33 +311,55 @@ function UsersPage() {
                 {user.organizations.length === 0 ? (
                   <span className="text-xs text-muted-foreground italic">No league</span>
                 ) : (
-                  user.organizations.map((org: { organizationId: string; organizationName: string; role: string }) => (
-                    <span
-                      key={org.organizationId}
-                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${roleColor(org.role)}`}
-                    >
-                      <Building2 size={10} />
-                      <span className="max-w-[100px] truncate">{org.organizationName}</span>
-                      <span className="opacity-60">({org.role})</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setRemoveDialog({
-                            open: true,
-                            userId: user.id,
-                            userName: user.name,
-                            organizationId: org.organizationId,
-                            orgName: org.organizationName,
-                          })
-                        }}
-                        className="ml-0.5 rounded hover:bg-black/10 p-0.5 -mr-1 transition-colors"
-                        title="Remove from league"
+                  user.organizations.map((org: { organizationId: string; organizationName: string; role: string; memberRoles: { role: string; teamId: string | null }[] }) => {
+                    const displayRole = getPrimaryRole(org)
+                    return (
+                      <span
+                        key={org.organizationId}
+                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${roleColor(displayRole)}`}
                       >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))
+                        <Building2 size={10} />
+                        <span className="max-w-[100px] truncate">{org.organizationName}</span>
+                        <span className="opacity-60">({displayRole})</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setChangeRoleDialog({
+                              open: true,
+                              userId: user.id,
+                              userName: user.name,
+                              organizationId: org.organizationId,
+                              orgName: org.organizationName,
+                              currentRole: displayRole,
+                            })
+                            setNewRole(displayRole as typeof newRole)
+                          }}
+                          className="rounded hover:bg-black/10 p-0.5 transition-colors"
+                          title="Change role"
+                        >
+                          <Pencil size={10} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setRemoveDialog({
+                              open: true,
+                              userId: user.id,
+                              userName: user.name,
+                              organizationId: org.organizationId,
+                              orgName: org.organizationName,
+                            })
+                          }}
+                          className="rounded hover:bg-black/10 p-0.5 -mr-1 transition-colors"
+                          title="Remove from league"
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    )
+                  })
                 )}
 
                 {/* Add to league button */}
@@ -303,6 +377,23 @@ function UsersPage() {
               <div className="text-right shrink-0 hidden md:block">
                 <p className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString("de-DE")}</p>
               </div>
+
+              {/* Edit email button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-xs h-8 px-2 md:px-3 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setEditEmailDialog({ open: true, userId: user.id, userName: user.name, currentEmail: user.email })
+                  setNewEmail(user.email)
+                  setEditEmailError("")
+                }}
+                title="Change email"
+                aria-label="Change email"
+              >
+                <Mail className="h-3.5 w-3.5 md:mr-1.5" />
+                <span className="hidden md:inline">Email</span>
+              </Button>
 
               {/* Delete button */}
               <Button
@@ -408,20 +499,38 @@ function UsersPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Role</label>
-                  <select
-                    value={assignRole}
-                    onChange={(e) =>
-                      setAssignRole(e.target.value as "admin" | "owner" | "game_manager" | "game_reporter" | "team_manager" | "editor")
-                    }
-                    className="w-full rounded-lg border border-border/50 bg-white py-2 px-3 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="owner">Owner</option>
-                    <option value="game_manager">Game Manager</option>
-                    <option value="game_reporter">Game Reporter</option>
-                    <option value="team_manager">Team Manager</option>
-                    <option value="editor">Editor</option>
-                  </select>
+                  <div className="space-y-1.5">
+                    {ORG_ROLES.map((r) => {
+                      const meta = ROLE_META[r]
+                      return (
+                        <label
+                          key={r}
+                          className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer transition-colors ${
+                            assignRole === r ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="assignRole"
+                            value={r}
+                            checked={assignRole === r}
+                            onChange={() => setAssignRole(r)}
+                            className="sr-only"
+                          />
+                          <div
+                            className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                            style={{ background: meta.bgColor, color: meta.color }}
+                          >
+                            {meta.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{meta.label}</p>
+                            <p className="text-xs text-muted-foreground">{meta.description}</p>
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
               </>
             )}
@@ -498,13 +607,93 @@ function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Change Role Dialog */}
+      <Dialog
+        open={changeRoleDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogClose
+            onClick={() => setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })}
+          />
+          <DialogHeader>
+            <DialogTitle>Change Role</DialogTitle>
+            <DialogDescription>
+              Change the role of <strong>{changeRoleDialog.userName}</strong> in <strong>{changeRoleDialog.orgName}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 p-6 pt-2">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Role</label>
+              <div className="space-y-1.5">
+                {ORG_ROLES.map((r) => {
+                  const meta = ROLE_META[r]
+                  return (
+                    <label
+                      key={r}
+                      className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer transition-colors ${
+                        newRole === r ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="changeRole"
+                        value={r}
+                        checked={newRole === r}
+                        onChange={() => setNewRole(r)}
+                        className="sr-only"
+                      />
+                      <div
+                        className="flex h-7 w-7 items-center justify-center rounded-md shrink-0"
+                        style={{ background: meta.bgColor, color: meta.color }}
+                      >
+                        {meta.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{meta.label}</p>
+                        <p className="text-xs text-muted-foreground">{meta.description}</p>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="accent"
+              disabled={newRole === changeRoleDialog.currentRole || changeRoleMutation.isPending}
+              onClick={() => {
+                changeRoleMutation.mutate({
+                  userId: changeRoleDialog.userId,
+                  organizationId: changeRoleDialog.organizationId,
+                  role: newRole,
+                })
+              }}
+            >
+              {changeRoleMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Create User Dialog */}
       <Dialog
         open={createDialog}
         onOpenChange={(open) => {
           if (!open) {
             setCreateDialog(false)
-            setCreateForm({ name: "", email: "", isPlatformAdmin: false })
+            setCreateForm({ name: "", email: "", isPlatformAdmin: false, sendInvite: true })
             setCreateErrors({})
           }
         }}
@@ -514,7 +703,7 @@ function UsersPage() {
           <DialogHeader>
             <DialogTitle>Create User</DialogTitle>
             <DialogDescription>
-              Create a new user account. A random password will be generated and shown once.
+              Create a new user account.
             </DialogDescription>
           </DialogHeader>
 
@@ -552,6 +741,17 @@ function UsersPage() {
               <span className="text-sm font-medium">Platform Admin</span>
             </label>
 
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={createForm.sendInvite}
+                onChange={(e) => setCreateForm((f) => ({ ...f, sendInvite: e.target.checked }))}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="text-sm font-medium">Send invite email</span>
+              <span className="text-xs text-muted-foreground">(magic link login)</span>
+            </label>
+
             <DialogFooter className="p-0 pt-2">
               <Button type="button" variant="outline" onClick={() => setCreateDialog(false)}>
                 Cancel
@@ -564,54 +764,75 @@ function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Credentials Dialog */}
+      {/* Edit Email Dialog */}
       <Dialog
-        open={credentialsDialog.open}
+        open={editEmailDialog.open}
         onOpenChange={(open) => {
           if (!open) {
-            setCredentialsDialog({ open: false, email: "", password: "" })
-            setCopied(false)
+            setEditEmailDialog({ open: false, userId: "", userName: "", currentEmail: "" })
+            setNewEmail("")
+            setEditEmailError("")
           }
         }}
       >
         <DialogContent className="max-w-md">
+          <DialogClose onClick={() => setEditEmailDialog({ open: false, userId: "", userName: "", currentEmail: "" })} />
           <DialogHeader>
-            <DialogTitle>User Created</DialogTitle>
+            <DialogTitle>Change Email</DialogTitle>
             <DialogDescription>
-              Save these credentials — the password cannot be retrieved later. The user will be asked to change their
-              password on first login.
+              Change the email address for <strong>{editEmailDialog.userName}</strong>.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 p-6 pt-2">
-            <FormField label="Email">
-              <Input value={credentialsDialog.email} readOnly />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const trimmed = newEmail.trim()
+              if (!trimmed) {
+                setEditEmailError("Email is required")
+                return
+              }
+              if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+                setEditEmailError("Invalid email")
+                return
+              }
+              if (trimmed === editEmailDialog.currentEmail) {
+                setEditEmailError("Email is the same as current")
+                return
+              }
+              setEditEmailError("")
+              updateEmailMutation.mutate({ id: editEmailDialog.userId, email: trimmed })
+            }}
+            className="space-y-4 p-6 pt-2"
+          >
+            <FormField label="New Email" error={editEmailError} required>
+              <Input
+                type="email"
+                value={newEmail}
+                onChange={(e) => {
+                  setNewEmail(e.target.value)
+                  if (editEmailError) setEditEmailError("")
+                }}
+                placeholder="user@example.com"
+              />
             </FormField>
 
-            <FormField label="Password">
-              <div className="flex gap-2">
-                <Input value={credentialsDialog.password} readOnly className="font-mono" />
-                <Button type="button" variant="outline" size="icon" onClick={handleCopyPassword} title="Copy password">
-                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </FormField>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="accent"
-              onClick={() => {
-                setCredentialsDialog({ open: false, email: "", password: "" })
-                setCopied(false)
-                toast.success("User created")
-              }}
-            >
-              Close
-            </Button>
-          </DialogFooter>
+            <DialogFooter className="p-0 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditEmailDialog({ open: false, userId: "", userName: "", currentEmail: "" })}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="accent" disabled={updateEmailMutation.isPending}>
+                {updateEmailMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
+
     </div>
   )
 }
