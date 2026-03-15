@@ -642,7 +642,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     // Ensure Pro plan has AI features
     await db.plan.update({
       where: { id: PRO_PLAN_ID },
-      data: { featureAiRecaps: true, aiMonthlyTokenLimit: 500000 },
+      data: { featureAiRecaps: true, featurePublicReports: true, aiMonthlyTokenLimit: 500000 },
     })
     console.log("[demo-seed] Assigning Pro plan to demo org...")
     const now = new Date()
@@ -711,6 +711,9 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       pointsWin: 2,
       pointsDraw: 1,
       pointsLoss: 0,
+      publicReportsEnabled: true,
+      publicReportsRequireEmail: true,
+      publicReportsBotDetection: true,
     },
   })
 
@@ -1950,6 +1953,17 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     },
     {
       organizationId: DEMO_ORG_ID,
+      title: "Structure",
+      slug: "_route-structure",
+      routePath: "/structure",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: ["main_nav"],
+      sortOrder: 3,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
       title: "Teams",
       slug: "_route-teams",
       routePath: "/teams",
@@ -1957,7 +1971,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       status: "published",
       isSystemRoute: true,
       menuLocations: ["main_nav"],
-      sortOrder: 3,
+      sortOrder: 4,
     },
     {
       organizationId: DEMO_ORG_ID,
@@ -1968,7 +1982,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       status: "published",
       isSystemRoute: true,
       menuLocations: ["main_nav"],
-      sortOrder: 4,
+      sortOrder: 5,
     },
   ]
   const insertedSystemRoutes = await db.page.createManyAndReturn({ data: systemRoutePages })

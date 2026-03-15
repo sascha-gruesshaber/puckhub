@@ -46,6 +46,7 @@ interface PlanForm {
   featureAdvancedRoles: boolean
   featureAdvancedStats: boolean
   featureAiRecaps: boolean
+  featurePublicReports: boolean
   aiMonthlyTokenLimit: number | null
 }
 
@@ -75,6 +76,7 @@ const emptyForm: PlanForm = {
   featureAdvancedRoles: false,
   featureAdvancedStats: false,
   featureAiRecaps: false,
+  featurePublicReports: false,
   aiMonthlyTokenLimit: null,
 }
 
@@ -198,6 +200,7 @@ function PlansPage() {
       featureAdvancedRoles: plan.featureAdvancedRoles,
       featureAdvancedStats: plan.featureAdvancedStats,
       featureAiRecaps: plan.featureAiRecaps,
+      featurePublicReports: plan.featurePublicReports,
       aiMonthlyTokenLimit: plan.aiMonthlyTokenLimit,
     })
     setDialogOpen(true)
@@ -446,6 +449,11 @@ function PlansPage() {
                   label="AI Recaps"
                   checked={form.featureAiRecaps}
                   onChange={(v) => setForm((p) => ({ ...p, featureAiRecaps: v }))}
+                />
+                <FeatureToggle
+                  label="Public Game Reports"
+                  checked={form.featurePublicReports}
+                  onChange={(v) => setForm((p) => ({ ...p, featurePublicReports: v }))}
                 />
               </div>
             </div>

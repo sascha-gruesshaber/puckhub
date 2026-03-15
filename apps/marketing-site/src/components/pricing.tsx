@@ -120,6 +120,10 @@ export function Pricing() {
                       <PlanFeature label={t.pricing.planFeatures.scheduler} enabled={plan.featureScheduler} />
                       <PlanFeature label={t.pricing.planFeatures.scheduledNews} enabled={plan.featureScheduledNews} />
                       <PlanFeature label={t.pricing.planFeatures.advancedRoles} enabled={plan.featureAdvancedRoles} />
+                      <PlanFeature
+                        label={t.pricing.planFeatures.publicReports}
+                        enabled={plan.featurePublicReports}
+                      />
                     </div>
                   </div>
 
