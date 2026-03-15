@@ -146,7 +146,9 @@ function AuthedLayout() {
   }
 
   if (!session) {
-    navigate({ to: "/login" })
+    // Forward any error param from Better Auth magic link verification
+    const urlError = new URLSearchParams(window.location.search).get("error")
+    navigate({ to: "/login", search: urlError ? { error: urlError } : undefined })
     return null
   }
 

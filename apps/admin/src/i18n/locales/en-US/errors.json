@@ -53,5 +53,6 @@
   "BACKUP_CODE_INVALID": "Invalid backup code",
   "PLAN_LIMIT_EXCEEDED": "You have reached the limit for your current plan. Upgrade to add more.",
   "PLAN_FEATURE_UNAVAILABLE": "This feature is not available on your current plan. Upgrade to unlock it.",
+  "EMAIL_SEND_FAILED": "Failed to send email. Please try again later.",
   "UNKNOWN": "An unexpected error occurred"
 }

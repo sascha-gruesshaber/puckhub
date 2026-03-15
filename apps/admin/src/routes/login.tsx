@@ -9,6 +9,7 @@ import { useTranslation } from "~/i18n/use-translation"
 export interface LoginSearch {
   mode?: "2fa"
   redirect?: string
+  error?: string
 }
 
 export const Route = createFileRoute("/login")({
@@ -16,13 +17,14 @@ export const Route = createFileRoute("/login")({
   validateSearch: (search: Record<string, unknown>): LoginSearch => ({
     mode: search.mode === "2fa" ? "2fa" : undefined,
     redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+    error: typeof search.error === "string" ? search.error : undefined,
   }),
 })
 
 function LoginPage() {
   const { t } = useTranslation("common")
-  const { mode, redirect } = Route.useSearch()
-  const [error, setError] = useState("")
+  const { mode, redirect, error: urlError } = Route.useSearch()
+  const [error, setError] = useState(urlError ?? "")
 
   // 2FA verification mode
   if (mode === "2fa") {

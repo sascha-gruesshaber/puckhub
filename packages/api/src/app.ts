@@ -33,9 +33,12 @@ if (process.env.DEMO_MODE === "true") {
   )
 }
 
-// Authenticated routes — strict origin checking (skip publicSite routes handled above)
+// Authenticated routes — strict origin checking (skip routes with their own CORS above)
 app.use("/api/*", async (c, next) => {
   if (c.req.path.startsWith("/api/trpc/publicSite.")) {
+    return next()
+  }
+  if (process.env.DEMO_MODE === "true" && c.req.path === "/api/demo-login") {
     return next()
   }
   return cors({
@@ -49,8 +52,29 @@ app.use("/api/*", async (c, next) => {
 })
 
 // Better Auth routes
-app.on(["POST", "GET"], "/api/auth/**", (c) => {
-  return auth.handler(c.req.raw)
+app.on(["POST", "GET"], "/api/auth/**", async (c) => {
+  const req = c.req.raw
+  const url = new URL(req.url)
+  const isMagicLinkVerify = url.pathname.endsWith("/magic-link/verify")
+
+  if (isMagicLinkVerify) {
+    console.log(`[Auth] Magic link verify — token=${url.searchParams.get("token")?.slice(0, 8)}… callbackURL=${url.searchParams.get("callbackURL")}`)
+  }
+
+  const res = await auth.handler(req)
+
+  if (isMagicLinkVerify) {
+    console.log(`[Auth] Magic link verify response — status=${res.status} location=${res.headers.get("location")}`)
+    const setCookies = res.headers.getSetCookie?.() ?? []
+    for (const sc of setCookies) {
+      // Log cookie name + domain only (not value for security)
+      const name = sc.split("=")[0]
+      const domain = sc.match(/[Dd]omain=([^;]+)/)?.[1] ?? "(none)"
+      console.log(`[Auth]   Set-Cookie: ${name} domain=${domain}`)
+    }
+  }
+
+  return res
 })
 
 // tRPC routes

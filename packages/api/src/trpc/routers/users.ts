@@ -136,8 +136,11 @@ export const usersRouter = router({
         throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
       }
 
+      // Better Auth stores and looks up emails in lowercase
+      const normalizedEmail = input.email.toLowerCase()
+
       const existing = await ctx.db.user.findFirst({
-        where: { email: input.email },
+        where: { email: normalizedEmail },
         select: { id: true },
       })
 
@@ -160,7 +163,7 @@ export const usersRouter = router({
         await ctx.db.user.create({
           data: {
             id: userId,
-            email: input.email,
+            email: normalizedEmail,
             name: input.name,
             emailVerified: true,
           },
@@ -194,7 +197,7 @@ export const usersRouter = router({
       const adminUrl = process.env.TRUSTED_ORIGINS?.split(",")[0]?.trim() ?? "http://admin.puckhub.localhost"
       const loginUrl = `${adminUrl}/login`
       await sendEmail({
-        to: input.email,
+        to: normalizedEmail,
         subject: `You've been invited to ${org?.name ?? "PuckHub"}`,
         html: inviteEmail(loginUrl, org?.name),
       })
@@ -226,7 +229,10 @@ export const usersRouter = router({
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
       }
 
+      // Better Auth stores and looks up emails in lowercase
       if (data.email) {
+        data.email = data.email.toLowerCase()
+
         const existing = await ctx.db.user.findFirst({
           where: {
             email: data.email,
@@ -398,13 +404,16 @@ export const usersRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      // Better Auth stores and looks up emails in lowercase
+      const normalizedEmail = input.email.toLowerCase()
+
       const user = await ctx.db.user.findFirst({ where: { id: input.id } })
       if (!user) {
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
       }
 
       const existing = await ctx.db.user.findFirst({
-        where: { email: input.email, id: { not: input.id } },
+        where: { email: normalizedEmail, id: { not: input.id } },
         select: { id: true },
       })
       if (existing) {
@@ -413,7 +422,7 @@ export const usersRouter = router({
 
       await ctx.db.user.update({
         where: { id: input.id },
-        data: { email: input.email, updatedAt: new Date() },
+        data: { email: normalizedEmail, updatedAt: new Date() },
       })
 
       return { ok: true }

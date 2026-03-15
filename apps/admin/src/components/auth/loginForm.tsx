@@ -28,7 +28,8 @@ function LoginForm({ onError, redirect }: LoginFormProps) {
         callbackURL: redirect || window.location.origin + "/",
       })
       if (result.error) {
-        onError(result.error.message ?? tErrors("AUTH_NOT_AUTHENTICATED"))
+        const msg = result.error.message ?? ""
+        onError(tErrors(msg, { defaultValue: "" }) || msg || tErrors("AUTH_NOT_AUTHENTICATED"))
       } else {
         setSent(true)
       }
