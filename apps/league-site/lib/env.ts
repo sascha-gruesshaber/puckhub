@@ -14,6 +14,18 @@ export function getApiUrl(): string {
   return process.env.VITE_API_URL ?? "http://api.puckhub.localhost"
 }
 
+/** Admin portal runs on the admin subdomain. */
+export function getAdminUrl(): string {
+  if (typeof window !== "undefined") {
+    const parts = window.location.hostname.split(".")
+    parts[0] = "admin"
+    return `${window.location.protocol}//${parts.join(".")}`
+  }
+  return process.env.VITE_BASE_DOMAIN
+    ? `http://admin.${process.env.VITE_BASE_DOMAIN}`
+    : "http://admin.puckhub.localhost"
+}
+
 /** Marketing site runs on the bare domain (strip the league slug subdomain). */
 export function getMarketingUrl(): string {
   if (typeof window !== "undefined") {

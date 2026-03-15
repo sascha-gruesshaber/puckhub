@@ -258,6 +258,7 @@ const en = {
     resetFilters: "Reset filters",
     selectTeam: "Select team",
     ourSponsors: "Our Sponsors",
+    admin: "Admin",
   },
 
   charts: {
@@ -558,6 +559,7 @@ const de: Translations = {
     resetFilters: "Filter zurücksetzen",
     selectTeam: "Team auswählen",
     ourSponsors: "Unsere Sponsoren",
+    admin: "Admin",
   },
 
   charts: {

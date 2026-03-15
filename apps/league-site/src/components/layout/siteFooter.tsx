@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { getMarketingUrl } from "../../../lib/env"
+import { getAdminUrl, getMarketingUrl } from "../../../lib/env"
 import { useOrg, useSettings } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { trpc } from "../../../lib/trpc"
@@ -84,16 +84,25 @@ export function SiteFooter() {
             </nav>
           )}
 
-          <div className="text-xs opacity-40">
-            Powered by{" "}
+          <div className="flex items-center gap-3 text-xs opacity-40">
             <a
-              href={getMarketingUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={getAdminUrl()}
               className="underline hover:opacity-80"
             >
-              PuckHub
+              {t.layout.admin}
             </a>
+            <span aria-hidden="true">&middot;</span>
+            <span>
+              Powered by{" "}
+              <a
+                href={getMarketingUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:opacity-80"
+              >
+                PuckHub
+              </a>
+            </span>
           </div>
         </div>
       </div>
