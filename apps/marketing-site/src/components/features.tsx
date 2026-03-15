@@ -3,9 +3,8 @@ import {
   LayoutDashboard,
   CalendarDays,
   ClipboardList,
-  Users,
-  Trophy,
   Globe,
+  Trophy,
   Sparkles,
   ChevronLeft,
   ChevronRight,
@@ -13,13 +12,12 @@ import {
 import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 
-const slideIcons = [LayoutDashboard, CalendarDays, ClipboardList, Users, Globe, Trophy, Sparkles]
+const slideIcons = [LayoutDashboard, CalendarDays, ClipboardList, Globe, Trophy, Sparkles]
 
 const slideScreenshots = [
   "/screenshots/dashboard.png",
   "/screenshots/season-builder.png",
   "/screenshots/game-report.png",
-  "/screenshots/team-list.png",
   "/screenshots/league-home.png",
   "/screenshots/league-standings.png",
   "/screenshots/ai-game-recap.png",
@@ -41,15 +39,9 @@ export function Features() {
 
   const goTo = useCallback((i: number) => setActive(i), [])
 
-  const next = useCallback(
-    () => setActive((i) => (i + 1) % slides.length),
-    [slides.length],
-  )
+  const next = useCallback(() => setActive((i) => (i + 1) % slides.length), [slides.length])
 
-  const prev = useCallback(
-    () => setActive((i) => (i - 1 + slides.length) % slides.length),
-    [slides.length],
-  )
+  const prev = useCallback(() => setActive((i) => (i - 1 + slides.length) % slides.length), [slides.length])
 
   useEffect(() => {
     if (paused) return
@@ -65,12 +57,8 @@ export function Features() {
         <div ref={reveal.ref} className={revealClasses(reveal)}>
           {/* Header */}
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              {t.features.heading}
-            </h2>
-            <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">
-              {t.features.subheading}
-            </p>
+            <h2 className="text-3xl sm:text-4xl font-bold">{t.features.heading}</h2>
+            <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">{t.features.subheading}</p>
           </div>
 
           {/* Feature tabs */}
@@ -87,9 +75,7 @@ export function Features() {
                 }`}
               >
                 <s.icon className="h-4 w-4 shrink-0" />
-                <span className="hidden sm:inline whitespace-nowrap">
-                  {s.title}
-                </span>
+                <span className="hidden sm:inline whitespace-nowrap">{s.title}</span>
                 {i === active && !paused && (
                   <span
                     key={`p-${active}`}
@@ -101,11 +87,7 @@ export function Features() {
           </div>
 
           {/* Slider */}
-          <div
-            className="relative"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-          >
+          <div className="relative" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
             <div className="relative mx-auto max-w-5xl">
               <div className="rounded-xl border border-white/10 bg-brand-navy-light shadow-2xl shadow-black/40 overflow-hidden">
                 {/* Browser chrome */}
@@ -121,9 +103,7 @@ export function Features() {
                     <div
                       key={s.title}
                       className={`absolute inset-0 transition-all duration-500 ease-out ${
-                        i === active
-                          ? "opacity-100 scale-100"
-                          : "opacity-0 scale-[1.02]"
+                        i === active ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]"
                       }`}
                     >
                       <img
@@ -132,8 +112,7 @@ export function Features() {
                         className="w-full h-full object-cover object-top"
                         loading={i === 0 ? "eager" : "lazy"}
                         onError={(e) => {
-                          ;(e.currentTarget as HTMLImageElement).style.display =
-                            "none"
+                          ;(e.currentTarget as HTMLImageElement).style.display = "none"
                         }}
                       />
                     </div>
@@ -149,7 +128,10 @@ export function Features() {
                         <div className="rounded-lg bg-brand-gold/30 backdrop-blur-md p-1.5">
                           <slide.icon className="h-4 w-4 text-brand-gold" />
                         </div>
-                        <h3 className="text-lg sm:text-xl font-bold text-white" style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.6)" }}>
+                        <h3
+                          className="text-lg sm:text-xl font-bold text-white"
+                          style={{ textShadow: "0 2px 8px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,0.6)" }}
+                        >
                           {slide.title}
                         </h3>
                       </div>

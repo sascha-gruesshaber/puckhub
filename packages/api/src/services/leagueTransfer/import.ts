@@ -87,8 +87,12 @@ export async function importLeagueData(
       // Generate slug from org name
       let orgSlug = orgName
         .toLowerCase()
-        .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
-        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+        .replace(/ä/g, "ae")
+        .replace(/ö/g, "oe")
+        .replace(/ü/g, "ue")
+        .replace(/ß/g, "ss")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
       if (!orgSlug) orgSlug = newOrgId.slice(0, 8)
       let baseSlug = orgSlug
       let counter = 1

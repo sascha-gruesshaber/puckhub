@@ -1,4 +1,5 @@
-import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy } from "react"
 import { FilterDropdown } from "~/components/shared/filterDropdown"
 import { FilterPill } from "~/components/shared/filterPill"
@@ -15,7 +16,9 @@ import { trpc } from "../../../lib/trpc"
 
 const ScorerChart = lazy(() => import("~/components/charts/scorerChart").then((m) => ({ default: m.ScorerChart })))
 
-export const scorersSearchValidator = (s: Record<string, unknown>): { season?: string; team?: string; position?: string } => ({
+export const scorersSearchValidator = (
+  s: Record<string, unknown>,
+): { season?: string; team?: string; position?: string } => ({
   ...(typeof s.season === "string" && s.season ? { season: s.season } : {}),
   ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
   ...(typeof s.position === "string" && s.position ? { position: s.position } : {}),
@@ -34,34 +37,56 @@ export function ScorersPage() {
   const org = useOrg()
   const season = useSeason()
   const features = useFeatures()
-  const navigate: any = useNavigate()
-  const { season: seasonParam, team: teamParam, position: positionParam } = useSearch({ strict: false }) as { season?: string; team?: string; position?: string }
+  const filterNavigate = useFilterNavigate()
+  const {
+    season: seasonParam,
+    team: teamParam,
+    position: positionParam,
+  } = useSearch({ strict: false }) as { season?: string; team?: string; position?: string }
 
   const selectedSeasonId = seasonParam ?? season.current?.id
   const selectedTeamId = teamParam || undefined
   const selectedPosition = positionParam as "forward" | "defense" | undefined
 
-  const setSeasonId = (v: string) => navigate({ search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }), replace: true })
-  const setTeamId = (v: string | undefined) => navigate({ search: (p: any) => ({ ...p, team: v || undefined }), replace: true })
-  const setPosition = (v: string | undefined) => navigate({ search: (p: any) => ({ ...p, position: v || undefined }), replace: true })
+  const setSeasonId = (v: string) =>
+    filterNavigate({
+      search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }),
+    })
+  const setTeamId = (v: string | undefined) => filterNavigate({ search: (p: any) => ({ ...p, team: v || undefined }) })
+  const setPosition = (v: string | undefined) =>
+    filterNavigate({ search: (p: any) => ({ ...p, position: v || undefined }) })
 
   const shouldFetch = !!selectedSeasonId && visible !== false
-  const { data: teams } = trpc.publicSite.listTeams.useQuery({ organizationId: org.id, seasonId: selectedSeasonId }, { enabled: shouldFetch, staleTime: 300_000 })
+  const { data: teams } = trpc.publicSite.listTeams.useQuery(
+    { organizationId: org.id, seasonId: selectedSeasonId },
+    { enabled: shouldFetch, staleTime: 300_000 },
+  )
   const { data: playerStats, isLoading } = trpc.publicSite.getPlayerStats.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId!, teamId: selectedTeamId, position: selectedPosition },
     { enabled: shouldFetch, staleTime: 60_000 },
   )
-  const { data: summaryPlayerStats } = trpc.publicSite.getPlayerStats.useQuery({ organizationId: org.id, seasonId: selectedSeasonId! }, { enabled: shouldFetch && features.advancedStats, staleTime: 60_000 })
-  const { data: summaryGoalieData } = trpc.publicSite.getGoalieStats.useQuery({ organizationId: org.id, seasonId: selectedSeasonId! }, { enabled: shouldFetch && features.advancedStats, staleTime: 60_000 })
-  const { data: summaryPenaltyStats } = trpc.publicSite.getPenaltyStats.useQuery({ organizationId: org.id, seasonId: selectedSeasonId! }, { enabled: shouldFetch && features.advancedStats, staleTime: 60_000 })
+  const { data: summaryPlayerStats } = trpc.publicSite.getPlayerStats.useQuery(
+    { organizationId: org.id, seasonId: selectedSeasonId! },
+    { enabled: shouldFetch && features.advancedStats, staleTime: 60_000 },
+  )
+  const { data: summaryGoalieData } = trpc.publicSite.getGoalieStats.useQuery(
+    { organizationId: org.id, seasonId: selectedSeasonId! },
+    { enabled: shouldFetch && features.advancedStats, staleTime: 60_000 },
+  )
+  const { data: summaryPenaltyStats } = trpc.publicSite.getPenaltyStats.useQuery(
+    { organizationId: org.id, seasonId: selectedSeasonId! },
+    { enabled: shouldFetch && features.advancedStats, staleTime: 60_000 },
+  )
 
   if (visible === false) return <Navigate to={lp("/stats")} replace />
 
-  const teamOptions = [...(teams ?? [])].sort((a: any, b: any) => a.name.localeCompare(b.name, "de")).map((t: any) => ({
-    value: t.id,
-    label: t.name,
-    icon: <TeamLogo name={t.name} logoUrl={t.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
-  }))
+  const teamOptions = [...(teams ?? [])]
+    .sort((a: any, b: any) => a.name.localeCompare(b.name, "de"))
+    .map((t: any) => ({
+      value: t.id,
+      label: t.name,
+      icon: <TeamLogo name={t.name} logoUrl={t.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
+    }))
 
   return (
     <StatsPageShell title={t.statsScorers.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSeasonId}>
@@ -74,12 +99,22 @@ export function ScorersPage() {
         showPosition
       />
       {features.advancedStats && summaryPlayerStats && (
-        <StatsSummaryCards playerStats={summaryPlayerStats} goalieStats={summaryGoalieData ?? null} penaltyStats={summaryPenaltyStats ?? []} />
+        <StatsSummaryCards
+          playerStats={summaryPlayerStats}
+          goalieStats={summaryGoalieData ?? null}
+          penaltyStats={summaryPenaltyStats ?? []}
+        />
       )}
       {features.advancedStats && !isLoading && playerStats && playerStats.length > 0 && (
-        <div className="mb-8"><ChartSuspense><ScorerChart stats={playerStats} mode="stacked" title={t.statsScorers.topScorers} limit={10} /></ChartSuspense></div>
+        <div className="mb-8">
+          <ChartSuspense>
+            <ScorerChart stats={playerStats} mode="stacked" title={t.statsScorers.topScorers} limit={10} />
+          </ChartSuspense>
+        </div>
       )}
-      {isLoading ? <StatsTableSkeleton /> : (
+      {isLoading ? (
+        <StatsTableSkeleton />
+      ) : (
         <PlayerTable stats={playerStats ?? []} sortBy="scorers" advancedStats={features.advancedStats} />
       )}
     </StatsPageShell>
@@ -99,7 +134,14 @@ interface StatsFilterBarProps {
   showPosition?: boolean
 }
 
-function StatsFilterBar({ teamOptions, teamValue, onTeamChange, position, onPositionChange, showPosition }: StatsFilterBarProps) {
+function StatsFilterBar({
+  teamOptions,
+  teamValue,
+  onTeamChange,
+  position,
+  onPositionChange,
+  showPosition,
+}: StatsFilterBarProps) {
   const t = useT()
   if (teamOptions.length === 0 && !showPosition) return null
 
@@ -117,9 +159,21 @@ function StatsFilterBar({ teamOptions, teamValue, onTeamChange, position, onPosi
       {showPosition && onPositionChange && (
         <>
           {teamOptions.length > 0 && <div className="w-px h-5 bg-league-text/10 mx-1" />}
-          <FilterPill label={t.statsScorers.allPositions} active={position === undefined} onClick={() => onPositionChange(undefined)} />
-          <FilterPill label={t.positions.forward} active={position === "forward"} onClick={() => onPositionChange("forward")} />
-          <FilterPill label={t.positions.defense} active={position === "defense"} onClick={() => onPositionChange("defense")} />
+          <FilterPill
+            label={t.statsScorers.allPositions}
+            active={position === undefined}
+            onClick={() => onPositionChange(undefined)}
+          />
+          <FilterPill
+            label={t.positions.forward}
+            active={position === "forward"}
+            onClick={() => onPositionChange("forward")}
+          />
+          <FilterPill
+            label={t.positions.defense}
+            active={position === "defense"}
+            onClick={() => onPositionChange("defense")}
+          />
         </>
       )}
     </div>

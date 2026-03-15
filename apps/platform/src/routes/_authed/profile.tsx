@@ -48,7 +48,10 @@ function ProfilePage() {
             <form onSubmit={handleSaveProfile} style={{ padding: "16px 24px 20px" }}>
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="platform-profile-name" style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}>
+                  <label
+                    htmlFor="platform-profile-name"
+                    style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}
+                  >
                     Name
                   </label>
                   <Input
@@ -61,10 +64,19 @@ function ProfilePage() {
                 </div>
 
                 <div>
-                  <label htmlFor="platform-profile-email" style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}>
+                  <label
+                    htmlFor="platform-profile-email"
+                    style={{ fontSize: 13, fontWeight: 500, display: "block", marginBottom: 6 }}
+                  >
                     Email
                   </label>
-                  <Input id="platform-profile-email" type="email" value={session?.user.email ?? ""} readOnly className="bg-muted" />
+                  <Input
+                    id="platform-profile-email"
+                    type="email"
+                    value={session?.user.email ?? ""}
+                    readOnly
+                    className="bg-muted"
+                  />
                 </div>
               </div>
 

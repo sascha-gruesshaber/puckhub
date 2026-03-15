@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto"
 const userId = "e2e-admin-id"
 const orgId = "e2e-org-id"
 const memberId = "e2e-member-id"
-const planId = randomUUID()
+const planId = "00000000-0000-0000-0000-000000000003" // Fixed Pro plan ID
 const subscriptionId = randomUUID()
 const websiteConfigId = randomUUID()
 const settingsId = randomUUID()
@@ -110,24 +110,27 @@ export async function seed(dbUrl: string) {
     // ── Plan + Subscription ──
     await sql`
       INSERT INTO plans (
-        id, name, slug, description, sort_order, is_active,
+        id, name, slug, sort_order, is_active,
         price_monthly, price_yearly, currency,
         max_teams, max_players, max_divisions_per_season, max_seasons, max_admins,
         max_news_articles, max_pages, max_sponsors, max_documents, storage_quota_mb,
         feature_custom_domain, feature_website_builder, feature_sponsor_mgmt,
-        feature_trikot_designer, feature_export_import, feature_game_reports,
+        feature_trikot_designer, feature_game_reports,
         feature_player_stats, feature_scheduler, feature_scheduled_news,
-        feature_advanced_roles, feature_advanced_stats, feature_ai_recaps
+        feature_advanced_roles, feature_advanced_stats, feature_ai_recaps,
+        feature_public_reports
       ) VALUES (
-        ${planId}, ${"E2E Pro"}, ${"e2e-pro"}, ${"Full-featured plan for E2E tests"}, ${1}, ${true},
+        ${planId}, ${"E2E Pro"}, ${"e2e-pro"}, ${1}, ${true},
         ${2900}, ${29900}, ${"EUR"},
         ${null}, ${null}, ${null}, ${null}, ${null},
         ${null}, ${null}, ${null}, ${null}, ${null},
         ${true}, ${true}, ${true},
-        ${true}, ${true}, ${true},
-        ${true}, ${true}, ${true},
-        ${true}, ${true}, ${false}
-      )
+        ${true}, ${true},
+        ${true}, ${true}, ${false},
+        ${true}
+      ) ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        slug = EXCLUDED.slug
     `
     await sql`
       INSERT INTO org_subscriptions (
@@ -152,10 +155,12 @@ export async function seed(dbUrl: string) {
     await sql`
       INSERT INTO system_settings (
         id, organization_id, league_name, league_short_name,
-        locale, timezone, points_win, points_draw, points_loss
+        locale, timezone, points_win, points_draw, points_loss,
+        public_reports_enabled, public_reports_require_email, public_reports_bot_detection
       ) VALUES (
         ${settingsId}, ${orgId}, ${"E2E Test League"}, ${"E2E"},
-        ${"en-US"}, ${"Europe/Berlin"}, ${3}, ${1}, ${0}
+        ${"en-US"}, ${"Europe/Berlin"}, ${3}, ${1}, ${0},
+        ${true}, ${false}, ${false}
       )
     `
 
@@ -349,8 +354,8 @@ export async function seed(dbUrl: string) {
     await sql`
       INSERT INTO goalie_season_stats (id, organization_id, player_id, season_id, team_id, games_played, goals_against, gaa)
       VALUES
-        (${randomUUID()}, ${orgId}, ${hawksGoalie.id}, ${seasonId}, ${hawksId}, ${2}, ${3}, ${1.50}),
-        (${randomUUID()}, ${orgId}, ${bearsGoalie.id}, ${seasonId}, ${bearsId}, ${2}, ${7}, ${3.50})
+        (${randomUUID()}, ${orgId}, ${hawksGoalie.id}, ${seasonId}, ${hawksId}, ${2}, ${3}, ${1.5}),
+        (${randomUUID()}, ${orgId}, ${bearsGoalie.id}, ${seasonId}, ${bearsId}, ${2}, ${7}, ${3.5})
     `
 
     // ── News ──
@@ -384,6 +389,13 @@ export async function seed(dbUrl: string) {
       VALUES
         (${pageAboutId}, ${orgId}, ${"About Us"}, ${"about-us"}, ${"<p>About the E2E Test League.</p>"}, ${"published"}, ${false}, ${"{footer}"}),
         (${pageLegalId}, ${orgId}, ${"Legal Notice"}, ${"legal-notice"}, ${"<p>Legal information.</p>"}, ${"published"}, ${false}, ${"{footer}"})
+    `
+
+    // ── Public Game Reports ──
+    // A public report for Game 1 (Hawks 3 - Bears 2), submitted by a fan
+    await sql`
+      INSERT INTO public_game_reports (id, organization_id, game_id, home_score, away_score, submitter_email, comment)
+      VALUES (${randomUUID()}, ${orgId}, ${game1Id}, ${3}, ${2}, ${"fan@example.com"}, ${"Great match!"})
     `
   } finally {
     await sql.end()

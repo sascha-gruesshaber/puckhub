@@ -136,7 +136,9 @@ function RosterPage() {
             title={t("rosterPage.title")}
             description={t("rosterPage.description")}
             filters={
-              <FilterBar search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }} />
+              <FilterBar
+                search={{ value: search, onChange: setSearch, placeholder: t("rosterPage.searchPlaceholder") }}
+              />
             }
           >
             <EmptyState

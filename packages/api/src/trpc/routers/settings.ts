@@ -19,6 +19,9 @@ export const settingsRouter = router({
         pointsWin: z.number().int().min(0),
         pointsDraw: z.number().int().min(0),
         pointsLoss: z.number().int().min(0),
+        publicReportsEnabled: z.boolean().optional(),
+        publicReportsRequireEmail: z.boolean().optional(),
+        publicReportsBotDetection: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

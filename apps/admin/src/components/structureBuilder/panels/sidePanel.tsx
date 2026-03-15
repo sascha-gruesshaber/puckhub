@@ -56,7 +56,10 @@ function StructurePalette({
         <div
           draggable={!atDivisionLimit}
           onDragStart={(e) => {
-            if (atDivisionLimit) { e.preventDefault(); return }
+            if (atDivisionLimit) {
+              e.preventDefault()
+              return
+            }
             e.dataTransfer.setData("text/structureType", "division")
             e.dataTransfer.effectAllowed = "copy"
             onDragTypeChange("division")
@@ -156,7 +159,8 @@ export function SidePanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.divisionCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleAddDivision() {

@@ -112,16 +112,16 @@ function SponsorsPage() {
   const teamOptions: FilterDropdownOption[] = useMemo(() => {
     if (!sponsors || !seasonTeams) return []
     const seasonTeamIds = new Set(seasonTeams.map((t) => t.id))
-    const assignedTeamIds = new Set(sponsors.filter((s) => s.teamId && seasonTeamIds.has(s.teamId)).map((s) => s.teamId))
+    const assignedTeamIds = new Set(
+      sponsors.filter((s) => s.teamId && seasonTeamIds.has(s.teamId)).map((s) => s.teamId),
+    )
     const opts: FilterDropdownOption[] = seasonTeams
       .filter((t) => assignedTeamIds.has(t.id))
       .sort((a, b) => a.name.localeCompare(b.name, "de"))
       .map((t) => ({
         value: t.shortName,
         label: t.shortName,
-        icon: t.logoUrl ? (
-          <img src={t.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
-        ) : undefined,
+        icon: t.logoUrl ? <img src={t.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" /> : undefined,
       }))
     const siteWideCount = sponsors.filter((s) => !s.teamId).length
     if (siteWideCount > 0) {
@@ -371,7 +371,12 @@ function SponsorsPage() {
         action={
           <div className="flex items-center gap-2">
             <Badge variant="outline">{usageText("maxSponsors")}</Badge>
-            <Button variant="accent" onClick={openCreate} disabled={atSponsorLimit} title={atSponsorLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+            <Button
+              variant="accent"
+              onClick={openCreate}
+              disabled={atSponsorLimit}
+              title={atSponsorLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
+            >
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("sponsorsPage.actions.new")}
             </Button>

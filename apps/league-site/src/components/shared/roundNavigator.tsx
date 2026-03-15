@@ -43,25 +43,15 @@ export function RoundNavigator({
       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
         {/* Division selector (only if multiple) */}
         {hasDivisions && onDivisionChange && (
-          <DivisionSelector
-            divisions={divisions}
-            activeIndex={activeDivisionIndex}
-            onChange={onDivisionChange}
-          />
+          <DivisionSelector divisions={divisions} activeIndex={activeDivisionIndex} onChange={onDivisionChange} />
         )}
 
         {/* Divider */}
-        {hasDivisions && rounds.length > 1 && (
-          <div className="hidden sm:block w-px h-5 bg-league-text/10 mx-1" />
-        )}
+        {hasDivisions && rounds.length > 1 && <div className="hidden sm:block w-px h-5 bg-league-text/10 mx-1" />}
 
         {/* Round pills */}
         {rounds.length > 1 && (
-          <RoundPills
-            rounds={rounds}
-            activeRoundId={activeRoundId}
-            onRoundChange={onRoundChange}
-          />
+          <RoundPills rounds={rounds} activeRoundId={activeRoundId} onRoundChange={onRoundChange} />
         )}
       </div>
     </div>
@@ -115,7 +105,10 @@ function DivisionSelector({
             <button
               key={div.id}
               type="button"
-              onClick={() => { onChange(i); setOpen(false) }}
+              onClick={() => {
+                onChange(i)
+                setOpen(false)
+              }}
               className={cn(
                 "flex w-full items-center gap-2 px-3 py-2 text-sm text-left transition-colors",
                 i === activeIndex
@@ -123,10 +116,12 @@ function DivisionSelector({
                   : "hover:bg-league-text/[0.04] text-league-text/70",
               )}
             >
-              <span className={cn(
-                "h-2 w-2 rounded-full shrink-0",
-                i === activeIndex ? "bg-league-primary" : "bg-league-text/20",
-              )} />
+              <span
+                className={cn(
+                  "h-2 w-2 rounded-full shrink-0",
+                  i === activeIndex ? "bg-league-primary" : "bg-league-text/20",
+                )}
+              />
               {div.name}
             </button>
           ))}
@@ -157,10 +152,7 @@ function RoundPills({
   }, [activeRoundId])
 
   return (
-    <div
-      ref={scrollRef}
-      className="flex items-center gap-1 overflow-x-auto scrollbar-hidden"
-    >
+    <div ref={scrollRef} className="flex items-center gap-1 overflow-x-auto scrollbar-hidden">
       {rounds.map((round) => {
         const isActive = round.id === activeRoundId
         const isPlayoff = round.roundType === "playoff"
@@ -179,10 +171,12 @@ function RoundPills({
             )}
           >
             {isPlayoff && (
-              <span className={cn(
-                "text-[10px] font-bold uppercase tracking-wider px-1 py-px rounded",
-                isActive ? "bg-white/20" : "bg-league-accent/15 text-league-accent",
-              )}>
+              <span
+                className={cn(
+                  "text-[10px] font-bold uppercase tracking-wider px-1 py-px rounded",
+                  isActive ? "bg-white/20" : "bg-league-accent/15 text-league-accent",
+                )}
+              >
                 PO
               </span>
             )}

@@ -636,11 +636,12 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   })
 
   // ── 1d. Assign Pro plan (unlimited features) ──────────────────────────
-  const proPlan = await db.plan.findUnique({ where: { slug: "pro" } })
+  const PRO_PLAN_ID = "00000000-0000-0000-0000-000000000003"
+  const proPlan = await db.plan.findUnique({ where: { id: PRO_PLAN_ID } })
   if (proPlan) {
     // Ensure Pro plan has AI features
     await db.plan.update({
-      where: { id: proPlan.id },
+      where: { id: PRO_PLAN_ID },
       data: { featureAiRecaps: true, aiMonthlyTokenLimit: 500000 },
     })
     console.log("[demo-seed] Assigning Pro plan to demo org...")
@@ -894,7 +895,13 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   const completedGames = insertedGames.filter((g) => g.status === "completed" && g.homeScore !== null)
   const teamNameById = new Map(insertedTeams.map((t) => [t.id, t.name]))
 
-  function generateFakeRecap(home: string, away: string, homeScore: number, awayScore: number, location: string | null) {
+  function generateFakeRecap(
+    home: string,
+    away: string,
+    homeScore: number,
+    awayScore: number,
+    location: string | null,
+  ) {
     const winner = homeScore > awayScore ? home : away
     const loser = homeScore > awayScore ? away : home
     const winScore = Math.max(homeScore, awayScore)
@@ -994,6 +1001,51 @@ export async function seedDemoOrg(db: Database): Promise<void> {
         },
       })
     }
+  }
+
+  // ── 9c. Public Game Reports ─────────────────────────────────────────
+  // Seed reports for completed games in current + last season (same filter as recaps)
+  const gamesForReports = gamesForRecap.filter((g) => g.homeScore !== null && g.awayScore !== null)
+  const reportPool = gamesForReports.length > 8 ? gamesForReports.slice(0, 8) : gamesForReports
+  if (reportPool.length > 0) {
+    console.log(`[demo-seed] Seeding ${reportPool.length} public game reports (current + last season)...`)
+    const reportEmails = [
+      "fan.mueller@example.com",
+      "hockey.fan@example.com",
+      "eishockey.liebe@example.com",
+      "score.reporter@example.com",
+      "arena.zuschauer@example.com",
+      "puck.lover@example.com",
+      "ice.rink.fan@example.com",
+      "hockeytown@example.com",
+    ]
+    const reportComments = [
+      "Great game, very exciting finish!",
+      "Close match, both teams played well.",
+      null,
+      "The home team was clearly better today.",
+      "Spannende Partie bis zum Schluss!",
+      null,
+      "Referee was questionable but fair result.",
+      "Tolles Spiel, gerne wieder!",
+    ]
+    await db.publicGameReport.createMany({
+      data: reportPool.map((game, i) => {
+        const isReverted = i === reportPool.length - 1 || i === reportPool.length - 2
+        return {
+          organizationId: DEMO_ORG_ID,
+          gameId: game.id,
+          homeScore: game.homeScore!,
+          awayScore: game.awayScore!,
+          submitterEmail: reportEmails[i % reportEmails.length]!,
+          comment: reportComments[i % reportComments.length],
+          reverted: isReverted,
+          revertNote: isReverted ? "Score was incorrect — verified with official scoresheet" : null,
+          revertedAt: isReverted ? new Date(game.finalizedAt!.getTime() + 2 * 60 * 60 * 1000) : null,
+          createdAt: new Date(game.finalizedAt!.getTime() - 30 * 60 * 1000),
+        }
+      }),
+    })
   }
 
   // ── 10. Players ──────────────────────────────────────────────────────
@@ -1863,11 +1915,61 @@ export async function seedDemoOrg(db: Database): Promise<void> {
 
   // System route pages (navigation entries)
   const systemRoutePages: any[] = [
-    { organizationId: DEMO_ORG_ID, title: "Home", slug: "_route-home", routePath: "/", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 0 },
-    { organizationId: DEMO_ORG_ID, title: "Standings", slug: "_route-standings", routePath: "/standings", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 1 },
-    { organizationId: DEMO_ORG_ID, title: "Schedule", slug: "_route-schedule", routePath: "/schedule", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 2 },
-    { organizationId: DEMO_ORG_ID, title: "Teams", slug: "_route-teams", routePath: "/teams", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 3 },
-    { organizationId: DEMO_ORG_ID, title: "Statistics", slug: "_route-stats", routePath: "/stats", content: "", status: "published", isSystemRoute: true, menuLocations: ["main_nav"], sortOrder: 4 },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Home",
+      slug: "_route-home",
+      routePath: "/",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: ["main_nav"],
+      sortOrder: 0,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Standings",
+      slug: "_route-standings",
+      routePath: "/standings",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: ["main_nav"],
+      sortOrder: 1,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Schedule",
+      slug: "_route-schedule",
+      routePath: "/schedule",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: ["main_nav"],
+      sortOrder: 2,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Teams",
+      slug: "_route-teams",
+      routePath: "/teams",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: ["main_nav"],
+      sortOrder: 3,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Statistics",
+      slug: "_route-stats",
+      routePath: "/stats",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: ["main_nav"],
+      sortOrder: 4,
+    },
   ]
   const insertedSystemRoutes = await db.page.createManyAndReturn({ data: systemRoutePages })
 
@@ -1876,12 +1978,78 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   const teamsPageId = insertedSystemRoutes.find((p) => p.slug === "_route-teams")!.id
 
   const systemSubRoutePages: any[] = [
-    { organizationId: DEMO_ORG_ID, title: "Scorers", slug: "_route-stats-scorers", routePath: "/stats/scorers", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 0, parentId: statsPageId },
-    { organizationId: DEMO_ORG_ID, title: "Goals", slug: "_route-stats-goals", routePath: "/stats/goals", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 1, parentId: statsPageId },
-    { organizationId: DEMO_ORG_ID, title: "Assists", slug: "_route-stats-assists", routePath: "/stats/assists", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 2, parentId: statsPageId },
-    { organizationId: DEMO_ORG_ID, title: "Penalties", slug: "_route-stats-penalties", routePath: "/stats/penalties", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 3, parentId: statsPageId },
-    { organizationId: DEMO_ORG_ID, title: "Goalies", slug: "_route-stats-goalies", routePath: "/stats/goalies", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 4, parentId: statsPageId },
-    { organizationId: DEMO_ORG_ID, title: "Team Comparison", slug: "_route-teams-compare", routePath: "/stats/compare-teams", content: "", status: "published", isSystemRoute: true, menuLocations: [], sortOrder: 0, parentId: teamsPageId },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Scorers",
+      slug: "_route-stats-scorers",
+      routePath: "/stats/scorers",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: [],
+      sortOrder: 0,
+      parentId: statsPageId,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Goals",
+      slug: "_route-stats-goals",
+      routePath: "/stats/goals",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: [],
+      sortOrder: 1,
+      parentId: statsPageId,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Assists",
+      slug: "_route-stats-assists",
+      routePath: "/stats/assists",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: [],
+      sortOrder: 2,
+      parentId: statsPageId,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Penalties",
+      slug: "_route-stats-penalties",
+      routePath: "/stats/penalties",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: [],
+      sortOrder: 3,
+      parentId: statsPageId,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Goalies",
+      slug: "_route-stats-goalies",
+      routePath: "/stats/goalies",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: [],
+      sortOrder: 4,
+      parentId: statsPageId,
+    },
+    {
+      organizationId: DEMO_ORG_ID,
+      title: "Team Comparison",
+      slug: "_route-teams-compare",
+      routePath: "/stats/compare-teams",
+      content: "",
+      status: "published",
+      isSystemRoute: true,
+      menuLocations: [],
+      sortOrder: 0,
+      parentId: teamsPageId,
+    },
   ]
   await db.page.createMany({ data: systemSubRoutePages })
 

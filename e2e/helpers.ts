@@ -59,11 +59,27 @@ export async function login(page: Page) {
 
   // Navigate to the magic link — Better Auth verifies token, sets session cookie, redirects to admin
   await page.goto(magicLinkUrl)
+  await page.waitForLoadState("networkidle")
 
-  // Wait for the dashboard (org auto-selects when user belongs to exactly one org)
+  // Platform admins see the org picker — select the E2E org
+  const orgButton = page.getByRole("button", { name: /E2E Test League/ })
+  if (await orgButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
+    await orgButton.click()
+  }
+
+  // Wait for the dashboard to load
   await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
     timeout: 15_000,
   })
+}
+
+/**
+ * Locates the input inside a FormField by its label text.
+ * FormField components don't use htmlFor/id linking, so we locate
+ * the parent div containing the label and find the input within it.
+ */
+export function formField(page: Page, labelKey: string) {
+  return page.locator("div", { has: page.locator("label", { hasText: labelKey }) }).locator("input")
 }
 
 /** E2E org ID — matches seed data */

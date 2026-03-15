@@ -6,8 +6,11 @@ import { execSync } from "node:child_process"
 
 const tag = process.argv[2] || "local"
 const vcsRef = (() => {
-  try { return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() }
-  catch { return "unknown" }
+  try {
+    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim()
+  } catch {
+    return "unknown"
+  }
 })()
 const buildDate = new Date().toISOString()
 
@@ -32,4 +35,7 @@ for (const { app, target } of targets) {
 }
 
 console.log("All images built:")
-execSync(`docker images --filter "reference=puckhub-*:${tag}" --format "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}"`, { stdio: "inherit" })
+execSync(
+  `docker images --filter "reference=puckhub-*:${tag}" --format "table {{.Repository}}\\t{{.Tag}}\\t{{.Size}}"`,
+  { stdio: "inherit" },
+)

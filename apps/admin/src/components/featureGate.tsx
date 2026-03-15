@@ -8,7 +8,6 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   featureWebsiteBuilder: "Website Builder",
   featureSponsorMgmt: "Sponsor Management",
   featureTrikotDesigner: "Jersey Designer",
-  featureExportImport: "Export / Import",
   featureGameReports: "Game Reports",
   featurePlayerStats: "Player Statistics",
   featureScheduler: "Auto-Scheduler",
@@ -16,6 +15,7 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   featureAdvancedRoles: "Advanced Roles",
   featureAdvancedStats: "Advanced Statistics",
   featureAiRecaps: "AI Recaps",
+  featurePublicReports: "Public Game Reports",
 }
 
 interface FeatureGateProps {

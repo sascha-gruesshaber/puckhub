@@ -244,16 +244,12 @@ describe("websiteConfig router", () => {
 
     it("rejects regular members (non-admin)", async () => {
       const user = createTestCaller({ asUser: true })
-      await expect(
-        user.websiteConfig.update({ isActive: true }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(user.websiteConfig.update({ isActive: true })).rejects.toThrow("Keine Administratorrechte")
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.websiteConfig.update({ isActive: true }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.websiteConfig.update({ isActive: true })).rejects.toThrow("Not authenticated")
     })
   })
 
@@ -270,23 +266,17 @@ describe("websiteConfig router", () => {
 
     it("rejects empty domain via input validation", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.websiteConfig.verifyDns({ domain: "" }),
-      ).rejects.toThrow()
+      await expect(admin.websiteConfig.verifyDns({ domain: "" })).rejects.toThrow()
     })
 
     it("rejects regular members (non-admin)", async () => {
       const user = createTestCaller({ asUser: true })
-      await expect(
-        user.websiteConfig.verifyDns({ domain: "example.com" }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(user.websiteConfig.verifyDns({ domain: "example.com" })).rejects.toThrow("Keine Administratorrechte")
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.websiteConfig.verifyDns({ domain: "example.com" }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.websiteConfig.verifyDns({ domain: "example.com" })).rejects.toThrow("Not authenticated")
     })
   })
 })

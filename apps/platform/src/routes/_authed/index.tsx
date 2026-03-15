@@ -16,14 +16,15 @@ function DashboardPage() {
   const userCount = users?.length ?? 0
 
   // Calculate MRR from active subscriptions
-  const mrr = subscriptions
-    ?.filter((s) => s.status === "active")
-    .reduce((sum, s) => {
-      if (s.interval === "yearly") {
-        return sum + Math.round(s.plan.priceYearly / 12)
-      }
-      return sum + s.plan.priceMonthly
-    }, 0) ?? 0
+  const mrr =
+    subscriptions
+      ?.filter((s) => s.status === "active")
+      .reduce((sum, s) => {
+        if (s.interval === "yearly") {
+          return sum + Math.round(s.plan.priceYearly / 12)
+        }
+        return sum + s.plan.priceMonthly
+      }, 0) ?? 0
 
   // Plan distribution
   const planDistribution = subscriptions
@@ -47,7 +48,11 @@ function DashboardPage() {
       {/* Stats cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard icon={<Building2 size={20} />} label="Leagues" value={orgsLoading ? "-" : String(orgCount)} />
-        <StatCard icon={<UserCheck size={20} />} label="Total Memberships" value={orgsLoading ? "-" : String(totalMembers)} />
+        <StatCard
+          icon={<UserCheck size={20} />}
+          label="Total Memberships"
+          value={orgsLoading ? "-" : String(totalMembers)}
+        />
         <StatCard icon={<Users size={20} />} label="Users" value={usersLoading ? "-" : String(userCount)} />
         <StatCard
           icon={<TrendingUp size={20} />}

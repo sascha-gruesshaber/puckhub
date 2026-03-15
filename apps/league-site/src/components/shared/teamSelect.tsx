@@ -44,11 +44,13 @@ export function TeamSelect({ teams, value, onChange, allLabel, className }: Team
         aria-label={t.layout.selectTeam}
       >
         <option value="">{resolvedAllLabel}</option>
-        {[...teams].sort((a, b) => a.name.localeCompare(b.name, "de")).map((team) => (
-          <option key={team.id} value={team.id}>
-            {team.name}
-          </option>
-        ))}
+        {[...teams]
+          .sort((a, b) => a.name.localeCompare(b.name, "de"))
+          .map((team) => (
+            <option key={team.id} value={team.id}>
+              {team.name}
+            </option>
+          ))}
       </select>
     </div>
   )

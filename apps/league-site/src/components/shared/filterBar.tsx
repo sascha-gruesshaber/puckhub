@@ -23,9 +23,7 @@ export function FilterBarGroup({ children, label, className }: FilterBarGroupPro
   return (
     <div className={cn("flex flex-col gap-1", className)}>
       {label && (
-        <span className="text-[10px] uppercase tracking-wider text-league-text/40 font-semibold pl-1">
-          {label}
-        </span>
+        <span className="text-[10px] uppercase tracking-wider text-league-text/40 font-semibold pl-1">{label}</span>
       )}
       {children}
     </div>

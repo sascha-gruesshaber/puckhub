@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest"
-import {
-  createTestCaller,
-  createPlatformAdminCaller,
-  getTestDb,
-  seedTestOrg,
-  TEST_ORG_ID,
-} from "../testUtils"
+import { createTestCaller, createPlatformAdminCaller, getTestDb, seedTestOrg, TEST_ORG_ID } from "../testUtils"
 
 describe("leagueTransfer router", () => {
   // ─── exportLeague ─────────────────────────────────────────────────────────
@@ -104,16 +98,16 @@ describe("leagueTransfer router", () => {
 
     it("rejects non-platform-admin caller", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.leagueTransfer.exportLeague({ organizationId: TEST_ORG_ID }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(admin.leagueTransfer.exportLeague({ organizationId: TEST_ORG_ID })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.leagueTransfer.exportLeague({ organizationId: TEST_ORG_ID }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.leagueTransfer.exportLeague({ organizationId: TEST_ORG_ID })).rejects.toThrow(
+        "Not authenticated",
+      )
     })
   })
 
@@ -220,9 +214,9 @@ describe("leagueTransfer router", () => {
         documents: [],
       }
 
-      await expect(
-        admin.leagueTransfer.validateImport({ data: minimalData }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(admin.leagueTransfer.validateImport({ data: minimalData })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {

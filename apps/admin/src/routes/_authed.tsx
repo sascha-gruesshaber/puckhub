@@ -227,17 +227,40 @@ function SidebarLayout() {
   // Build trikots item — locked if featureTrikotDesigner is off
   const trikotsItem: NavItem = canUseFeature("featureTrikotDesigner")
     ? { to: "/trikots", label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, permission: "trikots" }
-    : { label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, disabled: true as const, badge: "PRO", permission: "trikots" }
+    : {
+        label: t("sidebar.items.trikots"),
+        icon: <Shirt {...iconProps} />,
+        disabled: true as const,
+        badge: "PRO",
+        permission: "trikots",
+      }
 
   // Build sponsors item — locked if featureSponsorMgmt is off
   const sponsorsItem: NavItem = canUseFeature("featureSponsorMgmt")
-    ? { to: "/sponsors", label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} />, permission: "sponsors" }
-    : { label: t("sidebar.items.sponsors"), icon: <Handshake {...iconProps} />, disabled: true as const, badge: "PRO", permission: "sponsors" }
+    ? {
+        to: "/sponsors",
+        label: t("sidebar.items.sponsors"),
+        icon: <Handshake {...iconProps} />,
+        permission: "sponsors",
+      }
+    : {
+        label: t("sidebar.items.sponsors"),
+        icon: <Handshake {...iconProps} />,
+        disabled: true as const,
+        badge: "PRO",
+        permission: "sponsors",
+      }
 
   // Build website item — locked if featureWebsiteBuilder is off
   const websiteItem: NavItem = canUseFeature("featureWebsiteBuilder")
     ? { to: "/website", label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, permission: "settings" }
-    : { label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, disabled: true as const, badge: "PRO", permission: "settings" }
+    : {
+        label: t("sidebar.items.website"),
+        icon: <Globe {...iconProps} />,
+        disabled: true as const,
+        badge: "PRO",
+        permission: "settings",
+      }
 
   const allNavGroups: NavGroup[] = [
     {
@@ -250,7 +273,12 @@ function SidebarLayout() {
           seasonRoute: "/seasons/$seasonId/structure",
           permission: "seasonStructure",
         },
-        { label: t("sidebar.items.roster"), icon: <Users {...iconProps} />, seasonRoute: "/seasons/$seasonId/roster", permission: "roster" },
+        {
+          label: t("sidebar.items.roster"),
+          icon: <Users {...iconProps} />,
+          seasonRoute: "/seasons/$seasonId/roster",
+          permission: "roster",
+        },
         { to: "/teams", label: t("sidebar.items.teams"), icon: <Shield {...iconProps} />, permission: "teams" },
         { to: "/players", label: t("sidebar.items.players"), icon: <Users {...iconProps} />, permission: "players" },
         trikotsItem,
@@ -269,7 +297,12 @@ function SidebarLayout() {
       items: [
         { to: "/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} />, permission: "users" },
         websiteItem,
-        { to: "/settings", label: t("sidebar.items.settings"), icon: <Settings {...iconProps} />, permission: "settings" },
+        {
+          to: "/settings",
+          label: t("sidebar.items.settings"),
+          icon: <Settings {...iconProps} />,
+          permission: "settings",
+        },
       ],
     },
   ]

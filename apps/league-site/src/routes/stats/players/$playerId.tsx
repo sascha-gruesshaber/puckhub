@@ -30,14 +30,20 @@ function BackLink({ from }: { from?: string }) {
   const t = useT()
   if (from) {
     return (
-      <a href={from} className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6">
+      <a
+        href={from}
+        className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6"
+      >
         <ArrowLeft className="h-4 w-4" />
         {t.common.back}
       </a>
     )
   }
   return (
-    <Link to="/stats/scorers" className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6">
+    <Link
+      to="/stats/scorers"
+      className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6"
+    >
       <ArrowLeft className="h-4 w-4" />
       {t.playerDetail.backToStats}
     </Link>
@@ -64,21 +70,23 @@ export function PlayerHistoryPage() {
     )
   }
 
-  const { data: player, isLoading: playerLoading } = trpc.publicSite.getPlayerById.useQuery(
-    { organizationId: org.id, playerId },
-  )
-  const { data: rawContracts, isLoading: contractsLoading } = trpc.publicSite.getPlayerContracts.useQuery(
-    { organizationId: org.id, playerId },
-  )
-  const { data: playerCareerStats, isLoading: playerStatsLoading } = trpc.publicSite.getPlayerCareerStats.useQuery(
-    { organizationId: org.id, playerId },
-  )
-  const { data: goalieCareerStats, isLoading: goalieStatsLoading } = trpc.publicSite.getGoalieCareerStats.useQuery(
-    { organizationId: org.id, playerId },
-  )
-  const { data: rawSuspensions } = trpc.publicSite.getPlayerSuspensions.useQuery(
-    { organizationId: org.id, playerId },
-  )
+  const { data: player, isLoading: playerLoading } = trpc.publicSite.getPlayerById.useQuery({
+    organizationId: org.id,
+    playerId,
+  })
+  const { data: rawContracts, isLoading: contractsLoading } = trpc.publicSite.getPlayerContracts.useQuery({
+    organizationId: org.id,
+    playerId,
+  })
+  const { data: playerCareerStats, isLoading: playerStatsLoading } = trpc.publicSite.getPlayerCareerStats.useQuery({
+    organizationId: org.id,
+    playerId,
+  })
+  const { data: goalieCareerStats, isLoading: goalieStatsLoading } = trpc.publicSite.getGoalieCareerStats.useQuery({
+    organizationId: org.id,
+    playerId,
+  })
+  const { data: rawSuspensions } = trpc.publicSite.getPlayerSuspensions.useQuery({ organizationId: org.id, playerId })
 
   const headerLoading = playerLoading || contractsLoading
   const statsLoading = playerStatsLoading || goalieStatsLoading
@@ -93,7 +101,6 @@ export function PlayerHistoryPage() {
     )
     return sorted[0]!.position === "goalie"
   }, [contracts])
-
 
   if (headerLoading) return <PageSkeleton />
 
@@ -121,7 +128,9 @@ export function PlayerHistoryPage() {
       <SectionWrapper>
         {/* Back link + page title */}
         <BackLink from={from} />
-        <h1 className="text-2xl font-bold mb-6">{player.firstName} {player.lastName}</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          {player.firstName} {player.lastName}
+        </h1>
 
         <div className="space-y-6">
           {/* Career Stats Summary */}
@@ -131,13 +140,21 @@ export function PlayerHistoryPage() {
 
           {/* Season Stats Table */}
           {!statsLoading && hasAnyStats && (
-            <PlayerSeasonStatsTable isGoalie={isGoalie} playerStats={playerCareerStats} goalieStats={goalieCareerStats} />
+            <PlayerSeasonStatsTable
+              isGoalie={isGoalie}
+              playerStats={playerCareerStats}
+              goalieStats={goalieCareerStats}
+            />
           )}
 
           {/* Progression Charts */}
           {!statsLoading && hasAnyStats && (
             <Suspense fallback={<div className="h-64 rounded-lg bg-league-text/5 animate-pulse" />}>
-              <SeasonProgressionCharts isGoalie={isGoalie} playerStats={playerCareerStats} goalieStats={goalieCareerStats} />
+              <SeasonProgressionCharts
+                isGoalie={isGoalie}
+                playerStats={playerCareerStats}
+                goalieStats={goalieCareerStats}
+              />
             </Suspense>
           )}
 

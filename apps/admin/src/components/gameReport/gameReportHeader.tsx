@@ -49,9 +49,7 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
             {game.homeTeam.logoUrl ? (
               <img src={game.homeTeam.logoUrl} alt={game.homeTeam.name} className="h-full w-full object-contain" />
             ) : (
-              <span className="text-sm font-bold text-muted-foreground/60">
-                {game.homeTeam.shortName.slice(0, 2)}
-              </span>
+              <span className="text-sm font-bold text-muted-foreground/60">{game.homeTeam.shortName.slice(0, 2)}</span>
             )}
           </div>
         </div>
@@ -59,13 +57,9 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
         {/* Score */}
         <div className="text-center px-4">
           <div className="text-3xl font-extrabold tabular-nums tracking-tight whitespace-nowrap">
-            <span className={hWins ? "text-emerald-600 dark:text-emerald-400" : ""}>
-              {game.homeScore ?? "-"}
-            </span>
+            <span className={hWins ? "text-emerald-600 dark:text-emerald-400" : ""}>{game.homeScore ?? "-"}</span>
             <span className="text-muted-foreground/40 mx-2">:</span>
-            <span className={aWins ? "text-emerald-600 dark:text-emerald-400" : ""}>
-              {game.awayScore ?? "-"}
-            </span>
+            <span className={aWins ? "text-emerald-600 dark:text-emerald-400" : ""}>{game.awayScore ?? "-"}</span>
           </div>
           <div className="text-xs text-muted-foreground mt-1 truncate">
             {game.round.division.name} &mdash; {game.round.name}
@@ -85,9 +79,7 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
             {game.awayTeam.logoUrl ? (
               <img src={game.awayTeam.logoUrl} alt={game.awayTeam.name} className="h-full w-full object-contain" />
             ) : (
-              <span className="text-sm font-bold text-muted-foreground/60">
-                {game.awayTeam.shortName.slice(0, 2)}
-              </span>
+              <span className="text-sm font-bold text-muted-foreground/60">{game.awayTeam.shortName.slice(0, 2)}</span>
             )}
           </div>
           <div className="min-w-0">

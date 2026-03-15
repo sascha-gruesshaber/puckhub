@@ -59,14 +59,12 @@ export const subscriptionRouter = router({
     }),
 
   /** Platform admin: get subscription details for an org */
-  getByOrg: platformAdminProcedure
-    .input(z.object({ organizationId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      return ctx.db.orgSubscription.findUnique({
-        where: { organizationId: input.organizationId },
-        include: { plan: true },
-      })
-    }),
+  getByOrg: platformAdminProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+    return ctx.db.orgSubscription.findUnique({
+      where: { organizationId: input.organizationId },
+      include: { plan: true },
+    })
+  }),
 
   /** Platform admin: list all subscriptions with org and plan info */
   listAll: platformAdminProcedure.query(async ({ ctx }) => {

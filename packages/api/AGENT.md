@@ -12,7 +12,7 @@ src/
 │   ├── auth.ts        # Better Auth config (magic link, passkey, 2FA, 7-day sessions)
 │   ├── ensureDefaultUser.ts  # Creates default admin on first startup (magic link, no password)
 │   ├── email.ts       # SMTP via nodemailer (falls back to console if unconfigured)
-│   └── emailTemplates.ts  # HTML email templates (magic link, invite)
+│   └── emailTemplates.ts  # HTML email templates (magic link, invite, OTP, report reverted)
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
 │   └── codes.ts       # APP_ERROR_CODES enum (59 error codes)
@@ -51,9 +51,9 @@ src/
 | `POST` | `/api/webhooks/stripe` | Stripe webhook endpoint (stub) |
 | `GET` | `/api/health` | Health check |
 
-## Routers (30)
+## Routers (31)
 
-`aiRecap` · `bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
+`aiRecap` · `bonusPoints` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicGameReport` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
 
 ## Procedure Types
 
@@ -102,10 +102,10 @@ export const myRouter = router({
 | Service | File | Purpose |
 |---------|------|---------|
 | AI Recap | `services/aiRecapService.ts` | Generate game recaps via OpenRouter (Gemini). 4-layer eligibility guard (not demo, aiEnabled, plan feature, token budget). Monthly token tracking per org. Fire-and-forget async generation with optimistic locking. |
-| System Pages | `services/ensureSystemPages.ts` | Auto-provision required league site pages (home, standings, schedule, etc.) on org creation. Locale-aware (DE/EN). Idempotent. |
+| System Pages | `services/ensureSystemPages.ts` | Auto-provision required league site pages (home, standings, schedule, structure, etc.) on org creation. Locale-aware (DE/EN). Idempotent. |
 | Plan Limits | `services/planLimits.ts` | Check and enforce plan limits (maxTeams, maxPlayers, maxAdmins, etc.) |
 | Email | `lib/email.ts` | SMTP via nodemailer. Falls back to console logging in dev when SMTP unconfigured. |
-| Email Templates | `lib/emailTemplates.ts` | HTML templates: magic link sign-in, user invitation. PuckHub branding. |
+| Email Templates | `lib/emailTemplates.ts` | HTML templates: magic link sign-in, user invitation, OTP verification, report reverted notification. Modern responsive design with reusable component functions, MSO compatibility. |
 
 ## Testing
 
@@ -113,7 +113,7 @@ export const myRouter = router({
 - **Per-test DB isolation**: Each test gets a fresh PostgreSQL database (cloned from template via testcontainers)
 - **Test caller**: `createTestCaller({ asAdmin: true })` for admin context
 - **Location**: `src/__tests__/routers/*.test.ts`, `src/__tests__/services/*.test.ts`
-- **Router tests**: authorization, organization, page, users, plan, subscription, websiteConfig
+- **Router tests**: authorization, dashboard, leagueTransfer, news, organization, page, plan, publicGameReport, scheduler, security, subscription, users, websiteConfig
 - **Service tests**: ensureSystemPages, planLimits
 - **Utils**: `src/__tests__/testUtils.ts`, `src/__tests__/globalSetup.ts`, `src/__tests__/setup.ts`
 

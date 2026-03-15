@@ -26,9 +26,7 @@ export function Pricing() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div ref={header.ref} className={`text-center mb-12 ${revealClasses(header)}`}>
           <h2 className="text-3xl sm:text-4xl font-bold">{t.pricing.heading}</h2>
-          <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">
-            {t.pricing.subheading}
-          </p>
+          <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">{t.pricing.subheading}</p>
 
           {/* Billing toggle */}
           <div className="mt-8 inline-flex items-center gap-3 rounded-full bg-white/5 p-1 border border-white/10">
@@ -57,7 +55,10 @@ export function Pricing() {
         ) : !plans || plans.length === 0 ? (
           <p className="text-center text-brand-slate">{t.pricing.noPlans}</p>
         ) : (
-          <div ref={cards.ref} className={`grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto ${revealClasses(cards, "stagger")}`}>
+          <div
+            ref={cards.ref}
+            className={`grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto ${revealClasses(cards, "stagger")}`}
+          >
             {plans.map((plan, index) => {
               const price = yearly ? plan.priceYearly : plan.priceMonthly
               const isPopular = index === 1
@@ -78,8 +79,10 @@ export function Pricing() {
                   )}
 
                   <h3 className="text-xl font-bold">{plan.name}</h3>
-                  {plan.description && (
-                    <p className="mt-2 text-sm text-brand-slate">{plan.description}</p>
+                  {t.pricing.planDescriptions[plan.slug as keyof typeof t.pricing.planDescriptions] && (
+                    <p className="mt-2 text-sm text-brand-slate">
+                      {t.pricing.planDescriptions[plan.slug as keyof typeof t.pricing.planDescriptions]}
+                    </p>
                   )}
 
                   <div className="mt-6 mb-8">
@@ -98,7 +101,10 @@ export function Pricing() {
                     <PlanLimit label={t.pricing.limits.teams} value={formatLimit(plan.maxTeams)} />
                     <PlanLimit label={t.pricing.limits.players} value={formatLimit(plan.maxPlayers)} />
                     <PlanLimit label={t.pricing.limits.seasons} value={formatLimit(plan.maxSeasons)} />
-                    <PlanLimit label={t.pricing.limits.divisionsPerSeason} value={formatLimit(plan.maxDivisionsPerSeason)} />
+                    <PlanLimit
+                      label={t.pricing.limits.divisionsPerSeason}
+                      value={formatLimit(plan.maxDivisionsPerSeason)}
+                    />
                     <PlanLimit label={t.pricing.limits.news} value={formatLimit(plan.maxNewsArticles)} />
                     <PlanLimit label={t.pricing.limits.pages} value={formatLimit(plan.maxPages)} />
                     <PlanLimit label={t.pricing.limits.sponsors} value={formatLimit(plan.maxSponsors)} />
@@ -113,7 +119,6 @@ export function Pricing() {
                       <PlanFeature label={t.pricing.planFeatures.trikotDesigner} enabled={plan.featureTrikotDesigner} />
                       <PlanFeature label={t.pricing.planFeatures.scheduler} enabled={plan.featureScheduler} />
                       <PlanFeature label={t.pricing.planFeatures.scheduledNews} enabled={plan.featureScheduledNews} />
-                      <PlanFeature label={t.pricing.planFeatures.exportImport} enabled={plan.featureExportImport} />
                       <PlanFeature label={t.pricing.planFeatures.advancedRoles} enabled={plan.featureAdvancedRoles} />
                     </div>
                   </div>

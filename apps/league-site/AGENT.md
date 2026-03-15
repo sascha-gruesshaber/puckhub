@@ -9,6 +9,7 @@ src/routes/
 ├── __root.tsx              # Root layout (tRPC + React Query providers, org/settings context)
 ├── index.tsx               # Home page (hero, game ticker, standings snippet, news, sponsors)
 ├── standings.tsx           # Standings table with division/round navigation
+├── structure.tsx           # Season structure overview (divisions, rounds, team assignments)
 ├── $slug.tsx               # Dynamic CMS page route (single-level slugs)
 ├── $parentSlug/
 │   └── $childSlug.tsx      # Nested CMS page route (parent/child slugs)
@@ -42,6 +43,7 @@ src/routes/
 Mappings:
 - `/standings` ↔ `/tabelle`
 - `/schedule` ↔ `/spielplan`
+- `/structure` ↔ `/struktur`
 - `/news` ↔ `/neuigkeiten`
 - `/stats/*` ↔ `/statistiken/*`
 
@@ -89,20 +91,23 @@ src/components/
 │   ├── loadingSkeleton.tsx        # Loading skeleton component
 │   ├── playerHoverCard.tsx
 │   ├── teamHoverCard.tsx
+│   ├── publicReportForm.tsx        # Public game report form (score submission + email OTP + bot detection)
 │   ├── teamChipRow.tsx            # Team chip/tag row
 │   └── teamLogo.tsx
 └── layout/
     ├── siteHeader.tsx             # Desktop dropdown + mobile hamburger nav
     ├── siteFooter.tsx             # Sponsor bar + footer links
     ├── siteLayout.tsx             # Page layout wrapper
-    └── sectionWrapper.tsx         # Section container wrapper
+    ├── sectionWrapper.tsx         # Section container wrapper
+    └── teamsMegaDropdown.tsx      # Hover-triggered mega dropdown for quick team navigation (4-column grid with logos)
 ```
 
 ## Hooks
 
 ```
 src/hooks/
-└── useSubRouteVisible.ts  # Checks if a sub-route page is published via menu pages cache
+├── useSubRouteVisible.ts  # Checks if a sub-route page is published via menu pages cache
+└── useFilterNavigate.ts   # Search-param-only navigation with scroll preservation (replace: true)
 ```
 
 ## Lib
@@ -124,6 +129,7 @@ lib/
 ## Feature Gating
 
 - `advancedStats` feature flag controls: compare-teams, team/player history, hover cards, charts
+- `publicReports` feature flag controls: public game report submission form on game detail pages
 - Pages gracefully degrade without advanced stats — routes hidden from nav, components not rendered
 - `useSubRouteVisible()` hook checks if individual sub-routes are published
 

@@ -2,7 +2,7 @@
 
 TanStack Start (React 19) admin application with Vite 7, file-based routing, tRPC integration, i18n (DE/EN), magic link authentication, and AI game recap generation.
 
-## Route Structure (23 routes)
+## Route Structure (24 routes)
 
 ```
 src/routes/
@@ -15,6 +15,7 @@ src/routes/
     ├── settings.tsx        # League settings + AI recap configuration
     ├── website.tsx         # Website builder (subdomain/domain config, theme, preview)
     ├── games/index.tsx     # Games calendar + scheduling
+    ├── games/public-reports.tsx  # Public game reports review (approve/revert community-submitted scores)
     ├── games/$gameId/report.tsx  # Game report editor (lineups, events, suspensions, AI recap)
     ├── seasons/index.tsx   # Seasons list
     ├── seasons/$seasonId/structure.tsx  # Season structure builder (React Flow)
@@ -188,13 +189,14 @@ src/lib/                   # Inside src/
 - **AI Game Recaps**: Generate game summaries via OpenRouter (Gemini), with token budget tracking and eligibility guards
 - **Pages CMS**: Drag-and-drop page builder with parent-child hierarchies, system routes, and URL aliases
 - **Team-Scoped Roles**: owner, admin, game_manager, game_reporter, team_manager, editor — some scoped to specific teams
-- **Feature Gating**: PRO features (trikots, sponsors, website builder, AI recaps) locked behind plan limits
+- **Public Game Reports**: Community-submitted game scores with email OTP verification, bot detection (math captcha + honeypot), admin review/revert with audit trail
+- **Feature Gating**: PRO features (trikots, sponsors, website builder, AI recaps, public reports) locked behind plan limits
 
 ## E2E Testing
 
 - **Framework**: Playwright (Chromium only)
-- **Test dir**: `e2e/` (11 spec files + 1 helper)
-- **Specs**: `auth`, `game-report`, `games`, `navigation`, `news`, `pages`, `players`, `seasons`, `settings`, `teams`, `trikots`, `users`
+- **Test dir**: `e2e/` (12 spec files + 1 helper)
+- **Specs**: `auth`, `game-report`, `games`, `navigation`, `news`, `pages`, `players`, `public-reports`, `seasons`, `settings`, `teams`, `trikots`, `users`
 - **Ports**: Admin on 4000, API on 4001 (separate from dev)
 - **Isolation**: Root `e2e/global-setup.ts` / `e2e/global-teardown.ts` handle test DB via testcontainers (shared across all apps)
 - **Run**: `pnpm test:e2e` or `pnpm test:e2e:admin`

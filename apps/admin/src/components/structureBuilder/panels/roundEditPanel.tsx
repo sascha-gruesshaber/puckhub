@@ -56,7 +56,8 @@ export function RoundEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.roundUpdated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.round.delete.useMutation({
@@ -64,7 +65,8 @@ export function RoundEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.roundDeleted"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleSave() {

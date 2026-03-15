@@ -1,12 +1,4 @@
-import {
-  Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@puckhub/ui"
+import { Button, Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@puckhub/ui"
 import { AlertTriangle, ArrowLeft, Check, Pause, Trash2, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -93,17 +85,13 @@ function RemoveDialog({
               {/* ── Deactivate option ── */}
               <div
                 className={`rounded-xl border p-5 transition-colors ${
-                  deactivate.available
-                    ? "border-emerald-200 bg-emerald-50/60"
-                    : "border-border bg-muted/30 opacity-60"
+                  deactivate.available ? "border-emerald-200 bg-emerald-50/60" : "border-border bg-muted/30 opacity-60"
                 }`}
               >
                 <div className="flex items-start gap-3.5">
                   <div
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                      deactivate.available
-                        ? "bg-emerald-100 text-emerald-600"
-                        : "bg-muted text-muted-foreground"
+                      deactivate.available ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     <Pause className="h-4 w-4" />
@@ -162,9 +150,7 @@ function RemoveDialog({
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-[15px] mb-1">{permanentDelete.title}</h3>
-                    <p className="text-[13px] text-muted-foreground leading-relaxed">
-                      {permanentDelete.description}
-                    </p>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">{permanentDelete.description}</p>
                     <ul className="mt-3 space-y-1">
                       {permanentDelete.consequences.map((item) => (
                         <li key={item} className="flex items-center gap-2 text-[13px] text-red-600/80">
@@ -202,9 +188,7 @@ function RemoveDialog({
                   <AlertTriangle className="h-7 w-7 text-red-600" />
                 </div>
                 <DialogTitle>{permanentDelete.confirmTitle}</DialogTitle>
-                <DialogDescription className="max-w-sm mx-auto">
-                  {permanentDelete.confirmWarning}
-                </DialogDescription>
+                <DialogDescription className="max-w-sm mx-auto">{permanentDelete.confirmWarning}</DialogDescription>
               </DialogHeader>
             </div>
 

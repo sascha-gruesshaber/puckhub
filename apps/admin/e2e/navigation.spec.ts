@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { login } from "./helpers"
 
-test.describe.skip("Navigation", () => {
+test.describe("Navigation", () => {
   test("dashboard loads with stats cards", async ({ page }) => {
     await login(page)
     await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible()
@@ -10,16 +10,17 @@ test.describe.skip("Navigation", () => {
   test("sidebar links navigate to correct pages", async ({ page }) => {
     await login(page)
 
+    // Sidebar link text → expected page heading (using raw i18n keys)
     const routes = [
-      { link: "nav.teams", heading: "teamsPage.title" },
-      { link: "nav.players", heading: "playersPage.title" },
-      { link: "nav.games", heading: "gamesPage.title" },
-      { link: "nav.news", heading: "newsPage.title" },
-      { link: "nav.pages", heading: "pagesPage.title" },
-      { link: "nav.trikots", heading: "trikotsPage.title" },
-      { link: "nav.settings", heading: "settingsPage.title" },
-      { link: "nav.users", heading: "usersPage.title" },
-      { link: "nav.sponsors", heading: "sponsorsPage.title" },
+      { link: "sidebar.items.teams", heading: "teamsPage.title" },
+      { link: "sidebar.items.players", heading: "playersPage.title" },
+      { link: "sidebar.items.games", heading: "gamesPage.title" },
+      { link: "sidebar.items.news", heading: "newsPage.title" },
+      { link: "sidebar.items.pages", heading: "pagesPage.title" },
+      { link: "sidebar.items.trikots", heading: "trikotsPage.title" },
+      { link: "sidebar.items.sponsors", heading: "sponsorsPage.title" },
+      { link: "sidebar.items.users", heading: "usersPage.title" },
+      { link: "sidebar.items.settings", heading: "settings.title" },
     ]
 
     for (const route of routes) {
@@ -32,8 +33,11 @@ test.describe.skip("Navigation", () => {
 
   test("profile page accessible from user menu", async ({ page }) => {
     await login(page)
-    await page.getByTitle("profile").click()
-    await expect(page.getByRole("heading", { name: "profilePage.title" })).toBeVisible({
+
+    // Open user dropdown in top bar
+    await page.locator(".topbar-user-trigger").click()
+    await page.getByText("topBar.profile").click()
+    await expect(page.getByRole("heading", { name: "profile.title" })).toBeVisible({
       timeout: 10_000,
     })
   })

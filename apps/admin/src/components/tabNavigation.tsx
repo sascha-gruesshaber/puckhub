@@ -35,9 +35,7 @@ function TabNavigation<T extends string>({ groups, activeTab, onTabChange }: Tab
                 {group.label && <span className="tab-nav__group-label">{group.label}</span>}
                 <div
                   className={
-                    isMulti
-                      ? `tab-nav__segment${isGroupActive ? " tab-nav__segment--active" : ""}`
-                      : undefined
+                    isMulti ? `tab-nav__segment${isGroupActive ? " tab-nav__segment--active" : ""}` : undefined
                   }
                 >
                   {group.tabs.map((tab) => {
@@ -53,7 +51,10 @@ function TabNavigation<T extends string>({ groups, activeTab, onTabChange }: Tab
                           <span className="tab-nav__tab-icon">
                             {isValidElement(tab.icon)
                               ? tab.icon
-                              : (() => { const Icon = tab.icon as LucideIcon; return <Icon size={14} /> })()}
+                              : (() => {
+                                  const Icon = tab.icon as LucideIcon
+                                  return <Icon size={14} />
+                                })()}
                           </span>
                         )}
                         {tab.label}

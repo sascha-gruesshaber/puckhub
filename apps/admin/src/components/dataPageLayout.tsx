@@ -9,13 +9,7 @@ interface DataPageLayoutProps {
   children: ReactNode
 }
 
-function DataPageLayout({
-  title,
-  description,
-  action,
-  filters,
-  children,
-}: DataPageLayoutProps) {
+function DataPageLayout({ title, description, action, filters, children }: DataPageLayoutProps) {
   return (
     <div className="space-y-6">
       <PageHeader title={title} description={description} action={action} />

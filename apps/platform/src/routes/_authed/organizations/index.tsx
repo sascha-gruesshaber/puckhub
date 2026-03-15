@@ -12,7 +12,18 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, CreditCard, Download, ExternalLink, Globe, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react"
+import {
+  Building2,
+  CreditCard,
+  Download,
+  ExternalLink,
+  Globe,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react"
 import { useRef, useState } from "react"
 import { getBaseDomain } from "@/env"
 import { trpc } from "@/trpc"
@@ -31,7 +42,15 @@ interface OrgForm {
   locale: string
 }
 
-const emptyForm: OrgForm = { name: "", slug: "", ownerEmail: "", ownerName: "", leagueShortName: "", planId: "", locale: "de-DE" }
+const emptyForm: OrgForm = {
+  name: "",
+  slug: "",
+  ownerEmail: "",
+  ownerName: "",
+  leagueShortName: "",
+  planId: "",
+  locale: "de-DE",
+}
 
 interface EditForm {
   name: string
@@ -79,7 +98,12 @@ function OrganizationsPage() {
 
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingOrg, setEditingOrg] = useState<{ id: string; name: string; slug: string; currentPlanId: string } | null>(null)
+  const [editingOrg, setEditingOrg] = useState<{
+    id: string
+    name: string
+    slug: string
+    currentPlanId: string
+  } | null>(null)
   const [editForm, setEditForm] = useState<EditForm>({ name: "", slug: "", planId: "" })
   const [editErrors, setEditErrors] = useState<Partial<Record<keyof EditForm, string>>>({})
 
@@ -496,7 +520,9 @@ function OrganizationsPage() {
               />
               {form.slug && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-mono">{form.slug}.{getBaseDomain()}</span>
+                  <span className="font-mono">
+                    {form.slug}.{getBaseDomain()}
+                  </span>
                 </p>
               )}
             </FormField>
@@ -510,11 +536,13 @@ function OrganizationsPage() {
                     value={form.planId}
                     onChange={(e) => setForm((p) => ({ ...p, planId: e.target.value }))}
                   >
-                    {plans.filter((p) => p.isActive).map((plan) => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.name}
-                      </option>
-                    ))}
+                    {plans
+                      .filter((p) => p.isActive)
+                      .map((plan) => (
+                        <option key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </option>
+                      ))}
                   </select>
                 </FormField>
               )}
@@ -636,11 +664,7 @@ function OrganizationsPage() {
               </div>
 
               <FormField label="League Name">
-                <Input
-                  value={importName}
-                  onChange={(e) => setImportName(e.target.value)}
-                  placeholder="League name"
-                />
+                <Input value={importName} onChange={(e) => setImportName(e.target.value)} placeholder="League name" />
               </FormField>
 
               <DialogFooter className="p-0 pt-2">
@@ -679,9 +703,7 @@ function OrganizationsPage() {
           <DialogClose onClick={() => !editIsSaving && setEditDialogOpen(false)} />
           <DialogHeader>
             <DialogTitle>Edit League</DialogTitle>
-            <DialogDescription>
-              Update league details and subscription plan.
-            </DialogDescription>
+            <DialogDescription>Update league details and subscription plan.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleEditSubmit} className="space-y-4 p-6 pt-2">
@@ -705,7 +727,10 @@ function OrganizationsPage() {
               />
               {editForm.slug && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  URL: <span className="font-mono">{editForm.slug}.{getBaseDomain()}</span>
+                  URL:{" "}
+                  <span className="font-mono">
+                    {editForm.slug}.{getBaseDomain()}
+                  </span>
                 </p>
               )}
             </FormField>
@@ -718,11 +743,13 @@ function OrganizationsPage() {
                   onChange={(e) => setEditForm((p) => ({ ...p, planId: e.target.value }))}
                 >
                   <option value="">No plan</option>
-                  {plans.filter((p) => p.isActive).map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.name}
-                    </option>
-                  ))}
+                  {plans
+                    .filter((p) => p.isActive)
+                    .map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name}
+                      </option>
+                    ))}
                 </select>
               </FormField>
             )}

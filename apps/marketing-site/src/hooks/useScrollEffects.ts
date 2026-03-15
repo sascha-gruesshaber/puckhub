@@ -47,10 +47,7 @@ export function useScrollReveal(threshold = 0.1) {
  * Returns the CSS class string for scroll-reveal or scroll-stagger animations.
  * Returns empty string for elements that were in viewport on mount (no animation needed).
  */
-export function revealClasses(
-  r: { shouldAnimate: boolean; revealed: boolean },
-  type: "reveal" | "stagger" = "reveal",
-) {
+export function revealClasses(r: { shouldAnimate: boolean; revealed: boolean }, type: "reveal" | "stagger" = "reveal") {
   if (!r.shouldAnimate) return ""
   const base = type === "stagger" ? "scroll-stagger" : "scroll-reveal"
   return r.revealed ? `${base} revealed` : base

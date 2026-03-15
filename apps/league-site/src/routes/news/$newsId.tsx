@@ -41,7 +41,10 @@ export function NewsDetailPage() {
   return (
     <div className="animate-fade-in">
       <SectionWrapper>
-        <Link to="/" className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6"
+        >
           <ArrowLeft className="h-4 w-4" />
           {t.news.backToNews}
         </Link>
@@ -59,9 +62,7 @@ export function NewsDetailPage() {
             )}
           </div>
 
-          {article.shortText && (
-            <p className="text-lg text-league-text/70 mb-6 leading-relaxed">{article.shortText}</p>
-          )}
+          {article.shortText && <p className="text-lg text-league-text/70 mb-6 leading-relaxed">{article.shortText}</p>}
 
           <HtmlContent html={article.content} />
         </article>

@@ -107,9 +107,7 @@ describe("dashboard router", () => {
     }))!
 
     const publicCaller = createTestCaller()
-    await expect(publicCaller.dashboard.getOverview({ seasonId: season.id })).rejects.toThrow(
-      "Not authenticated",
-    )
+    await expect(publicCaller.dashboard.getOverview({ seasonId: season.id })).rejects.toThrow("Not authenticated")
   })
 
   it("allows non-admin member access (dashboard visible to all org members)", async () => {

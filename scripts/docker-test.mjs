@@ -27,9 +27,19 @@ if (args.includes("--logs") || args.includes("-l")) {
 }
 
 // Preflight: check images exist
-for (const img of ["puckhub-api", "puckhub-admin", "puckhub-platform", "puckhub-league-site", "puckhub-marketing-site"]) {
-  try { quiet(`docker image inspect ${img}:local`) }
-  catch { console.error(`Image ${img}:local not found. Run: pnpm docker:build`); process.exit(1) }
+for (const img of [
+  "puckhub-api",
+  "puckhub-admin",
+  "puckhub-platform",
+  "puckhub-league-site",
+  "puckhub-marketing-site",
+]) {
+  try {
+    quiet(`docker image inspect ${img}:local`)
+  } catch {
+    console.error(`Image ${img}:local not found. Run: pnpm docker:build`)
+    process.exit(1)
+  }
 }
 
 // Start
@@ -47,7 +57,10 @@ for (const svc of services) {
     try {
       const json = quiet(`${COMPOSE} ps --format json ${svc}`)
       const parsed = JSON.parse(json.split("\n")[0])
-      if (parsed.Health === "healthy") { console.log("healthy"); break }
+      if (parsed.Health === "healthy") {
+        console.log("healthy")
+        break
+      }
     } catch {}
     if (Date.now() - start > timeout) {
       console.log(`TIMEOUT (${timeout / 1000}s)`)
@@ -55,13 +68,14 @@ for (const svc of services) {
       run(`${COMPOSE} logs --tail=30 ${svc}`)
       process.exit(1)
     }
-    execSync("node -e \"setTimeout(()=>{},3000)\"", { stdio: "ignore" })
+    execSync('node -e "setTimeout(()=>{},3000)"', { stdio: "ignore" })
   }
 }
 
 // Smoke tests
 console.log("\n━━━ Smoke Tests ━━━")
-let pass = 0, fail = 0
+let pass = 0,
+  fail = 0
 
 function check(name, url, expect) {
   try {

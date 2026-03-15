@@ -1,47 +1,52 @@
 import { expect, test } from "@playwright/test"
-import { login } from "./helpers"
+import { formField, login } from "./helpers"
 
-test.describe.skip("Trikots Management", () => {
+test.describe("Trikots Management", () => {
   test("create, update, and delete a trikot", async ({ page }) => {
     await login(page)
     await page.goto("/trikots")
-    await expect(page.getByRole("heading", { name: "trikotsPage.title" })).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByRole("heading", { name: "trikotsPage.title" })).toBeVisible({
+      timeout: 10_000,
+    })
 
     // --- CREATE ---
     await page.getByRole("button", { name: "trikotsPage.actions.new" }).click()
-    await page.getByLabel("trikotsPage.fields.name").fill("E2E Test Jersey")
 
-    // Select the first template card (templates are seeded in global-setup)
-    const templateGrid = page.locator(".grid.grid-cols-2")
-    await templateGrid.locator("button").first().click()
+    // Fill name
+    await formField(page, "trikotsPage.fields.name").fill("E2E Test Trikot")
 
-    // Primary color is pre-filled (#1B365D), just submit
+    // Select the one-color template
+    await page.getByText("trikotsPage.templateNames.oneColor").click()
+
+    // Primary color should be available — fill it
+    await formField(page, "trikotsPage.fields.primaryColor").fill("#FF0000")
+
     await page.getByRole("button", { name: "create" }).click()
 
     // Verify trikot appears in list
-    await expect(page.getByText("E2E Test Jersey")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("E2E Test Trikot")).toBeVisible({ timeout: 10_000 })
 
-    // --- UPDATE ---
-    const trikotRow = page.locator(".data-row", { hasText: "E2E Test Jersey" })
-    await trikotRow.getByRole("button", { name: "trikotsPage.actions.edit" }).click()
+    // --- EDIT ---
+    const trikotRow = page.locator(".data-row", { hasText: "E2E Test Trikot" })
+    await trikotRow.locator("[aria-label='trikotsPage.actions.edit']").click()
 
-    const nameInput = page.getByLabel("trikotsPage.fields.name")
-    await nameInput.clear()
-    await nameInput.fill("E2E Updated Jersey")
+    // Change name
+    const nameField = formField(page, "trikotsPage.fields.name")
+    await nameField.clear()
+    await nameField.fill("E2E Updated Trikot")
+
     await page.getByRole("button", { name: "save" }).click()
 
-    // Verify updated name appears
-    await expect(page.getByText("E2E Updated Jersey")).toBeVisible({ timeout: 10_000 })
-    await expect(page.getByText("E2E Test Jersey")).not.toBeVisible()
+    // Verify updated name
+    await expect(page.getByText("E2E Updated Trikot")).toBeVisible({ timeout: 10_000 })
 
     // --- DELETE ---
-    const updatedRow = page.locator(".data-row", { hasText: "E2E Updated Jersey" })
-    await updatedRow.getByRole("button", { name: "trikotsPage.actions.delete" }).click()
+    const updatedRow = page.locator(".data-row", { hasText: "E2E Updated Trikot" })
+    await updatedRow.locator("[aria-label='trikotsPage.actions.delete']").click()
 
-    // Confirm in dialog
+    // ConfirmDialog — click the confirm/delete button
     await page.getByRole("button", { name: "trikotsPage.actions.delete" }).last().click()
 
-    // Verify trikot is gone
-    await expect(page.getByText("E2E Updated Jersey")).not.toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("E2E Updated Trikot")).not.toBeVisible({ timeout: 10_000 })
   })
 })

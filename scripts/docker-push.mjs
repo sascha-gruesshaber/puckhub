@@ -23,8 +23,12 @@ console.log(`Push tags:   ${pushTags.join(", ")}\n`)
 
 // Check images exist
 for (const img of images) {
-  try { quiet(`docker image inspect ${img}:${sourceTag}`) }
-  catch { console.error(`Image ${img}:${sourceTag} not found. Run: pnpm docker:build`); process.exit(1) }
+  try {
+    quiet(`docker image inspect ${img}:${sourceTag}`)
+  } catch {
+    console.error(`Image ${img}:${sourceTag} not found. Run: pnpm docker:build`)
+    process.exit(1)
+  }
 }
 
 // Tag and push

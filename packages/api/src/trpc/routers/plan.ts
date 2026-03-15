@@ -3,41 +3,39 @@ import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
 import { platformAdminProcedure, router } from "../init"
 
-const planInputSchema = z.object({
-  name: z.string().min(1),
-  slug: z.string().min(1).regex(/^[a-z0-9-]+$/),
-  description: z.string().nullish(),
-  sortOrder: z.number().int().default(0),
-  isActive: z.boolean().default(true),
+const planUpdateSchema = z.object({
+  id: z.string().uuid(),
 
-  priceMonthly: z.number().int().min(0).default(0),
-  priceYearly: z.number().int().min(0).default(0),
-  currency: z.string().default("EUR"),
+  sortOrder: z.number().int().optional(),
+  isActive: z.boolean().optional(),
 
-  maxTeams: z.number().int().min(0).nullable().default(null),
-  maxPlayers: z.number().int().min(0).nullable().default(null),
-  maxDivisionsPerSeason: z.number().int().min(0).nullable().default(null),
-  maxSeasons: z.number().int().min(0).nullable().default(null),
-  maxAdmins: z.number().int().min(0).nullable().default(null),
-  maxNewsArticles: z.number().int().min(0).nullable().default(null),
-  maxPages: z.number().int().min(0).nullable().default(null),
-  maxSponsors: z.number().int().min(0).nullable().default(null),
-  maxDocuments: z.number().int().min(0).nullable().default(null),
-  storageQuotaMb: z.number().int().min(0).nullable().default(null),
+  priceMonthly: z.number().int().min(0).optional(),
+  priceYearly: z.number().int().min(0).optional(),
+  currency: z.string().optional(),
 
-  featureCustomDomain: z.boolean().default(false),
-  featureWebsiteBuilder: z.boolean().default(false),
-  featureSponsorMgmt: z.boolean().default(false),
-  featureTrikotDesigner: z.boolean().default(false),
-  featureExportImport: z.boolean().default(false),
-  featureGameReports: z.boolean().default(true),
-  featurePlayerStats: z.boolean().default(true),
-  featureScheduler: z.boolean().default(false),
-  featureScheduledNews: z.boolean().default(false),
-  featureAdvancedRoles: z.boolean().default(false),
-  featureAdvancedStats: z.boolean().default(false),
-  featureAiRecaps: z.boolean().default(false),
-  aiMonthlyTokenLimit: z.number().int().min(0).nullable().default(null),
+  maxTeams: z.number().int().min(0).nullable().optional(),
+  maxPlayers: z.number().int().min(0).nullable().optional(),
+  maxDivisionsPerSeason: z.number().int().min(0).nullable().optional(),
+  maxSeasons: z.number().int().min(0).nullable().optional(),
+  maxAdmins: z.number().int().min(0).nullable().optional(),
+  maxNewsArticles: z.number().int().min(0).nullable().optional(),
+  maxPages: z.number().int().min(0).nullable().optional(),
+  maxSponsors: z.number().int().min(0).nullable().optional(),
+  maxDocuments: z.number().int().min(0).nullable().optional(),
+  storageQuotaMb: z.number().int().min(0).nullable().optional(),
+
+  featureCustomDomain: z.boolean().optional(),
+  featureWebsiteBuilder: z.boolean().optional(),
+  featureSponsorMgmt: z.boolean().optional(),
+  featureTrikotDesigner: z.boolean().optional(),
+  featureGameReports: z.boolean().optional(),
+  featurePlayerStats: z.boolean().optional(),
+  featureScheduler: z.boolean().optional(),
+  featureScheduledNews: z.boolean().optional(),
+  featureAdvancedRoles: z.boolean().optional(),
+  featureAdvancedStats: z.boolean().optional(),
+  featureAiRecaps: z.boolean().optional(),
+  aiMonthlyTokenLimit: z.number().int().min(0).nullable().optional(),
 })
 
 export const planRouter = router({
@@ -50,71 +48,27 @@ export const planRouter = router({
     })
   }),
 
-  getById: platformAdminProcedure
-    .input(z.object({ id: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const plan = await ctx.db.plan.findUnique({
-        where: { id: input.id },
-        include: {
-          _count: { select: { subscriptions: true } },
-        },
-      })
-      if (!plan) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PLAN_NOT_FOUND)
-      }
-      return plan
-    }),
+  getById: platformAdminProcedure.input(z.object({ id: z.string().uuid() })).query(async ({ ctx, input }) => {
+    const plan = await ctx.db.plan.findUnique({
+      where: { id: input.id },
+      include: {
+        _count: { select: { subscriptions: true } },
+      },
+    })
+    if (!plan) {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.PLAN_NOT_FOUND)
+    }
+    return plan
+  }),
 
-  create: platformAdminProcedure
-    .input(planInputSchema)
-    .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.db.plan.findUnique({ where: { slug: input.slug } })
-      if (existing) {
-        throw createAppError("CONFLICT", APP_ERROR_CODES.PLAN_SLUG_CONFLICT, "A plan with this slug already exists")
-      }
+  update: platformAdminProcedure.input(planUpdateSchema).mutation(async ({ ctx, input }) => {
+    const { id, ...data } = input
 
-      return ctx.db.plan.create({ data: input })
-    }),
+    const plan = await ctx.db.plan.findUnique({ where: { id } })
+    if (!plan) {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.PLAN_NOT_FOUND)
+    }
 
-  update: platformAdminProcedure
-    .input(z.object({ id: z.string().uuid() }).merge(planInputSchema.partial()))
-    .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input
-
-      const plan = await ctx.db.plan.findUnique({ where: { id } })
-      if (!plan) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PLAN_NOT_FOUND)
-      }
-
-      if (data.slug && data.slug !== plan.slug) {
-        const slugConflict = await ctx.db.plan.findUnique({ where: { slug: data.slug } })
-        if (slugConflict) {
-          throw createAppError("CONFLICT", APP_ERROR_CODES.PLAN_SLUG_CONFLICT, "A plan with this slug already exists")
-        }
-      }
-
-      return ctx.db.plan.update({ where: { id }, data })
-    }),
-
-  delete: platformAdminProcedure
-    .input(z.object({ id: z.string().uuid() }))
-    .mutation(async ({ ctx, input }) => {
-      const plan = await ctx.db.plan.findUnique({
-        where: { id: input.id },
-        include: { _count: { select: { subscriptions: true } } },
-      })
-      if (!plan) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PLAN_NOT_FOUND)
-      }
-      if (plan._count.subscriptions > 0) {
-        throw createAppError(
-          "BAD_REQUEST",
-          APP_ERROR_CODES.PLAN_HAS_SUBSCRIPTIONS,
-          `Cannot delete plan with ${plan._count.subscriptions} active subscription(s)`,
-        )
-      }
-
-      await ctx.db.plan.delete({ where: { id: input.id } })
-      return { id: input.id }
-    }),
+    return ctx.db.plan.update({ where: { id }, data })
+  }),
 })

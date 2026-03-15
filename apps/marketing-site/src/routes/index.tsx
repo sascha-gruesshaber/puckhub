@@ -4,7 +4,6 @@ import { Header } from "~/components/header"
 import { Hero } from "~/components/hero"
 import { AmbientBackground } from "~/components/ambientBackground"
 import { Features } from "~/components/features"
-import { SeasonSpotlight } from "~/components/seasonSpotlight"
 import { FeatureShowcase } from "~/components/featureShowcase"
 import { Pricing } from "~/components/pricing"
 import { DemoCta, DemoDialog } from "~/components/demoCta"
@@ -26,7 +25,6 @@ function LandingPage() {
           <Hero onOpenDemo={openDemo} />
           <Features />
         </AmbientBackground>
-        <SeasonSpotlight />
         <FeatureShowcase />
         <Pricing />
         <DemoCta onOpenDemo={openDemo} />

@@ -11,7 +11,11 @@ import { createContext } from "./trpc/context"
 
 const app = new Hono()
 
-const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "http://admin.puckhub.localhost,http://platform.puckhub.localhost").split(",").map((o) => o.trim())
+const trustedOrigins = (
+  process.env.TRUSTED_ORIGINS ?? "http://admin.puckhub.localhost,http://platform.puckhub.localhost"
+)
+  .split(",")
+  .map((o) => o.trim())
 
 // Public site tRPC routes — allow any origin (read-only, no auth)
 app.use(
@@ -58,7 +62,9 @@ app.on(["POST", "GET"], "/api/auth/**", async (c) => {
   const isMagicLinkVerify = url.pathname.endsWith("/magic-link/verify")
 
   if (isMagicLinkVerify) {
-    console.log(`[Auth] Magic link verify — token=${url.searchParams.get("token")?.slice(0, 8)}… callbackURL=${url.searchParams.get("callbackURL")}`)
+    console.log(
+      `[Auth] Magic link verify — token=${url.searchParams.get("token")?.slice(0, 8)}… callbackURL=${url.searchParams.get("callbackURL")}`,
+    )
   }
 
   const res = await auth.handler(req)
@@ -111,7 +117,13 @@ app.get("/api/domain-check", async (c) => {
   const suffix = process.env.SUBDOMAIN_SUFFIX ?? `.${baseDomain}`
 
   // Allow known fixed subdomains and bare domain
-  const knownHosts = [baseDomain, `www.${baseDomain}`, `admin.${baseDomain}`, `platform.${baseDomain}`, `api.${baseDomain}`]
+  const knownHosts = [
+    baseDomain,
+    `www.${baseDomain}`,
+    `admin.${baseDomain}`,
+    `platform.${baseDomain}`,
+    `api.${baseDomain}`,
+  ]
   if (knownHosts.includes(domain)) return c.text("ok", 200)
 
   // Check if it matches an active websiteConfig (by custom domain or org slug)

@@ -93,9 +93,7 @@ describe("organization router", () => {
       const admin = createTestCaller({ asAdmin: true })
       const randomOrgId = "00000000-0000-0000-0000-000000000099"
 
-      await expect(admin.organization.setActive({ organizationId: randomOrgId })).rejects.toThrow(
-        "ORG_NOT_MEMBER",
-      )
+      await expect(admin.organization.setActive({ organizationId: randomOrgId })).rejects.toThrow("ORG_NOT_MEMBER")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -423,31 +421,31 @@ describe("organization router", () => {
     it("rejects self-removal", async () => {
       const admin = createTestCaller({ asAdmin: true })
 
-      await expect(
-        admin.organization.removeMember({ memberId: "test-admin-member-id" }),
-      ).rejects.toThrow("MEMBER_CANNOT_REMOVE_SELF")
+      await expect(admin.organization.removeMember({ memberId: "test-admin-member-id" })).rejects.toThrow(
+        "MEMBER_CANNOT_REMOVE_SELF",
+      )
     })
 
     it("throws NOT_FOUND for non-existent member", async () => {
       const admin = createTestCaller({ asAdmin: true })
 
-      await expect(
-        admin.organization.removeMember({ memberId: "non-existent-member-id" }),
-      ).rejects.toThrow("MEMBER_NOT_FOUND")
+      await expect(admin.organization.removeMember({ memberId: "non-existent-member-id" })).rejects.toThrow(
+        "MEMBER_NOT_FOUND",
+      )
     })
 
     it("rejects regular member (not admin/owner)", async () => {
       const user = createTestCaller({ asUser: true })
-      await expect(
-        user.organization.removeMember({ memberId: "test-admin-member-id" }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(user.organization.removeMember({ memberId: "test-admin-member-id" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.organization.removeMember({ memberId: "test-user-member-id" }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.organization.removeMember({ memberId: "test-user-member-id" })).rejects.toThrow(
+        "Not authenticated",
+      )
     })
   })
 
@@ -595,9 +593,9 @@ describe("organization router", () => {
     it("throws NOT_FOUND for missing org", async () => {
       const platformAdmin = createPlatformAdminCaller()
 
-      await expect(
-        platformAdmin.organization.delete({ id: "00000000-0000-0000-0000-000000000099" }),
-      ).rejects.toThrow("ORG_NOT_FOUND")
+      await expect(platformAdmin.organization.delete({ id: "00000000-0000-0000-0000-000000000099" })).rejects.toThrow(
+        "ORG_NOT_FOUND",
+      )
     })
 
     it("rejects non-platform-admin caller", async () => {
@@ -635,16 +633,16 @@ describe("organization router", () => {
 
     it("rejects non-platform-admin caller", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.organization.setActiveForAdmin({ organizationId: TEST_ORG_ID }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(admin.organization.setActiveForAdmin({ organizationId: TEST_ORG_ID })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.organization.setActiveForAdmin({ organizationId: TEST_ORG_ID }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.organization.setActiveForAdmin({ organizationId: TEST_ORG_ID })).rejects.toThrow(
+        "Not authenticated",
+      )
     })
   })
 
@@ -797,23 +795,23 @@ describe("organization router", () => {
 
     it("throws NOT_FOUND for non-existent member", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.organization.getMemberRoles({ memberId: "non-existent-member-id" }),
-      ).rejects.toThrow("MEMBER_NOT_FOUND")
+      await expect(admin.organization.getMemberRoles({ memberId: "non-existent-member-id" })).rejects.toThrow(
+        "MEMBER_NOT_FOUND",
+      )
     })
 
     it("rejects regular member (not admin/owner)", async () => {
       const user = createTestCaller({ asUser: true })
-      await expect(
-        user.organization.getMemberRoles({ memberId: "test-admin-member-id" }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(user.organization.getMemberRoles({ memberId: "test-admin-member-id" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.organization.getMemberRoles({ memberId: "test-admin-member-id" }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.organization.getMemberRoles({ memberId: "test-admin-member-id" })).rejects.toThrow(
+        "Not authenticated",
+      )
     })
   })
 
@@ -950,9 +948,9 @@ describe("organization router", () => {
       })
       expect(ownerRole).not.toBeNull()
 
-      await expect(
-        admin.organization.removeMemberRole({ memberRoleId: ownerRole!.id }),
-      ).rejects.toThrow("ORG_LAST_OWNER")
+      await expect(admin.organization.removeMemberRole({ memberRoleId: ownerRole!.id })).rejects.toThrow(
+        "ORG_LAST_OWNER",
+      )
     })
 
     it("allows removing an owner role when another owner exists", async () => {
@@ -994,9 +992,9 @@ describe("organization router", () => {
         where: { memberId: "test-admin-member-id", role: "owner" },
       })
 
-      await expect(
-        user.organization.removeMemberRole({ memberRoleId: ownerRole!.id }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(user.organization.removeMemberRole({ memberRoleId: ownerRole!.id })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {

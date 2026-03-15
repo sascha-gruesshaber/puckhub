@@ -13,7 +13,7 @@
  *   pnpm capture:screenshots --no-seed  # skip reseed, capture only
  */
 
-import { existsSync, mkdirSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, unlinkSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -27,7 +27,13 @@ const SUBDOMAIN_SUFFIX = process.env.SUBDOMAIN_SUFFIX ?? ".puckhub.localhost"
 const EMAIL = process.env.DEMO_EMAIL ?? `admin@demo-league${SUBDOMAIN_SUFFIX}`
 const OUTPUT_DIR = resolve(__dirname, "../apps/marketing-site/public/screenshots")
 
-if (!existsSync(OUTPUT_DIR)) {
+if (existsSync(OUTPUT_DIR)) {
+  const old = readdirSync(OUTPUT_DIR).filter((f) => f.endsWith(".png"))
+  if (old.length > 0) {
+    console.log(`Cleaning ${old.length} old screenshots...`)
+    for (const file of old) unlinkSync(resolve(OUTPUT_DIR, file))
+  }
+} else {
   mkdirSync(OUTPUT_DIR, { recursive: true })
 }
 
@@ -49,16 +55,61 @@ const adminTargets: ScreenshotTarget[] = [
   { name: "pages-cms", baseUrl: "admin", path: "/pages", waitFor: "main", delay: 2000 },
 ]
 
+// Admin portal screenshots (require auth)
+const adminExtraTargets: ScreenshotTarget[] = [
+  { name: "public-report-admin", baseUrl: "admin", path: "/games/public-reports", waitFor: "main", delay: 3000 },
+]
+
 // Public league site screenshots
 const leagueTargets: ScreenshotTarget[] = [
   { name: "league-standings", baseUrl: "league", path: "/standings", waitFor: "main", delay: 3000 },
-  { name: "league-stats", baseUrl: "league", path: "/standings", waitFor: "main", delay: 4000 },
+  { name: "league-stats", baseUrl: "league", path: "/stats/scorers", waitFor: "main", delay: 4000 },
   { name: "league-schedule", baseUrl: "league", path: "/schedule", waitFor: "main", delay: 3000 },
   { name: "league-home", baseUrl: "league", path: "/", waitFor: "main", delay: 3000 },
+  // goalie-stats captured separately below (needs extra wait for lazy-loaded ECharts)
+  { name: "season-structure", baseUrl: "league", path: "/structure", waitFor: "main", delay: 3000 },
 ]
 
 function getBaseUrl(type: "admin" | "league") {
   return type === "admin" ? ADMIN_URL : LEAGUE_SITE_URL
+}
+
+async function captureTarget(page: import("playwright").Page, target: ScreenshotTarget) {
+  const url = `${getBaseUrl(target.baseUrl)}${target.path}`
+  console.log(`Capturing ${target.name} (${url})...`)
+
+  try {
+    try {
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+    } catch (navErr) {
+      // NS_BINDING_ABORTED occurs in Firefox when a redirect interrupts navigation
+      // (common with SPA routers that do client-side redirects after initial load)
+      if (String(navErr).includes("NS_BINDING_ABORTED")) {
+        console.log(`  Navigation redirect detected, waiting for page to settle...`)
+        await page.waitForTimeout(3000)
+      } else {
+        throw navErr
+      }
+    }
+
+    if (target.waitFor) {
+      try {
+        await page.waitForSelector(target.waitFor, { timeout: 10000 })
+      } catch {
+        console.log(`  Warning: selector "${target.waitFor}" not found, taking screenshot anyway`)
+      }
+    }
+
+    if (target.delay) {
+      await page.waitForTimeout(target.delay)
+    }
+
+    const outputPath = resolve(OUTPUT_DIR, `${target.name}.png`)
+    await page.screenshot({ path: outputPath, fullPage: false })
+    console.log(`  Saved: ${outputPath}`)
+  } catch (err) {
+    console.error(`  Error capturing ${target.name}:`, (err as Error).message)
+  }
 }
 
 async function reseedDemo() {
@@ -102,7 +153,9 @@ async function main() {
   // Collect browser console messages for debugging
   const consoleMsgs: string[] = []
   page.on("console", (msg) => consoleMsgs.push(`[${msg.type()}] ${msg.text()}`))
-  page.on("requestfailed", (req) => consoleMsgs.push(`[FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText}`))
+  page.on("requestfailed", (req) =>
+    consoleMsgs.push(`[FAILED] ${req.method()} ${req.url()} — ${req.failure()?.errorText}`),
+  )
 
   // Login via demo-login API endpoint (magic link bypass for demo).
   // Navigate the browser to the API domain and call demo-login as same-origin
@@ -134,14 +187,16 @@ async function main() {
   const sessionCookie = cookies.find((c) => c.name === "better-auth.session_token")
   if (sessionCookie) {
     await context.clearCookies()
-    await context.addCookies([{
-      name: sessionCookie.name,
-      value: sessionCookie.value,
-      domain: `.${COOKIE_DOMAIN}`,
-      path: "/",
-      sameSite: "None",
-      secure: false,
-    }])
+    await context.addCookies([
+      {
+        name: sessionCookie.name,
+        value: sessionCookie.value,
+        domain: `.${COOKIE_DOMAIN}`,
+        path: "/",
+        sameSite: "None",
+        secure: false,
+      },
+    ])
     console.log(`  Cookie overridden: SameSite=None on .${COOKIE_DOMAIN}`)
   }
 
@@ -163,30 +218,7 @@ async function main() {
 
   console.log("=== Admin Portal Screenshots ===\n")
   for (const target of adminTargets) {
-    const url = `${getBaseUrl(target.baseUrl)}${target.path}`
-    console.log(`Capturing ${target.name} (${url})...`)
-
-    try {
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
-
-      if (target.waitFor) {
-        try {
-          await page.waitForSelector(target.waitFor, { timeout: 10000 })
-        } catch {
-          console.log(`  Warning: selector "${target.waitFor}" not found, taking screenshot anyway`)
-        }
-      }
-
-      if (target.delay) {
-        await page.waitForTimeout(target.delay)
-      }
-
-      const outputPath = resolve(OUTPUT_DIR, `${target.name}.png`)
-      await page.screenshot({ path: outputPath, fullPage: false })
-      console.log(`  Saved: ${outputPath}`)
-    } catch (err) {
-      console.error(`  Error capturing ${target.name}:`, (err as Error).message)
-    }
+    await captureTarget(page, target)
   }
 
   // AI game recap — find a completed game that has a seeded recap
@@ -197,7 +229,7 @@ async function main() {
     const { createPrismaClientWithUrl } = await import("../packages/db/src/index")
     const db = createPrismaClientWithUrl(process.env.DATABASE_URL!)
     const gameWithRecap = await db.game.findFirst({
-      where: { recapTitle: { not: null } },
+      where: { recapTitle: { not: null }, organization: { slug: "demo-league" } },
       select: { id: true },
     })
     await db.$disconnect()
@@ -207,6 +239,13 @@ async function main() {
       console.log(`  Navigating to game with recap: ${gameWithRecap.id}`)
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
       await page.waitForTimeout(4000)
+
+      // Scroll to the AI recap section (it's below the fold)
+      const recapSection = page.locator("text=/recap|Spielbericht|zusammenfassung/i").first()
+      if (await recapSection.count()) {
+        await recapSection.scrollIntoViewIfNeeded()
+        await page.waitForTimeout(1000)
+      }
 
       const outputPath = resolve(OUTPUT_DIR, "ai-game-recap.png")
       await page.screenshot({ path: outputPath, fullPage: false })
@@ -282,6 +321,16 @@ async function main() {
         await page.waitForTimeout(800)
       }
 
+      // Zoom in one step using the React Flow zoom-in control button
+      const zoomInBtn = page.locator(".react-flow__controls-zoomin").first()
+      if (await zoomInBtn.count()) {
+        await zoomInBtn.click()
+        await page.waitForTimeout(600)
+        await zoomInBtn.click()
+        await page.waitForTimeout(600)
+        console.log("  Zoomed in 2 steps")
+      }
+
       const outputPath = resolve(OUTPUT_DIR, "season-builder.png")
       await page.screenshot({ path: outputPath, fullPage: false })
       console.log(`  Saved: ${outputPath}`)
@@ -292,34 +341,227 @@ async function main() {
     console.error("  Error capturing season-builder:", (err as Error).message)
   }
 
+  // ─── Additional admin screenshots ──────────────────────────────────
+
+  console.log("\n=== Additional Admin Screenshots ===\n")
+  for (const target of adminExtraTargets) {
+    await captureTarget(page, target)
+  }
+
   // ─── League site screenshots ────────────────────────────────────────
 
   console.log("\n=== League Site Screenshots ===\n")
   for (const target of leagueTargets) {
-    const url = `${getBaseUrl(target.baseUrl)}${target.path}`
-    console.log(`Capturing ${target.name} (${url})...`)
+    await captureTarget(page, target)
+  }
+
+  // ─── Goalie stats screenshot (needs extra wait for lazy-loaded charts) ──
+
+  try {
+    console.log("\nCapturing goalie-stats...")
+    const url = `${LEAGUE_SITE_URL}/stats/goalies`
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
 
     try {
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+      await page.waitForSelector("main", { timeout: 10000 })
+    } catch {
+      // continue
+    }
 
-      if (target.waitFor) {
-        try {
-          await page.waitForSelector(target.waitFor, { timeout: 10000 })
-        } catch {
-          console.log(`  Warning: selector "${target.waitFor}" not found, taking screenshot anyway`)
+    // Wait for lazy-loaded ECharts to render (the chart is inside a Suspense boundary
+    // that shows an animate-pulse skeleton while loading)
+    await page.waitForTimeout(3000)
+    // Wait until the pulse skeleton disappears (chart has rendered)
+    try {
+      await page.waitForFunction(
+        () => !document.querySelector(".animate-pulse"),
+        { timeout: 8000 },
+      )
+    } catch {
+      console.log("  Warning: chart skeleton still visible, taking screenshot anyway")
+    }
+    await page.waitForTimeout(1000)
+
+    const outputPath = resolve(OUTPUT_DIR, "goalie-stats.png")
+    await page.screenshot({ path: outputPath, fullPage: false })
+    console.log(`  Saved: ${outputPath}`)
+  } catch (err) {
+    console.error("  Error capturing goalie-stats:", (err as Error).message)
+  }
+
+  // ─── Player detail screenshot ────────────────────────────────────────
+
+  try {
+    console.log("\nCapturing player-detail...")
+
+    const { createPrismaClientWithUrl: createDbPlayer } = await import("../packages/db/src/index")
+    const dbPlayer = createDbPlayer(process.env.DATABASE_URL!)
+    const playerWithStats = await dbPlayer.playerSeasonStat.findFirst({
+      where: { player: { organization: { slug: "demo-league" } } },
+      orderBy: { goals: "desc" },
+      select: { playerId: true, player: { select: { firstName: true, lastName: true } } },
+    })
+    await dbPlayer.$disconnect()
+
+    if (playerWithStats) {
+      const url = `${LEAGUE_SITE_URL}/stats/players/${playerWithStats.playerId}`
+      console.log(`  Navigating to player: ${playerWithStats.player.firstName} ${playerWithStats.player.lastName}`)
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+      await page.waitForTimeout(4000)
+
+      const outputPath = resolve(OUTPUT_DIR, "player-detail.png")
+      await page.screenshot({ path: outputPath, fullPage: false })
+      console.log(`  Saved: ${outputPath}`)
+    } else {
+      console.log("  No players with stats found, skipping")
+    }
+  } catch (err) {
+    console.error("  Error capturing player-detail:", (err as Error).message)
+  }
+
+  // ─── Team comparison screenshot ────────────────────────────────────
+
+  try {
+    console.log("\nCapturing team-comparison...")
+
+    const { createPrismaClientWithUrl: createDbTeamComp } = await import("../packages/db/src/index")
+    const dbTeamComp = createDbTeamComp(process.env.DATABASE_URL!)
+    const teamsForComparison = await dbTeamComp.team.findMany({
+      where: { organization: { slug: "demo-league" } },
+      select: { id: true, name: true, shortName: true },
+      take: 3,
+    })
+    await dbTeamComp.$disconnect()
+
+    if (teamsForComparison.length >= 2) {
+      const url = `${LEAGUE_SITE_URL}/stats/compare-teams`
+      console.log(`  Comparing teams: ${teamsForComparison.map((t) => t.shortName ?? t.name).join(", ")}`)
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+      await page.waitForTimeout(4000)
+
+      // The TeamComparisonSelector renders pill buttons with the team's shortName.
+      // Click up to 3 to populate the comparison charts.
+      for (const team of teamsForComparison.slice(0, 3)) {
+        const label = team.shortName ?? team.name
+        const teamBtn = page.getByRole("button", { name: label, exact: true })
+        if (await teamBtn.count()) {
+          await teamBtn.click()
+          console.log(`  Selected team: ${label}`)
+          await page.waitForTimeout(800)
+        } else {
+          console.log(`  Team button "${label}" not found, skipping`)
         }
       }
 
-      if (target.delay) {
-        await page.waitForTimeout(target.delay)
+      // Wait for lazy-loaded charts to render
+      await page.waitForTimeout(4000)
+      try {
+        await page.waitForFunction(
+          () => !document.querySelector(".animate-pulse"),
+          { timeout: 8000 },
+        )
+      } catch {
+        console.log("  Warning: chart skeleton still visible")
       }
+      await page.waitForTimeout(1000)
 
-      const outputPath = resolve(OUTPUT_DIR, `${target.name}.png`)
+      const outputPath = resolve(OUTPUT_DIR, "team-comparison.png")
       await page.screenshot({ path: outputPath, fullPage: false })
       console.log(`  Saved: ${outputPath}`)
-    } catch (err) {
-      console.error(`  Error capturing ${target.name}:`, (err as Error).message)
+    } else {
+      console.log("  Not enough teams for comparison, skipping")
     }
+  } catch (err) {
+    console.error("  Error capturing team-comparison:", (err as Error).message)
+  }
+
+  // ─── Public report form screenshot ─────────────────────────────────
+
+  try {
+    console.log("\nCapturing public-report-form...")
+
+    // Enable public reports on the demo org's plan and settings
+    const { createPrismaClientWithUrl: createDbReport } = await import("../packages/db/src/index")
+    const dbReport = createDbReport(process.env.DATABASE_URL!)
+
+    const demoOrg = await dbReport.organization.findFirst({
+      where: { slug: "demo-league" },
+      select: { id: true },
+    })
+
+    if (demoOrg) {
+      // Enable featurePublicReports on the org's plan
+      const sub = await dbReport.orgSubscription.findFirst({
+        where: { organizationId: demoOrg.id, status: "active" },
+        select: { planId: true },
+      })
+      if (sub) {
+        await dbReport.plan.update({
+          where: { id: sub.planId },
+          data: { featurePublicReports: true },
+        })
+        console.log("  Enabled featurePublicReports on demo plan")
+      }
+
+      // Enable publicReportsEnabled in system settings
+      await dbReport.systemSettings.updateMany({
+        where: { organizationId: demoOrg.id },
+        data: {
+          publicReportsEnabled: true,
+          publicReportsRequireEmail: true,
+          publicReportsBotDetection: true,
+        },
+      })
+      console.log("  Enabled publicReportsEnabled in system settings")
+    }
+
+    const scheduledGame = await dbReport.game.findFirst({
+      where: {
+        organization: { slug: "demo-league" },
+        status: { in: ["scheduled", "postponed"] },
+      },
+      select: { id: true },
+    })
+    await dbReport.$disconnect()
+
+    if (scheduledGame) {
+      const url = `${LEAGUE_SITE_URL}/schedule/${scheduledGame.id}`
+      console.log(`  Navigating to game: ${scheduledGame.id}`)
+      await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
+      await page.waitForTimeout(4000)
+
+      // The PublicReportButton contains t.publicReport.title:
+      // "Submit Result" (en) or "Ergebnis melden" (de)
+      const reportBtn = page
+        .locator("button")
+        .filter({ hasText: /submit result|ergebnis melden/i })
+        .first()
+
+      if (await reportBtn.count()) {
+        // Screenshot 1: game detail page showing the "Submit Result" CTA button
+        await reportBtn.scrollIntoViewIfNeeded()
+        await page.waitForTimeout(500)
+        const formPath = resolve(OUTPUT_DIR, "public-report-form.png")
+        await page.screenshot({ path: formPath, fullPage: false })
+        console.log(`  Saved: ${formPath}`)
+
+        // Screenshot 2: the opened slide-in panel with form fields
+        console.log("\nCapturing public-report-otp...")
+        await reportBtn.click()
+        await page.waitForTimeout(1500)
+
+        const otpPath = resolve(OUTPUT_DIR, "public-report-otp.png")
+        await page.screenshot({ path: otpPath, fullPage: false })
+        console.log(`  Saved: ${otpPath}`)
+      } else {
+        console.log("  Public report button not found, skipping")
+        console.log("  (Check that public reports are enabled on the plan and in settings)")
+      }
+    } else {
+      console.log("  No scheduled games found, skipping")
+    }
+  } catch (err) {
+    console.error("  Error capturing public-report-form:", (err as Error).message)
   }
 
   await browser.close()

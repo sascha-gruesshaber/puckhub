@@ -261,7 +261,15 @@ export const teamRouter = router({
 
         return {
           ...entry,
-          totals: { gamesPlayed: gp, wins: w, draws: d, losses: l, goalsFor: gf, goalsAgainst: ga, goalDifference: gf - ga },
+          totals: {
+            gamesPlayed: gp,
+            wins: w,
+            draws: d,
+            losses: l,
+            goalsFor: gf,
+            goalsAgainst: ga,
+            goalDifference: gf - ga,
+          },
           bestRank,
           bestRankRoundType,
         }

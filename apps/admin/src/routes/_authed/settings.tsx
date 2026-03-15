@@ -1,6 +1,6 @@
 import { Button, Card, CardContent, Input, toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Save, Settings, Sparkles } from "lucide-react"
+import { Save, Send, Settings, Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { PageHeader } from "~/components/pageHeader"
@@ -42,6 +42,9 @@ function SettingsPage() {
     pointsWin: 2,
     pointsDraw: 1,
     pointsLoss: 0,
+    publicReportsEnabled: false,
+    publicReportsRequireEmail: true,
+    publicReportsBotDetection: true,
   })
 
   useEffect(() => {
@@ -54,6 +57,9 @@ function SettingsPage() {
         pointsWin: settings.pointsWin,
         pointsDraw: settings.pointsDraw,
         pointsLoss: settings.pointsLoss,
+        publicReportsEnabled: (settings as any).publicReportsEnabled ?? false,
+        publicReportsRequireEmail: (settings as any).publicReportsRequireEmail ?? true,
+        publicReportsBotDetection: (settings as any).publicReportsBotDetection ?? true,
       })
     }
   }, [settings])
@@ -223,6 +229,80 @@ function SettingsPage() {
         </Card>
       </form>
 
+      {/* Public Reports section */}
+      {canUseFeature("featurePublicReports") && (
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Send className="w-4 h-4 text-muted-foreground" />
+              {t("settingsPublicReports.title")}
+            </h3>
+            <p className="text-xs text-muted-foreground">{t("settingsPublicReports.description")}</p>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.publicReportsEnabled}
+                onChange={(e) => {
+                  const next = { ...form, publicReportsEnabled: e.target.checked }
+                  setForm(next)
+                  updateMutation.mutate(next)
+                }}
+                disabled={updateMutation.isPending}
+                className="accent-primary w-4 h-4"
+              />
+              <div>
+                <span className="text-sm font-medium">{t("settingsPublicReports.enableToggle")}</span>
+                <p className="text-xs text-muted-foreground">{t("settingsPublicReports.enableDescription")}</p>
+              </div>
+            </label>
+
+            {form.publicReportsEnabled && (
+              <div className="space-y-3 pt-2 border-t border-border/50">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.publicReportsRequireEmail ?? true}
+                    onChange={(e) => {
+                      const next = { ...form, publicReportsRequireEmail: e.target.checked }
+                      setForm(next)
+                      updateMutation.mutate(next)
+                    }}
+                    disabled={updateMutation.isPending}
+                    className="accent-primary w-4 h-4"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settingsPublicReports.requireEmail")}</span>
+                    <p className="text-xs text-muted-foreground">
+                      {t("settingsPublicReports.requireEmailDescription")}
+                    </p>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.publicReportsBotDetection ?? true}
+                    onChange={(e) => {
+                      const next = { ...form, publicReportsBotDetection: e.target.checked }
+                      setForm(next)
+                      updateMutation.mutate(next)
+                    }}
+                    disabled={updateMutation.isPending}
+                    className="accent-primary w-4 h-4"
+                  />
+                  <div>
+                    <span className="text-sm font-medium">{t("settingsPublicReports.botDetection")}</span>
+                    <p className="text-xs text-muted-foreground">
+                      {t("settingsPublicReports.botDetectionDescription")}
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* AI Features section */}
       {canUseFeature("featureAiRecaps") && <AiSettingsSection />}
     </div>
@@ -279,7 +359,10 @@ function AiSettingsSection() {
               <span className="font-medium">{t("settingsAi.usage")}</span>
               <span className="text-muted-foreground tabular-nums">
                 {aiUsage.limit
-                  ? t("settingsAi.usageLabel", { used: aiUsage.used.toLocaleString(), limit: aiUsage.limit.toLocaleString() })
+                  ? t("settingsAi.usageLabel", {
+                      used: aiUsage.used.toLocaleString(),
+                      limit: aiUsage.limit.toLocaleString(),
+                    })
                   : t("settingsAi.usageUnlimited", { used: aiUsage.used.toLocaleString() })}
               </span>
             </div>

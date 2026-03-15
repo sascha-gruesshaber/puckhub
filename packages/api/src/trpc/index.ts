@@ -12,6 +12,7 @@ import { organizationRouter } from "./routers/organization"
 import { pageRouter } from "./routers/page"
 import { planRouter } from "./routers/plan"
 import { playerRouter } from "./routers/player"
+import { publicGameReportRouter } from "./routers/publicGameReport"
 import { publicSiteRouter } from "./routers/publicSite"
 import { roundRouter } from "./routers/round"
 import { schedulerRouter } from "./routers/scheduler"
@@ -56,6 +57,7 @@ export const appRouter = router({
   organization: organizationRouter,
   page: pageRouter,
   plan: planRouter,
+  publicGameReport: publicGameReportRouter,
   publicSite: publicSiteRouter,
   subscription: subscriptionRouter,
   userPreferences: userPreferencesRouter,

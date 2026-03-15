@@ -8,8 +8,7 @@ export function Hero({ onOpenDemo }: { onOpenDemo: () => void }) {
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight animate-fade-in-up">
-            {t.hero.titleLine1}{" "}
-            <span className="gradient-text">{t.hero.titleLine2}</span>
+            {t.hero.titleLine1} <span className="gradient-text">{t.hero.titleLine2}</span>
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-brand-slate max-w-2xl mx-auto animate-fade-in-up-delay-1">
             {t.hero.subtitle}

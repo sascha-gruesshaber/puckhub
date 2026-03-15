@@ -2,9 +2,7 @@ import { useSettings } from "./context"
 import { DE_PATH_MAP } from "./germanRoutes"
 
 /** Reverse mapping: German → canonical */
-const EN_PATHS: Record<string, string> = Object.fromEntries(
-  Object.entries(DE_PATH_MAP).map(([en, de]) => [de, en]),
-)
+const EN_PATHS: Record<string, string> = Object.fromEntries(Object.entries(DE_PATH_MAP).map(([en, de]) => [de, en]))
 
 /** Given a canonical (English) path, return the locale-appropriate path. */
 export function localePath(canonicalPath: string, locale: string): string {

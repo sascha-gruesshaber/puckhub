@@ -476,7 +476,12 @@ function PlayersPage() {
         action={
           <div className="flex items-center gap-2">
             <Badge variant="outline">{usageText("maxPlayers")}</Badge>
-            <Button variant="accent" onClick={openCreate} disabled={atPlayerLimit} title={atPlayerLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+            <Button
+              variant="accent"
+              onClick={openCreate}
+              disabled={atPlayerLimit}
+              title={atPlayerLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
+            >
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("playersPage.actions.new")}
             </Button>

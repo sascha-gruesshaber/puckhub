@@ -150,9 +150,7 @@ function PlayerHoverCardContent({
               <span className="inline-block w-4 text-center shrink-0">&nbsp;</span>
               <span>
                 {age} {t.playerHoverCard.years}
-                {dateOfBirth && (
-                  <span className="text-league-text/30 ml-1">({formatDate(dateOfBirth)})</span>
-                )}
+                {dateOfBirth && <span className="text-league-text/30 ml-1">({formatDate(dateOfBirth)})</span>}
               </span>
             </div>
           )}

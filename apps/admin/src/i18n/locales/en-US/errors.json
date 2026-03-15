@@ -54,5 +54,10 @@
   "PLAN_LIMIT_EXCEEDED": "You have reached the limit for your current plan. Upgrade to add more.",
   "PLAN_FEATURE_UNAVAILABLE": "This feature is not available on your current plan. Upgrade to unlock it.",
   "EMAIL_SEND_FAILED": "Failed to send email. Please try again later.",
+  "PUBLIC_REPORT_NOT_FOUND": "Public report not found",
+  "PUBLIC_REPORT_ALREADY_REVERTED": "This report has already been reverted",
+  "PUBLIC_REPORT_RATE_LIMITED": "Too many requests. Please try again later.",
+  "PUBLIC_REPORT_DUPLICATE": "A report has already been submitted for this game",
+  "PUBLIC_REPORT_INVALID_OTP": "Invalid or expired verification code",
   "UNKNOWN": "An unexpected error occurred"
 }

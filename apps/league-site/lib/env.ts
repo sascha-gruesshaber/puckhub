@@ -7,6 +7,8 @@
  */
 export function getApiUrl(): string {
   if (typeof window !== "undefined") {
+    // Allow override via env (dev/e2e use localhost without subdomains)
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
     const parts = window.location.hostname.split(".")
     parts[0] = "api"
     return `${window.location.protocol}//${parts.join(".")}`
@@ -33,7 +35,5 @@ export function getMarketingUrl(): string {
     parts.shift()
     return `${window.location.protocol}//${parts.join(".")}`
   }
-  return process.env.VITE_BASE_DOMAIN
-    ? `http://${process.env.VITE_BASE_DOMAIN}`
-    : "http://puckhub.localhost"
+  return process.env.VITE_BASE_DOMAIN ? `http://${process.env.VITE_BASE_DOMAIN}` : "http://puckhub.localhost"
 }

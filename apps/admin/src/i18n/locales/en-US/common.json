@@ -1604,5 +1604,36 @@
     "resetHint": "Resets on the 1st of each month.",
     "unavailable": "AI features are not available on your current plan.",
     "headerChip": "AI {{percent}}%"
+  },
+  "publicReports": {
+    "title": "Public Game Reports",
+    "description": "Results submitted by the public",
+    "empty": "No public reports yet.",
+    "emptyDesc": "When enabled, visitors can submit game scores from the league website.",
+    "game": "Game",
+    "score": "Score",
+    "submitter": "Submitter",
+    "date": "Date",
+    "status": "Status",
+    "active": "Active",
+    "reverted": "Reverted",
+    "revert": "Revert",
+    "revertTitle": "Revert Report",
+    "revertDescription": "This will undo the submitted score and set the game back to scheduled. The standings will be recalculated.",
+    "revertNote": "Note (optional)",
+    "revertNotePlaceholder": "Reason for reverting...",
+    "revertSuccess": "Report reverted successfully.",
+    "publicReportNotice": "This game was completed via a public submission.",
+    "viewPublicReports": "View public reports"
+  },
+  "settingsPublicReports": {
+    "title": "Public Game Reports",
+    "description": "Allow visitors to submit game scores from the public league website.",
+    "enableToggle": "Accept Public Game Reports",
+    "enableDescription": "When enabled, visitors can submit scores for scheduled games.",
+    "requireEmail": "Require Email Verification",
+    "requireEmailDescription": "Send a 6-digit OTP code to the submitter's email. Strongly recommended for preventing abuse.",
+    "botDetection": "Bot & Spam Detection",
+    "botDetectionDescription": "Show a math captcha and use hidden honeypot fields to block automated submissions."
   }
 }

@@ -5,17 +5,17 @@
 // Two phases: analysis (read-only report) and migration (write).
 // ---------------------------------------------------------------------------
 
-import { copyFile, mkdir, stat } from 'node:fs/promises'
-import { basename, dirname, extname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { randomUUID } from 'node:crypto'
-import * as mysql from 'mysql2/promise'
-import type { Database } from '../index'
-import { recalculateStandings } from '../services/standingsService'
-import { recalculateGoalieStats, recalculatePlayerStats } from '../services/statsService'
-import { PENALTY_ID_TO_CODE, PENALTY_ID_TO_NAME } from './penaltyMapping'
-import { getDivisionsForSeason, resolveGameRound } from './roundMapping'
-import type { DivisionDef } from './roundMapping'
+import { copyFile, mkdir, stat } from "node:fs/promises"
+import { basename, dirname, extname, join, resolve } from "node:path"
+import { fileURLToPath } from "node:url"
+import { randomUUID } from "node:crypto"
+import * as mysql from "mysql2/promise"
+import type { Database } from "../index"
+import { recalculateStandings } from "../services/standingsService"
+import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
+import { PENALTY_ID_TO_CODE, PENALTY_ID_TO_NAME } from "./penaltyMapping"
+import { getDivisionsForSeason, resolveGameRound } from "./roundMapping"
+import type { DivisionDef } from "./roundMapping"
 import type {
   LegacyBonusPoint,
   LegacyGame,
@@ -30,19 +30,19 @@ import type {
   LegacyTeam,
   LegacyTeamLineUp,
   LegacyTrikot,
-} from './legacyTypes'
+} from "./legacyTypes"
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const ORG_ID = 'eishockey-allgaeuliga'
+const ORG_ID = "eishockey-allgaeuliga"
 const MYSQL_CONFIG = {
-  host: process.env.LEGACY_MYSQL_HOST ?? '127.0.0.1',
+  host: process.env.LEGACY_MYSQL_HOST ?? "127.0.0.1",
   port: Number(process.env.LEGACY_MYSQL_PORT ?? 3306),
-  user: process.env.LEGACY_MYSQL_USER ?? 'eal_user',
-  password: process.env.LEGACY_MYSQL_PASSWORD ?? 'eal_password',
-  database: process.env.LEGACY_MYSQL_DATABASE ?? 'eal_local',
+  user: process.env.LEGACY_MYSQL_USER ?? "eal_user",
+  password: process.env.LEGACY_MYSQL_PASSWORD ?? "eal_password",
+  database: process.env.LEGACY_MYSQL_DATABASE ?? "eal_local",
 }
 
 /** Chronological season order (legacy season IDs) */
@@ -51,9 +51,9 @@ const SEASON_ORDER = [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 17, 16, 18, 19, 20
 const BATCH_SIZE = 500
 
 // packages/db/src/eal-migration/ → 4 levels up to monorepo root
-const MONOREPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
-const LEGACY_IMAGES_DIR = join(MONOREPO_ROOT, '_legacy', 'src', 'frontend', 'imgs', 'teams')
-const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, 'uploads'))
+const MONOREPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..")
+const LEGACY_IMAGES_DIR = join(MONOREPO_ROOT, "_legacy", "src", "frontend", "imgs", "teams")
+const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, "uploads"))
 
 /**
  * Maps legacy team IDs to their name-based logo filenames in the legacy images dir.
@@ -61,23 +61,23 @@ const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, 'uploa
  * just references `logo_unknown.jpg`. This mapping bridges the gap.
  */
 const TEAM_ID_TO_LOGO_FILE: Record<number, string> = {
-  1: 'tsv-dietmannsried-tigers.jpg',
-  2: 'cosmos.jpg',
-  3: 'allgeier.jpg',
-  4: 'greuter.jpg',
-  5: 'apfeltrang.jpg',
-  6: 'memmingen.jpg',
-  7: 'dachser.jpg',
+  1: "tsv-dietmannsried-tigers.jpg",
+  2: "cosmos.jpg",
+  3: "allgeier.jpg",
+  4: "greuter.jpg",
+  5: "apfeltrang.jpg",
+  6: "memmingen.jpg",
+  7: "dachser.jpg",
   // 8: Sauriers — has sauriers_logo.jpg in DB column (handled by existing logic)
   // 9: ESK Piranhas — has piranhas_logo.jpg in DB column (handled by existing logic)
-  10: 'oberguenzburg.jpg',
+  10: "oberguenzburg.jpg",
   // 11: SSV Niedersonthofen — has niedersonthofen_logo.gif in DB column (handled by existing logic)
-  12: 'sv_29_kempten.jpg',
+  12: "sv_29_kempten.jpg",
   // 13: Taxi Pepe — has taxipepe_logo.gif in DB column (handled by existing logic)
-  16: 'tsv_lengenwang.jpg',
-  18: 'castle_mountain.jpg',
-  21: 'elbsee.jpg',
-  27: 'piranhas.jpg',
+  16: "tsv_lengenwang.jpg",
+  18: "castle_mountain.jpg",
+  21: "elbsee.jpg",
+  27: "piranhas.jpg",
 }
 
 // ---------------------------------------------------------------------------
@@ -110,31 +110,66 @@ interface LegacyData {
 }
 
 async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
-  console.log('[legacy] Loading data from MySQL...')
+  console.log("[legacy] Loading data from MySQL...")
 
   const [
-    teams, seasons, groups, groupNames,
-    players, playerTeams, games, reports,
-    goalieStats, bonusPoints, news, lineups, trikots,
+    teams,
+    seasons,
+    groups,
+    groupNames,
+    players,
+    playerTeams,
+    games,
+    reports,
+    goalieStats,
+    bonusPoints,
+    news,
+    lineups,
+    trikots,
   ] = await Promise.all([
-    query<LegacyTeam>(conn, 'SELECT id, name, kontakt1, telefon1, email1, homepage, logo, shortname, active, trikot_1, trikot_2, trikot_3 FROM alTeams ORDER BY id'),
-    query<LegacySeason>(conn, 'SELECT * FROM alSaison ORDER BY id'),
-    query<LegacyGroup>(conn, 'SELECT * FROM alGroups ORDER BY id'),
-    query<LegacyGroupName>(conn, 'SELECT * FROM alGroupnames ORDER BY id'),
-    query<LegacyPlayer>(conn, 'SELECT id, teamID, firstname, lastname, number, captain, assistant, status, posID, birthday, active FROM alPlayers ORDER BY id'),
-    query<LegacyPlayerTeam>(conn, 'SELECT * FROM alPlayerTeam ORDER BY id'),
-    query<LegacyGame>(conn, 'SELECT id, team_home, team_guest, term, location, goals_home, goals_guest, decided, round, saisonID, game_nr FROM alGames ORDER BY id'),
-    query<LegacyReport>(conn, 'SELECT * FROM alReport ORDER BY id'),
-    query<LegacyGoalieStat>(conn, 'SELECT * FROM alGoalieStatistic ORDER BY id'),
-    query<LegacyBonusPoint>(conn, 'SELECT * FROM alBonuspoints ORDER BY id'),
-    query<LegacyNews>(conn, 'SELECT * FROM alNews ORDER BY id'),
-    query<LegacyTeamLineUp>(conn, 'SELECT * FROM alTeamLineUp ORDER BY id'),
-    query<LegacyTrikot>(conn, 'SELECT * FROM alTrikots ORDER BY id'),
+    query<LegacyTeam>(
+      conn,
+      "SELECT id, name, kontakt1, telefon1, email1, homepage, logo, shortname, active, trikot_1, trikot_2, trikot_3 FROM alTeams ORDER BY id",
+    ),
+    query<LegacySeason>(conn, "SELECT * FROM alSaison ORDER BY id"),
+    query<LegacyGroup>(conn, "SELECT * FROM alGroups ORDER BY id"),
+    query<LegacyGroupName>(conn, "SELECT * FROM alGroupnames ORDER BY id"),
+    query<LegacyPlayer>(
+      conn,
+      "SELECT id, teamID, firstname, lastname, number, captain, assistant, status, posID, birthday, active FROM alPlayers ORDER BY id",
+    ),
+    query<LegacyPlayerTeam>(conn, "SELECT * FROM alPlayerTeam ORDER BY id"),
+    query<LegacyGame>(
+      conn,
+      "SELECT id, team_home, team_guest, term, location, goals_home, goals_guest, decided, round, saisonID, game_nr FROM alGames ORDER BY id",
+    ),
+    query<LegacyReport>(conn, "SELECT * FROM alReport ORDER BY id"),
+    query<LegacyGoalieStat>(conn, "SELECT * FROM alGoalieStatistic ORDER BY id"),
+    query<LegacyBonusPoint>(conn, "SELECT * FROM alBonuspoints ORDER BY id"),
+    query<LegacyNews>(conn, "SELECT * FROM alNews ORDER BY id"),
+    query<LegacyTeamLineUp>(conn, "SELECT * FROM alTeamLineUp ORDER BY id"),
+    query<LegacyTrikot>(conn, "SELECT * FROM alTrikots ORDER BY id"),
   ])
 
-  console.log(`[legacy] Loaded: ${teams.length} teams, ${seasons.length} seasons, ${players.length} players, ${games.length} games, ${reports.length} report entries, ${goalieStats.length} goalie stats, ${trikots.length} trikots, ${news.length} news`)
+  console.log(
+    `[legacy] Loaded: ${teams.length} teams, ${seasons.length} seasons, ${players.length} players, ${games.length} games, ${reports.length} report entries, ${goalieStats.length} goalie stats, ${trikots.length} trikots, ${news.length} news`,
+  )
 
-  return { teams, seasons, groups, groupNames, players, playerTeams, games, reports, goalieStats, bonusPoints, news, lineups, trikots }
+  return {
+    teams,
+    seasons,
+    groups,
+    groupNames,
+    players,
+    playerTeams,
+    games,
+    reports,
+    goalieStats,
+    bonusPoints,
+    news,
+    lineups,
+    trikots,
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -144,30 +179,36 @@ async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
 export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData> {
   const data = await loadLegacyData(conn)
 
-  console.log('\n══════════════════════════════════════════════════════════')
-  console.log(' LEGACY DATA ANALYSIS REPORT')
-  console.log('══════════════════════════════════════════════════════════\n')
+  console.log("\n══════════════════════════════════════════════════════════")
+  console.log(" LEGACY DATA ANALYSIS REPORT")
+  console.log("══════════════════════════════════════════════════════════\n")
 
   // Season summary
-  console.log('── Season Summary ──────────────────────────────────────')
-  console.log('ID  | Name       | PM | L1Pre L1PO L1PD L2Pre L2PO L2PU Mix  | Teams | Games | Decided')
-  console.log('────|────────────|────|──────────────────────────────────────|───────|───────|────────')
+  console.log("── Season Summary ──────────────────────────────────────")
+  console.log("ID  | Name       | PM | L1Pre L1PO L1PD L2Pre L2PO L2PU Mix  | Teams | Games | Decided")
+  console.log("────|────────────|────|──────────────────────────────────────|───────|───────|────────")
   for (const s of data.seasons) {
     const teamCount = new Set(data.groups.filter((g) => g.saisonID === s.id).map((g) => g.teamID)).size
     const seasonGames = data.games.filter((g) => g.saisonID === s.id)
     const decidedCount = seasonGames.filter((g) => g.decided === 1).length
     const flags = [
-      s.hasLeague1Preround, s.hasLeague1Playoffs, s.hasLeague1Playdowns,
-      s.hasLeague2Preround, s.hasLeague2Playoffs, s.hasLeague2Playups,
+      s.hasLeague1Preround,
+      s.hasLeague1Playoffs,
+      s.hasLeague1Playdowns,
+      s.hasLeague2Preround,
+      s.hasLeague2Playoffs,
+      s.hasLeague2Playups,
       s.hasMixedLeague,
-    ].map((f) => f ? '✓' : '·').join('    ')
+    ]
+      .map((f) => (f ? "✓" : "·"))
+      .join("    ")
     console.log(
-      `${String(s.id).padStart(3)} | ${s.text.padEnd(10)} | ${String(s.playmode_id).padStart(2)} | ${flags} | ${String(teamCount).padStart(5)} | ${String(seasonGames.length).padStart(5)} | ${String(decidedCount).padStart(5)}`
+      `${String(s.id).padStart(3)} | ${s.text.padEnd(10)} | ${String(s.playmode_id).padStart(2)} | ${flags} | ${String(teamCount).padStart(5)} | ${String(seasonGames.length).padStart(5)} | ${String(decidedCount).padStart(5)}`,
     )
   }
 
   // Round distribution
-  console.log('\n── Round Distribution ──────────────────────────────────')
+  console.log("\n── Round Distribution ──────────────────────────────────")
   const roundDist = new Map<string, { games: number; decided: number; teams: Set<number> }>()
   for (const g of data.games) {
     const key = `${g.saisonID}:${g.round}`
@@ -181,15 +222,17 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
     entry.teams.add(g.team_home)
     entry.teams.add(g.team_guest)
   }
-  console.log('Season | Round | Games | Decided | Teams')
-  console.log('───────|───────|───────|─────────|──────')
+  console.log("Season | Round | Games | Decided | Teams")
+  console.log("───────|───────|───────|─────────|──────")
   for (const [key, val] of [...roundDist.entries()].sort()) {
-    const [sid, rid] = key.split(':')
-    console.log(`${sid!.padStart(6)} | ${rid!.padStart(5)} | ${String(val.games).padStart(5)} | ${String(val.decided).padStart(7)} | ${val.teams.size}`)
+    const [sid, rid] = key.split(":")
+    console.log(
+      `${sid!.padStart(6)} | ${rid!.padStart(5)} | ${String(val.games).padStart(5)} | ${String(val.decided).padStart(7)} | ${val.teams.size}`,
+    )
   }
 
   // Team-group assignments
-  console.log('\n── Team-Group Assignments ──────────────────────────────')
+  console.log("\n── Team-Group Assignments ──────────────────────────────")
   const teamMap = new Map(data.teams.map((t) => [t.id, t.name]))
   for (const s of data.seasons) {
     const seasonGroups = data.groups.filter((g) => g.saisonID === s.id)
@@ -201,30 +244,48 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
     }
     const gnMap = new Map(data.groupNames.map((gn) => [gn.id, gn.name]))
     for (const [gnId, teams] of byGroup) {
-      console.log(`  ${s.text} / ${gnMap.get(gnId) ?? `?${gnId}`}: ${teams.join(', ')}`)
+      console.log(`  ${s.text} / ${gnMap.get(gnId) ?? `?${gnId}`}: ${teams.join(", ")}`)
     }
   }
 
   // Data quality warnings
-  console.log('\n── Data Quality Warnings ───────────────────────────────')
+  console.log("\n── Data Quality Warnings ───────────────────────────────")
   let warnings = 0
 
   // Orphaned game references
   const teamIds = new Set(data.teams.map((t) => t.id))
   const seasonIds = new Set(data.seasons.map((s) => s.id))
   for (const g of data.games) {
-    if (!teamIds.has(g.team_home)) { console.log(`  WARN: Game ${g.id} references unknown home team ${g.team_home}`); warnings++ }
-    if (!teamIds.has(g.team_guest)) { console.log(`  WARN: Game ${g.id} references unknown away team ${g.team_guest}`); warnings++ }
-    if (!seasonIds.has(g.saisonID)) { console.log(`  WARN: Game ${g.id} references unknown season ${g.saisonID}`); warnings++ }
+    if (!teamIds.has(g.team_home)) {
+      console.log(`  WARN: Game ${g.id} references unknown home team ${g.team_home}`)
+      warnings++
+    }
+    if (!teamIds.has(g.team_guest)) {
+      console.log(`  WARN: Game ${g.id} references unknown away team ${g.team_guest}`)
+      warnings++
+    }
+    if (!seasonIds.has(g.saisonID)) {
+      console.log(`  WARN: Game ${g.id} references unknown season ${g.saisonID}`)
+      warnings++
+    }
   }
 
   // Orphaned report references
   const gameIds = new Set(data.games.map((g) => g.id))
   const playerIds = new Set(data.players.map((p) => p.id))
   for (const r of data.reports) {
-    if (!gameIds.has(r.gameID)) { console.log(`  WARN: Report ${r.id} references unknown game ${r.gameID}`); warnings++ }
-    if (r.goal > 0 && !playerIds.has(r.goal)) { console.log(`  WARN: Report ${r.id} goal scorer ${r.goal} unknown`); warnings++ }
-    if (r.penalty > 0 && !playerIds.has(r.penalty)) { console.log(`  WARN: Report ${r.id} penalty player ${r.penalty} unknown`); warnings++ }
+    if (!gameIds.has(r.gameID)) {
+      console.log(`  WARN: Report ${r.id} references unknown game ${r.gameID}`)
+      warnings++
+    }
+    if (r.goal > 0 && !playerIds.has(r.goal)) {
+      console.log(`  WARN: Report ${r.id} goal scorer ${r.goal} unknown`)
+      warnings++
+    }
+    if (r.penalty > 0 && !playerIds.has(r.penalty)) {
+      console.log(`  WARN: Report ${r.id} penalty player ${r.penalty} unknown`)
+      warnings++
+    }
   }
 
   // Unparseable birthdays
@@ -244,14 +305,14 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
   }
   for (const [name, ids] of nameCount) {
     if (ids.length > 1) {
-      console.log(`  INFO: Possible duplicate players "${name}": IDs ${ids.join(', ')}`)
+      console.log(`  INFO: Possible duplicate players "${name}": IDs ${ids.join(", ")}`)
     }
   }
 
   console.log(`  Total warnings: ${warnings}`)
 
   // Migration preview
-  console.log('\n── Migration Preview ───────────────────────────────────')
+  console.log("\n── Migration Preview ───────────────────────────────────")
   let totalDivisions = 0
   let totalRounds = 0
   for (const s of data.seasons) {
@@ -297,11 +358,13 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
   console.log(`  Penalty events: ${penaltyEvents.length}`)
   console.log(`  Goalie game stats: ${goalieStatsForMigration.length}`)
   console.log(`  Bonus points: ${data.bonusPoints.length}`)
-  console.log(`  Trikots: ${data.trikots.filter((t) => t.id !== 3 && (t.template_id === 1 || t.template_id === 2)).length} (from ${data.trikots.length} total, skipping placeholder)`)
+  console.log(
+    `  Trikots: ${data.trikots.filter((t) => t.id !== 3 && (t.template_id === 1 || t.template_id === 2)).length} (from ${data.trikots.length} total, skipping placeholder)`,
+  )
   console.log(`  News articles: ${data.news.length}`)
   console.log(`  Game lineups: ${data.lineups.length}`)
 
-  console.log('\n══════════════════════════════════════════════════════════\n')
+  console.log("\n══════════════════════════════════════════════════════════\n")
 
   return data
 }
@@ -313,20 +376,20 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
 export async function migrateLegacy(db: Database, conn: mysql.Connection): Promise<void> {
   const data = await analyzeLegacy(conn)
 
-  console.log('Starting migration...\n')
+  console.log("Starting migration...\n")
 
   // ── Step 0: Clean existing org (idempotent) ──────────────────────────
-  console.log('[step 0] Deleting existing organization (if any)...')
+  console.log("[step 0] Deleting existing organization (if any)...")
   await db.organization.deleteMany({ where: { id: ORG_ID } })
 
   // ── Step 1: Organization + SystemSettings ────────────────────────────
-  console.log('[step 1] Creating organization + system settings...')
+  console.log("[step 1] Creating organization + system settings...")
   await db.organization.create({
-    data: { id: ORG_ID, name: 'Eishockey Allgäuliga', slug: 'eishockey-allgaeuliga' },
+    data: { id: ORG_ID, name: "Eishockey Allgäuliga", slug: "eishockey-allgaeuliga" },
   })
 
   // Assign Professional plan
-  const proPlan = await db.plan.findUnique({ where: { slug: 'professional' } })
+  const proPlan = await db.plan.findUnique({ where: { slug: "professional" } })
   if (proPlan) {
     const now = new Date()
     const oneYearLater = new Date(now)
@@ -335,24 +398,24 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       data: {
         organizationId: ORG_ID,
         planId: proPlan.id,
-        interval: 'yearly',
-        status: 'active',
+        interval: "yearly",
+        status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: oneYearLater,
       },
     })
-    console.log('[step 1]   → Assigned Professional plan')
+    console.log("[step 1]   → Assigned Professional plan")
   } else {
-    console.log('[step 1]   ⚠ Professional plan not found — run db:seed first')
+    console.log("[step 1]   ⚠ Professional plan not found — run db:seed first")
   }
 
   await db.systemSettings.create({
     data: {
       organizationId: ORG_ID,
-      leagueName: 'Eishockey Allgäuliga',
-      leagueShortName: 'EAL',
-      locale: 'de-DE',
-      timezone: 'Europe/Berlin',
+      leagueName: "Eishockey Allgäuliga",
+      leagueShortName: "EAL",
+      locale: "de-DE",
+      timezone: "Europe/Berlin",
       pointsWin: 2,
       pointsDraw: 1,
       pointsLoss: 0,
@@ -364,21 +427,21 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     data: {
       organizationId: ORG_ID,
       isActive: true,
-      templatePreset: 'classic',
+      templatePreset: "classic",
     },
   })
-  console.log('[step 1]   → Created website config')
+  console.log("[step 1]   → Created website config")
 
   // ── Step 2: PenaltyTypes ─────────────────────────────────────────────
-  console.log('[step 2] Ensuring penalty types exist...')
+  console.log("[step 2] Ensuring penalty types exist...")
   await db.penaltyType.createMany({
     data: [
-      { code: 'MINOR', name: 'Kleine Strafe', shortName: '2min', defaultMinutes: 2 },
-      { code: 'DOUBLE_MINOR', name: 'Doppelte Kleine Strafe', shortName: '2+2min', defaultMinutes: 4 },
-      { code: 'MAJOR', name: 'Große Strafe', shortName: '5min', defaultMinutes: 5 },
-      { code: 'MISCONDUCT', name: 'Disziplinarstrafe', shortName: '10min', defaultMinutes: 10 },
-      { code: 'GAME_MISCONDUCT', name: 'Spieldauer-Disziplinarstrafe', shortName: 'SD', defaultMinutes: 20 },
-      { code: 'MATCH_PENALTY', name: 'Matchstrafe', shortName: 'MS', defaultMinutes: 25 },
+      { code: "MINOR", name: "Kleine Strafe", shortName: "2min", defaultMinutes: 2 },
+      { code: "DOUBLE_MINOR", name: "Doppelte Kleine Strafe", shortName: "2+2min", defaultMinutes: 4 },
+      { code: "MAJOR", name: "Große Strafe", shortName: "5min", defaultMinutes: 5 },
+      { code: "MISCONDUCT", name: "Disziplinarstrafe", shortName: "10min", defaultMinutes: 10 },
+      { code: "GAME_MISCONDUCT", name: "Spieldauer-Disziplinarstrafe", shortName: "SD", defaultMinutes: 20 },
+      { code: "MATCH_PENALTY", name: "Matchstrafe", shortName: "MS", defaultMinutes: 25 },
     ],
     skipDuplicates: true,
   })
@@ -402,17 +465,19 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   data.teams.forEach((t, i) => teamUuidMap.set(t.id, insertedTeams[i]!.id))
 
   // ── Step 3a: Team images (logos + photos) ─────────────────────────────
-  console.log('[step 3a] Migrating team logos and photos...')
+  console.log("[step 3a] Migrating team logos and photos...")
   let logoCount = 0
   let photoCount = 0
 
-  const legacyImagesExist = await stat(LEGACY_IMAGES_DIR).then(() => true).catch(() => false)
+  const legacyImagesExist = await stat(LEGACY_IMAGES_DIR)
+    .then(() => true)
+    .catch(() => false)
 
   if (!legacyImagesExist) {
     console.log(`[step 3a]   ⚠ Legacy images directory not found: ${LEGACY_IMAGES_DIR}`)
   } else {
-    const logosDir = join(UPLOAD_BASE, ORG_ID, 'logos')
-    const photosDir = join(UPLOAD_BASE, ORG_ID, 'photos')
+    const logosDir = join(UPLOAD_BASE, ORG_ID, "logos")
+    const photosDir = join(UPLOAD_BASE, ORG_ID, "photos")
     await mkdir(logosDir, { recursive: true })
     await mkdir(photosDir, { recursive: true })
 
@@ -425,18 +490,22 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
 
       // --- Logo: try teamlogo_<id>.jpg, then logo column value, then name-based file ---
       const logoById = join(LEGACY_IMAGES_DIR, `teamlogo_${team.id}.jpg`)
-      const logoByIdExists = await stat(logoById).then(() => true).catch(() => false)
+      const logoByIdExists = await stat(logoById)
+        .then(() => true)
+        .catch(() => false)
 
       let logoSource: string | null = null
       if (logoByIdExists) {
         logoSource = logoById
-      } else if (team.logo && team.logo !== '') {
+      } else if (team.logo && team.logo !== "") {
         // logo column may contain path like ./imgs/teams/piranhas_logo.jpg or just a filename
         const logoFilename = basename(team.logo)
         // Skip placeholders
-        if (logoFilename !== 'logo_unknown.jpg' && logoFilename !== 'noteampic.jpg') {
+        if (logoFilename !== "logo_unknown.jpg" && logoFilename !== "noteampic.jpg") {
           const logoByCol = join(LEGACY_IMAGES_DIR, logoFilename)
-          const logoByColExists = await stat(logoByCol).then(() => true).catch(() => false)
+          const logoByColExists = await stat(logoByCol)
+            .then(() => true)
+            .catch(() => false)
           if (logoByColExists) {
             logoSource = logoByCol
           }
@@ -446,7 +515,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       // Fallback: team-name-based logo file (e.g. memmingen.jpg, cosmos.jpg)
       if (!logoSource && TEAM_ID_TO_LOGO_FILE[team.id]) {
         const logoByName = join(LEGACY_IMAGES_DIR, TEAM_ID_TO_LOGO_FILE[team.id]!)
-        const logoByNameExists = await stat(logoByName).then(() => true).catch(() => false)
+        const logoByNameExists = await stat(logoByName)
+          .then(() => true)
+          .catch(() => false)
         if (logoByNameExists) {
           logoSource = logoByName
         }
@@ -462,7 +533,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
 
       // --- Team photo: teambild_<id>.jpg ---
       const photoPath = join(LEGACY_IMAGES_DIR, `teambild_${team.id}.jpg`)
-      const photoExists = await stat(photoPath).then(() => true).catch(() => false)
+      const photoExists = await stat(photoPath)
+        .then(() => true)
+        .catch(() => false)
 
       if (photoExists) {
         const newFilename = `${randomUUID()}.jpg`
@@ -486,16 +559,16 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 3a]   → ${logoCount} logos, ${photoCount} team photos migrated`)
 
   // ── Step 3b: Trikots + TeamTrikots ──────────────────────────────────
-  console.log('[step 3b] Creating trikots and team-trikot assignments...')
+  console.log("[step 3b] Creating trikots and team-trikot assignments...")
 
   // Look up existing TrikotTemplate records (seeded by db:seed)
   const trikotTemplates = await db.trikotTemplate.findMany()
   const templateByType = new Map(trikotTemplates.map((t) => [t.templateType, t]))
-  const oneColorTemplate = templateByType.get('one_color')
-  const twoColorTemplate = templateByType.get('two_color')
+  const oneColorTemplate = templateByType.get("one_color")
+  const twoColorTemplate = templateByType.get("two_color")
 
   if (!oneColorTemplate || !twoColorTemplate) {
-    console.log('[step 3b]    ⚠ TrikotTemplates not found — run db:seed first. Skipping trikots.')
+    console.log("[step 3b]    ⚠ TrikotTemplates not found — run db:seed first. Skipping trikots.")
   } else {
     // Create Trikot records (skip id=3 which is a placeholder with template_id=0)
     const trikotUuidMap = new Map<number, string>() // legacy trikot ID → new UUID
@@ -507,7 +580,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
           organizationId: ORG_ID,
           name: t.name,
           templateId: t.template_id === 1 ? oneColorTemplate.id : twoColorTemplate.id,
-          primaryColor: t.color_brust || '#000000',
+          primaryColor: t.color_brust || "#000000",
           secondaryColor: t.template_id === 2 && t.color_schulter ? t.color_schulter : null,
         })),
       })
@@ -523,9 +596,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       if (!teamUuid) continue
 
       const assignments: Array<{ legacyTrikotId: number | null; name: string }> = [
-        { legacyTrikotId: team.trikot_1, name: 'Heim' },
-        { legacyTrikotId: team.trikot_2, name: 'Auswärts' },
-        { legacyTrikotId: team.trikot_3, name: 'Alternativ' },
+        { legacyTrikotId: team.trikot_1, name: "Heim" },
+        { legacyTrikotId: team.trikot_2, name: "Auswärts" },
+        { legacyTrikotId: team.trikot_3, name: "Alternativ" },
       ]
 
       for (const { legacyTrikotId, name } of assignments) {
@@ -559,7 +632,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   data.seasons.forEach((s, i) => seasonUuidMap.set(s.id, insertedSeasons[i]!.id))
 
   // ── Step 5: Divisions + Rounds ───────────────────────────────────────
-  console.log('[step 5] Creating divisions and rounds...')
+  console.log("[step 5] Creating divisions and rounds...")
   // Store the division defs per season for later game mapping
   const seasonDivisionDefs = new Map<number, DivisionDef[]>()
   const divisionUuidMap = new Map<string, string>() // "seasonLegacyId:divIndex" → UUID
@@ -606,7 +679,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 5]    → ${divisionUuidMap.size} divisions, ${allRoundUuids.length} rounds`)
 
   // ── Step 6: TeamDivision ─────────────────────────────────────────────
-  console.log('[step 6] Creating team-division assignments...')
+  console.log("[step 6] Creating team-division assignments...")
   const tdValues: Array<{ organizationId: string; teamId: string; divisionId: string }> = []
 
   for (const s of data.seasons) {
@@ -622,9 +695,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
         // All teams in the season
         assignedTeamIds = [...new Set(seasonGroups.map((g) => g.teamID))]
       } else if (divDef.grpnameIds) {
-        assignedTeamIds = seasonGroups
-          .filter((g) => divDef.grpnameIds!.includes(g.grpnameID))
-          .map((g) => g.teamID)
+        assignedTeamIds = seasonGroups.filter((g) => divDef.grpnameIds!.includes(g.grpnameID)).map((g) => g.teamID)
       } else {
         assignedTeamIds = []
       }
@@ -656,7 +727,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   data.players.forEach((p, i) => playerUuidMap.set(p.id, insertedPlayers[i]!.id))
 
   // ── Step 8: Contracts (consolidated) ─────────────────────────────────
-  console.log('[step 8] Creating contracts (consolidated)...')
+  console.log("[step 8] Creating contracts (consolidated)...")
   const activePlayerTeams = data.playerTeams.filter((pt) => pt.active === 1)
   const ptByPlayerTeam = new Map<string, number[]>()
   for (const pt of activePlayerTeams) {
@@ -681,25 +752,23 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     organizationId: string
     playerId: string
     teamId: string
-    position: 'forward' | 'defense' | 'goalie'
+    position: "forward" | "defense" | "goalie"
     jerseyNumber?: number
     startSeasonId: string
     endSeasonId?: string
   }> = []
 
-  const latestSeasonId = data.seasons.length > 0
-    ? SEASON_ORDER[SEASON_ORDER.length - 1]!
-    : undefined
+  const latestSeasonId = data.seasons.length > 0 ? SEASON_ORDER[SEASON_ORDER.length - 1]! : undefined
 
   for (const [key, seasonIdList] of ptByPlayerTeam) {
-    const [playerIdStr, teamIdStr] = key.split(':')
+    const [playerIdStr, teamIdStr] = key.split(":")
     const legacyPlayerId = Number(playerIdStr)
     const legacyTeamId = Number(teamIdStr)
     const playerUuid = playerUuidMap.get(legacyPlayerId)
     const teamUuid = teamUuidMap.get(legacyTeamId)
     if (!playerUuid || !teamUuid) continue
 
-    const position = playerPositionMap.get(legacyPlayerId) ?? 'forward'
+    const position = playerPositionMap.get(legacyPlayerId) ?? "forward"
     const jerseyNumber = playerJerseyMap.get(legacyPlayerId)
 
     // Sort by chronological order
@@ -724,7 +793,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
             organizationId: ORG_ID,
             playerId: playerUuid,
             teamId: teamUuid,
-            position: position as 'forward' | 'defense' | 'goalie',
+            position: position as "forward" | "defense" | "goalie",
             jerseyNumber,
             startSeasonId: startUuid,
             endSeasonId: endUuid,
@@ -744,7 +813,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
         organizationId: ORG_ID,
         playerId: playerUuid,
         teamId: teamUuid,
-        position: position as 'forward' | 'defense' | 'goalie',
+        position: position as "forward" | "defense" | "goalie",
         jerseyNumber,
         startSeasonId: startUuid,
         endSeasonId: endUuid,
@@ -791,7 +860,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       awayTeamId: awayTeamUuid,
       scheduledAt: g.term,
       location: g.location || null,
-      status: isCompleted ? 'completed' : 'scheduled',
+      status: isCompleted ? "completed" : "scheduled",
       homeScore: isCompleted ? (g.goals_home ?? 0) : null,
       awayScore: isCompleted ? (g.goals_guest ?? 0) : null,
       gameNumber: g.game_nr,
@@ -820,7 +889,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 9]    → ${gameUuidMap.size} games created`)
 
   // ── Step 9b: Derive team homeVenue from most frequent home game location
-  console.log('[step 9b] Deriving team homeVenue from game locations...')
+  console.log("[step 9b] Deriving team homeVenue from game locations...")
   const homeLocationsByTeam = new Map<number, Map<string, number>>()
   for (const g of data.games) {
     if (!g.location) continue
@@ -841,7 +910,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 9b]   → ${homeVenueCount} teams updated with homeVenue`)
 
   // ── Step 10: Goal events ─────────────────────────────────────────────
-  console.log('[step 10] Creating goal events...')
+  console.log("[step 10] Creating goal events...")
   const goalReports = data.reports.filter((r) => r.goal > 0)
   const goalEventValues: Array<any> = []
 
@@ -855,13 +924,13 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     const scorerUuid = playerUuidMap.get(r.goal)
     if (!scorerUuid) continue
 
-    const assist1Uuid = r.assist > 0 ? playerUuidMap.get(r.assist) ?? null : null
+    const assist1Uuid = r.assist > 0 ? (playerUuidMap.get(r.assist) ?? null) : null
     const period = derivePeriod(r.playminute)
 
     goalEventValues.push({
       organizationId: ORG_ID,
       gameId: gameUuid,
-      eventType: 'goal' as const,
+      eventType: "goal" as const,
       teamId: teamUuid,
       period,
       timeMinutes: r.playminute,
@@ -877,7 +946,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 10]   → ${goalEventValues.length} goal events`)
 
   // ── Step 11: Penalty events ──────────────────────────────────────────
-  console.log('[step 11] Creating penalty events...')
+  console.log("[step 11] Creating penalty events...")
   const penaltyReports = data.reports.filter((r) => r.penalty > 0)
   const penaltyEventValues: Array<any> = []
 
@@ -891,15 +960,15 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     const penaltyPlayerUuid = playerUuidMap.get(r.penalty)
     if (!penaltyPlayerUuid) continue
 
-    const penaltyCode = PENALTY_ID_TO_CODE[r.penaltyID] ?? 'MINOR'
+    const penaltyCode = PENALTY_ID_TO_CODE[r.penaltyID] ?? "MINOR"
     const penaltyType = penaltyTypeByCode.get(penaltyCode)
-    const penaltyName = PENALTY_ID_TO_NAME[r.penaltyID] ?? 'Unbekannt'
+    const penaltyName = PENALTY_ID_TO_NAME[r.penaltyID] ?? "Unbekannt"
     const period = derivePeriod(r.playminute)
 
     penaltyEventValues.push({
       organizationId: ORG_ID,
       gameId: gameUuid,
-      eventType: 'penalty' as const,
+      eventType: "penalty" as const,
       teamId: teamUuid,
       period,
       timeMinutes: r.playminute,
@@ -917,7 +986,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 11]   → ${penaltyEventValues.length} penalty events`)
 
   // ── Step 12: GoalieGameStat ──────────────────────────────────────────
-  console.log('[step 12] Creating goalie game stats...')
+  console.log("[step 12] Creating goalie game stats...")
   const goalieStatsForMigration = data.goalieStats.filter((gs) => gs.statistic === 1)
   const goalieGameStatValues: Array<any> = []
 
@@ -946,13 +1015,13 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 12]   → ${goalieGameStatValues.length} goalie game stats`)
 
   // ── Step 12b: Game Lineups ────────────────────────────────────────────
-  console.log('[step 12b] Creating game lineups...')
+  console.log("[step 12b] Creating game lineups...")
   const lineupValues: Array<{
     organizationId: string
     gameId: string
     playerId: string
     teamId: string
-    position: 'forward' | 'defense' | 'goalie'
+    position: "forward" | "defense" | "goalie"
     jerseyNumber: number | null
     isStartingGoalie: boolean
   }> = []
@@ -961,20 +1030,32 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
 
   for (const lu of data.lineups) {
     const gameUuid = gameUuidMap.get(lu.gameID)
-    if (!gameUuid) { skippedLineups++; continue }
+    if (!gameUuid) {
+      skippedLineups++
+      continue
+    }
 
     const playerUuid = playerUuidMap.get(lu.playerID)
-    if (!playerUuid) { skippedLineups++; continue }
+    if (!playerUuid) {
+      skippedLineups++
+      continue
+    }
 
     const teamUuid = teamUuidMap.get(lu.teamID)
-    if (!teamUuid) { skippedLineups++; continue }
+    if (!teamUuid) {
+      skippedLineups++
+      continue
+    }
 
     // Deduplicate: schema has @@unique([gameId, playerId])
     const uniqueKey = `${gameUuid}:${playerUuid}`
-    if (seenLineupKeys.has(uniqueKey)) { skippedLineups++; continue }
+    if (seenLineupKeys.has(uniqueKey)) {
+      skippedLineups++
+      continue
+    }
     seenLineupKeys.add(uniqueKey)
 
-    const position = (playerPositionMap.get(lu.playerID) ?? 'forward') as 'forward' | 'defense' | 'goalie'
+    const position = (playerPositionMap.get(lu.playerID) ?? "forward") as "forward" | "defense" | "goalie"
     const jerseyNumber = playerJerseyMap.get(lu.playerID) ?? null
 
     lineupValues.push({
@@ -997,7 +1078,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 12b]  → ${lineupValues.length} game lineups created`)
 
   // ── Step 13: BonusPoints ─────────────────────────────────────────────
-  console.log('[step 13] Creating bonus points...')
+  console.log("[step 13] Creating bonus points...")
   const bonusValues: Array<any> = []
 
   for (const bp of data.bonusPoints) {
@@ -1034,7 +1115,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       teamId: teamUuid,
       roundId: roundUuid,
       points: bp.bonuspoints,
-      reason: 'Legacy-Bonuspunkte',
+      reason: "Legacy-Bonuspunkte",
     })
   }
 
@@ -1044,13 +1125,13 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 13]   → ${bonusValues.length} bonus points`)
 
   // ── Step 14: News ────────────────────────────────────────────────────
-  console.log('[step 14] Creating news articles...')
+  console.log("[step 14] Creating news articles...")
   const newsValues = data.news.map((n) => ({
     organizationId: ORG_ID,
-    title: n.ueberschrift || 'Untitled',
+    title: n.ueberschrift || "Untitled",
     shortText: n.infozeile || null,
-    content: n.text || '',
-    status: 'published' as const,
+    content: n.text || "",
+    status: "published" as const,
     publishedAt: n.datetime,
     createdAt: n.datetime,
   }))
@@ -1061,7 +1142,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 14]   → ${newsValues.length} news articles`)
 
   // ── Step 15: Recalculate standings ───────────────────────────────────
-  console.log('[step 15] Recalculating standings for all rounds...')
+  console.log("[step 15] Recalculating standings for all rounds...")
   let standingsCount = 0
   for (const roundUuid of allRoundUuids) {
     await recalculateStandings(db, roundUuid, ORG_ID)
@@ -1070,7 +1151,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   console.log(`[step 15]   → Standings recalculated for ${standingsCount} rounds`)
 
   // ── Step 16: Recalculate player + goalie stats ───────────────────────
-  console.log('[step 16] Recalculating player and goalie season stats...')
+  console.log("[step 16] Recalculating player and goalie season stats...")
   for (const s of data.seasons) {
     const seasonUuid = seasonUuidMap.get(s.id)!
     await recalculatePlayerStats(db, seasonUuid, ORG_ID)
@@ -1087,17 +1168,17 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
 // ---------------------------------------------------------------------------
 
 async function printVerification(db: Database, data: LegacyData): Promise<void> {
-  console.log('\n══════════════════════════════════════════════════════════')
-  console.log(' MIGRATION VERIFICATION')
-  console.log('══════════════════════════════════════════════════════════\n')
+  console.log("\n══════════════════════════════════════════════════════════")
+  console.log(" MIGRATION VERIFICATION")
+  console.log("══════════════════════════════════════════════════════════\n")
 
   const newTeams = await db.team.count({ where: { organizationId: ORG_ID } })
   const newPlayers = await db.player.count({ where: { organizationId: ORG_ID } })
   const newSeasons = await db.season.count({ where: { organizationId: ORG_ID } })
-  const newGamesCompleted = await db.game.count({ where: { organizationId: ORG_ID, status: 'completed' } })
+  const newGamesCompleted = await db.game.count({ where: { organizationId: ORG_ID, status: "completed" } })
   const newGamesTotal = await db.game.count({ where: { organizationId: ORG_ID } })
-  const newGoalEvents = await db.gameEvent.count({ where: { organizationId: ORG_ID, eventType: 'goal' } })
-  const newPenaltyEvents = await db.gameEvent.count({ where: { organizationId: ORG_ID, eventType: 'penalty' } })
+  const newGoalEvents = await db.gameEvent.count({ where: { organizationId: ORG_ID, eventType: "goal" } })
+  const newPenaltyEvents = await db.gameEvent.count({ where: { organizationId: ORG_ID, eventType: "penalty" } })
   const newGoalieStats = await db.goalieGameStat.count({ where: { organizationId: ORG_ID } })
   const newContracts = await db.contract.count({ where: { organizationId: ORG_ID } })
   const newDivisions = await db.division.count({ where: { organizationId: ORG_ID } })
@@ -1116,10 +1197,12 @@ async function printVerification(db: Database, data: LegacyData): Promise<void> 
   const legacyGoals = data.reports.filter((r) => r.goal > 0).length
   const legacyPenalties = data.reports.filter((r) => r.penalty > 0).length
   const legacyGoalieStats = data.goalieStats.filter((gs) => gs.statistic === 1).length
-  const legacyValidTrikots = data.trikots.filter((t) => t.id !== 3 && (t.template_id === 1 || t.template_id === 2)).length
+  const legacyValidTrikots = data.trikots.filter(
+    (t) => t.id !== 3 && (t.template_id === 1 || t.template_id === 2),
+  ).length
 
-  console.log('Entity             | Legacy      | New')
-  console.log('───────────────────|─────────────|──────────')
+  console.log("Entity             | Legacy      | New")
+  console.log("───────────────────|─────────────|──────────")
   console.log(`Teams              | ${String(data.teams.length).padStart(11)} | ${newTeams}`)
   console.log(`Players            | ${String(data.players.length).padStart(11)} | ${newPlayers}`)
   console.log(`Seasons            | ${String(data.seasons.length).padStart(11)} | ${newSeasons}`)
@@ -1135,46 +1218,52 @@ async function printVerification(db: Database, data: LegacyData): Promise<void> 
   console.log(`Goal events        | ${String(legacyGoals).padStart(11)} | ${newGoalEvents}`)
   console.log(`Penalty events     | ${String(legacyPenalties).padStart(11)} | ${newPenaltyEvents}`)
   console.log(`Goalie game stats  | ${String(legacyGoalieStats).padStart(11)} | ${newGoalieStats}`)
-  console.log(`Contracts          | ${String(data.playerTeams.filter((pt) => pt.active === 1).length).padStart(11)} | ${newContracts} (consolidated)`)
+  console.log(
+    `Contracts          | ${String(data.playerTeams.filter((pt) => pt.active === 1).length).padStart(11)} | ${newContracts} (consolidated)`,
+  )
   console.log(`News               | ${String(data.news.length).padStart(11)} | ${newNews}`)
   console.log(`Standings          |           — | ${newStandings}`)
   console.log(`Player season stats|           — | ${newPlayerStats}`)
   console.log(`Goalie season stats|           — | ${newGoalieSeasonStats}`)
 
   // Spot checks
-  console.log('\n── Spot Checks ────────────────────────────────────────')
+  console.log("\n── Spot Checks ────────────────────────────────────────")
 
   // Top scorers
   const topScorers = await db.playerSeasonStat.findMany({
     where: { organizationId: ORG_ID },
-    orderBy: { totalPoints: 'desc' },
+    orderBy: { totalPoints: "desc" },
     take: 5,
     include: { player: { select: { firstName: true, lastName: true } }, season: { select: { name: true } } },
   })
-  console.log('\nTop 5 all-time scorers (single season):')
+  console.log("\nTop 5 all-time scorers (single season):")
   for (const s of topScorers) {
-    console.log(`  ${s.player.firstName} ${s.player.lastName} (${s.season.name}): ${s.goals}G ${s.assists}A = ${s.totalPoints}P`)
+    console.log(
+      `  ${s.player.firstName} ${s.player.lastName} (${s.season.name}): ${s.goals}G ${s.assists}A = ${s.totalPoints}P`,
+    )
   }
 
   // Sample completed games with events
   const sampleGames = await db.game.findMany({
-    where: { organizationId: ORG_ID, status: 'completed' },
+    where: { organizationId: ORG_ID, status: "completed" },
     take: 3,
-    orderBy: { scheduledAt: 'desc' },
+    orderBy: { scheduledAt: "desc" },
     include: {
       homeTeam: { select: { name: true } },
       awayTeam: { select: { name: true } },
       events: { select: { eventType: true } },
     },
   })
-  console.log('\nSample recent completed games:')
+  console.log("\nSample recent completed games:")
   for (const g of sampleGames) {
-    const goals = g.events.filter((e) => e.eventType === 'goal').length
-    const pens = g.events.filter((e) => e.eventType === 'penalty').length
-    console.log(`  ${g.homeTeam.name} ${g.homeScore}-${g.awayScore} ${g.awayTeam.name} (${goals} goals, ${pens} penalties)`)
+    const goals = g.events.filter((e) => e.eventType === "goal").length
+    const pens = g.events.filter((e) => e.eventType === "penalty").length
+    console.log(
+      `  ${g.homeTeam.name} ${g.homeScore}-${g.awayScore} ${g.awayTeam.name} (${goals} goals, ${pens} penalties)`,
+    )
   }
 
-  console.log('\n══════════════════════════════════════════════════════════\n')
+  console.log("\n══════════════════════════════════════════════════════════\n")
 }
 
 // ---------------------------------------------------------------------------
@@ -1223,12 +1312,16 @@ function derivePeriod(playminute: number): number {
 }
 
 /** Map legacy posID to Position enum */
-function legacyPosToPosition(posID: number): 'forward' | 'defense' | 'goalie' {
+function legacyPosToPosition(posID: number): "forward" | "defense" | "goalie" {
   switch (posID) {
-    case 1: return 'forward'
-    case 2: return 'defense'
-    case 3: return 'goalie'
-    default: return 'forward' // "k. A." (unknown) defaults to forward
+    case 1:
+      return "forward"
+    case 2:
+      return "defense"
+    case 3:
+      return "goalie"
+    default:
+      return "forward" // "k. A." (unknown) defaults to forward
   }
 }
 
@@ -1239,6 +1332,6 @@ function legacyPosToPosition(posID: number): 'forward' | 'defense' | 'goalie' {
 export async function connectLegacyMySQL(): Promise<mysql.Connection> {
   console.log(`[legacy] Connecting to MySQL at ${MYSQL_CONFIG.host}:${MYSQL_CONFIG.port}/${MYSQL_CONFIG.database}...`)
   const conn = await mysql.createConnection(MYSQL_CONFIG)
-  console.log('[legacy] Connected.')
+  console.log("[legacy] Connected.")
   return conn
 }

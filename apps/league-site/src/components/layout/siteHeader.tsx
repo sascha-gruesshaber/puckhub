@@ -6,8 +6,9 @@ import { useT } from "~/lib/i18n"
 import { allPathVariants } from "~/lib/localizedRoutes"
 import { cn } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
+import { TeamsDesktopMegaDropdown, TeamsMobileGrid } from "./teamsMegaDropdown"
 
-type MenuPage = {
+export type MenuPage = {
   id: string
   title: string
   slug: string
@@ -15,8 +16,17 @@ type MenuPage = {
   routePath: string | null
   parentId: string | null
   parent: { slug: string } | null
-  children: Array<{ id: string; title: string; slug: string; sortOrder?: number; routePath?: string | null; isSystemRoute?: boolean }>
+  children: Array<{
+    id: string
+    title: string
+    slug: string
+    sortOrder?: number
+    routePath?: string | null
+    isSystemRoute?: boolean
+  }>
 }
+
+const TEAMS_ROUTE_PATH = "/teams"
 
 /** Routes that require the advancedStats feature flag */
 const ADVANCED_TEAMS_ROUTES = allPathVariants("/stats/compare-teams")
@@ -32,6 +42,11 @@ function getPageLink(page: Pick<MenuPage, "isSystemRoute" | "routePath" | "slug"
 function DesktopNavItem({ page }: { page: MenuPage }) {
   const link = getPageLink(page)
   const hasChildren = page.children.length > 0
+
+  const isTeamsPage = page.isSystemRoute && page.routePath === TEAMS_ROUTE_PATH
+  if (isTeamsPage) {
+    return <TeamsDesktopMegaDropdown page={page} link={link} />
+  }
 
   if (!hasChildren) {
     return (
@@ -113,9 +128,7 @@ export function SiteHeader() {
     if (features.advancedStats) return pages
     return pages.map((page) => ({
       ...page,
-      children: page.children.filter(
-        (c) => !ADVANCED_TEAMS_ROUTES.includes(c.routePath ?? ""),
-      ),
+      children: page.children.filter((c) => !ADVANCED_TEAMS_ROUTES.includes(c.routePath ?? "")),
     }))
   }, [menuPages, features.advancedStats])
 
@@ -167,6 +180,8 @@ export function SiteHeader() {
           {topLevelMenuPages?.map((page) => {
             const link = getPageLink(page)
             const hasChildren = page.children.length > 0
+            const isTeamsPage = page.isSystemRoute && page.routePath === TEAMS_ROUTE_PATH
+            const showExpander = hasChildren || isTeamsPage
             const isExpanded = expandedMobileId === page.id
 
             return (
@@ -182,7 +197,7 @@ export function SiteHeader() {
                   >
                     {page.title}
                   </Link>
-                  {hasChildren && (
+                  {showExpander && (
                     <button
                       type="button"
                       className="p-2 rounded-md hover:bg-white/10 transition-colors"
@@ -192,7 +207,8 @@ export function SiteHeader() {
                     </button>
                   )}
                 </div>
-                {hasChildren && isExpanded && (
+                {isExpanded && isTeamsPage && <TeamsMobileGrid page={page} onNavigate={() => setMobileOpen(false)} />}
+                {isExpanded && !isTeamsPage && hasChildren && (
                   <div className="ml-4 border-l border-white/10 pl-2 space-y-1">
                     {page.children.map((child) =>
                       child.routePath ? (

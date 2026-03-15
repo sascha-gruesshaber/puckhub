@@ -147,7 +147,12 @@ export function resolveTheme(config: WebsiteConfig): { colors: ThemeColors; layo
 }
 
 export function generateCssVariables(colors: ThemeColors): string {
+  // Determine color-scheme from background lightness (HSL third component)
+  const bgLightness = Number.parseFloat(colors.background.split(/\s+/)[2] ?? "98")
+  const colorScheme = bgLightness < 50 ? "dark" : "light"
+
   return `:root {
+  color-scheme: ${colorScheme};
   --league-primary: ${colors.primary};
   --league-secondary: ${colors.secondary};
   --league-accent: ${colors.accent};

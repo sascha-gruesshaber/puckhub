@@ -36,9 +36,33 @@ function SkaterProgressionChart({ stats }: { stats: PlayerSeasonStatRow[] }) {
     xAxis: { type: "category" as const, data: seasons },
     yAxis: { type: "value" as const, minInterval: 1 },
     series: [
-      { name: t.charts.goals, type: "line" as const, data: goals, smooth: true, symbol: "circle", symbolSize: 8, itemStyle: { color: LEAGUE_CHART_COLORS[0] } },
-      { name: t.charts.assists, type: "line" as const, data: assists, smooth: true, symbol: "circle", symbolSize: 8, itemStyle: { color: LEAGUE_CHART_COLORS[1] } },
-      { name: t.charts.points, type: "line" as const, data: points, smooth: true, symbol: "circle", symbolSize: 8, itemStyle: { color: LEAGUE_CHART_COLORS[3] } },
+      {
+        name: t.charts.goals,
+        type: "line" as const,
+        data: goals,
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 8,
+        itemStyle: { color: LEAGUE_CHART_COLORS[0] },
+      },
+      {
+        name: t.charts.assists,
+        type: "line" as const,
+        data: assists,
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 8,
+        itemStyle: { color: LEAGUE_CHART_COLORS[1] },
+      },
+      {
+        name: t.charts.points,
+        type: "line" as const,
+        data: points,
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 8,
+        itemStyle: { color: LEAGUE_CHART_COLORS[3] },
+      },
     ],
   }
 

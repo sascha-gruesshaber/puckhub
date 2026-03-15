@@ -63,11 +63,18 @@ export async function runSeed(db: Database) {
   // ─── Plans ──────────────────────────────────────────────────────────────────
   console.log("Seeding plans...")
 
+  // Fixed plan IDs — these are stable across all environments
+  const PLAN_IDS = {
+    free: "00000000-0000-0000-0000-000000000001",
+    starter: "00000000-0000-0000-0000-000000000002",
+    pro: "00000000-0000-0000-0000-000000000003",
+  } as const
+
   const planData = [
     {
+      id: PLAN_IDS.free,
       slug: "free",
       name: "Free",
-      description: "For small hobby tournaments",
       sortOrder: 0,
       priceMonthly: 0,
       priceYearly: 0,
@@ -85,7 +92,6 @@ export async function runSeed(db: Database) {
       featureWebsiteBuilder: false,
       featureSponsorMgmt: false,
       featureTrikotDesigner: false,
-      featureExportImport: false,
       featureGameReports: true,
       featurePlayerStats: true,
       featureScheduler: false,
@@ -94,9 +100,9 @@ export async function runSeed(db: Database) {
       featureAdvancedStats: false,
     },
     {
+      id: PLAN_IDS.starter,
       slug: "starter",
       name: "Starter",
-      description: "For regional leagues with websites and sponsors",
       sortOrder: 1,
       priceMonthly: 1999,
       priceYearly: 19990,
@@ -114,7 +120,6 @@ export async function runSeed(db: Database) {
       featureWebsiteBuilder: true,
       featureSponsorMgmt: true,
       featureTrikotDesigner: false,
-      featureExportImport: false,
       featureGameReports: true,
       featurePlayerStats: true,
       featureScheduler: false,
@@ -123,9 +128,9 @@ export async function runSeed(db: Database) {
       featureAdvancedStats: false,
     },
     {
+      id: PLAN_IDS.pro,
       slug: "pro",
       name: "Pro",
-      description: "Full-featured for large leagues",
       sortOrder: 2,
       priceMonthly: 4999,
       priceYearly: 49990,
@@ -143,7 +148,6 @@ export async function runSeed(db: Database) {
       featureWebsiteBuilder: true,
       featureSponsorMgmt: true,
       featureTrikotDesigner: true,
-      featureExportImport: true,
       featureGameReports: true,
       featurePlayerStats: true,
       featureScheduler: true,
@@ -162,7 +166,7 @@ export async function runSeed(db: Database) {
   }
 
   // ─── Assign Free plan + slug to existing orgs ──────────────────────────────
-  const freePlan = await db.plan.findUnique({ where: { slug: "free" } })
+  const freePlan = await db.plan.findUnique({ where: { id: PLAN_IDS.free } })
   if (freePlan) {
     const orgs = await db.organization.findMany({
       select: { id: true, name: true, slug: true },

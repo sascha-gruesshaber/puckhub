@@ -19,7 +19,6 @@ type FeatureKey =
   | "featureWebsiteBuilder"
   | "featureSponsorMgmt"
   | "featureTrikotDesigner"
-  | "featureExportImport"
   | "featureGameReports"
   | "featurePlayerStats"
   | "featureScheduler"
@@ -27,6 +26,7 @@ type FeatureKey =
   | "featureAdvancedRoles"
   | "featureAdvancedStats"
   | "featureAiRecaps"
+  | "featurePublicReports"
 
 /** Map from LimitKey → usage field name */
 const LIMIT_USAGE_MAP: Record<string, keyof Usage> = {

@@ -29,9 +29,7 @@ export function useSubRouteVisible(routePath: string): boolean | undefined {
   // e.g. for "/stats/scorers" the parent is the page with routePath "/stats"
   const parentPath = "/" + routePath.split("/").filter(Boolean)[0]
   const parentVariants = allPathVariants(parentPath)
-  const parentPage = menuPages.find(
-    (p: any) => p.isSystemRoute && parentVariants.includes(p.routePath),
-  )
+  const parentPage = menuPages.find((p: any) => p.isSystemRoute && parentVariants.includes(p.routePath))
 
   // If the parent has no children at all, sub-route pages likely haven't been
   // created yet — default to visible to avoid infinite redirect loops

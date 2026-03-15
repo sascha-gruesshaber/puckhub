@@ -147,30 +147,21 @@ function ThemePresetMockup({ colors }: { colors: ThemeColors }) {
   return (
     <div className="rounded-md overflow-hidden border border-border" style={{ height: 120 }}>
       {/* Header bar */}
-      <div
-        className="flex items-center gap-1.5 px-2"
-        style={{ background: headerBg, height: 24 }}
-      >
+      <div className="flex items-center gap-1.5 px-2" style={{ background: headerBg, height: 24 }}>
         <div className="rounded-sm" style={{ width: 8, height: 8, background: headerText, opacity: 0.9 }} />
         <div className="rounded-sm" style={{ width: 20, height: 4, background: headerText, opacity: 0.5 }} />
         <div className="rounded-sm" style={{ width: 16, height: 4, background: headerText, opacity: 0.5 }} />
         <div className="rounded-sm" style={{ width: 18, height: 4, background: headerText, opacity: 0.5 }} />
       </div>
       {/* Body */}
-      <div
-        className="flex items-center justify-center gap-2 px-3"
-        style={{ background: bg, height: 72 }}
-      >
+      <div className="flex items-center justify-center gap-2 px-3" style={{ background: bg, height: 72 }}>
         <div className="rounded-sm" style={{ width: 32, height: 6, background: text, opacity: 0.3 }} />
         <div className="rounded-full" style={{ width: 12, height: 12, background: primary }} />
         <div className="rounded-full" style={{ width: 10, height: 10, background: secondary }} />
         <div className="rounded-full" style={{ width: 10, height: 10, background: accent }} />
       </div>
       {/* Footer bar */}
-      <div
-        className="flex items-center gap-1.5 px-2"
-        style={{ background: footerBg, height: 24 }}
-      >
+      <div className="flex items-center gap-1.5 px-2" style={{ background: footerBg, height: 24 }}>
         <div className="rounded-sm" style={{ width: 24, height: 4, background: footerText, opacity: 0.5 }} />
         <div className="rounded-sm" style={{ width: 16, height: 4, background: footerText, opacity: 0.5 }} />
       </div>
@@ -179,15 +170,7 @@ function ThemePresetMockup({ colors }: { colors: ThemeColors }) {
 }
 
 // --- Preset card component ---
-function PresetCard({
-  presetKey,
-  selected,
-  onClick,
-}: {
-  presetKey: string
-  selected: boolean
-  onClick: () => void
-}) {
+function PresetCard({ presetKey, selected, onClick }: { presetKey: string; selected: boolean; onClick: () => void }) {
   const preset = presets[presetKey]!
   const desc = PRESET_DESCRIPTIONS[presetKey]
 
@@ -227,28 +210,25 @@ function LiveColorPreview({ form }: { form: FormState }) {
   return (
     <div className="flex rounded-lg overflow-hidden border border-border" style={{ height: 56 }}>
       {/* Header section */}
-      <div
-        className="flex items-center justify-center gap-1.5 px-4"
-        style={{ background: headerBg, flex: "1 1 0" }}
-      >
+      <div className="flex items-center justify-center gap-1.5 px-4" style={{ background: headerBg, flex: "1 1 0" }}>
         <div className="rounded-sm" style={{ width: 10, height: 10, background: headerText, opacity: 0.8 }} />
-        <span className="text-[10px] font-medium" style={{ color: headerText }}>Header</span>
+        <span className="text-[10px] font-medium" style={{ color: headerText }}>
+          Header
+        </span>
       </div>
       {/* Page section */}
-      <div
-        className="flex items-center justify-center gap-2 px-4"
-        style={{ background: bg, flex: "2 1 0" }}
-      >
-        <span className="text-[10px] font-medium" style={{ color: text }}>Page text</span>
+      <div className="flex items-center justify-center gap-2 px-4" style={{ background: bg, flex: "2 1 0" }}>
+        <span className="text-[10px] font-medium" style={{ color: text }}>
+          Page text
+        </span>
         <div className="rounded-full" style={{ width: 10, height: 10, background: primary }} />
         <div className="rounded-full" style={{ width: 8, height: 8, background: accent }} />
       </div>
       {/* Footer section */}
-      <div
-        className="flex items-center justify-center gap-1.5 px-4"
-        style={{ background: footerBg, flex: "1 1 0" }}
-      >
-        <span className="text-[10px] font-medium" style={{ color: footerText }}>Footer</span>
+      <div className="flex items-center justify-center gap-1.5 px-4" style={{ background: footerBg, flex: "1 1 0" }}>
+        <span className="text-[10px] font-medium" style={{ color: footerText }}>
+          Footer
+        </span>
       </div>
     </div>
   )
@@ -431,9 +411,10 @@ function WebsitePage() {
     toast.success("Copied!")
   }
 
-  const previewUrl = config?.subdomain && organization
-    ? `${typeof window !== "undefined" ? window.location.protocol : "https:"}//${config.subdomain}${dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}?orgId=${organization.id}`
-    : null
+  const previewUrl =
+    config?.subdomain && organization
+      ? `${typeof window !== "undefined" ? window.location.protocol : "https:"}//${config.subdomain}${dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}?orgId=${organization.id}`
+      : null
 
   const deviceWidths: Record<DeviceMode, number | "100%"> = {
     desktop: "100%",
@@ -462,394 +443,389 @@ function WebsitePage() {
 
   return (
     <FeatureGate feature="featureWebsiteBuilder">
-    <div className="space-y-6">
-      <PageHeader
-        title={t("website.title")}
-        description={t("website.description")}
-      />
+      <div className="space-y-6">
+        <PageHeader title={t("website.title")} description={t("website.description")} />
 
-      <TabNavigation groups={buildWebsiteTabGroups(t)} activeTab={activeTab} onTabChange={setTab} />
+        <TabNavigation groups={buildWebsiteTabGroups(t)} activeTab={activeTab} onTabChange={setTab} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Domain Configuration */}
-        {activeTab === "domain" && (
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              {/* Subdomain (read-only, derived from org slug) */}
-              {form.subdomain && (
-                <div className="rounded-lg border border-border bg-muted/30 p-4 flex items-center justify-between">
-                  <div>
-                    <label className="block text-xs font-medium text-muted-foreground mb-1">
-                      {t("website.domain.subdomain")}
-                    </label>
-                    <p className="text-sm font-medium">
-                      {form.subdomain}{dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{t("website.domain.subdomainReadonlyHint")}</p>
-                  </div>
-                  <a
-                    href={`http://${form.subdomain}${dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {t("website.domain.openSite")}
-                  </a>
-                </div>
-              )}
-
-              {/* Custom domain */}
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  {t("website.domain.customDomain")}
-                </label>
-                <Input
-                  value={form.domain}
-                  onChange={(e) => {
-                    setForm({ ...form, domain: e.target.value })
-                    setDnsResult(null)
-                  }}
-                  placeholder={t("website.domain.customDomainPlaceholder")}
-                  className="h-10"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">{t("website.domain.customDomainHint")}</p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="isActive"
-                  checked={form.isActive}
-                  onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                  className="h-4 w-4 rounded border-input"
-                />
-                <div>
-                  <label htmlFor="isActive" className="text-sm font-medium cursor-pointer">
-                    {t("website.domain.active")}
-                  </label>
-                  <p className="text-[11px] text-muted-foreground">{t("website.domain.activeHint")}</p>
-                </div>
-              </div>
-
-              {/* DNS Instructions */}
-              {form.domain && (
-                <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t("website.dns.title")}
-                  </h4>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium">{t("website.dns.cnameLabel")}</p>
-                        <p className="text-[11px] text-muted-foreground">{t("website.dns.cnameInstruction")}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <code className="rounded bg-background px-2 py-1 text-xs font-mono border">
-                          {dnsConfig?.cnameTarget ?? "sites.puckhub.eu"}
-                        </code>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          onClick={() => copyToClipboard(dnsConfig?.cnameTarget ?? "sites.puckhub.eu")}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Domain Configuration */}
+          {activeTab === "domain" && (
+            <Card>
+              <CardContent className="p-6 space-y-6">
+                {/* Subdomain (read-only, derived from org slug) */}
+                {form.subdomain && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium">{t("website.dns.aRecordLabel")}</p>
-                      <p className="text-[11px] text-muted-foreground">{t("website.dns.aRecordInstruction")}</p>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                        {t("website.domain.subdomain")}
+                      </label>
+                      <p className="text-sm font-medium">
+                        {form.subdomain}
+                        {dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {t("website.domain.subdomainReadonlyHint")}
+                      </p>
+                    </div>
+                    <a
+                      href={`http://${form.subdomain}${dnsConfig?.subdomainSuffix ?? ".puckhub.eu"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      {t("website.domain.openSite")}
+                    </a>
+                  </div>
+                )}
+
+                {/* Custom domain */}
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    {t("website.domain.customDomain")}
+                  </label>
+                  <Input
+                    value={form.domain}
+                    onChange={(e) => {
+                      setForm({ ...form, domain: e.target.value })
+                      setDnsResult(null)
+                    }}
+                    placeholder={t("website.domain.customDomainPlaceholder")}
+                    className="h-10"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">{t("website.domain.customDomainHint")}</p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={form.isActive}
+                    onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <div>
+                    <label htmlFor="isActive" className="text-sm font-medium cursor-pointer">
+                      {t("website.domain.active")}
+                    </label>
+                    <p className="text-[11px] text-muted-foreground">{t("website.domain.activeHint")}</p>
+                  </div>
+                </div>
+
+                {/* DNS Instructions */}
+                {form.domain && (
+                  <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t("website.dns.title")}
+                    </h4>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-medium">{t("website.dns.cnameLabel")}</p>
+                          <p className="text-[11px] text-muted-foreground">{t("website.dns.cnameInstruction")}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <code className="rounded bg-background px-2 py-1 text-xs font-mono border">
+                            {dnsConfig?.cnameTarget ?? "sites.puckhub.eu"}
+                          </code>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={() => copyToClipboard(dnsConfig?.cnameTarget ?? "sites.puckhub.eu")}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-medium">{t("website.dns.aRecordLabel")}</p>
+                        <p className="text-[11px] text-muted-foreground">{t("website.dns.aRecordInstruction")}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={dnsVerifyMutation.isPending}
+                        onClick={() => dnsVerifyMutation.mutate({ domain: form.domain })}
+                      >
+                        {dnsVerifyMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                            {t("website.dns.verifying")}
+                          </>
+                        ) : (
+                          t("website.dns.verify")
+                        )}
+                      </Button>
+
+                      {dnsResult && (
+                        <div className="flex items-center gap-1.5">
+                          {dnsResult.status === "valid" ? (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <span
+                            className={`text-xs ${dnsResult.status === "valid" ? "text-green-600" : "text-red-600"}`}
+                          >
+                            {dnsResult.message}
+                          </span>
+                        </div>
+                      )}
+
+                      {config?.domainVerifiedAt && (
+                        <span className="text-[11px] text-muted-foreground ml-auto">
+                          {t("website.dns.lastVerified")}: {new Date(config.domainVerifiedAt).toLocaleString()}
+                        </span>
+                      )}
                     </div>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-                  <div className="flex items-center gap-3 pt-1">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={dnsVerifyMutation.isPending}
-                      onClick={() => dnsVerifyMutation.mutate({ domain: form.domain })}
-                    >
-                      {dnsVerifyMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
-                          {t("website.dns.verifying")}
-                        </>
-                      ) : (
-                        t("website.dns.verify")
-                      )}
-                    </Button>
+          {/* Appearance */}
+          {activeTab === "appearance" && (
+            <Card>
+              <CardContent className="p-6 space-y-6">
+                {/* Unsaved changes hint */}
+                {appearanceDirty && (
+                  <div className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white">
+                    <Save className="h-4 w-4 flex-shrink-0" />
+                    {t("website.appearance.unsavedHint")}
+                  </div>
+                )}
 
-                    {dnsResult && (
-                      <div className="flex items-center gap-1.5">
-                        {dnsResult.status === "valid" ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-500" />
-                        )}
-                        <span
-                          className={`text-xs ${dnsResult.status === "valid" ? "text-green-600" : "text-red-600"}`}
-                        >
-                          {dnsResult.message}
-                        </span>
-                      </div>
-                    )}
-
-                    {config?.domainVerifiedAt && (
-                      <span className="text-[11px] text-muted-foreground ml-auto">
-                        {t("website.dns.lastVerified")}: {new Date(config.domainVerifiedAt).toLocaleString()}
-                      </span>
-                    )}
+                {/* Preset Cards */}
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-3">
+                    {t("website.appearance.preset")}
+                  </label>
+                  <div className="grid grid-cols-3 gap-4">
+                    {Object.keys(presets).map((key) => (
+                      <PresetCard
+                        key={key}
+                        presetKey={key}
+                        selected={form.templatePreset === key}
+                        onClick={() => handlePresetSelect(key)}
+                      />
+                    ))}
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Appearance */}
-        {activeTab === "appearance" && (
-          <Card>
-            <CardContent className="p-6 space-y-6">
-              {/* Unsaved changes hint */}
-              {appearanceDirty && (
-                <div className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm text-white">
-                  <Save className="h-4 w-4 flex-shrink-0" />
-                  {t("website.appearance.unsavedHint")}
+                {/* Live Color Preview Strip */}
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-2">
+                    {t("website.appearance.colors")}
+                  </label>
+                  <LiveColorPreview form={form} />
                 </div>
-              )}
 
-              {/* Preset Cards */}
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-3">
-                  {t("website.appearance.preset")}
-                </label>
-                <div className="grid grid-cols-3 gap-4">
-                  {Object.keys(presets).map((key) => (
-                    <PresetCard
-                      key={key}
-                      presetKey={key}
-                      selected={form.templatePreset === key}
-                      onClick={() => handlePresetSelect(key)}
-                    />
+                {/* Grouped Color Fields */}
+                <div className="space-y-5">
+                  {COLOR_GROUPS.map((group) => (
+                    <div key={group.label}>
+                      <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        {t(`website.appearance.${group.label}`)}
+                      </label>
+                      <div className="flex gap-4">
+                        {group.fields.map((field) => (
+                          <div key={field} className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="text-[11px] text-muted-foreground">
+                                {t(`website.appearance.${field}`)}
+                              </label>
+                              {isColorDifferentFromPreset(field) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    resetColorToPreset(field)
+                                    setAppearanceDirty(true)
+                                  }}
+                                  className="text-muted-foreground hover:text-foreground transition-colors"
+                                  title={t("website.appearance.resetColor")}
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                            <ColorInput value={getColorHex(field)} onChange={(hex) => handleColorChange(field, hex)} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Live Color Preview Strip */}
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-2">
-                  {t("website.appearance.colors")}
-                </label>
-                <LiveColorPreview form={form} />
-              </div>
-
-              {/* Grouped Color Fields */}
-              <div className="space-y-5">
-                {COLOR_GROUPS.map((group) => (
-                  <div key={group.label}>
-                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                      {t(`website.appearance.${group.label}`)}
+          {/* Images */}
+          {activeTab === "images" && (
+            <Card>
+              <CardContent className="p-6 space-y-6">
+                <div className="grid grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      {t("website.images.logo")}
                     </label>
-                    <div className="flex gap-4">
-                      {group.fields.map((field) => (
-                        <div key={field} className="flex-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="text-[11px] text-muted-foreground">
-                              {t(`website.appearance.${field}`)}
-                            </label>
-                            {isColorDifferentFromPreset(field) && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  resetColorToPreset(field)
-                                  setAppearanceDirty(true)
-                                }}
-                                className="text-muted-foreground hover:text-foreground transition-colors"
-                                title={t("website.appearance.resetColor")}
-                              >
-                                <RotateCcw className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                          <ColorInput
-                            value={getColorHex(field)}
-                            onChange={(hex) => handleColorChange(field, hex)}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                    <ImageUpload
+                      value={form.logoUrl}
+                      onChange={(url) => setForm({ ...form, logoUrl: url })}
+                      type="logo"
+                      label={t("website.images.logo")}
+                    />
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      {t("website.images.favicon")}
+                    </label>
+                    <ImageUpload
+                      value={form.faviconUrl}
+                      onChange={(url) => setForm({ ...form, faviconUrl: url })}
+                      type="logo"
+                      label={t("website.images.favicon")}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-2">
+                      {t("website.images.ogImage")}
+                    </label>
+                    <ImageUpload
+                      value={form.ogImageUrl}
+                      onChange={(url) => setForm({ ...form, ogImageUrl: url })}
+                      type="photo"
+                      label={t("website.images.ogImage")}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Images */}
-        {activeTab === "images" && (
+          {/* SEO */}
+          {activeTab === "seo" && (
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    {t("website.seo.seoTitle")}
+                  </label>
+                  <Input
+                    value={form.seoTitle}
+                    onChange={(e) => setForm({ ...form, seoTitle: e.target.value })}
+                    className="h-10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                    {t("website.seo.seoDescription")}
+                  </label>
+                  <Textarea
+                    value={form.seoDescription}
+                    onChange={(e) => setForm({ ...form, seoDescription: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Save */}
+          <div className="flex justify-end">
+            <Button type="submit" disabled={updateMutation.isPending}>
+              <Save className="w-4 h-4 mr-2" />
+              {updateMutation.isPending ? t("saving") : t("save")}
+            </Button>
+          </div>
+        </form>
+
+        {/* Preview Panel — visible when website is active */}
+        {form.isActive && previewUrl && (
           <Card>
-            <CardContent className="p-6 space-y-6">
-              <div className="grid grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-2">
-                    {t("website.images.logo")}
-                  </label>
-                  <ImageUpload
-                    value={form.logoUrl}
-                    onChange={(url) => setForm({ ...form, logoUrl: url })}
-                    type="logo"
-                    label={t("website.images.logo")}
-                  />
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold">{t("website.preview.title")}</h3>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center rounded-md border border-border">
+                    <button
+                      type="button"
+                      onClick={() => setDeviceMode("desktop")}
+                      className={`p-1.5 rounded-l-md transition-colors ${deviceMode === "desktop" ? "bg-muted" : "hover:bg-muted/50"}`}
+                      title={t("website.preview.desktop")}
+                    >
+                      <Monitor className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeviceMode("tablet")}
+                      className={`p-1.5 border-x border-border transition-colors ${deviceMode === "tablet" ? "bg-muted" : "hover:bg-muted/50"}`}
+                      title={t("website.preview.tablet")}
+                    >
+                      <Tablet className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeviceMode("mobile")}
+                      className={`p-1.5 rounded-r-md transition-colors ${deviceMode === "mobile" ? "bg-muted" : "hover:bg-muted/50"}`}
+                      title={t("website.preview.mobile")}
+                    >
+                      <Smartphone className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 gap-1"
+                    onClick={() => setPreviewKey((k) => k + 1)}
+                    title={t("website.preview.reload")}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </Button>
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    {t("website.preview.openNewTab")}
+                  </a>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-2">
-                    {t("website.images.favicon")}
-                  </label>
-                  <ImageUpload
-                    value={form.faviconUrl}
-                    onChange={(url) => setForm({ ...form, faviconUrl: url })}
-                    type="logo"
-                    label={t("website.images.favicon")}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-2">
-                    {t("website.images.ogImage")}
-                  </label>
-                  <ImageUpload
-                    value={form.ogImageUrl}
-                    onChange={(url) => setForm({ ...form, ogImageUrl: url })}
-                    type="photo"
-                    label={t("website.images.ogImage")}
+              </div>
+              <div className="flex justify-center">
+                <div
+                  className="border border-border rounded-lg overflow-hidden shadow-sm transition-all duration-300"
+                  style={{
+                    width: deviceWidths[deviceMode] === "100%" ? "100%" : deviceWidths[deviceMode],
+                    maxWidth: "100%",
+                  }}
+                >
+                  <iframe
+                    key={previewKey}
+                    ref={iframeRef}
+                    src={previewUrl}
+                    title="Website preview"
+                    className="w-full border-0"
+                    style={{ height: 600 }}
                   />
                 </div>
               </div>
+              <p className="text-[11px] text-muted-foreground text-center">{t("website.preview.savedNote")}</p>
             </CardContent>
           </Card>
         )}
-
-        {/* SEO */}
-        {activeTab === "seo" && (
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  {t("website.seo.seoTitle")}
-                </label>
-                <Input
-                  value={form.seoTitle}
-                  onChange={(e) => setForm({ ...form, seoTitle: e.target.value })}
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                  {t("website.seo.seoDescription")}
-                </label>
-                <Textarea
-                  value={form.seoDescription}
-                  onChange={(e) => setForm({ ...form, seoDescription: e.target.value })}
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Save */}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={updateMutation.isPending}>
-            <Save className="w-4 h-4 mr-2" />
-            {updateMutation.isPending ? t("saving") : t("save")}
-          </Button>
-        </div>
-      </form>
-
-      {/* Preview Panel — visible when website is active */}
-      {form.isActive && previewUrl && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">{t("website.preview.title")}</h3>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center rounded-md border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode("desktop")}
-                    className={`p-1.5 rounded-l-md transition-colors ${deviceMode === "desktop" ? "bg-muted" : "hover:bg-muted/50"}`}
-                    title={t("website.preview.desktop")}
-                  >
-                    <Monitor className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode("tablet")}
-                    className={`p-1.5 border-x border-border transition-colors ${deviceMode === "tablet" ? "bg-muted" : "hover:bg-muted/50"}`}
-                    title={t("website.preview.tablet")}
-                  >
-                    <Tablet className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode("mobile")}
-                    className={`p-1.5 rounded-r-md transition-colors ${deviceMode === "mobile" ? "bg-muted" : "hover:bg-muted/50"}`}
-                    title={t("website.preview.mobile")}
-                  >
-                    <Smartphone className="w-4 h-4" />
-                  </button>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 gap-1"
-                  onClick={() => setPreviewKey((k) => k + 1)}
-                  title={t("website.preview.reload")}
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </Button>
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  {t("website.preview.openNewTab")}
-                </a>
-              </div>
-            </div>
-            <div className="flex justify-center">
-              <div
-                className="border border-border rounded-lg overflow-hidden shadow-sm transition-all duration-300"
-                style={{
-                  width: deviceWidths[deviceMode] === "100%" ? "100%" : deviceWidths[deviceMode],
-                  maxWidth: "100%",
-                }}
-              >
-                <iframe
-                  key={previewKey}
-                  ref={iframeRef}
-                  src={previewUrl}
-                  title="Website preview"
-                  className="w-full border-0"
-                  style={{ height: 600 }}
-                />
-              </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground text-center">
-              {t("website.preview.savedNote")}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+      </div>
     </FeatureGate>
   )
 }

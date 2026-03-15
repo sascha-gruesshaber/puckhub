@@ -12,7 +12,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { CreditCard, Pencil, Plus, Trash2 } from "lucide-react"
+import { CreditCard, Pencil } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -21,9 +21,6 @@ export const Route = createFileRoute("/_authed/plans")({
 })
 
 interface PlanForm {
-  name: string
-  slug: string
-  description: string
   sortOrder: number
   isActive: boolean
   priceMonthly: number
@@ -42,7 +39,6 @@ interface PlanForm {
   featureWebsiteBuilder: boolean
   featureSponsorMgmt: boolean
   featureTrikotDesigner: boolean
-  featureExportImport: boolean
   featureGameReports: boolean
   featurePlayerStats: boolean
   featureScheduler: boolean
@@ -54,9 +50,6 @@ interface PlanForm {
 }
 
 const emptyForm: PlanForm = {
-  name: "",
-  slug: "",
-  description: "",
   sortOrder: 0,
   isActive: true,
   priceMonthly: 0,
@@ -75,7 +68,6 @@ const emptyForm: PlanForm = {
   featureWebsiteBuilder: false,
   featureSponsorMgmt: false,
   featureTrikotDesigner: false,
-  featureExportImport: false,
   featureGameReports: true,
   featurePlayerStats: true,
   featureScheduler: false,
@@ -84,17 +76,6 @@ const emptyForm: PlanForm = {
   featureAdvancedStats: false,
   featureAiRecaps: false,
   aiMonthlyTokenLimit: null,
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/ä/g, "ae")
-    .replace(/ö/g, "oe")
-    .replace(/ü/g, "ue")
-    .replace(/ß/g, "ss")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
 }
 
 function formatPrice(cents: number): string {
@@ -167,20 +148,10 @@ function PlansPage() {
   const { data: plans, isLoading } = trpc.plan.list.useQuery()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState("")
   const [form, setForm] = useState<PlanForm>(emptyForm)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [deletingPlan, setDeletingPlan] = useState<{ id: string; name: string } | null>(null)
 
   const utils = trpc.useUtils()
-
-  const createMutation = trpc.plan.create.useMutation({
-    onSuccess: () => {
-      utils.plan.list.invalidate()
-      closeDialog()
-      toast.success("Plan created")
-    },
-    onError: (err) => toast.error("Error", { description: err.message }),
-  })
 
   const updateMutation = trpc.plan.update.useMutation({
     onSuccess: () => {
@@ -191,34 +162,17 @@ function PlansPage() {
     onError: (err) => toast.error("Error", { description: err.message }),
   })
 
-  const deleteMutation = trpc.plan.delete.useMutation({
-    onSuccess: () => {
-      utils.plan.list.invalidate()
-      setDeleteDialogOpen(false)
-      setDeletingPlan(null)
-      toast.success("Plan deleted")
-    },
-    onError: (err) => toast.error("Error", { description: err.message }),
-  })
-
   function closeDialog() {
     setDialogOpen(false)
     setEditingId(null)
+    setEditingName("")
     setForm(emptyForm)
-  }
-
-  function openCreate() {
-    setEditingId(null)
-    setForm(emptyForm)
-    setDialogOpen(true)
   }
 
   function openEdit(plan: any) {
     setEditingId(plan.id)
+    setEditingName(plan.name)
     setForm({
-      name: plan.name,
-      slug: plan.slug,
-      description: plan.description ?? "",
       sortOrder: plan.sortOrder,
       isActive: plan.isActive,
       priceMonthly: plan.priceMonthly,
@@ -237,7 +191,6 @@ function PlansPage() {
       featureWebsiteBuilder: plan.featureWebsiteBuilder,
       featureSponsorMgmt: plan.featureSponsorMgmt,
       featureTrikotDesigner: plan.featureTrikotDesigner,
-      featureExportImport: plan.featureExportImport,
       featureGameReports: plan.featureGameReports,
       featurePlayerStats: plan.featurePlayerStats,
       featureScheduler: plan.featureScheduler,
@@ -250,40 +203,17 @@ function PlansPage() {
     setDialogOpen(true)
   }
 
-  function handleNameChange(value: string) {
-    setForm((prev) => ({
-      ...prev,
-      name: value,
-      slug: !editingId || prev.slug === slugify(prev.name) ? slugify(value) : prev.slug,
-    }))
-  }
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const data = {
-      ...form,
-      description: form.description || null,
-    }
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, ...data })
-    } else {
-      createMutation.mutate(data)
-    }
+    if (!editingId) return
+    updateMutation.mutate({ id: editingId, ...form })
   }
-
-  const isSaving = createMutation.isPending || updateMutation.isPending
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Plans</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage subscription plans and pricing</p>
-        </div>
-        <Button variant="accent" onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Plan
-        </Button>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Plans</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Manage subscription plan limits and features</p>
       </div>
 
       {isLoading ? (
@@ -295,12 +225,8 @@ function PlansPage() {
       ) : !plans || plans.length === 0 ? (
         <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
           <CreditCard size={32} className="mx-auto mb-3 text-muted-foreground" />
-          <p className="font-medium text-foreground">No plans yet</p>
-          <p className="mt-1 text-sm text-muted-foreground">Create plans to manage subscription tiers.</p>
-          <Button variant="accent" className="mt-4" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Plan
-          </Button>
+          <p className="font-medium text-foreground">No plans found</p>
+          <p className="mt-1 text-sm text-muted-foreground">Run the seed to create the default plans.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -315,6 +241,7 @@ function PlansPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <h3 className="font-semibold text-foreground">{plan.name}</h3>
+                    <span className="text-xs text-muted-foreground font-mono">{plan.slug}</span>
                     {!plan.isActive && (
                       <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">Inactive</span>
                     )}
@@ -331,10 +258,6 @@ function PlansPage() {
                   </p>
                 )}
 
-                {plan.description && (
-                  <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
-                )}
-
                 <div className="space-y-1.5 text-xs text-muted-foreground">
                   <p>Teams: {plan.maxTeams ?? "Unlimited"}</p>
                   <p>Players: {plan.maxPlayers ?? "Unlimited"}</p>
@@ -344,24 +267,10 @@ function PlansPage() {
                 </div>
               </div>
 
-              <div className="border-t border-border/40 px-5 py-3 flex justify-end gap-2">
+              <div className="border-t border-border/40 px-5 py-3 flex justify-end">
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => openEdit(plan)}>
                   <Pencil className="h-3 w-3 mr-1" />
                   Edit
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-destructive hover:text-destructive"
-                  disabled={plan._count.subscriptions > 0}
-                  title={plan._count.subscriptions > 0 ? "Cannot delete plan with active subscriptions" : "Delete plan"}
-                  onClick={() => {
-                    setDeletingPlan({ id: plan.id, name: plan.name })
-                    setDeleteDialogOpen(true)
-                  }}
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Delete
                 </Button>
               </div>
             </div>
@@ -369,40 +278,16 @@ function PlansPage() {
         </div>
       )}
 
-      {/* Create/Edit Plan Dialog */}
+      {/* Edit Plan Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogClose onClick={closeDialog} />
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Plan" : "Create Plan"}</DialogTitle>
-            <DialogDescription>
-              {editingId ? "Update the plan's limits and features." : "Define a new subscription plan."}
-            </DialogDescription>
+            <DialogTitle>Edit Plan: {editingName}</DialogTitle>
+            <DialogDescription>Update the plan's pricing, limits, and features.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5 p-6 pt-2">
-            {/* Basic Info */}
-            <div className="grid grid-cols-2 gap-3">
-              <FormField label="Name" required>
-                <Input value={form.name} onChange={(e) => handleNameChange(e.target.value)} placeholder="e.g. Pro" />
-              </FormField>
-              <FormField label="Slug" required>
-                <Input
-                  value={form.slug}
-                  onChange={(e) => setForm((p) => ({ ...p, slug: e.target.value }))}
-                  placeholder="e.g. pro"
-                />
-              </FormField>
-            </div>
-
-            <FormField label="Description">
-              <Input
-                value={form.description}
-                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                placeholder="Short description"
-              />
-            </FormField>
-
             <div className="grid grid-cols-3 gap-3">
               <FormField label="Monthly (cents)">
                 <Input
@@ -443,11 +328,31 @@ function PlansPage() {
             <div>
               <h4 className="text-sm font-semibold mb-3">Structural Limits</h4>
               <div className="grid grid-cols-2 gap-3">
-                <LimitInput label="Teams" value={form.maxTeams} onChange={(v) => setForm((p) => ({ ...p, maxTeams: v }))} />
-                <LimitInput label="Players" value={form.maxPlayers} onChange={(v) => setForm((p) => ({ ...p, maxPlayers: v }))} />
-                <LimitInput label="Divisions / Season" value={form.maxDivisionsPerSeason} onChange={(v) => setForm((p) => ({ ...p, maxDivisionsPerSeason: v }))} />
-                <LimitInput label="Seasons" value={form.maxSeasons} onChange={(v) => setForm((p) => ({ ...p, maxSeasons: v }))} />
-                <LimitInput label="Admin Users" value={form.maxAdmins} onChange={(v) => setForm((p) => ({ ...p, maxAdmins: v }))} />
+                <LimitInput
+                  label="Teams"
+                  value={form.maxTeams}
+                  onChange={(v) => setForm((p) => ({ ...p, maxTeams: v }))}
+                />
+                <LimitInput
+                  label="Players"
+                  value={form.maxPlayers}
+                  onChange={(v) => setForm((p) => ({ ...p, maxPlayers: v }))}
+                />
+                <LimitInput
+                  label="Divisions / Season"
+                  value={form.maxDivisionsPerSeason}
+                  onChange={(v) => setForm((p) => ({ ...p, maxDivisionsPerSeason: v }))}
+                />
+                <LimitInput
+                  label="Seasons"
+                  value={form.maxSeasons}
+                  onChange={(v) => setForm((p) => ({ ...p, maxSeasons: v }))}
+                />
+                <LimitInput
+                  label="Admin Users"
+                  value={form.maxAdmins}
+                  onChange={(v) => setForm((p) => ({ ...p, maxAdmins: v }))}
+                />
               </div>
             </div>
 
@@ -455,11 +360,31 @@ function PlansPage() {
             <div>
               <h4 className="text-sm font-semibold mb-3">Content Limits</h4>
               <div className="grid grid-cols-2 gap-3">
-                <LimitInput label="News Articles" value={form.maxNewsArticles} onChange={(v) => setForm((p) => ({ ...p, maxNewsArticles: v }))} />
-                <LimitInput label="CMS Pages" value={form.maxPages} onChange={(v) => setForm((p) => ({ ...p, maxPages: v }))} />
-                <LimitInput label="Sponsors" value={form.maxSponsors} onChange={(v) => setForm((p) => ({ ...p, maxSponsors: v }))} />
-                <LimitInput label="Documents" value={form.maxDocuments} onChange={(v) => setForm((p) => ({ ...p, maxDocuments: v }))} />
-                <LimitInput label="Storage (MB)" value={form.storageQuotaMb} onChange={(v) => setForm((p) => ({ ...p, storageQuotaMb: v }))} />
+                <LimitInput
+                  label="News Articles"
+                  value={form.maxNewsArticles}
+                  onChange={(v) => setForm((p) => ({ ...p, maxNewsArticles: v }))}
+                />
+                <LimitInput
+                  label="CMS Pages"
+                  value={form.maxPages}
+                  onChange={(v) => setForm((p) => ({ ...p, maxPages: v }))}
+                />
+                <LimitInput
+                  label="Sponsors"
+                  value={form.maxSponsors}
+                  onChange={(v) => setForm((p) => ({ ...p, maxSponsors: v }))}
+                />
+                <LimitInput
+                  label="Documents"
+                  value={form.maxDocuments}
+                  onChange={(v) => setForm((p) => ({ ...p, maxDocuments: v }))}
+                />
+                <LimitInput
+                  label="Storage (MB)"
+                  value={form.storageQuotaMb}
+                  onChange={(v) => setForm((p) => ({ ...p, storageQuotaMb: v }))}
+                />
               </div>
             </div>
 
@@ -467,18 +392,61 @@ function PlansPage() {
             <div>
               <h4 className="text-sm font-semibold mb-3">Features</h4>
               <div className="grid grid-cols-2 gap-2">
-                <FeatureToggle label="Game Reports" checked={form.featureGameReports} onChange={(v) => setForm((p) => ({ ...p, featureGameReports: v }))} />
-                <FeatureToggle label="Player Statistics" checked={form.featurePlayerStats} onChange={(v) => setForm((p) => ({ ...p, featurePlayerStats: v }))} />
-                <FeatureToggle label="Website Builder" checked={form.featureWebsiteBuilder} onChange={(v) => setForm((p) => ({ ...p, featureWebsiteBuilder: v }))} />
-                <FeatureToggle label="Sponsor Management" checked={form.featureSponsorMgmt} onChange={(v) => setForm((p) => ({ ...p, featureSponsorMgmt: v }))} />
-                <FeatureToggle label="Custom Domain" checked={form.featureCustomDomain} onChange={(v) => setForm((p) => ({ ...p, featureCustomDomain: v }))} />
-                <FeatureToggle label="Jersey Designer" checked={form.featureTrikotDesigner} onChange={(v) => setForm((p) => ({ ...p, featureTrikotDesigner: v }))} />
-                <FeatureToggle label="Export / Import" checked={form.featureExportImport} onChange={(v) => setForm((p) => ({ ...p, featureExportImport: v }))} />
-                <FeatureToggle label="Auto-Scheduler" checked={form.featureScheduler} onChange={(v) => setForm((p) => ({ ...p, featureScheduler: v }))} />
-                <FeatureToggle label="Scheduled News" checked={form.featureScheduledNews} onChange={(v) => setForm((p) => ({ ...p, featureScheduledNews: v }))} />
-                <FeatureToggle label="Advanced Roles" checked={form.featureAdvancedRoles} onChange={(v) => setForm((p) => ({ ...p, featureAdvancedRoles: v }))} />
-                <FeatureToggle label="Advanced Statistics" checked={form.featureAdvancedStats} onChange={(v) => setForm((p) => ({ ...p, featureAdvancedStats: v }))} />
-                <FeatureToggle label="AI Recaps" checked={form.featureAiRecaps} onChange={(v) => setForm((p) => ({ ...p, featureAiRecaps: v }))} />
+                <FeatureToggle
+                  label="Game Reports"
+                  checked={form.featureGameReports}
+                  onChange={(v) => setForm((p) => ({ ...p, featureGameReports: v }))}
+                />
+                <FeatureToggle
+                  label="Player Statistics"
+                  checked={form.featurePlayerStats}
+                  onChange={(v) => setForm((p) => ({ ...p, featurePlayerStats: v }))}
+                />
+                <FeatureToggle
+                  label="Website Builder"
+                  checked={form.featureWebsiteBuilder}
+                  onChange={(v) => setForm((p) => ({ ...p, featureWebsiteBuilder: v }))}
+                />
+                <FeatureToggle
+                  label="Sponsor Management"
+                  checked={form.featureSponsorMgmt}
+                  onChange={(v) => setForm((p) => ({ ...p, featureSponsorMgmt: v }))}
+                />
+                <FeatureToggle
+                  label="Custom Domain"
+                  checked={form.featureCustomDomain}
+                  onChange={(v) => setForm((p) => ({ ...p, featureCustomDomain: v }))}
+                />
+                <FeatureToggle
+                  label="Jersey Designer"
+                  checked={form.featureTrikotDesigner}
+                  onChange={(v) => setForm((p) => ({ ...p, featureTrikotDesigner: v }))}
+                />
+                <FeatureToggle
+                  label="Auto-Scheduler"
+                  checked={form.featureScheduler}
+                  onChange={(v) => setForm((p) => ({ ...p, featureScheduler: v }))}
+                />
+                <FeatureToggle
+                  label="Scheduled News"
+                  checked={form.featureScheduledNews}
+                  onChange={(v) => setForm((p) => ({ ...p, featureScheduledNews: v }))}
+                />
+                <FeatureToggle
+                  label="Advanced Roles"
+                  checked={form.featureAdvancedRoles}
+                  onChange={(v) => setForm((p) => ({ ...p, featureAdvancedRoles: v }))}
+                />
+                <FeatureToggle
+                  label="Advanced Statistics"
+                  checked={form.featureAdvancedStats}
+                  onChange={(v) => setForm((p) => ({ ...p, featureAdvancedStats: v }))}
+                />
+                <FeatureToggle
+                  label="AI Recaps"
+                  checked={form.featureAiRecaps}
+                  onChange={(v) => setForm((p) => ({ ...p, featureAiRecaps: v }))}
+                />
               </div>
             </div>
 
@@ -487,7 +455,11 @@ function PlansPage() {
               <div>
                 <h4 className="text-sm font-semibold mb-3">AI Limits</h4>
                 <div className="grid grid-cols-2 gap-3">
-                  <LimitInput label="Monthly Token Budget" value={form.aiMonthlyTokenLimit} onChange={(v) => setForm((p) => ({ ...p, aiMonthlyTokenLimit: v }))} />
+                  <LimitInput
+                    label="Monthly Token Budget"
+                    value={form.aiMonthlyTokenLimit}
+                    onChange={(v) => setForm((p) => ({ ...p, aiMonthlyTokenLimit: v }))}
+                  />
                 </div>
               </div>
             )}
@@ -496,39 +468,11 @@ function PlansPage() {
               <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel
               </Button>
-              <Button type="submit" variant="accent" disabled={isSaving}>
-                {isSaving ? "Saving..." : editingId ? "Save Changes" : "Create"}
+              <Button type="submit" variant="accent" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Plan Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogClose onClick={() => setDeleteDialogOpen(false)} />
-          <DialogHeader>
-            <DialogTitle>Delete Plan</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete the plan <strong>{deletingPlan?.name}</strong>? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteMutation.isPending}
-              onClick={() => {
-                if (deletingPlan) deleteMutation.mutate({ id: deletingPlan.id })
-              }}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

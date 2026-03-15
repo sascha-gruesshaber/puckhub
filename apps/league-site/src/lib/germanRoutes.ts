@@ -26,31 +26,130 @@ type RouteDef = {
  * To add a new locale, duplicate this array with translated paths.
  */
 const ROUTE_DEFS: RouteDef[] = [
-  { en: "/standings", de: "/tabelle", title: "Tabelle", mod: () => import("../routes/standings"), name: "StandingsPage", search: true },
-  { en: "/schedule", de: "/spielplan", title: "Spielplan", mod: () => import("../routes/schedule/index"), name: "SchedulePage", search: true },
-  { en: "/schedule/$gameId", de: "/spielplan/$gameId", title: "Spieldetails", mod: () => import("../routes/schedule/$gameId"), name: "GameDetailPage" },
-  { en: "/news/$newsId", de: "/neuigkeiten/$newsId", title: "Artikel", mod: () => import("../routes/news/$newsId"), name: "NewsDetailPage" },
-  { en: "/stats", de: "/statistiken", title: "Statistiken", mod: () => import("../routes/stats/index"), name: "StatsIndex", search: true },
-  { en: "/stats/scorers", de: "/statistiken/scorer", title: "Scorer-Statistiken", mod: () => import("../routes/stats/scorers"), name: "ScorersPage", search: true },
-  { en: "/stats/goals", de: "/statistiken/tore", title: "Torstatistiken", mod: () => import("../routes/stats/goals"), name: "GoalsPage", search: true },
-  { en: "/stats/assists", de: "/statistiken/vorlagen", title: "Vorlagen-Statistiken", mod: () => import("../routes/stats/assists"), name: "AssistsPage", search: true },
-  { en: "/stats/penalties", de: "/statistiken/strafen", title: "Strafstatistiken", mod: () => import("../routes/stats/penalties"), name: "PenaltiesPage", search: true },
-  { en: "/stats/goalies", de: "/statistiken/torhueter", title: "Torhüter-Statistiken", mod: () => import("../routes/stats/goalies"), name: "GoaliesPage", search: true },
-  { en: "/stats/compare-teams", de: "/statistiken/teamvergleich", title: "Teamvergleich", mod: () => import("../routes/stats/compare-teams"), name: "ComparisonPage", search: true },
-  { en: "/stats/players/$playerId", de: "/statistiken/spieler/$playerId", title: "Spieler", mod: () => import("../routes/stats/players/$playerId"), name: "PlayerHistoryPage", search: true },
-  { en: "/stats/teams/$teamId", de: "/statistiken/teams/$teamId", title: "", mod: () => Promise.resolve({}), name: "", redirect: { to: "/teams/$teamId", search: { tab: "history" } } },
+  {
+    en: "/standings",
+    de: "/tabelle",
+    title: "Tabelle",
+    mod: () => import("../routes/standings"),
+    name: "StandingsPage",
+    search: true,
+  },
+  {
+    en: "/schedule",
+    de: "/spielplan",
+    title: "Spielplan",
+    mod: () => import("../routes/schedule/index"),
+    name: "SchedulePage",
+    search: true,
+  },
+  {
+    en: "/structure",
+    de: "/struktur",
+    title: "Saisonstruktur",
+    mod: () => import("../routes/structure"),
+    name: "StructurePage",
+    search: true,
+  },
+  {
+    en: "/schedule/$gameId",
+    de: "/spielplan/$gameId",
+    title: "Spieldetails",
+    mod: () => import("../routes/schedule/$gameId"),
+    name: "GameDetailPage",
+  },
+  {
+    en: "/news/$newsId",
+    de: "/neuigkeiten/$newsId",
+    title: "Artikel",
+    mod: () => import("../routes/news/$newsId"),
+    name: "NewsDetailPage",
+  },
+  {
+    en: "/stats",
+    de: "/statistiken",
+    title: "Statistiken",
+    mod: () => import("../routes/stats/index"),
+    name: "StatsIndex",
+    search: true,
+  },
+  {
+    en: "/stats/scorers",
+    de: "/statistiken/scorer",
+    title: "Scorer-Statistiken",
+    mod: () => import("../routes/stats/scorers"),
+    name: "ScorersPage",
+    search: true,
+  },
+  {
+    en: "/stats/goals",
+    de: "/statistiken/tore",
+    title: "Torstatistiken",
+    mod: () => import("../routes/stats/goals"),
+    name: "GoalsPage",
+    search: true,
+  },
+  {
+    en: "/stats/assists",
+    de: "/statistiken/vorlagen",
+    title: "Vorlagen-Statistiken",
+    mod: () => import("../routes/stats/assists"),
+    name: "AssistsPage",
+    search: true,
+  },
+  {
+    en: "/stats/penalties",
+    de: "/statistiken/strafen",
+    title: "Strafstatistiken",
+    mod: () => import("../routes/stats/penalties"),
+    name: "PenaltiesPage",
+    search: true,
+  },
+  {
+    en: "/stats/goalies",
+    de: "/statistiken/torhueter",
+    title: "Torhüter-Statistiken",
+    mod: () => import("../routes/stats/goalies"),
+    name: "GoaliesPage",
+    search: true,
+  },
+  {
+    en: "/stats/compare-teams",
+    de: "/statistiken/teamvergleich",
+    title: "Teamvergleich",
+    mod: () => import("../routes/stats/compare-teams"),
+    name: "ComparisonPage",
+    search: true,
+  },
+  {
+    en: "/stats/players/$playerId",
+    de: "/statistiken/spieler/$playerId",
+    title: "Spieler",
+    mod: () => import("../routes/stats/players/$playerId"),
+    name: "PlayerHistoryPage",
+    search: true,
+  },
+  {
+    en: "/stats/teams/$teamId",
+    de: "/statistiken/teams/$teamId",
+    title: "",
+    mod: () => Promise.resolve({}),
+    name: "",
+    redirect: { to: "/teams/$teamId", search: { tab: "history" } },
+  },
 ]
 
 /** English→German path mapping, derived from ROUTE_DEFS. Used by localizedRoutes.ts. */
-export const DE_PATH_MAP: Record<string, string> = Object.fromEntries(
-  ROUTE_DEFS.map((r) => [r.en, r.de]),
-)
+export const DE_PATH_MAP: Record<string, string> = Object.fromEntries(ROUTE_DEFS.map((r) => [r.en, r.de]))
 
 /**
  * Registers all German locale route aliases on the root route.
  * Safe to call multiple times (idempotent).
  */
+const registered = new WeakSet<AnyRoute>()
 export function registerGermanRoutes(rootRoute: AnyRoute) {
+  if (registered.has(rootRoute)) return
+  registered.add(rootRoute)
+
   const routes: Record<string, AnyRoute> = {}
 
   for (const def of ROUTE_DEFS) {

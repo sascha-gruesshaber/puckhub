@@ -1,6 +1,17 @@
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { AlertTriangle, Calendar, CheckCircle2, ChevronDown, ChevronUp, Clock, ShieldAlert, Trophy, Users } from "lucide-react"
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  FileText,
+  ShieldAlert,
+  Trophy,
+  Users,
+} from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 import { EmptyState } from "~/components/emptyState"
@@ -34,14 +45,7 @@ function RankBadge({ rank }: { rank: number }) {
 
 function TeamLogo({ url, size = 16 }: { url: string | null; size?: number }) {
   if (!url) return <div className="rounded-full bg-muted shrink-0" style={{ width: size, height: size }} />
-  return (
-    <img
-      src={url}
-      alt=""
-      className="rounded-full object-cover shrink-0"
-      style={{ width: size, height: size }}
-    />
-  )
+  return <img src={url} alt="" className="rounded-full object-cover shrink-0" style={{ width: size, height: size }} />
 }
 
 // ---------------------------------------------------------------------------
@@ -560,7 +564,9 @@ function RecentResultsCard({
                   </span>
                   <div className="flex items-center justify-center gap-2 flex-1 min-w-0">
                     <div className="flex items-center gap-2 justify-end flex-1 min-w-0">
-                      <span className={`text-sm truncate ${homeWin ? "font-bold" : "font-medium text-muted-foreground"}`}>
+                      <span
+                        className={`text-sm truncate ${homeWin ? "font-bold" : "font-medium text-muted-foreground"}`}
+                      >
                         {game.homeTeam.shortName}
                       </span>
                       <TeamLogo url={game.homeTeam.logoUrl} size={20} />
@@ -572,7 +578,9 @@ function RecentResultsCard({
                     </span>
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <TeamLogo url={game.awayTeam.logoUrl} size={20} />
-                      <span className={`text-sm truncate ${awayWin ? "font-bold" : "font-medium text-muted-foreground"}`}>
+                      <span
+                        className={`text-sm truncate ${awayWin ? "font-bold" : "font-medium text-muted-foreground"}`}
+                      >
                         {game.awayTeam.shortName}
                       </span>
                     </div>
@@ -601,6 +609,8 @@ function DashboardPage() {
     { seasonId: season?.id ?? "" },
     { enabled: !!season?.id },
   )
+
+  const { data: publicReportCount } = trpc.publicGameReport.count.useQuery()
 
   if (!seasonLoading && !season) {
     return (
@@ -669,6 +679,26 @@ function DashboardPage() {
           <UpcomingGamesCard games={data?.upcomingGames ?? []} isLoading={loading} t={t} />
           <ActiveSuspensionsCard suspensions={data?.activeSuspensions ?? []} isLoading={loading} t={t} />
         </div>
+        {(publicReportCount?.count ?? 0) > 0 && (
+          <div className="mt-4">
+            <Link to="/games/public-reports">
+              <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 shrink-0">
+                    <FileText size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{t("publicReports.title")}</p>
+                    <p className="text-xs text-muted-foreground">{t("publicReports.description")}</p>
+                  </div>
+                  <Badge variant="secondary" className="text-blue-600 bg-blue-500/10">
+                    {publicReportCount?.count ?? 0}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Row 3: Season Insights */}

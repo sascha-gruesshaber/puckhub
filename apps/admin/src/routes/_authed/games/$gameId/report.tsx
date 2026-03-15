@@ -1,6 +1,17 @@
 import { Button, Card, CardContent, toast } from "@puckhub/ui"
 import { createFileRoute, Link } from "@tanstack/react-router"
-import { ArrowLeft, CheckCircle2, ClipboardList, Loader2, RefreshCw, RotateCcw, Sparkles, StickyNote, Users } from "lucide-react"
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  ClipboardList,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Sparkles,
+  StickyNote,
+  Users,
+} from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
@@ -186,6 +197,14 @@ function GameReportPage() {
   const readOnly = isCompleted || isCancelled
   const canComplete = !isCompleted && !isCancelled
 
+  // Check if this game has a public report
+  const { data: publicReportCount } = trpc.publicGameReport.count.useQuery()
+  const hasPublicReport = isCompleted && (game as any).publicReports?.length > 0
+
+  // Simpler approach: check if this game has public reports via the list
+  const { data: publicReports } = trpc.publicGameReport.list.useQuery({ limit: 1 }, { enabled: isCompleted })
+  const gamePublicReport = publicReports?.find((r: any) => r.gameId === gameId && !r.reverted)
+
   return (
     <div className="space-y-6">
       {/* Back link */}
@@ -199,6 +218,21 @@ function GameReportPage() {
 
       {/* Header */}
       <GameReportHeader game={game as any} />
+
+      {/* Public report notice */}
+      {gamePublicReport && (
+        <div className="rounded-xl border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 px-5 py-3">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {t("publicReports.publicReportNotice")}
+            </div>
+            <Link to="/games/public-reports" className="text-sm text-primary underline">
+              {t("publicReports.viewPublicReports")}
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Complete Game section */}
       {canComplete && (

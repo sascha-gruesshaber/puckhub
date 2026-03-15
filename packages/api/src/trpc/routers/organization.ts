@@ -112,7 +112,11 @@ export const organizationRouter = router({
     .input(
       z.object({
         name: z.string().min(1),
-        slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
+        slug: z
+          .string()
+          .min(1)
+          .regex(/^[a-z0-9-]+$/)
+          .optional(),
         logo: z.string().nullish(),
         ownerEmail: z.string().email().optional(),
         ownerName: z.string().min(1).optional(),
@@ -227,14 +231,50 @@ export const organizationRouter = router({
 
         const defaultPages = isGerman
           ? [
-              { title: "Impressum", slug: "impressum", content: "<h2>Impressum</h2><p>Hier steht Ihr Impressum.</p>", menuLocations: ["footer"], sortOrder: 100 },
-              { title: "Datenschutz", slug: "datenschutz", content: "<h2>Datenschutzerklärung</h2><p>Hier steht Ihre Datenschutzerklärung.</p>", menuLocations: ["footer"], sortOrder: 101 },
-              { title: "Kontakt", slug: "kontakt", content: "<h2>Kontakt</h2><p>Hier stehen Ihre Kontaktdaten.</p>", menuLocations: ["footer", "main_nav"], sortOrder: 102 },
+              {
+                title: "Impressum",
+                slug: "impressum",
+                content: "<h2>Impressum</h2><p>Hier steht Ihr Impressum.</p>",
+                menuLocations: ["footer"],
+                sortOrder: 100,
+              },
+              {
+                title: "Datenschutz",
+                slug: "datenschutz",
+                content: "<h2>Datenschutzerklärung</h2><p>Hier steht Ihre Datenschutzerklärung.</p>",
+                menuLocations: ["footer"],
+                sortOrder: 101,
+              },
+              {
+                title: "Kontakt",
+                slug: "kontakt",
+                content: "<h2>Kontakt</h2><p>Hier stehen Ihre Kontaktdaten.</p>",
+                menuLocations: ["footer", "main_nav"],
+                sortOrder: 102,
+              },
             ]
           : [
-              { title: "Legal Notice", slug: "legal-notice", content: "<h2>Legal Notice</h2><p>Your legal notice goes here.</p>", menuLocations: ["footer"], sortOrder: 100 },
-              { title: "Privacy Policy", slug: "privacy-policy", content: "<h2>Privacy Policy</h2><p>Your privacy policy goes here.</p>", menuLocations: ["footer"], sortOrder: 101 },
-              { title: "Contact", slug: "contact", content: "<h2>Contact</h2><p>Your contact information goes here.</p>", menuLocations: ["footer", "main_nav"], sortOrder: 102 },
+              {
+                title: "Legal Notice",
+                slug: "legal-notice",
+                content: "<h2>Legal Notice</h2><p>Your legal notice goes here.</p>",
+                menuLocations: ["footer"],
+                sortOrder: 100,
+              },
+              {
+                title: "Privacy Policy",
+                slug: "privacy-policy",
+                content: "<h2>Privacy Policy</h2><p>Your privacy policy goes here.</p>",
+                menuLocations: ["footer"],
+                sortOrder: 101,
+              },
+              {
+                title: "Contact",
+                slug: "contact",
+                content: "<h2>Contact</h2><p>Your contact information goes here.</p>",
+                menuLocations: ["footer", "main_nav"],
+                sortOrder: 102,
+              },
             ]
 
         await tx.page.createMany({
@@ -261,8 +301,18 @@ export const organizationRouter = router({
             : [
                 { name: "White", templateId: oneColor.id, primaryColor: "#FFFFFF", secondaryColor: null },
                 { name: "Black", templateId: oneColor.id, primaryColor: "#000000", secondaryColor: null },
-                { name: "Black and White", templateId: twoColor.id, primaryColor: "#000000", secondaryColor: "#FFFFFF" },
-                { name: "Green and White", templateId: twoColor.id, primaryColor: "#228B22", secondaryColor: "#FFFFFF" },
+                {
+                  name: "Black and White",
+                  templateId: twoColor.id,
+                  primaryColor: "#000000",
+                  secondaryColor: "#FFFFFF",
+                },
+                {
+                  name: "Green and White",
+                  templateId: twoColor.id,
+                  primaryColor: "#228B22",
+                  secondaryColor: "#FFFFFF",
+                },
                 { name: "Blue and White", templateId: twoColor.id, primaryColor: "#1E90FF", secondaryColor: "#FFFFFF" },
               ]
 
@@ -330,7 +380,11 @@ export const organizationRouter = router({
       z.object({
         id: z.string(),
         name: z.string().min(1).optional(),
-        slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
+        slug: z
+          .string()
+          .min(1)
+          .regex(/^[a-z0-9-]+$/)
+          .optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -549,24 +603,22 @@ export const organizationRouter = router({
     return membership.memberRoles
   }),
 
-  getMemberRoles: orgAdminProcedure
-    .input(z.object({ memberId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const memberRecord = await ctx.db.member.findFirst({
-        where: { id: input.memberId, organizationId: ctx.organizationId },
-      })
-      if (!memberRecord) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.MEMBER_NOT_FOUND)
-      }
+  getMemberRoles: orgAdminProcedure.input(z.object({ memberId: z.string() })).query(async ({ ctx, input }) => {
+    const memberRecord = await ctx.db.member.findFirst({
+      where: { id: input.memberId, organizationId: ctx.organizationId },
+    })
+    if (!memberRecord) {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.MEMBER_NOT_FOUND)
+    }
 
-      return ctx.db.memberRole.findMany({
-        where: { memberId: input.memberId },
-        include: {
-          team: { select: { id: true, name: true, shortName: true } },
-        },
-        orderBy: { createdAt: "asc" },
-      })
-    }),
+    return ctx.db.memberRole.findMany({
+      where: { memberId: input.memberId },
+      include: {
+        team: { select: { id: true, name: true, shortName: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    })
+  }),
 
   addMemberRole: orgAdminProcedure
     .input(
@@ -578,7 +630,11 @@ export const organizationRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.organizationId === "demo-league") {
-        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+          "User management is disabled for the demo league",
+        )
       }
 
       const memberRecord = await ctx.db.member.findFirst({
@@ -622,24 +678,30 @@ export const organizationRouter = router({
       })
     }),
 
-  setAiEnabled: orgAdminProcedure
-    .input(z.object({ enabled: z.boolean() }))
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.organizationId === "demo-league") {
-        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "AI features cannot be enabled for demo organizations")
-      }
-      await ctx.db.organization.update({
-        where: { id: ctx.organizationId },
-        data: { aiEnabled: input.enabled },
-      })
-      return { success: true }
-    }),
+  setAiEnabled: orgAdminProcedure.input(z.object({ enabled: z.boolean() })).mutation(async ({ ctx, input }) => {
+    if (ctx.organizationId === "demo-league") {
+      throw createAppError(
+        "FORBIDDEN",
+        APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+        "AI features cannot be enabled for demo organizations",
+      )
+    }
+    await ctx.db.organization.update({
+      where: { id: ctx.organizationId },
+      data: { aiEnabled: input.enabled },
+    })
+    return { success: true }
+  }),
 
   removeMemberRole: orgAdminProcedure
     .input(z.object({ memberRoleId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       if (ctx.organizationId === "demo-league") {
-        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+          "User management is disabled for the demo league",
+        )
       }
 
       const memberRole = await ctx.db.memberRole.findUnique({

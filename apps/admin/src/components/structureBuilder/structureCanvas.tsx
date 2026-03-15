@@ -64,7 +64,8 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       invalidate()
       toast.success(t("seasonStructure.toast.teamAssigned"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const createDivisionMutation = trpc.division.create.useMutation({
@@ -72,7 +73,8 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       invalidate()
       toast.success(t("seasonStructure.toast.divisionCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const createRoundMutation = trpc.round.create.useMutation({
@@ -80,7 +82,8 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
       invalidate()
       toast.success(t("seasonStructure.toast.roundCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function invalidate() {

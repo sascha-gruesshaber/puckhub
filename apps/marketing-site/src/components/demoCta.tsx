@@ -23,13 +23,14 @@ export function DemoCta({ onOpenDemo }: { onOpenDemo: () => void }) {
   return (
     <section id="demo" className="py-20 sm:py-28 scroll-mt-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div ref={reveal.ref} className={`relative rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/[0.06] to-brand-blue/[0.04] p-10 sm:p-16 text-center overflow-hidden ${revealClasses(reveal)}`}>
+        <div
+          ref={reveal.ref}
+          className={`relative rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/[0.06] to-brand-blue/[0.04] p-10 sm:p-16 text-center overflow-hidden ${revealClasses(reveal)}`}
+        >
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-brand-gold/40 to-transparent" />
 
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">{t.demoCta.heading}</h2>
-          <p className="text-lg text-brand-slate max-w-xl mx-auto mb-8">
-            {t.demoCta.subheading}
-          </p>
+          <p className="text-lg text-brand-slate max-w-xl mx-auto mb-8">{t.demoCta.subheading}</p>
           <button
             type="button"
             onClick={onOpenDemo}
@@ -93,9 +94,7 @@ export function DemoDialog({ onClose }: { onClose: () => void }) {
 
         <div className="p-6 sm:p-8">
           <h3 className="text-xl font-bold mb-1">{t.demoDialog.title}</h3>
-          <p className="text-sm text-brand-slate mb-6">
-            {t.demoDialog.subtitle}
-          </p>
+          <p className="text-sm text-brand-slate mb-6">{t.demoDialog.subtitle}</p>
 
           {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
 

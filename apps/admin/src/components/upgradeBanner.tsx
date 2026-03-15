@@ -13,9 +13,7 @@ export function UpgradeBanner({ planName, message, className }: UpgradeBannerPro
   const { t } = useTranslation("common")
 
   return (
-    <div
-      className={`rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center gap-3 ${className ?? ""}`}
-    >
+    <div className={`rounded-lg border border-amber-200 bg-amber-50 p-3 flex items-center gap-3 ${className ?? ""}`}>
       <Zap className="h-5 w-5 text-amber-500 shrink-0" />
       <div>
         <p className="text-sm font-medium text-amber-900">

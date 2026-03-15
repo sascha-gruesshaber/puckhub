@@ -14,13 +14,7 @@ interface InlineSelectProps<T extends string = string> {
   className?: string
 }
 
-export function InlineSelect<T extends string>({
-  items,
-  value,
-  onChange,
-  icon,
-  className,
-}: InlineSelectProps<T>) {
+export function InlineSelect<T extends string>({ items, value, onChange, icon, className }: InlineSelectProps<T>) {
   const selectedLabel = items.find((i) => i.id === value)?.label ?? ""
 
   return (

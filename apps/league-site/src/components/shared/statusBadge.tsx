@@ -30,7 +30,13 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   const config = { label, className: style }
 
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", config.className, className)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+        config.className,
+        className,
+      )}
+    >
       {config.label}
     </span>
   )

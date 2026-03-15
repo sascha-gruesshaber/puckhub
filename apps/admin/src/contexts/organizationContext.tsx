@@ -67,9 +67,7 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         id: activeOrgTrpc.id,
         name: activeOrgTrpc.name,
         logo: activeOrgTrpc.logo ?? null,
-        role: isPlatformAdmin
-          ? "owner"
-          : organizations.find((o) => o.id === activeOrgTrpc.id)?.role ?? "member",
+        role: isPlatformAdmin ? "owner" : (organizations.find((o) => o.id === activeOrgTrpc.id)?.role ?? "member"),
       }
     : null
 

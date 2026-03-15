@@ -13,7 +13,21 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { Building2, Crown, KeyRound, Mail, Pencil, Plus, Search, Shield, Trash2, User, UserPlus, Users, X } from "lucide-react"
+import {
+  Building2,
+  Crown,
+  KeyRound,
+  Mail,
+  Pencil,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  User,
+  UserPlus,
+  Users,
+  X,
+} from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 
@@ -21,13 +35,52 @@ type OrgRole = "owner" | "admin" | "game_manager" | "game_reporter" | "team_mana
 
 const iconProps = { size: 14, strokeWidth: 2 } as const
 
-const ROLE_META: Record<OrgRole, { color: string; bgColor: string; icon: React.ReactNode; label: string; description: string }> = {
-  owner: { color: "hsl(45 93% 47%)", bgColor: "hsl(45 93% 47% / 0.1)", icon: <Crown {...iconProps} />, label: "Owner", description: "Full access to all areas including organization deletion." },
-  admin: { color: "hsl(25 95% 53%)", bgColor: "hsl(25 95% 53% / 0.1)", icon: <Shield {...iconProps} />, label: "Administrator", description: "Full access to all areas except organization deletion." },
-  game_manager: { color: "hsl(142 72% 42%)", bgColor: "hsl(142 72% 42% / 0.1)", icon: <Users {...iconProps} />, label: "Game Manager", description: "Create, edit, and manage games." },
-  game_reporter: { color: "hsl(198 93% 45%)", bgColor: "hsl(198 93% 45% / 0.1)", icon: <KeyRound {...iconProps} />, label: "Game Reporter", description: "Manage game reports, lineups, and events." },
-  team_manager: { color: "hsl(262 83% 58%)", bgColor: "hsl(262 83% 58% / 0.1)", icon: <Shield {...iconProps} />, label: "Team Manager", description: "Manage team details, rosters, and contracts." },
-  editor: { color: "hsl(330 81% 60%)", bgColor: "hsl(330 81% 60% / 0.1)", icon: <User {...iconProps} />, label: "Editor", description: "Create and edit news articles and pages." },
+const ROLE_META: Record<
+  OrgRole,
+  { color: string; bgColor: string; icon: React.ReactNode; label: string; description: string }
+> = {
+  owner: {
+    color: "hsl(45 93% 47%)",
+    bgColor: "hsl(45 93% 47% / 0.1)",
+    icon: <Crown {...iconProps} />,
+    label: "Owner",
+    description: "Full access to all areas including organization deletion.",
+  },
+  admin: {
+    color: "hsl(25 95% 53%)",
+    bgColor: "hsl(25 95% 53% / 0.1)",
+    icon: <Shield {...iconProps} />,
+    label: "Administrator",
+    description: "Full access to all areas except organization deletion.",
+  },
+  game_manager: {
+    color: "hsl(142 72% 42%)",
+    bgColor: "hsl(142 72% 42% / 0.1)",
+    icon: <Users {...iconProps} />,
+    label: "Game Manager",
+    description: "Create, edit, and manage games.",
+  },
+  game_reporter: {
+    color: "hsl(198 93% 45%)",
+    bgColor: "hsl(198 93% 45% / 0.1)",
+    icon: <KeyRound {...iconProps} />,
+    label: "Game Reporter",
+    description: "Manage game reports, lineups, and events.",
+  },
+  team_manager: {
+    color: "hsl(262 83% 58%)",
+    bgColor: "hsl(262 83% 58% / 0.1)",
+    icon: <Shield {...iconProps} />,
+    label: "Team Manager",
+    description: "Manage team details, rosters, and contracts.",
+  },
+  editor: {
+    color: "hsl(330 81% 60%)",
+    bgColor: "hsl(330 81% 60% / 0.1)",
+    icon: <User {...iconProps} />,
+    label: "Editor",
+    description: "Create and edit news articles and pages.",
+  },
 }
 
 const ORG_ROLES: OrgRole[] = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"]
@@ -42,22 +95,30 @@ function UsersPage() {
   const [search, setSearch] = useState("")
 
   // Delete user dialog
-  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; user: { id: string; name: string; orgCount: number } | null }>({
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean
+    user: { id: string; name: string; orgCount: number } | null
+  }>({
     open: false,
     user: null,
   })
 
   // Assign to league dialog
-  const [assignDialog, setAssignDialog] = useState<{ open: boolean; userId: string; userName: string; existingOrgIds: string[] }>({
+  const [assignDialog, setAssignDialog] = useState<{
+    open: boolean
+    userId: string
+    userName: string
+    existingOrgIds: string[]
+  }>({
     open: false,
     userId: "",
     userName: "",
     existingOrgIds: [],
   })
   const [assignOrgId, setAssignOrgId] = useState("")
-  const [assignRole, setAssignRole] = useState<"admin" | "owner" | "game_manager" | "game_reporter" | "team_manager" | "editor">(
-    "admin",
-  )
+  const [assignRole, setAssignRole] = useState<
+    "admin" | "owner" | "game_manager" | "game_reporter" | "team_manager" | "editor"
+  >("admin")
 
   // Remove from org dialog
   const [removeDialog, setRemoveDialog] = useState<{
@@ -77,10 +138,17 @@ function UsersPage() {
     orgName: string
     currentRole: string
   }>({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })
-  const [newRole, setNewRole] = useState<"admin" | "owner" | "game_manager" | "game_reporter" | "team_manager" | "editor">("admin")
+  const [newRole, setNewRole] = useState<
+    "admin" | "owner" | "game_manager" | "game_reporter" | "team_manager" | "editor"
+  >("admin")
 
   // Edit email dialog
-  const [editEmailDialog, setEditEmailDialog] = useState<{ open: boolean; userId: string; userName: string; currentEmail: string }>({
+  const [editEmailDialog, setEditEmailDialog] = useState<{
+    open: boolean
+    userId: string
+    userName: string
+    currentEmail: string
+  }>({
     open: false,
     userId: "",
     userName: "",
@@ -311,55 +379,62 @@ function UsersPage() {
                 {user.organizations.length === 0 ? (
                   <span className="text-xs text-muted-foreground italic">No league</span>
                 ) : (
-                  user.organizations.map((org: { organizationId: string; organizationName: string; role: string; memberRoles: { role: string; teamId: string | null }[] }) => {
-                    const displayRole = getPrimaryRole(org)
-                    return (
-                      <span
-                        key={org.organizationId}
-                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${roleColor(displayRole)}`}
-                      >
-                        <Building2 size={10} />
-                        <span className="max-w-[100px] truncate">{org.organizationName}</span>
-                        <span className="opacity-60">({displayRole})</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setChangeRoleDialog({
-                              open: true,
-                              userId: user.id,
-                              userName: user.name,
-                              organizationId: org.organizationId,
-                              orgName: org.organizationName,
-                              currentRole: displayRole,
-                            })
-                            setNewRole(displayRole as typeof newRole)
-                          }}
-                          className="rounded hover:bg-black/10 p-0.5 transition-colors"
-                          title="Change role"
+                  user.organizations.map(
+                    (org: {
+                      organizationId: string
+                      organizationName: string
+                      role: string
+                      memberRoles: { role: string; teamId: string | null }[]
+                    }) => {
+                      const displayRole = getPrimaryRole(org)
+                      return (
+                        <span
+                          key={org.organizationId}
+                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${roleColor(displayRole)}`}
                         >
-                          <Pencil size={10} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setRemoveDialog({
-                              open: true,
-                              userId: user.id,
-                              userName: user.name,
-                              organizationId: org.organizationId,
-                              orgName: org.organizationName,
-                            })
-                          }}
-                          className="rounded hover:bg-black/10 p-0.5 -mr-1 transition-colors"
-                          title="Remove from league"
-                        >
-                          <X size={10} />
-                        </button>
-                      </span>
-                    )
-                  })
+                          <Building2 size={10} />
+                          <span className="max-w-[100px] truncate">{org.organizationName}</span>
+                          <span className="opacity-60">({displayRole})</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setChangeRoleDialog({
+                                open: true,
+                                userId: user.id,
+                                userName: user.name,
+                                organizationId: org.organizationId,
+                                orgName: org.organizationName,
+                                currentRole: displayRole,
+                              })
+                              setNewRole(displayRole as typeof newRole)
+                            }}
+                            className="rounded hover:bg-black/10 p-0.5 transition-colors"
+                            title="Change role"
+                          >
+                            <Pencil size={10} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setRemoveDialog({
+                                open: true,
+                                userId: user.id,
+                                userName: user.name,
+                                organizationId: org.organizationId,
+                                orgName: org.organizationName,
+                              })
+                            }}
+                            className="rounded hover:bg-black/10 p-0.5 -mr-1 transition-colors"
+                            title="Remove from league"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      )
+                    },
+                  )
                 )}
 
                 {/* Add to league button */}
@@ -611,17 +686,35 @@ function UsersPage() {
       <Dialog
         open={changeRoleDialog.open}
         onOpenChange={(open) => {
-          if (!open) setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })
+          if (!open)
+            setChangeRoleDialog({
+              open: false,
+              userId: "",
+              userName: "",
+              organizationId: "",
+              orgName: "",
+              currentRole: "",
+            })
         }}
       >
         <DialogContent className="max-w-md">
           <DialogClose
-            onClick={() => setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })}
+            onClick={() =>
+              setChangeRoleDialog({
+                open: false,
+                userId: "",
+                userName: "",
+                organizationId: "",
+                orgName: "",
+                currentRole: "",
+              })
+            }
           />
           <DialogHeader>
             <DialogTitle>Change Role</DialogTitle>
             <DialogDescription>
-              Change the role of <strong>{changeRoleDialog.userName}</strong> in <strong>{changeRoleDialog.orgName}</strong>.
+              Change the role of <strong>{changeRoleDialog.userName}</strong> in{" "}
+              <strong>{changeRoleDialog.orgName}</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -666,7 +759,16 @@ function UsersPage() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setChangeRoleDialog({ open: false, userId: "", userName: "", organizationId: "", orgName: "", currentRole: "" })}
+              onClick={() =>
+                setChangeRoleDialog({
+                  open: false,
+                  userId: "",
+                  userName: "",
+                  organizationId: "",
+                  orgName: "",
+                  currentRole: "",
+                })
+              }
             >
               Cancel
             </Button>
@@ -702,9 +804,7 @@ function UsersPage() {
           <DialogClose onClick={() => setCreateDialog(false)} />
           <DialogHeader>
             <DialogTitle>Create User</DialogTitle>
-            <DialogDescription>
-              Create a new user account.
-            </DialogDescription>
+            <DialogDescription>Create a new user account.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateUser} className="space-y-4 p-6 pt-2">
@@ -776,7 +876,9 @@ function UsersPage() {
         }}
       >
         <DialogContent className="max-w-md">
-          <DialogClose onClick={() => setEditEmailDialog({ open: false, userId: "", userName: "", currentEmail: "" })} />
+          <DialogClose
+            onClick={() => setEditEmailDialog({ open: false, userId: "", userName: "", currentEmail: "" })}
+          />
           <DialogHeader>
             <DialogTitle>Change Email</DialogTitle>
             <DialogDescription>
@@ -832,7 +934,6 @@ function UsersPage() {
           </form>
         </DialogContent>
       </Dialog>
-
     </div>
   )
 }

@@ -23,11 +23,7 @@ function FilterBar({ label, icon, search, children }: FilterBarProps) {
           <div className="filter-bar-panel__divider" />
         </>
       )}
-      {hasFilters && (
-        <div className="filter-bar-panel__controls">
-          {children}
-        </div>
-      )}
+      {hasFilters && <div className="filter-bar-panel__controls">{children}</div>}
       {search && (
         <>
           {hasFilters && <div className="filter-bar-panel__divider" />}

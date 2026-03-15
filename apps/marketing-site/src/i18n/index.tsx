@@ -12,9 +12,7 @@ function detectLocale(): Locale {
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const locale = useMemo(detectLocale, [])
 
-  return (
-    <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>
-  )
+  return <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>
 }
 
 export function useLocale(): Locale {

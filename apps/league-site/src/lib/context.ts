@@ -33,14 +33,25 @@ export interface SeasonData {
 
 export interface SiteFeatures {
   advancedStats: boolean
+  publicReports: boolean
+  publicReportsRequireEmail: boolean
+  publicReportsBotDetection: boolean
 }
 
 export const OrgContext = createContext<OrgData | null>(null)
 export const SettingsContext = createContext<SiteSettings | null>(null)
 export const ConfigContext = createContext<SiteConfig | null>(null)
 export const ThemeContext = createContext<{ colors: ThemeColors; layout: LayoutConfig } | null>(null)
-export const SeasonContext = createContext<{ current: SeasonData | null; all: SeasonData[] }>({ current: null, all: [] })
-export const FeaturesContext = createContext<SiteFeatures>({ advancedStats: false })
+export const SeasonContext = createContext<{ current: SeasonData | null; all: SeasonData[] }>({
+  current: null,
+  all: [],
+})
+export const FeaturesContext = createContext<SiteFeatures>({
+  advancedStats: false,
+  publicReports: false,
+  publicReportsRequireEmail: true,
+  publicReportsBotDetection: true,
+})
 
 export function useOrg() {
   const ctx = useContext(OrgContext)

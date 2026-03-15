@@ -73,7 +73,7 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
 
   const siteData = orgIdParam ? siteDataByOrg : siteDataByDomain
   // During SSR, domain is null so the query is disabled — treat as loading until client hydrates
-  const isLoading = orgIdParam ? isLoadingByOrg : (isLoadingByDomain || !domain)
+  const isLoading = orgIdParam ? isLoadingByOrg : isLoadingByDomain || !domain
 
   const orgId = siteData?.organization?.id
   const { data: seasons } = trpc.publicSite.listSeasons.useQuery(
@@ -153,7 +153,12 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
     all: seasons?.map((s) => ({ id: s.id, name: s.name })) ?? [],
   }
 
-  const features = siteData.features ?? { advancedStats: false }
+  const features = siteData.features ?? {
+    advancedStats: false,
+    publicReports: false,
+    publicReportsRequireEmail: true,
+    publicReportsBotDetection: true,
+  }
 
   return (
     <>

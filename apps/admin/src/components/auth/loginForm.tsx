@@ -48,9 +48,7 @@ function LoginForm({ onError, redirect }: LoginFormProps) {
         </div>
         <div>
           <h3 className="text-base font-semibold">{t("login.magicLink.checkInbox")}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("login.magicLink.sentTo", { email })}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("login.magicLink.sentTo", { email })}</p>
         </div>
         <Button
           variant="outline"

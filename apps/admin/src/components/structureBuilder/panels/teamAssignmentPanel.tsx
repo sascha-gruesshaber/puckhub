@@ -26,7 +26,8 @@ export function TeamAssignmentPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.teamRemoved"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const initials = shortName.substring(0, 2).toUpperCase()

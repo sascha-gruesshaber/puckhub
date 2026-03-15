@@ -69,7 +69,15 @@ export const usersRouter = router({
       },
     })
 
-    const membersByUser = new Map<string, { organizationId: string; organizationName: string; role: string; memberRoles: { role: string; teamId: string | null }[] }[]>()
+    const membersByUser = new Map<
+      string,
+      {
+        organizationId: string
+        organizationName: string
+        role: string
+        memberRoles: { role: string; teamId: string | null }[]
+      }[]
+    >()
     for (const m of allMembers) {
       const list = membersByUser.get(m.userId) ?? []
       list.push({
@@ -133,7 +141,11 @@ export const usersRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.organizationId === "demo-league") {
-        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+          "User management is disabled for the demo league",
+        )
       }
 
       // Better Auth stores and looks up emails in lowercase
@@ -215,7 +227,11 @@ export const usersRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.organizationId === "demo-league") {
-        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+          "User management is disabled for the demo league",
+        )
       }
 
       const { id, ...data } = input
@@ -260,7 +276,11 @@ export const usersRouter = router({
 
   delete: orgAdminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
     if (ctx.organizationId === "demo-league") {
-      throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+      throw createAppError(
+        "FORBIDDEN",
+        APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+        "User management is disabled for the demo league",
+      )
     }
 
     if (ctx.user.id === input.id) {
@@ -282,7 +302,11 @@ export const usersRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (ctx.organizationId === "demo-league") {
-        throw createAppError("FORBIDDEN", APP_ERROR_CODES.DEMO_ORG_RESTRICTED, "User management is disabled for the demo league")
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+          "User management is disabled for the demo league",
+        )
       }
 
       const memberRecord = await ctx.db.member.findFirst({

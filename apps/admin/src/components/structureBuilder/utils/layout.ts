@@ -122,14 +122,11 @@ export function getLayoutedElements(nodes: Node[], edges: Edge[]): { nodes: Node
       for (let i = 0; i < block.rounds.length; i++) {
         const roundId = block.rounds[i]?.id
         if (!roundId) {
-          console.warn(
-            "[layout] Encountered round node without an id; skipping layout for this round.",
-            {
-              blockDivisionId: block.divNode?.id,
-              roundIndex: i,
-              roundNode: block.rounds[i],
-            },
-          )
+          console.warn("[layout] Encountered round node without an id; skipping layout for this round.", {
+            blockDivisionId: block.divNode?.id,
+            roundIndex: i,
+            roundNode: block.rounds[i],
+          })
           continue
         }
         positions.set(roundId, {

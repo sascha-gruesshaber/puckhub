@@ -1,4 +1,5 @@
-import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy } from "react"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { StatsSummaryCards } from "~/components/shared/statsSummaryCards"
@@ -28,7 +29,7 @@ export function StatsIndex() {
   const lp = useLocalePath()
   const org = useOrg()
   const season = useSeason()
-  const navigate: any = useNavigate()
+  const filterNavigate = useFilterNavigate()
   const { season: seasonParam } = useSearch({ strict: false }) as { season?: string }
   const selectedSeasonId = seasonParam ?? season.current?.id
 
@@ -38,7 +39,7 @@ export function StatsIndex() {
   }
 
   const setSelectedSeasonId = (v: string) =>
-    navigate({ search: { season: v === season.current?.id ? undefined : v }, replace: true })
+    filterNavigate({ search: { season: v === season.current?.id ? undefined : v } })
 
   const shouldFetch = !!selectedSeasonId
   const { data: playerStats, isLoading: playerLoading } = trpc.publicSite.getPlayerStats.useQuery(
@@ -58,7 +59,11 @@ export function StatsIndex() {
   const topScorers = [...(playerStats ?? [])].sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10)
 
   return (
-    <StatsPageShell title={t.statsOverview.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSelectedSeasonId}>
+    <StatsPageShell
+      title={t.statsOverview.title}
+      selectedSeasonId={selectedSeasonId}
+      onSeasonChange={setSelectedSeasonId}
+    >
       {playerStats && (
         <StatsSummaryCards
           playerStats={playerStats}

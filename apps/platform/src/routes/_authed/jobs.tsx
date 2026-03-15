@@ -87,15 +87,19 @@ function JobsPage() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <Clock size={12} />
-                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
-                        {job.cronExpression}
-                      </code>
+                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">{job.cronExpression}</code>
                     </span>
                     <span>{job.timezone}</span>
                     {job.nextRunAt && (
                       <span className="inline-flex items-center gap-1">
                         <Timer size={12} />
-                        Next: {new Date(job.nextRunAt).toLocaleString("de-DE", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+                        Next:{" "}
+                        {new Date(job.nextRunAt).toLocaleString("de-DE", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          day: "2-digit",
+                          month: "2-digit",
+                        })}
                       </span>
                     )}
                   </div>
@@ -128,7 +132,9 @@ function JobsPage() {
                   variant="outline"
                   size="sm"
                   className="shrink-0 gap-1.5"
-                  disabled={job.running || (triggerMutation.isPending && triggerMutation.variables?.jobName === job.name)}
+                  disabled={
+                    job.running || (triggerMutation.isPending && triggerMutation.variables?.jobName === job.name)
+                  }
                   onClick={() => triggerMutation.mutate({ jobName: job.name })}
                 >
                   {triggerMutation.isPending && triggerMutation.variables?.jobName === job.name ? (

@@ -27,9 +27,19 @@ interface Suspension {
   team: { shortName: string; logoUrl: string | null }
 }
 
-type TimelineEvent = { type: "contract"; data: Contract; date: Date } | { type: "suspension"; data: Suspension; date: Date }
+type TimelineEvent =
+  | { type: "contract"; data: Contract; date: Date }
+  | { type: "suspension"; data: Suspension; date: Date }
 
-function PlayerTimeline({ contracts, suspensions, filter }: { contracts: Contract[]; suspensions: Suspension[]; filter: string }) {
+function PlayerTimeline({
+  contracts,
+  suspensions,
+  filter,
+}: {
+  contracts: Contract[]
+  suspensions: Suspension[]
+  filter: string
+}) {
   const t = useT()
   const events: TimelineEvent[] = []
 
@@ -42,11 +52,12 @@ function PlayerTimeline({ contracts, suspensions, filter }: { contracts: Contrac
 
   events.sort((a, b) => b.date.getTime() - a.date.getTime())
 
-  const filtered = filter === "all"
-    ? events
-    : filter === "suspension"
-      ? events.filter((e) => e.type === "suspension")
-      : events.filter((e) => e.type === "contract")
+  const filtered =
+    filter === "all"
+      ? events
+      : filter === "suspension"
+        ? events.filter((e) => e.type === "suspension")
+        : events.filter((e) => e.type === "contract")
 
   if (filtered.length === 0) {
     return <p className="text-sm text-league-text/40 text-center py-6">{t.playerTimeline.noEntries}</p>
@@ -57,9 +68,11 @@ function PlayerTimeline({ contracts, suspensions, filter }: { contracts: Contrac
       {filtered.map((event, i) => (
         <div key={i} className="flex gap-3">
           <div className="flex flex-col items-center">
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-              event.type === "suspension" ? "bg-red-100 text-red-600" : "bg-league-primary/10 text-league-primary"
-            }`}>
+            <div
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                event.type === "suspension" ? "bg-red-100 text-red-600" : "bg-league-primary/10 text-league-primary"
+              }`}
+            >
               {event.type === "suspension" ? <AlertTriangle className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
             </div>
             {i < filtered.length - 1 && <div className="w-px flex-1 bg-league-text/10 my-1" />}
@@ -86,7 +99,9 @@ function ContractCard({ contract }: { contract: Contract }) {
         <span className="font-medium text-sm">{contract.team.name}</span>
       </div>
       <div className="flex items-center gap-2 text-xs text-league-text/60">
-        <span className="bg-league-text/5 rounded px-1.5 py-0.5">{t.positions[contract.position as keyof typeof t.positions] ?? contract.position}</span>
+        <span className="bg-league-text/5 rounded px-1.5 py-0.5">
+          {t.positions[contract.position as keyof typeof t.positions] ?? contract.position}
+        </span>
         {contract.jerseyNumber != null && <span>#{contract.jerseyNumber}</span>}
         <span>&middot;</span>
         <span>
@@ -107,13 +122,13 @@ function SuspensionCard({ suspension }: { suspension: Suspension }) {
         <Shield className="h-3.5 w-3.5" />
         {t.playerTimeline.suspension} {suspension.gameSuspensions} Spiel{suspension.gameSuspensions !== 1 ? "e" : ""}
         {suspension.servedGames > 0 && (
-          <span className="text-xs text-red-600">({suspension.servedGames} {t.playerTimeline.served})</span>
+          <span className="text-xs text-red-600">
+            ({suspension.servedGames} {t.playerTimeline.served})
+          </span>
         )}
       </div>
       <div className="flex items-center gap-2 text-xs text-red-600">
-        {suspension.gameEvent?.penaltyType && (
-          <span>{suspension.gameEvent.penaltyType.name}</span>
-        )}
+        {suspension.gameEvent?.penaltyType && <span>{suspension.gameEvent.penaltyType.name}</span>}
         <span>&middot;</span>
         <span>
           {suspension.game.homeTeam.shortName} vs {suspension.game.awayTeam.shortName}

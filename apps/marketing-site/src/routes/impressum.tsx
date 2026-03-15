@@ -21,7 +21,6 @@ function Impressum() {
           <h1 className="text-3xl font-bold mb-8 text-white">Impressum</h1>
 
           <div className="prose prose-invert max-w-none text-brand-slate [&_h2]:text-white [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-10 [&_h2]:mb-4 [&_p]:mb-3 [&_p]:leading-relaxed [&_a]:text-brand-gold [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:text-brand-gold-dark">
-
             <p>
               Sascha Gr&uuml;&szlig;haber
               <br />

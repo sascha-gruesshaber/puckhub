@@ -50,14 +50,7 @@ function EChartsWrapper({ option, height = 400, className }: EChartsWrapperProps
   }
 
   return (
-    <Suspense
-      fallback={
-        <div
-          className="w-full rounded-lg bg-league-text/5 animate-pulse"
-          style={{ height }}
-        />
-      }
-    >
+    <Suspense fallback={<div className="w-full rounded-lg bg-league-text/5 animate-pulse" style={{ height }} />}>
       <ReactECharts
         option={mergedOption}
         style={{ height, width: "100%" }}

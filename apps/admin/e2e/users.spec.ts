@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
-import { login } from "./helpers"
+import { formField, login } from "./helpers"
 
-test.describe.skip("Users Management", () => {
+test.describe("Users Management", () => {
   test("users list shows the test user", async ({ page }) => {
     await login(page)
     await page.goto("/users")
@@ -9,9 +9,10 @@ test.describe.skip("Users Management", () => {
       timeout: 10_000,
     })
 
-    // Should show the seeded admin user
-    await expect(page.getByText("E2E Admin")).toBeVisible()
-    await expect(page.getByText("admin@test.local")).toBeVisible()
+    // Should show the seeded admin user in the list (use the row heading to avoid matching top-bar)
+    const userRow = page.locator(".data-row", { hasText: "admin@test.local" })
+    await expect(userRow).toBeVisible()
+    await expect(userRow.getByText("E2E Admin")).toBeVisible()
   })
 
   test("create and remove a new user", async ({ page }) => {
@@ -22,13 +23,10 @@ test.describe.skip("Users Management", () => {
     })
 
     // --- CREATE ---
-    await page.getByRole("button", { name: "usersPage.actions.new" }).click()
+    await page.getByRole("button", { name: "usersPage.actions.newMember" }).click()
 
-    await page.getByLabel("usersPage.fields.name").fill("E2E New User")
-    await page.getByLabel("usersPage.fields.email").fill("e2e-new@test.local")
-
-    // Select a role
-    await page.getByLabel("usersPage.roles.admin").click()
+    await formField(page, "usersPage.fields.name").fill("E2E New User")
+    await formField(page, "usersPage.fields.email").fill("e2e-new@test.local")
 
     await page.getByRole("button", { name: "create" }).click()
 
@@ -37,8 +35,8 @@ test.describe.skip("Users Management", () => {
 
     // --- REMOVE ---
     const userRow = page.locator(".data-row", { hasText: "E2E New User" })
-    await userRow.getByRole("button", { name: "usersPage.actions.delete" }).click()
-    await page.getByRole("button", { name: "usersPage.actions.delete" }).last().click()
+    await userRow.locator("[aria-label='usersPage.actions.remove']").click()
+    await page.getByRole("button", { name: "usersPage.actions.remove" }).last().click()
 
     await expect(page.getByText("E2E New User")).not.toBeVisible({ timeout: 10_000 })
   })

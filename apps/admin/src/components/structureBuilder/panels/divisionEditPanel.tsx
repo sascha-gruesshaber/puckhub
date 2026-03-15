@@ -39,7 +39,8 @@ export function DivisionEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.divisionUpdated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.division.delete.useMutation({
@@ -47,7 +48,8 @@ export function DivisionEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.divisionDeleted"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const createRoundMutation = trpc.round.create.useMutation({
@@ -55,7 +57,8 @@ export function DivisionEditPanel({
       onInvalidate()
       toast.success(t("seasonStructure.toast.roundCreated"))
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleSave() {

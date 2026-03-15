@@ -1,6 +1,6 @@
 # PuckHub CMS
 
-Ice Hockey League Management Platform -- a multi-tenant SaaS system for managing seasons, teams, players, games, and public league websites with AI-powered game recaps, passwordless authentication (magic links + passkeys), and localized German/English URLs.
+Ice Hockey League Management Platform -- a multi-tenant SaaS system for managing seasons, teams, players, games, and public league websites with AI-powered game recaps, public game reporting with email verification, passwordless authentication (magic links + passkeys), and localized German/English URLs.
 
 ## Tech Stack
 
@@ -129,4 +129,4 @@ The source code is available for reference, learning, and contribution purposes.
 
 See [LICENSE](LICENSE) for the complete terms.
 
-Copyright (c) 2025 Sascha Gruesshaber
+Copyright (c) 2025-2026 Sascha Gruesshaber

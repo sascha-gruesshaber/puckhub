@@ -162,7 +162,8 @@ function UsersPage() {
       closeDialog()
       toast.success(t("usersPage.toast.created"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("usersPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateMutation = trpc.users.update.useMutation({
@@ -171,7 +172,8 @@ function UsersPage() {
       closeDialog()
       toast.success(t("usersPage.toast.updated"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("usersPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.users.delete.useMutation({
@@ -181,7 +183,8 @@ function UsersPage() {
       setDeletingUser(null)
       toast.success(t("usersPage.toast.deleted"))
     },
-    onError: (err) => toast.error(t("usersPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("usersPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const addRoleMutation = trpc.organization.addMemberRole.useMutation({
@@ -344,7 +347,7 @@ function UsersPage() {
       {
         memberId: roleMemberId,
         role: addRoleValue,
-        teamId: TEAM_SCOPEABLE_ROLES.includes(addRoleValue) ? addRoleTeamId ?? undefined : undefined,
+        teamId: TEAM_SCOPEABLE_ROLES.includes(addRoleValue) ? (addRoleTeamId ?? undefined) : undefined,
       },
       {
         onSuccess: () => {
@@ -383,7 +386,18 @@ function UsersPage() {
         action={
           <div className="flex items-center gap-2">
             <Badge variant="outline">{usageText("maxAdmins")}</Badge>
-            <Button variant="accent" onClick={openCreate} disabled={atAdminLimit || isDemoOrg} title={isDemoOrg ? t("usersPage.demoRestricted", { defaultValue: "User management is disabled for the demo league." }) : atAdminLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+            <Button
+              variant="accent"
+              onClick={openCreate}
+              disabled={atAdminLimit || isDemoOrg}
+              title={
+                isDemoOrg
+                  ? t("usersPage.demoRestricted", { defaultValue: "User management is disabled for the demo league." })
+                  : atAdminLimit
+                    ? t("plan.limitReached", { defaultValue: "Plan limit reached" })
+                    : undefined
+              }
+            >
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("usersPage.actions.newMember")}
             </Button>
@@ -436,7 +450,14 @@ function UsersPage() {
                 isDemoOrg={isDemoOrg}
                 onEdit={() => openEdit(user)}
                 onDelete={() => openDelete({ id: user.id, name: user.name })}
-                onChangeRole={() => openRoleDialog({ id: user.id, name: user.name, memberId: user.memberId, memberRoles: (user as any).memberRoles ?? [] })}
+                onChangeRole={() =>
+                  openRoleDialog({
+                    id: user.id,
+                    name: user.name,
+                    memberId: user.memberId,
+                    memberRoles: (user as any).memberRoles ?? [],
+                  })
+                }
                 t={t}
               />
             ))}
@@ -561,7 +582,7 @@ function UsersPage() {
                   {roleUserRoles.map((entry) => {
                     const meta = ROLE_META[entry.role] ?? ROLE_META.admin
                     const teamName = entry.teamId
-                      ? teams?.find((t2: any) => t2.id === entry.teamId)?.name ?? entry.teamId
+                      ? (teams?.find((t2: any) => t2.id === entry.teamId)?.name ?? entry.teamId)
                       : null
                     return (
                       <div
@@ -576,11 +597,12 @@ function UsersPage() {
                         </div>
                         <span className="text-sm font-medium flex-1 min-w-0 truncate">
                           {getRoleLabel(entry.role)}
-                          {teamName && (
-                            <span className="text-muted-foreground font-normal"> — {teamName}</span>
-                          )}
+                          {teamName && <span className="text-muted-foreground font-normal"> — {teamName}</span>}
                           {TEAM_SCOPEABLE_ROLES.includes(entry.role) && !entry.teamId && (
-                            <span className="text-muted-foreground font-normal"> — {t("usersPage.roles.allTeams")}</span>
+                            <span className="text-muted-foreground font-normal">
+                              {" "}
+                              — {t("usersPage.roles.allTeams")}
+                            </span>
                           )}
                         </span>
                         <Button
@@ -641,9 +663,7 @@ function UsersPage() {
 
                 {TEAM_SCOPEABLE_ROLES.includes(addRoleValue) && (
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-1 block">
-                      {t("usersPage.roles.teamScope")}
-                    </Label>
+                    <Label className="text-xs text-muted-foreground mb-1 block">{t("usersPage.roles.teamScope")}</Label>
                     <select
                       className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                       value={addRoleTeamId ?? ""}
@@ -668,7 +688,6 @@ function UsersPage() {
           </div>
         </DialogContent>
       </Dialog>
-
     </>
   )
 }

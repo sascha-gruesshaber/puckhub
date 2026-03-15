@@ -10,10 +10,7 @@ import { twoFactor } from "better-auth/plugins/two-factor"
 import { sendEmail } from "./email"
 import { magicLinkEmail } from "./emailTemplates"
 
-const DEMO_BLOCKED_PATHS = new Set([
-  "/two-factor/enable",
-  "/two-factor/disable",
-])
+const DEMO_BLOCKED_PATHS = new Set(["/two-factor/enable", "/two-factor/disable"])
 
 export const auth: ReturnType<typeof betterAuth> = betterAuth({
   baseURL: process.env.BETTER_AUTH_BASE_URL ?? "http://api.puckhub.localhost",

@@ -63,7 +63,12 @@ function UserMenu() {
 
   return (
     <div ref={containerRef} className="relative">
-      <button type="button" onClick={() => setOpen((v) => !v)} className="topbar-user-trigger" data-open={open ? "true" : undefined}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="topbar-user-trigger"
+        data-open={open ? "true" : undefined}
+      >
         <div
           className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
           style={{
@@ -84,7 +89,9 @@ function UserMenu() {
           <div style={{ padding: "12px 14px 8px" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))" }}>{userName}</div>
             {session.user.name && (
-              <div style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", marginTop: 1 }}>{session.user.email}</div>
+              <div style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", marginTop: 1 }}>
+                {session.user.email}
+              </div>
             )}
           </div>
 

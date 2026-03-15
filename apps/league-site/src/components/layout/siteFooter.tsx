@@ -4,7 +4,13 @@ import { useOrg, useSettings } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { trpc } from "../../../lib/trpc"
 
-function getPageLink(page: { isSystemRoute: boolean; routePath: string | null; slug: string; parentId: string | null; parent: { slug: string } | null }) {
+function getPageLink(page: {
+  isSystemRoute: boolean
+  routePath: string | null
+  slug: string
+  parentId: string | null
+  parent: { slug: string } | null
+}) {
   if (page.isSystemRoute && page.routePath) {
     return { to: page.routePath as any, params: undefined }
   }
@@ -22,10 +28,7 @@ export function SiteFooter() {
     { staleTime: 300_000 },
   )
 
-  const { data: sponsors } = trpc.publicSite.listSponsors.useQuery(
-    { organizationId: org.id },
-    { staleTime: 300_000 },
-  )
+  const { data: sponsors } = trpc.publicSite.listSponsors.useQuery({ organizationId: org.id }, { staleTime: 300_000 })
 
   // Only show top-level footer pages (sub-pages that individually have footer location are shown via parent)
   const topLevelFooterPages = footerPages?.filter((p) => !p.parentId)
@@ -85,10 +88,7 @@ export function SiteFooter() {
           )}
 
           <div className="flex items-center gap-3 text-xs opacity-40">
-            <a
-              href={getAdminUrl()}
-              className="underline hover:opacity-80"
-            >
+            <a href={getAdminUrl()} className="underline hover:opacity-80">
               {t.layout.admin}
             </a>
             <span aria-hidden="true">&middot;</span>

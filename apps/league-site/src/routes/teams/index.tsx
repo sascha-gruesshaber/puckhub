@@ -37,25 +37,27 @@ function TeamsPage() {
           </div>
         ) : teams && teams.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "de")).map((team) => (
-              <Link
-                key={team.id}
-                to="/teams/$teamId"
-                params={{ teamId: team.id }}
-                className="group block rounded-lg border border-league-text/10 bg-league-surface p-6 text-center transition-all hover:shadow-md hover:border-league-primary/30"
-              >
-                <TeamLogo name={team.name} logoUrl={team.logoUrl} size="lg" className="mx-auto mb-3" />
-                <h3 className="font-bold text-lg group-hover:text-league-primary transition-colors">{team.name}</h3>
-                {team.city && <p className="text-sm text-league-text/50 mt-1">{team.city}</p>}
-                {team.homeVenue && <p className="text-xs text-league-text/40 mt-1">{team.homeVenue}</p>}
-                {team.primaryColor && (
-                  <div
-                    className="h-1 w-12 rounded-full mx-auto mt-3"
-                    style={{ backgroundColor: team.primaryColor }}
-                  />
-                )}
-              </Link>
-            ))}
+            {[...teams]
+              .sort((a, b) => a.name.localeCompare(b.name, "de"))
+              .map((team) => (
+                <Link
+                  key={team.id}
+                  to="/teams/$teamId"
+                  params={{ teamId: team.id }}
+                  className="group block rounded-lg border border-league-text/10 bg-league-surface p-6 text-center transition-all hover:shadow-md hover:border-league-primary/30"
+                >
+                  <TeamLogo name={team.name} logoUrl={team.logoUrl} size="lg" className="mx-auto mb-3" />
+                  <h3 className="font-bold text-lg group-hover:text-league-primary transition-colors">{team.name}</h3>
+                  {team.city && <p className="text-sm text-league-text/50 mt-1">{team.city}</p>}
+                  {team.homeVenue && <p className="text-xs text-league-text/40 mt-1">{team.homeVenue}</p>}
+                  {team.primaryColor && (
+                    <div
+                      className="h-1 w-12 rounded-full mx-auto mt-3"
+                      style={{ backgroundColor: team.primaryColor }}
+                    />
+                  )}
+                </Link>
+              ))}
           </div>
         ) : (
           <EmptyState title={t.teams.noTeams} />

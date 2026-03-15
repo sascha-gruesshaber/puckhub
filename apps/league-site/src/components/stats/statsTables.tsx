@@ -15,7 +15,9 @@ export function Th({ children, title, className }: { children: React.ReactNode; 
   return (
     <th className={className}>
       {title ? (
-        <span className="border-b border-dotted border-league-text/30 cursor-help" title={title}>{children}</span>
+        <span className="border-b border-dotted border-league-text/30 cursor-help" title={title}>
+          {children}
+        </span>
       ) : (
         children
       )}
@@ -33,7 +35,15 @@ export function ChartSuspense({ children }: { children: React.ReactNode }) {
 
 type SortColumn = "scorers" | "goals" | "assists"
 
-export function PlayerTable({ stats, sortBy, advancedStats }: { stats: any[]; sortBy: SortColumn; advancedStats: boolean }) {
+export function PlayerTable({
+  stats,
+  sortBy,
+  advancedStats,
+}: {
+  stats: any[]
+  sortBy: SortColumn
+  advancedStats: boolean
+}) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -49,10 +59,24 @@ export function PlayerTable({ stats, sortBy, advancedStats }: { stats: any[]; so
             <th className="px-4 py-3 text-left w-10">#</th>
             <th className="px-4 py-3 text-left">{t.statsTables.player}</th>
             <th className="px-4 py-3 text-left hidden sm:table-cell">Team</th>
-            <Th className="px-4 py-3 text-center w-12" title={t.tooltip.gamesPlayed}>{t.abbr.gp}</Th>
-            <Th className={cn("px-4 py-3 text-center w-12", sortBy === "goals" && "font-bold")} title={t.tooltip.goals}>{t.abbr.g}</Th>
-            <Th className={cn("px-4 py-3 text-center w-12", sortBy === "assists" && "font-bold")} title={t.tooltip.assists}>{t.abbr.a}</Th>
-            <Th className={cn("px-4 py-3 text-center w-12", sortBy === "scorers" && "font-bold")} title={t.tooltip.pointsTotal}>{t.abbr.pts}</Th>
+            <Th className="px-4 py-3 text-center w-12" title={t.tooltip.gamesPlayed}>
+              {t.abbr.gp}
+            </Th>
+            <Th className={cn("px-4 py-3 text-center w-12", sortBy === "goals" && "font-bold")} title={t.tooltip.goals}>
+              {t.abbr.g}
+            </Th>
+            <Th
+              className={cn("px-4 py-3 text-center w-12", sortBy === "assists" && "font-bold")}
+              title={t.tooltip.assists}
+            >
+              {t.abbr.a}
+            </Th>
+            <Th
+              className={cn("px-4 py-3 text-center w-12", sortBy === "scorers" && "font-bold")}
+              title={t.tooltip.pointsTotal}
+            >
+              {t.abbr.pts}
+            </Th>
           </tr>
         </thead>
         <tbody>
@@ -104,7 +128,12 @@ export function PlayerTable({ stats, sortBy, advancedStats }: { stats: any[]; so
                     website={s.team?.website}
                     teamId={s.team?.id}
                   >
-                    <Link to="/teams/$teamId" params={{ teamId: s.team?.id ?? "" }} search={{ from: backPath }} className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors">
+                    <Link
+                      to="/teams/$teamId"
+                      params={{ teamId: s.team?.id ?? "" }}
+                      search={{ from: backPath }}
+                      className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors"
+                    >
                       <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
                       <span>{s.team?.shortName ?? s.team?.name}</span>
                     </Link>
@@ -118,8 +147,12 @@ export function PlayerTable({ stats, sortBy, advancedStats }: { stats: any[]; so
               </td>
               <td className="px-4 py-3 text-center tabular-nums">{s.gamesPlayed}</td>
               <td className={cn("px-4 py-3 text-center tabular-nums", sortBy === "goals" && "font-bold")}>{s.goals}</td>
-              <td className={cn("px-4 py-3 text-center tabular-nums", sortBy === "assists" && "font-bold")}>{s.assists}</td>
-              <td className={cn("px-4 py-3 text-center tabular-nums", sortBy === "scorers" && "font-bold")}>{s.totalPoints}</td>
+              <td className={cn("px-4 py-3 text-center tabular-nums", sortBy === "assists" && "font-bold")}>
+                {s.assists}
+              </td>
+              <td className={cn("px-4 py-3 text-center tabular-nums", sortBy === "scorers" && "font-bold")}>
+                {s.totalPoints}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -132,7 +165,17 @@ export function PlayerTable({ stats, sortBy, advancedStats }: { stats: any[]; so
 // Goalie stats table
 // ---------------------------------------------------------------------------
 
-function GoalieSection({ title, stats, startRank, advancedStats }: { title?: string; stats: any[]; startRank: number; advancedStats: boolean }) {
+function GoalieSection({
+  title,
+  stats,
+  startRank,
+  advancedStats,
+}: {
+  title?: string
+  stats: any[]
+  startRank: number
+  advancedStats: boolean
+}) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -146,14 +189,23 @@ function GoalieSection({ title, stats, startRank, advancedStats }: { title?: str
               <th className="px-4 py-3 text-left w-10">#</th>
               <th className="px-4 py-3 text-left">{t.statsTables.goalies}</th>
               <th className="px-4 py-3 text-left hidden sm:table-cell">Team</th>
-              <Th className="px-4 py-3 text-center w-12" title={t.tooltip.gamesPlayed}>{t.abbr.gp}</Th>
-              <Th className="px-4 py-3 text-center w-12" title={t.tooltip.goalsAgainst}>{t.abbr.ga}</Th>
-              <Th className="px-4 py-3 text-center w-16 font-bold" title={t.tooltip.goalsAgainstAvg}>{t.abbr.gaa}</Th>
+              <Th className="px-4 py-3 text-center w-12" title={t.tooltip.gamesPlayed}>
+                {t.abbr.gp}
+              </Th>
+              <Th className="px-4 py-3 text-center w-12" title={t.tooltip.goalsAgainst}>
+                {t.abbr.ga}
+              </Th>
+              <Th className="px-4 py-3 text-center w-16 font-bold" title={t.tooltip.goalsAgainstAvg}>
+                {t.abbr.gaa}
+              </Th>
             </tr>
           </thead>
           <tbody>
             {stats.map((s, i) => (
-              <tr key={`${s.playerId}-${s.teamId}`} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
+              <tr
+                key={`${s.playerId}-${s.teamId}`}
+                className="border-t border-league-text/5 hover:bg-league-text/[0.02]"
+              >
                 <td className="px-4 py-3 text-league-text/50 font-medium">{startRank + i}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -200,7 +252,12 @@ function GoalieSection({ title, stats, startRank, advancedStats }: { title?: str
                       website={s.team?.website}
                       teamId={s.team?.id}
                     >
-                      <Link to="/teams/$teamId" params={{ teamId: s.team?.id ?? "" }} search={{ from: backPath }} className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors">
+                      <Link
+                        to="/teams/$teamId"
+                        params={{ teamId: s.team?.id ?? "" }}
+                        search={{ from: backPath }}
+                        className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors"
+                      >
                         <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
                         <span>{s.team?.shortName ?? s.team?.name}</span>
                       </Link>
@@ -224,7 +281,13 @@ function GoalieSection({ title, stats, startRank, advancedStats }: { title?: str
   )
 }
 
-export function GoalieTable({ data, advancedStats }: { data: { qualified: any[]; belowThreshold: any[]; minGames: number }; advancedStats: boolean }) {
+export function GoalieTable({
+  data,
+  advancedStats,
+}: {
+  data: { qualified: any[]; belowThreshold: any[]; minGames: number }
+  advancedStats: boolean
+}) {
   const t = useT()
 
   if (data.qualified.length === 0 && data.belowThreshold.length === 0) {
@@ -233,7 +296,9 @@ export function GoalieTable({ data, advancedStats }: { data: { qualified: any[];
 
   return (
     <div>
-      {data.qualified.length > 0 && <GoalieSection stats={data.qualified} startRank={1} advancedStats={advancedStats} />}
+      {data.qualified.length > 0 && (
+        <GoalieSection stats={data.qualified} startRank={1} advancedStats={advancedStats} />
+      )}
       {data.belowThreshold.length > 0 && (
         <GoalieSection
           title={`${t.statsTables.belowMinGames} (${data.minGames} ${t.tooltip.gamesPlayed})`}
@@ -266,13 +331,20 @@ export function PenaltyTable({ stats, advancedStats }: { stats: any[]; advancedS
             <th className="px-4 py-3 text-left w-10">#</th>
             <th className="px-4 py-3 text-left">{t.statsTables.player}</th>
             <th className="px-4 py-3 text-left hidden sm:table-cell">Team</th>
-            <Th className="px-4 py-3 text-center w-16" title={t.tooltip.penalties}>{t.tooltip.penalties}</Th>
-            <Th className="px-4 py-3 text-center w-20 font-bold" title={t.tooltip.penaltyMinutesTotal}>{t.abbr.pim}</Th>
+            <Th className="px-4 py-3 text-center w-16" title={t.tooltip.penalties}>
+              {t.tooltip.penalties}
+            </Th>
+            <Th className="px-4 py-3 text-center w-20 font-bold" title={t.tooltip.penaltyMinutesTotal}>
+              {t.abbr.pim}
+            </Th>
           </tr>
         </thead>
         <tbody>
           {stats.map((s, i) => (
-            <tr key={`${s.player?.id}-${s.team?.id}`} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
+            <tr
+              key={`${s.player?.id}-${s.team?.id}`}
+              className="border-t border-league-text/5 hover:bg-league-text/[0.02]"
+            >
               <td className="px-4 py-3 text-league-text/50 font-medium">{i + 1}</td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -319,7 +391,12 @@ export function PenaltyTable({ stats, advancedStats }: { stats: any[]; advancedS
                     website={s.team.website}
                     teamId={s.team.id}
                   >
-                    <Link to="/teams/$teamId" params={{ teamId: s.team.id }} search={{ from: backPath }} className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors">
+                    <Link
+                      to="/teams/$teamId"
+                      params={{ teamId: s.team.id }}
+                      search={{ from: backPath }}
+                      className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors"
+                    >
                       <TeamLogo name={s.team.name ?? ""} logoUrl={s.team.logoUrl} size="sm" />
                       <span>{s.team.shortName ?? s.team.name}</span>
                     </Link>

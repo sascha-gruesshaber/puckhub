@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { EmptyState } from "~/components/shared/emptyState"
 import { StandingsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { RoundNavigator } from "~/components/shared/roundNavigator"
@@ -11,7 +12,9 @@ import { useT } from "~/lib/i18n"
 import { cn, useBackPath } from "~/lib/utils"
 import { trpc } from "../../lib/trpc"
 
-export const standingsSearchValidator = (s: Record<string, unknown>): { season?: string; division?: string; round?: string } => ({
+export const standingsSearchValidator = (
+  s: Record<string, unknown>,
+): { season?: string; division?: string; round?: string } => ({
   ...(typeof s.season === "string" && s.season ? { season: s.season } : {}),
   ...(typeof s.division === "string" && s.division ? { division: s.division } : {}),
   ...(typeof s.round === "string" && s.round ? { round: s.round } : {}),
@@ -28,19 +31,25 @@ export function StandingsPage() {
   const season = useSeason()
   const features = useFeatures()
   const t = useT()
-  const navigate: any = useNavigate()
-  const { season: seasonParam, division: divisionParam, round: roundParam } = useSearch({ strict: false }) as { season?: string; division?: string; round?: string }
+  const filterNavigate = useFilterNavigate()
+  const {
+    season: seasonParam,
+    division: divisionParam,
+    round: roundParam,
+  } = useSearch({ strict: false }) as { season?: string; division?: string; round?: string }
 
   const selectedSeasonId = seasonParam ?? season.current?.id
   const selectedDivisionIdx = divisionParam ? Number(divisionParam) : 0
   const selectedRoundId = roundParam || undefined
 
   const setSelectedSeasonId = (v: string) =>
-    navigate({ search: { season: v === season.current?.id ? undefined : v }, replace: true })
+    filterNavigate({ search: { season: v === season.current?.id ? undefined : v } })
   const setSelectedDivisionIdx = (v: number) =>
-    navigate({ search: (prev: any) => ({ ...prev, division: v === 0 ? undefined : String(v), round: undefined }), replace: true })
+    filterNavigate({
+      search: (prev: any) => ({ ...prev, division: v === 0 ? undefined : String(v), round: undefined }),
+    })
   const setSelectedRoundId = (v: string | undefined) =>
-    navigate({ search: (prev: any) => ({ ...prev, round: v || undefined }), replace: true })
+    filterNavigate({ search: (prev: any) => ({ ...prev, round: v || undefined }) })
 
   const { data: structure } = trpc.publicSite.getSeasonStructure.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId! },
@@ -86,14 +95,30 @@ export function StandingsPage() {
               <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">
                 <th className="px-4 py-3 text-left w-10">#</th>
                 <th className="px-4 py-3 text-left">Team</th>
-                <Th className="px-4 py-3 text-center w-12" title={t.tooltip.gamesPlayed}>{t.abbr.gp}</Th>
-                <Th className="px-4 py-3 text-center w-10" title={t.tooltip.wins}>{t.abbr.w}</Th>
-                <Th className="px-4 py-3 text-center w-10" title={t.tooltip.draws}>{t.abbr.d}</Th>
-                <Th className="px-4 py-3 text-center w-10" title={t.tooltip.losses}>{t.abbr.l}</Th>
-                <Th className="px-4 py-3 text-center w-16" title={t.tooltip.goalsForAgainst}>{t.tooltip.goals}</Th>
-                <Th className="px-4 py-3 text-center w-12" title={t.tooltip.goalDifference}>{t.abbr.diff}</Th>
-                <Th className="px-4 py-3 text-center w-12 font-bold" title={t.tooltip.points}>{t.abbr.pts}</Th>
-                <Th className="px-4 py-3 text-center w-24" title={t.tooltip.last5Games}>Form</Th>
+                <Th className="px-4 py-3 text-center w-12" title={t.tooltip.gamesPlayed}>
+                  {t.abbr.gp}
+                </Th>
+                <Th className="px-4 py-3 text-center w-10" title={t.tooltip.wins}>
+                  {t.abbr.w}
+                </Th>
+                <Th className="px-4 py-3 text-center w-10" title={t.tooltip.draws}>
+                  {t.abbr.d}
+                </Th>
+                <Th className="px-4 py-3 text-center w-10" title={t.tooltip.losses}>
+                  {t.abbr.l}
+                </Th>
+                <Th className="px-4 py-3 text-center w-16" title={t.tooltip.goalsForAgainst}>
+                  {t.tooltip.goals}
+                </Th>
+                <Th className="px-4 py-3 text-center w-12" title={t.tooltip.goalDifference}>
+                  {t.abbr.diff}
+                </Th>
+                <Th className="px-4 py-3 text-center w-12 font-bold" title={t.tooltip.points}>
+                  {t.abbr.pts}
+                </Th>
+                <Th className="px-4 py-3 text-center w-24" title={t.tooltip.last5Games}>
+                  Form
+                </Th>
               </tr>
             </thead>
             <tbody>
@@ -114,13 +139,23 @@ export function StandingsPage() {
                           website={s.team.website}
                           teamId={s.team.id}
                         >
-                          <Link to="/teams/$teamId" params={{ teamId: s.team.id }} search={{ from: backPath }} className="flex items-center gap-2 hover:text-league-primary transition-colors">
+                          <Link
+                            to="/teams/$teamId"
+                            params={{ teamId: s.team.id }}
+                            search={{ from: backPath }}
+                            className="flex items-center gap-2 hover:text-league-primary transition-colors"
+                          >
                             <TeamLogo name={s.team.name} logoUrl={s.team.logoUrl} size="sm" />
                             <span className="font-medium">{s.team.name}</span>
                           </Link>
                         </TeamHoverCard>
                       ) : (
-                        <Link to="/teams/$teamId" params={{ teamId: s.team.id }} search={{ from: backPath }} className="flex items-center gap-2 hover:text-league-primary transition-colors">
+                        <Link
+                          to="/teams/$teamId"
+                          params={{ teamId: s.team.id }}
+                          search={{ from: backPath }}
+                          className="flex items-center gap-2 hover:text-league-primary transition-colors"
+                        >
                           <TeamLogo name={s.team.name} logoUrl={s.team.logoUrl} size="sm" />
                           <span className="font-medium">{s.team.name}</span>
                         </Link>
@@ -130,10 +165,15 @@ export function StandingsPage() {
                     <td className="px-4 py-3 text-center tabular-nums">{s.wins}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{s.draws}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{s.losses}</td>
-                    <td className="px-4 py-3 text-center tabular-nums">{s.goalsFor}:{s.goalsAgainst}</td>
                     <td className="px-4 py-3 text-center tabular-nums">
-                      <span className={cn(s.goalDifference > 0 && "text-green-600", s.goalDifference < 0 && "text-red-600")}>
-                        {s.goalDifference > 0 ? "+" : ""}{s.goalDifference}
+                      {s.goalsFor}:{s.goalsAgainst}
+                    </td>
+                    <td className="px-4 py-3 text-center tabular-nums">
+                      <span
+                        className={cn(s.goalDifference > 0 && "text-green-600", s.goalDifference < 0 && "text-red-600")}
+                      >
+                        {s.goalDifference > 0 ? "+" : ""}
+                        {s.goalDifference}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center font-bold tabular-nums">{s.totalPoints}</td>
@@ -142,7 +182,9 @@ export function StandingsPage() {
                         {form.map((f, fi) => (
                           <span
                             key={fi}
-                            title={f.result === "W" ? t.tooltip.win : f.result === "D" ? t.tooltip.draw : t.tooltip.loss}
+                            title={
+                              f.result === "W" ? t.tooltip.win : f.result === "D" ? t.tooltip.draw : t.tooltip.loss
+                            }
                             className={cn(
                               "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white",
                               f.result === "W" && "bg-green-500",
@@ -164,7 +206,6 @@ export function StandingsPage() {
       ) : (
         <EmptyState title={t.standings.noData} description={t.standings.noDataDesc} />
       )}
-
     </StatsPageShell>
   )
 }

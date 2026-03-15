@@ -1,6 +1,10 @@
+import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
-import { publicProcedure, router } from "../init"
+import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { sendEmail } from "../../lib/email"
 import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
+import { publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
 
 export const publicSiteRouter = router({
@@ -12,7 +16,6 @@ export const publicSiteRouter = router({
         id: true,
         name: true,
         slug: true,
-        description: true,
         sortOrder: true,
         priceMonthly: true,
         priceYearly: true,
@@ -28,7 +31,6 @@ export const publicSiteRouter = router({
         featureWebsiteBuilder: true,
         featureSponsorMgmt: true,
         featureTrikotDesigner: true,
-        featureExportImport: true,
         featureGameReports: true,
         featurePlayerStats: true,
         featureScheduler: true,
@@ -71,12 +73,18 @@ export const publicSiteRouter = router({
       }),
       ctx.db.orgSubscription.findUnique({
         where: { organizationId: config.organizationId },
-        include: { plan: { select: { featureAdvancedStats: true } } },
+        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true } } },
       }),
     ])
 
+    const planPublicReports = subscription?.plan?.featurePublicReports ?? false
+    const settingsPublicReports = settings?.publicReportsEnabled ?? false
+
     const features = {
       advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
+      publicReports: planPublicReports && settingsPublicReports,
+      publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
+      publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
     }
 
     // Expose org slug as subdomain on config for backward compat
@@ -99,12 +107,18 @@ export const publicSiteRouter = router({
       }),
       ctx.db.orgSubscription.findUnique({
         where: { organizationId: input.organizationId },
-        include: { plan: { select: { featureAdvancedStats: true } } },
+        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true } } },
       }),
     ])
 
+    const planPublicReports = subscription?.plan?.featurePublicReports ?? false
+    const settingsPublicReports = settings?.publicReportsEnabled ?? false
+
     const features = {
       advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
+      publicReports: planPublicReports && settingsPublicReports,
+      publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
+      publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
     }
 
     const configWithSubdomain = { ...config, subdomain: config.organization.slug }
@@ -145,7 +159,23 @@ export const publicSiteRouter = router({
         where: { organizationId: input.organizationId, seasonId: input.seasonId },
         orderBy: { sortOrder: "asc" },
         include: {
-          rounds: { orderBy: { sortOrder: "asc" }, select: { id: true, name: true, roundType: true, sortOrder: true } },
+          rounds: {
+            orderBy: { sortOrder: "asc" },
+            select: { id: true, name: true, roundType: true, sortOrder: true, _count: { select: { games: true } } },
+          },
+          teamDivisions: {
+            select: {
+              team: {
+                select: {
+                  id: true,
+                  name: true,
+                  shortName: true,
+                  logoUrl: true,
+                  primaryColor: true,
+                },
+              },
+            },
+          },
         },
       })
       return divisions
@@ -246,7 +276,20 @@ export const publicSiteRouter = router({
       return ctx.db.standing.findMany({
         where: { roundId: input.roundId, organizationId: input.organizationId },
         orderBy: [{ totalPoints: "desc" }, { gamesPlayed: "asc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-        include: { team: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true, city: true, homeVenue: true, website: true } } },
+        include: {
+          team: {
+            select: {
+              id: true,
+              name: true,
+              shortName: true,
+              logoUrl: true,
+              primaryColor: true,
+              city: true,
+              homeVenue: true,
+              website: true,
+            },
+          },
+        },
       })
     }),
 
@@ -375,11 +418,7 @@ export const publicSiteRouter = router({
       if (!game) return game
 
       // Lazy AI recap generation for completed games
-      if (
-        game.status === "completed" &&
-        game.recapTitle === null &&
-        !game.recapGenerating
-      ) {
+      if (game.status === "completed" && game.recapTitle === null && !game.recapGenerating) {
         const eligibility = await checkRecapEligibility(ctx.db, input.organizationId)
 
         if (eligibility.eligible) {
@@ -395,7 +434,13 @@ export const publicSiteRouter = router({
     }),
 
   getLatestResults: publicProcedure
-    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid().optional(), limit: z.number().int().min(1).max(20).default(5) }))
+    .input(
+      z.object({
+        organizationId: z.string(),
+        seasonId: z.string().uuid().optional(),
+        limit: z.number().int().min(1).max(20).default(5),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.game.findMany({
         where: {
@@ -414,7 +459,13 @@ export const publicSiteRouter = router({
     }),
 
   getUpcomingGames: publicProcedure
-    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid().optional(), limit: z.number().int().min(1).max(20).default(5) }))
+    .input(
+      z.object({
+        organizationId: z.string(),
+        seasonId: z.string().uuid().optional(),
+        limit: z.number().int().min(1).max(20).default(5),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       return ctx.db.game.findMany({
         where: {
@@ -440,7 +491,20 @@ export const publicSiteRouter = router({
         // Return teams in this season via teamDivisions
         const teamDivisions = await ctx.db.teamDivision.findMany({
           where: { organizationId: input.organizationId, division: { seasonId: input.seasonId } },
-          select: { team: { select: { id: true, name: true, shortName: true, city: true, logoUrl: true, primaryColor: true, homeVenue: true, website: true } } },
+          select: {
+            team: {
+              select: {
+                id: true,
+                name: true,
+                shortName: true,
+                city: true,
+                logoUrl: true,
+                primaryColor: true,
+                homeVenue: true,
+                website: true,
+              },
+            },
+          },
           distinct: ["teamId"],
         })
         return teamDivisions.map((td) => td.team)
@@ -448,7 +512,16 @@ export const publicSiteRouter = router({
       return ctx.db.team.findMany({
         where: { organizationId: input.organizationId },
         orderBy: { name: "asc" },
-        select: { id: true, name: true, shortName: true, city: true, logoUrl: true, primaryColor: true, homeVenue: true, website: true },
+        select: {
+          id: true,
+          name: true,
+          shortName: true,
+          city: true,
+          logoUrl: true,
+          primaryColor: true,
+          homeVenue: true,
+          website: true,
+        },
       })
     }),
 
@@ -601,7 +674,15 @@ export const publicSiteRouter = router({
         where: { organizationId: input.organizationId, slug: input.slug },
         include: {
           targetPage: {
-            select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true, status: true },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              content: true,
+              menuLocations: true,
+              updatedAt: true,
+              status: true,
+            },
           },
         },
       })
@@ -1054,7 +1135,12 @@ export const publicSiteRouter = router({
 
       const seasons = Array.from(seasonMap.values())
         .map((entry) => {
-          let gp = 0, w = 0, d = 0, l = 0, gf = 0, ga = 0
+          let gp = 0,
+            w = 0,
+            d = 0,
+            l = 0,
+            gf = 0,
+            ga = 0
           let bestRank: number | null = null
           let bestRankRoundType: string | null = null
 
@@ -1077,7 +1163,15 @@ export const publicSiteRouter = router({
 
           return {
             ...entry,
-            totals: { gamesPlayed: gp, wins: w, draws: d, losses: l, goalsFor: gf, goalsAgainst: ga, goalDifference: gf - ga },
+            totals: {
+              gamesPlayed: gp,
+              wins: w,
+              draws: d,
+              losses: l,
+              goalsFor: gf,
+              goalsAgainst: ga,
+              goalDifference: gf - ga,
+            },
             bestRank,
             bestRankRoundType,
           }
@@ -1115,5 +1209,276 @@ export const publicSiteRouter = router({
         topScorers: Array.from(scorersBySeason.values()).flat(),
         topGoalies: Array.from(goaliesBySeason.values()),
       }
+    }),
+
+  // ---------------------------------------------------------------------------
+  // Public Game Report procedures
+  // ---------------------------------------------------------------------------
+
+  reportRequestOtp: publicProcedure
+    .input(z.object({ organizationId: z.string(), email: z.string().email() }))
+    .mutation(async ({ ctx, input }) => {
+      const { organizationId, email } = input
+      const identifier = `public-report:${email}:${organizationId}`
+
+      // Rate limit: max 3 OTP requests per email per hour
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+      const recentCount = await ctx.db.verification.count({
+        where: {
+          identifier,
+          createdAt: { gte: oneHourAgo },
+        },
+      })
+      if (recentCount >= 3) {
+        throw createAppError(
+          "TOO_MANY_REQUESTS",
+          APP_ERROR_CODES.PUBLIC_REPORT_RATE_LIMITED,
+          "Too many OTP requests. Please try again later.",
+        )
+      }
+
+      // Generate 6-digit code
+      const code = String(Math.floor(100000 + Math.random() * 900000))
+
+      // Store in verification table (10 min TTL)
+      await ctx.db.verification.create({
+        data: {
+          id: crypto.randomUUID(),
+          identifier,
+          value: code,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        },
+      })
+
+      // Send email with code
+      const { otpEmail } = await import("../../lib/emailTemplates")
+      await sendEmail({
+        to: email,
+        subject: "Your verification code",
+        html: otpEmail(code),
+      })
+
+      return { success: true }
+    }),
+
+  reportSubmit: publicProcedure
+    .input(
+      z.object({
+        organizationId: z.string(),
+        gameId: z.string().uuid(),
+        homeScore: z.number().int().min(0),
+        awayScore: z.number().int().min(0),
+        comment: z.string().max(500).optional(),
+        email: z.string().email(),
+        otpCode: z.string().length(6).optional(),
+        // Bot detection fields
+        _hp: z.string().optional(), // honeypot — must be empty
+        _ts: z.number().optional(), // form open timestamp
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { organizationId, gameId, homeScore, awayScore, comment, email, otpCode } = input
+
+      // Validate feature is enabled + load settings
+      const [settings, subscription] = await Promise.all([
+        ctx.db.systemSettings.findUnique({ where: { organizationId } }),
+        ctx.db.orgSubscription.findUnique({
+          where: { organizationId },
+          include: { plan: { select: { featurePublicReports: true } } },
+        }),
+      ])
+      const planEnabled = subscription?.plan?.featurePublicReports ?? false
+      const settingsEnabled = settings?.publicReportsEnabled ?? false
+      if (!planEnabled || !settingsEnabled) {
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.PLAN_FEATURE_UNAVAILABLE,
+          "Public reports are not enabled for this league.",
+        )
+      }
+
+      const requireEmail = settings?.publicReportsRequireEmail ?? true
+      const botDetection = settings?.publicReportsBotDetection ?? true
+
+      // ── Bot detection ──
+      if (botDetection) {
+        // Honeypot: must be empty (bots auto-fill hidden fields)
+        if (input._hp) {
+          // Silently reject — don't reveal detection to bots
+          return { success: true }
+        }
+        // Timing: form must be open for at least 3 seconds
+        if (input._ts && Date.now() - input._ts < 3000) {
+          return { success: true }
+        }
+      }
+
+      // ── OTP validation (when email verification is required) ──
+      let verification: any = null
+      if (requireEmail) {
+        if (!otpCode) {
+          throw createAppError(
+            "BAD_REQUEST",
+            APP_ERROR_CODES.PUBLIC_REPORT_INVALID_OTP,
+            "Verification code is required.",
+          )
+        }
+        const identifier = `public-report:${email}:${organizationId}`
+        verification = await ctx.db.verification.findFirst({
+          where: {
+            identifier,
+            value: otpCode,
+            expiresAt: { gte: new Date() },
+          },
+        })
+        if (!verification) {
+          throw createAppError(
+            "BAD_REQUEST",
+            APP_ERROR_CODES.PUBLIC_REPORT_INVALID_OTP,
+            "Invalid or expired verification code.",
+          )
+        }
+      }
+
+      // Validate game
+      const game = await ctx.db.game.findFirst({
+        where: { id: gameId, organizationId },
+        select: { id: true, status: true, roundId: true, homeTeamId: true, awayTeamId: true },
+      })
+      if (!game) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.GAME_NOT_FOUND)
+      }
+      if (game.status !== "scheduled" && game.status !== "postponed") {
+        throw createAppError(
+          "BAD_REQUEST",
+          APP_ERROR_CODES.GAME_ALREADY_FINALIZED,
+          "This game has already been reported.",
+        )
+      }
+
+      // Duplicate check
+      const existingReport = await ctx.db.publicGameReport.findFirst({
+        where: { gameId, submitterEmail: email, reverted: false },
+      })
+      if (existingReport) {
+        throw createAppError(
+          "BAD_REQUEST",
+          APP_ERROR_CODES.PUBLIC_REPORT_DUPLICATE,
+          "You have already submitted a report for this game.",
+        )
+      }
+
+      // Rate limit: max 10 submissions per email per day
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const dailyCount = await ctx.db.publicGameReport.count({
+        where: { submitterEmail: email, createdAt: { gte: oneDayAgo } },
+      })
+      if (dailyCount >= 10) {
+        throw createAppError(
+          "TOO_MANY_REQUESTS",
+          APP_ERROR_CODES.PUBLIC_REPORT_RATE_LIMITED,
+          "Daily submission limit reached.",
+        )
+      }
+
+      // Get submitter IP from request headers
+      const submitterIp = (ctx as any).ip ?? null
+
+      // Transaction: create report + update game + recalculate + delete OTP
+      await ctx.db.$transaction(async (tx: any) => {
+        // Create report
+        await tx.publicGameReport.create({
+          data: {
+            organizationId,
+            gameId,
+            homeScore,
+            awayScore,
+            comment: comment ?? null,
+            submitterEmail: email,
+            submitterIp,
+          },
+        })
+
+        // Update game
+        await tx.game.update({
+          where: { id: gameId },
+          data: {
+            homeScore,
+            awayScore,
+            status: "completed",
+            finalizedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        })
+
+        // Recalculate standings
+        await recalculateStandings(tx, game.roundId)
+
+        // Delete used OTP (only if email verification was used)
+        if (verification) {
+          await tx.verification.delete({ where: { id: verification.id } })
+        }
+      })
+
+      // Recalculate player/goalie stats (outside transaction, fire-and-forget)
+      const round = await ctx.db.round.findUnique({
+        where: { id: game.roundId },
+        select: { division: { select: { seasonId: true } } },
+      })
+      if (round?.division?.seasonId) {
+        recalculatePlayerStats(ctx.db, round.division.seasonId).catch(() => {})
+        recalculateGoalieStats(ctx.db, round.division.seasonId).catch(() => {})
+      }
+
+      // Send notification to org admins (fire-and-forget)
+      const gameData = await ctx.db.game.findFirst({
+        where: { id: gameId },
+        include: {
+          homeTeam: { select: { shortName: true } },
+          awayTeam: { select: { shortName: true } },
+        },
+      })
+      if (gameData) {
+        const members = await ctx.db.member.findMany({
+          where: { organizationId },
+          include: {
+            memberRoles: { where: { role: { in: ["owner", "admin", "game_manager"] } } },
+            user: { select: { email: true } },
+          },
+        })
+        const adminEmails = members.filter((m: any) => m.memberRoles.length > 0).map((m: any) => m.user.email)
+
+        const { adminReportNotificationEmail } = await import("../../lib/emailTemplates")
+        for (const adminEmail of adminEmails) {
+          sendEmail({
+            to: adminEmail,
+            subject: `New public game report: ${gameData.homeTeam.shortName} vs ${gameData.awayTeam.shortName}`,
+            html: adminReportNotificationEmail({
+              homeTeam: gameData.homeTeam.shortName,
+              awayTeam: gameData.awayTeam.shortName,
+              homeScore,
+              awayScore,
+              submitterEmail: email,
+              comment,
+            }),
+          }).catch((err) => console.error("[public-report] Admin notification failed:", err))
+        }
+      }
+
+      return { success: true }
+    }),
+
+  reportHasReport: publicProcedure
+    .input(z.object({ organizationId: z.string(), gameId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const report = await ctx.db.publicGameReport.findFirst({
+        where: {
+          organizationId: input.organizationId,
+          gameId: input.gameId,
+          reverted: false,
+        },
+        select: { id: true },
+      })
+      return { hasReport: !!report }
     }),
 })

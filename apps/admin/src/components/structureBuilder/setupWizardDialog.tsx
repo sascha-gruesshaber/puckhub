@@ -37,7 +37,8 @@ export function SetupWizardDialog({ seasonId, seasonName, onComplete }: SetupWiz
       }
       onComplete()
     },
-    onError: (err) => toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("seasonStructure.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   function handleConfirm() {

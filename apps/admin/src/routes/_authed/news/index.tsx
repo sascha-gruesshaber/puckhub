@@ -118,7 +118,11 @@ function NewsPage() {
             <Badge variant="outline">{usageText("maxNewsArticles")}</Badge>
             <div className={atNewsLimit ? "pointer-events-none opacity-50" : ""}>
               <Link to="/news/new">
-                <Button variant="accent" disabled={atNewsLimit} title={atNewsLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+                <Button
+                  variant="accent"
+                  disabled={atNewsLimit}
+                  title={atNewsLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
+                >
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
                   {t("newsPage.actions.new")}
                 </Button>

@@ -1,4 +1,5 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { ArrowRight, Calendar, Loader2, Trophy } from "lucide-react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { EmptyState } from "~/components/shared/emptyState"
@@ -52,7 +53,11 @@ interface NewsItem {
 // Hero + Game Ticker
 // ---------------------------------------------------------------------------
 
-function HeroSection({ leagueName, latestResult, nextGame }: {
+function HeroSection({
+  leagueName,
+  latestResult,
+  nextGame,
+}: {
   leagueName: string
   latestResult?: GameData | null
   nextGame?: GameData | null
@@ -62,9 +67,7 @@ function HeroSection({ leagueName, latestResult, nextGame }: {
     <section className="relative bg-league-header-bg text-league-header-text">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3">{leagueName}</h1>
-        <p className="text-base sm:text-lg text-league-header-text/70 max-w-2xl mb-6">
-          {t.home.subtitle}
-        </p>
+        <p className="text-base sm:text-lg text-league-header-text/70 max-w-2xl mb-6">{t.home.subtitle}</p>
         <div className="flex gap-3 mb-8">
           <Link
             to="/standings"
@@ -101,11 +104,19 @@ function TickerCard({ game, label }: { game: GameData; label: string }) {
       params={{ gameId: game.id }}
       className="flex items-center gap-3 rounded-lg bg-white/10 backdrop-blur-sm px-4 py-2.5 hover:bg-white/15 transition-colors min-w-0"
     >
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-league-header-text/50 shrink-0">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-league-header-text/50 shrink-0">
+        {label}
+      </span>
       <div className="flex items-center gap-2 min-w-0">
         <TeamLogo name={game.homeTeam.name} logoUrl={game.homeTeam.logoUrl} size="sm" />
         <span className="text-xs font-medium truncate">{game.homeTeam.shortName}</span>
-        <ScoreBadge homeScore={game.homeScore} awayScore={game.awayScore} status={game.status} size="sm" className="shrink-0" />
+        <ScoreBadge
+          homeScore={game.homeScore}
+          awayScore={game.awayScore}
+          status={game.status}
+          size="sm"
+          className="shrink-0"
+        />
         <span className="text-xs font-medium truncate">{game.awayTeam.shortName}</span>
         <TeamLogo name={game.awayTeam.name} logoUrl={game.awayTeam.logoUrl} size="sm" />
       </div>
@@ -148,7 +159,9 @@ function FeaturedNews({ item }: { item: NewsItem }) {
     >
       <div className="p-5 sm:p-6">
         <div className="flex items-center gap-2 text-xs font-medium text-league-primary mb-2">
-          <span className="inline-flex items-center rounded-full bg-league-primary/10 px-2.5 py-0.5">{t.common.current}</span>
+          <span className="inline-flex items-center rounded-full bg-league-primary/10 px-2.5 py-0.5">
+            {t.common.current}
+          </span>
           {item.publishedAt && <span className="text-league-text/40">{formatDate(item.publishedAt)}</span>}
         </div>
         <h3 className="text-xl sm:text-2xl font-extrabold leading-tight mb-2 group-hover:text-league-primary transition-colors">
@@ -158,9 +171,7 @@ function FeaturedNews({ item }: { item: NewsItem }) {
           <p className="text-sm text-league-text/60 leading-relaxed mb-3 line-clamp-3">{item.shortText}</p>
         )}
         <div className="flex items-center justify-between">
-          <div className="text-xs text-league-text/40">
-            {item.author?.name && <span>{item.author.name}</span>}
-          </div>
+          <div className="text-xs text-league-text/40">{item.author?.name && <span>{item.author.name}</span>}</div>
           <span className="inline-flex items-center gap-1 text-sm font-medium text-league-primary group-hover:gap-2 transition-all">
             {t.common.readMore} <ArrowRight className="h-3.5 w-3.5" />
           </span>
@@ -172,11 +183,7 @@ function FeaturedNews({ item }: { item: NewsItem }) {
 
 function NewsListItem({ item }: { item: NewsItem }) {
   return (
-    <Link
-      to="/news/$newsId"
-      params={{ newsId: item.id }}
-      className="group flex gap-4 py-4 transition-colors"
-    >
+    <Link to="/news/$newsId" params={{ newsId: item.id }} className="group flex gap-4 py-4 transition-colors">
       <div className="shrink-0 w-16 pt-0.5 text-right">
         <span className="text-xs text-league-text/40 tabular-nums">
           {item.publishedAt ? formatDate(item.publishedAt).slice(0, 6) : ""}
@@ -186,12 +193,8 @@ function NewsListItem({ item }: { item: NewsItem }) {
         <h4 className="font-semibold text-[15px] leading-snug group-hover:text-league-primary transition-colors line-clamp-2">
           {item.title}
         </h4>
-        {item.shortText && (
-          <p className="text-sm text-league-text/50 mt-1 line-clamp-2">{item.shortText}</p>
-        )}
-        {item.author?.name && (
-          <span className="text-xs text-league-text/30 mt-1 inline-block">{item.author.name}</span>
-        )}
+        {item.shortText && <p className="text-sm text-league-text/50 mt-1 line-clamp-2">{item.shortText}</p>}
+        {item.author?.name && <span className="text-xs text-league-text/30 mt-1 inline-block">{item.author.name}</span>}
       </div>
     </Link>
   )
@@ -224,7 +227,9 @@ function SidebarStandings({ standings }: { standings: any[] }) {
     <div className="rounded-xl border border-league-text/10 bg-league-surface overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-league-text/5">
         <h3 className="text-sm font-bold">{t.home.standings}</h3>
-        <Link to="/standings" className="text-xs text-league-primary hover:underline">{t.home.full}</Link>
+        <Link to="/standings" className="text-xs text-league-primary hover:underline">
+          {t.home.full}
+        </Link>
       </div>
       <table className="w-full text-xs">
         <thead>
@@ -240,7 +245,12 @@ function SidebarStandings({ standings }: { standings: any[] }) {
             <tr key={s.id} className="border-t border-league-text/5">
               <td className="px-3 py-1.5 text-league-text/40 font-medium">{i + 1}</td>
               <td className="px-1 py-1.5">
-                <Link to="/teams/$teamId" params={{ teamId: s.team.id }} search={{ from: "/" }} className="flex items-center gap-1.5 hover:text-league-primary transition-colors">
+                <Link
+                  to="/teams/$teamId"
+                  params={{ teamId: s.team.id }}
+                  search={{ from: "/" }}
+                  className="flex items-center gap-1.5 hover:text-league-primary transition-colors"
+                >
                   <TeamLogo name={s.team.name} logoUrl={s.team.logoUrl} size="sm" />
                   <span className="font-medium truncate">{s.team.shortName}</span>
                 </Link>
@@ -262,7 +272,9 @@ function SidebarUpcoming({ games }: { games: GameData[] }) {
     <div className="rounded-xl border border-league-text/10 bg-league-surface overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-league-text/5">
         <h3 className="text-sm font-bold">{t.home.upcomingGames}</h3>
-        <Link to="/schedule" className="text-xs text-league-primary hover:underline">{t.home.schedule}</Link>
+        <Link to="/schedule" className="text-xs text-league-primary hover:underline">
+          {t.home.schedule}
+        </Link>
       </div>
       <div className="divide-y divide-league-text/5">
         {games.slice(0, 4).map((game) => (
@@ -298,7 +310,9 @@ function SidebarResults({ games }: { games: GameData[] }) {
     <div className="rounded-xl border border-league-text/10 bg-league-surface overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-league-text/5">
         <h3 className="text-sm font-bold">{t.home.results}</h3>
-        <Link to="/schedule" search={{ status: "completed" }} className="text-xs text-league-primary hover:underline">{t.common.all}</Link>
+        <Link to="/schedule" search={{ status: "completed" }} className="text-xs text-league-primary hover:underline">
+          {t.common.all}
+        </Link>
       </div>
       <div className="divide-y divide-league-text/5">
         {games.slice(0, 4).map((game) => (
@@ -311,7 +325,13 @@ function SidebarResults({ games }: { games: GameData[] }) {
             <div className="flex items-center gap-1.5 flex-1 min-w-0">
               <TeamLogo name={game.homeTeam.name} logoUrl={game.homeTeam.logoUrl} size="sm" />
               <span className="text-xs font-medium truncate">{game.homeTeam.shortName}</span>
-              <ScoreBadge homeScore={game.homeScore} awayScore={game.awayScore} status={game.status} size="sm" className="shrink-0 !text-xs !px-1.5 !py-0" />
+              <ScoreBadge
+                homeScore={game.homeScore}
+                awayScore={game.awayScore}
+                status={game.status}
+                size="sm"
+                className="shrink-0 !text-xs !px-1.5 !py-0"
+              />
               <span className="text-xs font-medium truncate">{game.awayTeam.shortName}</span>
               <TeamLogo name={game.awayTeam.name} logoUrl={game.awayTeam.logoUrl} size="sm" />
             </div>
@@ -331,21 +351,19 @@ function HomePage() {
   const settings = useSettings()
   const theme = useTheme()
   const t = useT()
-  const navigate: any = useNavigate()
+  const filterNavigate = useFilterNavigate()
   const sections = getHomeSections(theme.layout)
   const showSponsors = sections.some((s) => s.id === "sponsors")
   const { n: newsCount } = useSearch({ strict: false }) as { n?: number }
   const limit = newsCount ?? NEWS_PAGE_SIZE
 
-  const { data, isLoading } = trpc.publicSite.getHomeData.useQuery(
-    { organizationId: org.id },
-    { staleTime: 60_000 },
-  )
+  const { data, isLoading } = trpc.publicSite.getHomeData.useQuery({ organizationId: org.id }, { staleTime: 60_000 })
 
-  const { data: newsData, isLoading: newsLoading, isFetching: newsFetching } = trpc.publicSite.listNews.useQuery(
-    { organizationId: org.id, limit },
-    { staleTime: 60_000 },
-  )
+  const {
+    data: newsData,
+    isLoading: newsLoading,
+    isFetching: newsFetching,
+  } = trpc.publicSite.listNews.useQuery({ organizationId: org.id, limit }, { staleTime: 60_000 })
 
   const allNews: NewsItem[] = newsData?.items ?? []
   const hasMoreNews = !!newsData?.nextCursor
@@ -357,17 +375,13 @@ function HomePage() {
   const monthGroups = groupByMonth(restNews, t)
 
   const loadMore = () => {
-    navigate({ search: (p: any) => ({ ...p, n: limit + NEWS_PAGE_SIZE }), replace: true, resetScroll: false })
+    filterNavigate({ search: (p: any) => ({ ...p, n: limit + NEWS_PAGE_SIZE }) })
   }
 
   return (
     <div className="animate-fade-in">
       {/* Hero with game ticker */}
-      <HeroSection
-        leagueName={settings.leagueName}
-        latestResult={results[0]}
-        nextGame={upcoming[0]}
-      />
+      <HeroSection leagueName={settings.leagueName} latestResult={results[0]} nextGame={upcoming[0]} />
 
       {/* Main content area */}
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12">

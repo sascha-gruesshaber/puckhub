@@ -25,9 +25,7 @@ export function NewsCard({ id, title, shortText, publishedAt, authorName, classN
         {title}
       </h3>
 
-      {shortText && (
-        <p className="text-sm text-league-text/60 mb-3 line-clamp-3">{shortText}</p>
-      )}
+      {shortText && <p className="text-sm text-league-text/60 mb-3 line-clamp-3">{shortText}</p>}
 
       <div className="flex items-center gap-2 text-xs text-league-text/40">
         {publishedAt && <span>{formatDate(publishedAt)}</span>}

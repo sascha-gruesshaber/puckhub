@@ -41,14 +41,7 @@ const emptyForm: FormState = {
   sortOrder: 0,
 }
 
-export function PageForm({
-  initialData,
-  currentSlug,
-  onSubmit,
-  isPending,
-  submitLabel,
-  isSystemRoute,
-}: PageFormProps) {
+export function PageForm({ initialData, currentSlug, onSubmit, isPending, submitLabel, isSystemRoute }: PageFormProps) {
   const { t } = useTranslation("common")
   const navigate = useNavigate()
   const resolvedSubmitLabel = submitLabel ?? t("save")
@@ -68,10 +61,7 @@ export function PageForm({
 
   // Fetch top-level pages for parent dropdown
   const { data: allPages } = trpc.page.list.useQuery()
-  const topLevelPages = useMemo(
-    () => (allPages ?? []).filter((p) => !p.parentId && !p.isSystemRoute),
-    [allPages],
-  )
+  const topLevelPages = useMemo(() => (allPages ?? []).filter((p) => !p.parentId && !p.isSystemRoute), [allPages])
 
   const isSubPage = !!form.parentId
   const isChildSystemRoute = isSystemRoute && !!form.parentId

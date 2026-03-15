@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { Scheduler, setSchedulerInstance, getSchedulerInstance } from "../../lib/scheduler"
-import {
-  createTestCaller,
-  createPlatformAdminCaller,
-} from "../testUtils"
+import { createTestCaller, createPlatformAdminCaller } from "../testUtils"
 
 describe("scheduler router", () => {
   let originalInstance: ReturnType<typeof getSchedulerInstance>
@@ -96,9 +93,9 @@ describe("scheduler router", () => {
       setSchedulerInstance(null as any)
       const platformAdmin = createPlatformAdminCaller()
 
-      await expect(
-        platformAdmin.scheduler.trigger({ jobName: "non-existent" }),
-      ).rejects.toThrow("Scheduler not initialized")
+      await expect(platformAdmin.scheduler.trigger({ jobName: "non-existent" })).rejects.toThrow(
+        "Scheduler not initialized",
+      )
     })
 
     it("throws for non-existent job", async () => {
@@ -106,23 +103,17 @@ describe("scheduler router", () => {
       setSchedulerInstance(scheduler)
 
       const platformAdmin = createPlatformAdminCaller()
-      await expect(
-        platformAdmin.scheduler.trigger({ jobName: "non-existent" }),
-      ).rejects.toThrow()
+      await expect(platformAdmin.scheduler.trigger({ jobName: "non-existent" })).rejects.toThrow()
     })
 
     it("rejects non-platform-admin caller", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.scheduler.trigger({ jobName: "any" }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(admin.scheduler.trigger({ jobName: "any" })).rejects.toThrow("Keine Plattform-Administratorrechte")
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.scheduler.trigger({ jobName: "any" }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.scheduler.trigger({ jobName: "any" })).rejects.toThrow("Not authenticated")
     })
   })
 })

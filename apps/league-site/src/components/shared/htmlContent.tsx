@@ -6,10 +6,5 @@ interface HtmlContentProps {
 }
 
 export function HtmlContent({ html, className }: HtmlContentProps) {
-  return (
-    <div
-      className={cn("prose-content", className)}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  )
+  return <div className={cn("prose-content", className)} dangerouslySetInnerHTML={{ __html: html }} />
 }

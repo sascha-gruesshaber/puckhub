@@ -9,6 +9,11 @@ export const translations = {
       features: "Features",
       pricing: "Preise",
       cta: "Demo testen",
+      featuresSections: [
+        { label: "Administration", href: "#features-admin" },
+        { label: "Betrieb & Statistiken", href: "#features-operations" },
+        { label: "Community & Fans", href: "#features-community" },
+      ],
     },
     hero: {
       titleLine1: "Die All-in-One Plattform",
@@ -20,8 +25,7 @@ export const translations = {
     },
     features: {
       heading: "Alles, was deine Liga braucht",
-      subheading:
-        "Von der Saisonplanung bis zur öffentlichen Website – PuckHub deckt den gesamten Workflow ab.",
+      subheading: "Von der Saisonplanung bis zur öffentlichen Website – PuckHub deckt den gesamten Workflow ab.",
       prevLabel: "Vorheriges Feature",
       nextLabel: "Nächstes Feature",
       slides: [
@@ -37,13 +41,7 @@ export const translations = {
         },
         {
           title: "Spielberichte",
-          description:
-            "Erfasse Tore, Strafen und Aufstellungen in Echtzeit direkt während des Spiels.",
-        },
-        {
-          title: "Spieler & Teams",
-          description:
-            "Verwalte Teams, Kader, Verträge und Transfers zentral an einem Ort.",
+          description: "Erfasse Tore, Strafen und Aufstellungen in Echtzeit direkt während des Spiels.",
         },
         {
           title: "Eigene Liga-Website",
@@ -62,24 +60,65 @@ export const translations = {
         },
       ],
     },
-    seasonSpotlight: {
-      badge: "Highlight Feature",
-      title: "Visueller Saison-Struktur-Builder",
-      description:
-        "Erstelle komplexe Saisonhierarchien per Drag & Drop auf einem interaktiven Canvas. Definiere Divisionen, Runden und Spielpläne – alles visuell und intuitiv.",
-      imgAlt: "Saison-Struktur-Builder",
-      steps: [
-        { label: "Saison", desc: "Der übergreifende Zeitraum deiner Liga" },
-        { label: "Division", desc: "Spielklassen oder Altersgruppen" },
-        { label: "Runde", desc: "Vorrunde, Playoffs, Relegation" },
-        { label: "Spiele", desc: "Automatischer Spielplan pro Runde" },
-      ],
-    },
     featureShowcase: {
-      heading: "Weitere leistungsstarke Tools",
-      subheading:
-        "Neben den Kernfunktionen bietet PuckHub eine Reihe weiterer Tools, die den Liga-Alltag erleichtern.",
+      heading: "Leistungsstarke Tools für jeden Aspekt",
+      subheading: "Vom Saisonaufbau über den Spielbetrieb bis zur Fan-Community – PuckHub liefert die richtigen Werkzeuge.",
+      sections: [
+        { id: "admin", title: "Administration", description: "Liga aufbauen und verwalten" },
+        { id: "operations", title: "Betrieb & Statistiken", description: "Spielbetrieb, Daten und Analysen" },
+        { id: "community", title: "Community & Fans", description: "Öffentliche Features für Fans und Zuschauer" },
+      ],
       items: [
+        // ── Section 0: Administration (items 0–3) ──
+        {
+          badge: "Highlight Feature",
+          title: "Visueller Saison-Struktur-Builder",
+          description:
+            "Erstelle komplexe Saisonhierarchien per Drag & Drop auf einem interaktiven Canvas. Definiere Divisionen, Runden und Spielpläne – alles visuell und intuitiv.",
+          highlights: [
+            "Saison als übergreifender Zeitraum",
+            "Divisionen für Spielklassen und Altersgruppen",
+            "Runden für Vorrunde, Playoffs und Relegation",
+            "Automatischer Spielplan pro Runde",
+          ],
+        },
+        {
+          badge: "Automatisierung",
+          title: "Spielplan-Generator",
+          description:
+            "Erstelle automatisch Spielpläne für jede Runde deiner Liga. Ob Round-Robin, Hin- und Rückrunde oder K.O.-System – der Generator spart Stunden manueller Arbeit.",
+          highlights: [
+            "Automatische Spielplanerstellung",
+            "Round-Robin und K.O.-System",
+            "Flexible Terminvergabe",
+            "Rückrunden mit einem Klick",
+          ],
+        },
+        {
+          badge: "Kommunikation",
+          title: "Content Management",
+          description:
+            "Halte deine Liga-Community auf dem Laufenden. Mit dem integrierten CMS veröffentlichst du News, erstellst eigene Seiten und steuerst alle Inhalte zentral – ohne externe Tools.",
+          highlights: [
+            "News erstellen und veröffentlichen",
+            "Eigene Seiten mit Rich-Text-Editor",
+            "Geplante Veröffentlichungen",
+            "Bilder und Medien einbetten",
+          ],
+        },
+        {
+          badge: "Sicherheit",
+          title: "Rollenbasierte Zugriffskontrolle",
+          description:
+            "Definiere klar, wer was sehen und bearbeiten darf. Vom Owner über Admins bis zum Scorer – jede Rolle hat genau die Berechtigungen, die sie braucht. Kein Mehr, kein Weniger.",
+          highlights: [
+            "Owner mit vollem Zugriff",
+            "Admins für Liga-Verwaltung",
+            "Scorer nur für Spielberichte",
+            "Erweiterte Rollen im Pro-Plan",
+          ],
+        },
+        // ── Section 1: Betrieb & Statistiken (items 4–7) ──
         {
           badge: "KI-Power",
           title: "KI-Spielberichte",
@@ -128,48 +167,48 @@ export const translations = {
             "SVG-basiert für gestochen scharfe Darstellung",
           ],
         },
+        // ── Section 2: Community & Fans (items 8–10) ──
         {
-          badge: "Kommunikation",
-          title: "Content Management",
+          badge: "Community",
+          title: "Öffentliche Spielberichte",
           description:
-            "Halte deine Liga-Community auf dem Laufenden. Mit dem integrierten CMS veröffentlichst du News, erstellst eigene Seiten und steuerst alle Inhalte zentral – ohne externe Tools.",
+            "Lass Fans und Zuschauer Spielergebnisse direkt auf der Liga-Website melden – ohne Login. Konfigurierbare E-Mail-OTP-Verifizierung und ein mathematischer Captcha schützen vor Missbrauch. Eingereichte Berichte werden im Admin-Panel zur Freigabe gelistet.",
           highlights: [
-            "News erstellen und veröffentlichen",
-            "Eigene Seiten mit Rich-Text-Editor",
-            "Geplante Veröffentlichungen",
-            "Bilder und Medien einbetten",
+            "Spielergebnisse ohne Login melden",
+            "E-Mail-OTP-Verifizierung optional aktivierbar",
+            "Mathematischer Captcha als Bot-Schutz",
+            "Admin-Review-Panel für eingereichte Berichte",
           ],
         },
         {
-          badge: "Sicherheit",
-          title: "Rollenbasierte Zugriffskontrolle",
+          badge: "Übersicht",
+          title: "Saison-Strukturübersicht",
           description:
-            "Definiere klar, wer was sehen und bearbeiten darf. Vom Owner über Admins bis zum Scorer – jede Rolle hat genau die Berechtigungen, die sie braucht. Kein Mehr, kein Weniger.",
+            "Eine visuelle Übersichtsseite zeigt, wie eine Saison organisiert ist – Divisionen, Runden und Teamzuordnungen in einem übersichtlichen Karten-Layout. Öffentlich auf der Liga-Website für alle Fans zugänglich.",
           highlights: [
-            "Owner mit vollem Zugriff",
-            "Admins für Liga-Verwaltung",
-            "Scorer nur für Spielberichte",
-            "Erweiterte Rollen im Pro-Plan",
+            "Divisionen mit Runden-Timelines",
+            "Team-Zuordnungen auf einen Blick",
+            "Responsive Design für alle Geräte",
+            "Öffentlich auf der Liga-Website",
           ],
         },
         {
-          badge: "Automatisierung",
-          title: "Spielplan-Generator",
+          badge: "Internationalisierung",
+          title: "Vollständig zweisprachig",
           description:
-            "Erstelle automatisch Spielpläne für jede Runde deiner Liga. Ob Round-Robin, Hin- und Rückrunde oder K.O.-System – der Generator spart Stunden manueller Arbeit.",
+            "Alle Apps unterstützen Deutsch und Englisch – inklusive lokalisierter URL-Pfade. Öffentliche Spielberichte, Strukturseiten, Statistiken und alle Features sind komplett in beiden Sprachen verfügbar.",
           highlights: [
-            "Automatische Spielplanerstellung",
-            "Round-Robin und K.O.-System",
-            "Flexible Terminvergabe",
-            "Rückrunden mit einem Klick",
+            "Deutsch und Englisch vollständig unterstützt",
+            "Lokalisierte URL-Pfade (/tabelle, /standings)",
+            "Automatische Spracherkennung",
+            "Sprachumschalter in der Navigation",
           ],
         },
       ],
     },
     pricing: {
       heading: "Preise",
-      subheading:
-        "Wähle den passenden Plan für deine Liga. Jederzeit up- oder downgraden.",
+      subheading: "Wähle den passenden Plan für deine Liga. Jederzeit up- oder downgraden.",
       monthly: "Monatlich",
       yearly: "Jährlich",
       yearlySave: "(-17%)",
@@ -190,6 +229,11 @@ export const translations = {
         pages: "Seiten",
         sponsors: "Sponsoren",
       },
+      planDescriptions: {
+        free: "Für kleine Hobbyturniere und zum Ausprobieren",
+        starter: "Für regionale Ligen mit Website und Sponsoren",
+        pro: "Alle Features ohne Limits – ideal für große Ligen und Verbände",
+      },
       planFeatures: {
         gameReports: "Spielberichte",
         playerStats: "Spielerstatistiken",
@@ -200,7 +244,6 @@ export const translations = {
         trikotDesigner: "Trikot-Designer",
         scheduler: "Spielplan-Generator",
         scheduledNews: "Geplante News",
-        exportImport: "Import/Export",
         advancedRoles: "Erweiterte Rollen",
       },
     },
@@ -239,6 +282,11 @@ export const translations = {
       features: "Features",
       pricing: "Pricing",
       cta: "Try Demo",
+      featuresSections: [
+        { label: "Administration", href: "#features-admin" },
+        { label: "Operations & Statistics", href: "#features-operations" },
+        { label: "Community & Fans", href: "#features-community" },
+      ],
     },
     hero: {
       titleLine1: "The All-in-One Platform",
@@ -250,8 +298,7 @@ export const translations = {
     },
     features: {
       heading: "Everything Your League Needs",
-      subheading:
-        "From season planning to a public website – PuckHub covers the entire workflow.",
+      subheading: "From season planning to a public website – PuckHub covers the entire workflow.",
       prevLabel: "Previous feature",
       nextLabel: "Next feature",
       slides: [
@@ -262,18 +309,11 @@ export const translations = {
         },
         {
           title: "Season Structures",
-          description:
-            "Create complex season plans with divisions, rounds, and automatic schedules via drag & drop.",
+          description: "Create complex season plans with divisions, rounds, and automatic schedules via drag & drop.",
         },
         {
           title: "Game Reports",
-          description:
-            "Record goals, penalties, and lineups in real-time directly during the game.",
-        },
-        {
-          title: "Players & Teams",
-          description:
-            "Manage teams, rosters, contracts, and transfers centrally in one place.",
+          description: "Record goals, penalties, and lineups in real-time directly during the game.",
         },
         {
           title: "League Website",
@@ -292,24 +332,65 @@ export const translations = {
         },
       ],
     },
-    seasonSpotlight: {
-      badge: "Highlight Feature",
-      title: "Visual Season Structure Builder",
-      description:
-        "Create complex season hierarchies via drag & drop on an interactive canvas. Define divisions, rounds, and schedules – all visual and intuitive.",
-      imgAlt: "Season Structure Builder",
-      steps: [
-        { label: "Season", desc: "The overarching time frame of your league" },
-        { label: "Division", desc: "Skill levels or age groups" },
-        { label: "Round", desc: "Regular season, playoffs, relegation" },
-        { label: "Games", desc: "Automatic schedule per round" },
-      ],
-    },
     featureShowcase: {
-      heading: "More Powerful Tools",
-      subheading:
-        "Beyond the core features, PuckHub offers a range of additional tools to simplify league management.",
+      heading: "Powerful Tools for Every Aspect",
+      subheading: "From season setup to game operations to fan engagement – PuckHub delivers the right tools.",
+      sections: [
+        { id: "admin", title: "Administration", description: "Set up and manage your league" },
+        { id: "operations", title: "Operations & Statistics", description: "Game day, data, and analytics" },
+        { id: "community", title: "Community & Fans", description: "Public features for fans and spectators" },
+      ],
       items: [
+        // ── Section 0: Administration (items 0–3) ──
+        {
+          badge: "Highlight Feature",
+          title: "Visual Season Structure Builder",
+          description:
+            "Create complex season hierarchies via drag & drop on an interactive canvas. Define divisions, rounds, and schedules – all visual and intuitive.",
+          highlights: [
+            "Season as the overarching time frame",
+            "Divisions for skill levels and age groups",
+            "Rounds for regular season, playoffs, and relegation",
+            "Automatic schedule per round",
+          ],
+        },
+        {
+          badge: "Automation",
+          title: "Schedule Generator",
+          description:
+            "Automatically create game schedules for every round of your league. Whether round-robin, home-and-away, or knockout – the generator saves hours of manual work.",
+          highlights: [
+            "Automatic schedule generation",
+            "Round-robin and knockout formats",
+            "Flexible date assignment",
+            "Return legs with one click",
+          ],
+        },
+        {
+          badge: "Communication",
+          title: "Content Management",
+          description:
+            "Keep your league community up to date. With the integrated CMS, publish news, create custom pages, and manage all content centrally – no external tools needed.",
+          highlights: [
+            "Create and publish news articles",
+            "Custom pages with rich-text editor",
+            "Scheduled publications",
+            "Embed images and media",
+          ],
+        },
+        {
+          badge: "Security",
+          title: "Role-Based Access Control",
+          description:
+            "Define clearly who can see and edit what. From owner to admin to scorer – each role has exactly the permissions it needs. No more, no less.",
+          highlights: [
+            "Owner with full access",
+            "Admins for league management",
+            "Scorers for game reports only",
+            "Advanced roles in Pro plan",
+          ],
+        },
+        // ── Section 1: Operations & Statistics (items 4–7) ──
         {
           badge: "AI-Powered",
           title: "AI Game Recaps",
@@ -358,48 +439,48 @@ export const translations = {
             "SVG-based for crisp rendering",
           ],
         },
+        // ── Section 2: Community & Fans (items 8–10) ──
         {
-          badge: "Communication",
-          title: "Content Management",
+          badge: "Community",
+          title: "Public Game Reporting",
           description:
-            "Keep your league community up to date. With the integrated CMS, publish news, create custom pages, and manage all content centrally – no external tools needed.",
+            "Let fans and spectators submit game scores directly on the league website – no login required. Configurable email OTP verification and a math captcha protect against abuse. Submitted reports are listed in the admin panel for review.",
           highlights: [
-            "Create and publish news articles",
-            "Custom pages with rich-text editor",
-            "Scheduled publications",
-            "Embed images and media",
+            "Submit game scores without login",
+            "Optional email OTP verification",
+            "Math captcha bot protection",
+            "Admin review panel for submissions",
           ],
         },
         {
-          badge: "Security",
-          title: "Role-Based Access Control",
+          badge: "Overview",
+          title: "Season Structure Overview",
           description:
-            "Define clearly who can see and edit what. From owner to admin to scorer – each role has exactly the permissions it needs. No more, no less.",
+            "A visual overview page shows how a season is organized – divisions, rounds, and team assignments in a clean card layout. Publicly accessible on the league website for all fans.",
           highlights: [
-            "Owner with full access",
-            "Admins for league management",
-            "Scorers for game reports only",
-            "Advanced roles in Pro plan",
+            "Divisions with round timelines",
+            "Team assignments at a glance",
+            "Responsive design for all devices",
+            "Public on the league website",
           ],
         },
         {
-          badge: "Automation",
-          title: "Schedule Generator",
+          badge: "Internationalization",
+          title: "Fully Bilingual",
           description:
-            "Automatically create game schedules for every round of your league. Whether round-robin, home-and-away, or knockout – the generator saves hours of manual work.",
+            "All apps support German and English – including localized URL paths. Public game reports, structure pages, statistics, and all features are fully available in both languages.",
           highlights: [
-            "Automatic schedule generation",
-            "Round-robin and knockout formats",
-            "Flexible date assignment",
-            "Return legs with one click",
+            "Full German and English support",
+            "Localized URL paths (/tabelle, /standings)",
+            "Automatic language detection",
+            "Language switcher in navigation",
           ],
         },
       ],
     },
     pricing: {
       heading: "Pricing",
-      subheading:
-        "Choose the right plan for your league. Upgrade or downgrade anytime.",
+      subheading: "Choose the right plan for your league. Upgrade or downgrade anytime.",
       monthly: "Monthly",
       yearly: "Yearly",
       yearlySave: "(-17%)",
@@ -420,6 +501,11 @@ export const translations = {
         pages: "Pages",
         sponsors: "Sponsors",
       },
+      planDescriptions: {
+        free: "For small hobby tournaments and trying things out",
+        starter: "For regional leagues with websites and sponsors",
+        pro: "All features with no limits – ideal for large leagues and associations",
+      },
       planFeatures: {
         gameReports: "Game Reports",
         playerStats: "Player Statistics",
@@ -430,14 +516,12 @@ export const translations = {
         trikotDesigner: "Jersey Designer",
         scheduler: "Schedule Generator",
         scheduledNews: "Scheduled News",
-        exportImport: "Import/Export",
         advancedRoles: "Advanced Roles",
       },
     },
     demoCta: {
       heading: "Try It for Free",
-      subheading:
-        "Test all features in our demo environment – no account required. Demo data is reset regularly.",
+      subheading: "Test all features in our demo environment – no account required. Demo data is reset regularly.",
       openPortal: "Open Demo Portal",
     },
     demoDialog: {

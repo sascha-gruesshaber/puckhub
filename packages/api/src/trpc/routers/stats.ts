@@ -400,77 +400,71 @@ export const statsRouter = router({
   // Player career stats (cross-season)
   // ---------------------------------------------------------------------------
 
-  playerCareerStats: orgProcedure
-    .input(z.object({ playerId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const stats = await ctx.db.playerSeasonStat.findMany({
-        where: {
-          playerId: input.playerId,
-          organizationId: ctx.organizationId,
-        },
-        include: {
-          season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
-          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-        },
-        orderBy: { season: { seasonStart: "asc" } },
-      })
-      return stats
-    }),
+  playerCareerStats: orgProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    const stats = await ctx.db.playerSeasonStat.findMany({
+      where: {
+        playerId: input.playerId,
+        organizationId: ctx.organizationId,
+      },
+      include: {
+        season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+        team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+      },
+      orderBy: { season: { seasonStart: "asc" } },
+    })
+    return stats
+  }),
 
-  goalieCareerStats: orgProcedure
-    .input(z.object({ playerId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const stats = await ctx.db.goalieSeasonStat.findMany({
-        where: {
-          playerId: input.playerId,
-          organizationId: ctx.organizationId,
-        },
-        include: {
-          season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
-          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-        },
-        orderBy: { season: { seasonStart: "asc" } },
-      })
-      return stats
-    }),
+  goalieCareerStats: orgProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    const stats = await ctx.db.goalieSeasonStat.findMany({
+      where: {
+        playerId: input.playerId,
+        organizationId: ctx.organizationId,
+      },
+      include: {
+        season: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+        team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+      },
+      orderBy: { season: { seasonStart: "asc" } },
+    })
+    return stats
+  }),
 
-  playerSuspensions: orgProcedure
-    .input(z.object({ playerId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      const suspensions = await ctx.db.gameSuspension.findMany({
-        where: {
-          playerId: input.playerId,
-          organizationId: ctx.organizationId,
-        },
-        include: {
-          game: {
-            select: {
-              id: true,
-              scheduledAt: true,
-              homeTeam: { select: { id: true, shortName: true, logoUrl: true } },
-              awayTeam: { select: { id: true, shortName: true, logoUrl: true } },
-              round: {
-                select: {
-                  name: true,
-                  division: {
-                    select: {
-                      name: true,
-                      season: { select: { name: true } },
-                    },
+  playerSuspensions: orgProcedure.input(z.object({ playerId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    const suspensions = await ctx.db.gameSuspension.findMany({
+      where: {
+        playerId: input.playerId,
+        organizationId: ctx.organizationId,
+      },
+      include: {
+        game: {
+          select: {
+            id: true,
+            scheduledAt: true,
+            homeTeam: { select: { id: true, shortName: true, logoUrl: true } },
+            awayTeam: { select: { id: true, shortName: true, logoUrl: true } },
+            round: {
+              select: {
+                name: true,
+                division: {
+                  select: {
+                    name: true,
+                    season: { select: { name: true } },
                   },
                 },
               },
             },
           },
-          gameEvent: {
-            select: {
-              penaltyType: { select: { name: true, shortName: true } },
-            },
-          },
-          team: { select: { id: true, shortName: true, logoUrl: true } },
         },
-        orderBy: { createdAt: "desc" },
-      })
-      return suspensions
-    }),
+        gameEvent: {
+          select: {
+            penaltyType: { select: { name: true, shortName: true } },
+          },
+        },
+        team: { select: { id: true, shortName: true, logoUrl: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    return suspensions
+  }),
 })

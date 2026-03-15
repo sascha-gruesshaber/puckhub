@@ -60,18 +60,30 @@ function SkaterSeasonStatsTable({ stats }: { stats: PlayerSeasonStatRow[] }) {
           <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">
             <th className="px-4 py-3 text-left">{t.playerSeasonStats.season}</th>
             <th className="px-4 py-3 text-left">{t.playerSeasonStats.team}</th>
-            <th className="px-4 py-3 text-right" title={t.tooltip.gamesPlayed}>{t.abbr.gp}</th>
-            <th className="px-4 py-3 text-right" title={t.tooltip.goals}>{t.abbr.g}</th>
-            <th className="px-4 py-3 text-right" title={t.tooltip.assists}>{t.abbr.a}</th>
-            <th className="px-4 py-3 text-right font-bold" title={t.tooltip.points}>{t.abbr.pts}</th>
-            <th className="px-4 py-3 text-right" title={t.tooltip.penaltyMinutes}>{t.abbr.pim}</th>
+            <th className="px-4 py-3 text-right" title={t.tooltip.gamesPlayed}>
+              {t.abbr.gp}
+            </th>
+            <th className="px-4 py-3 text-right" title={t.tooltip.goals}>
+              {t.abbr.g}
+            </th>
+            <th className="px-4 py-3 text-right" title={t.tooltip.assists}>
+              {t.abbr.a}
+            </th>
+            <th className="px-4 py-3 text-right font-bold" title={t.tooltip.points}>
+              {t.abbr.pts}
+            </th>
+            <th className="px-4 py-3 text-right" title={t.tooltip.penaltyMinutes}>
+              {t.abbr.pim}
+            </th>
           </tr>
         </thead>
         <tbody>
           {stats.map((s, i) => (
             <tr key={i} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
               <td className="px-4 py-3 whitespace-nowrap">{s.season.name}</td>
-              <td className="px-4 py-3"><TeamCell team={s.team} /></td>
+              <td className="px-4 py-3">
+                <TeamCell team={s.team} />
+              </td>
               <td className="px-4 py-3 text-right tabular-nums">{s.gamesPlayed}</td>
               <td className="px-4 py-3 text-right tabular-nums">{s.goals}</td>
               <td className="px-4 py-3 text-right tabular-nums">{s.assists}</td>
@@ -113,19 +125,29 @@ function GoalieSeasonStatsTable({ stats }: { stats: GoalieSeasonStatRow[] }) {
           <tr className="bg-league-text/[0.03] text-league-text/60 text-xs uppercase tracking-wider">
             <th className="px-4 py-3 text-left">{t.playerSeasonStats.season}</th>
             <th className="px-4 py-3 text-left">{t.playerSeasonStats.team}</th>
-            <th className="px-4 py-3 text-right" title={t.tooltip.gamesPlayed}>{t.abbr.gp}</th>
-            <th className="px-4 py-3 text-right" title={t.tooltip.goalsAgainst}>{t.abbr.ga}</th>
-            <th className="px-4 py-3 text-right font-bold" title={t.tooltip.goalsAgainstAvg}>{t.abbr.gaa}</th>
+            <th className="px-4 py-3 text-right" title={t.tooltip.gamesPlayed}>
+              {t.abbr.gp}
+            </th>
+            <th className="px-4 py-3 text-right" title={t.tooltip.goalsAgainst}>
+              {t.abbr.ga}
+            </th>
+            <th className="px-4 py-3 text-right font-bold" title={t.tooltip.goalsAgainstAvg}>
+              {t.abbr.gaa}
+            </th>
           </tr>
         </thead>
         <tbody>
           {stats.map((s, i) => (
             <tr key={i} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
               <td className="px-4 py-3 whitespace-nowrap">{s.season.name}</td>
-              <td className="px-4 py-3"><TeamCell team={s.team} /></td>
+              <td className="px-4 py-3">
+                <TeamCell team={s.team} />
+              </td>
               <td className="px-4 py-3 text-right tabular-nums">{s.gamesPlayed}</td>
               <td className="px-4 py-3 text-right tabular-nums">{s.goalsAgainst}</td>
-              <td className="px-4 py-3 text-right tabular-nums font-semibold">{s.gaa ? Number(s.gaa.toString()).toFixed(2) : "–"}</td>
+              <td className="px-4 py-3 text-right tabular-nums font-semibold">
+                {s.gaa ? Number(s.gaa.toString()).toFixed(2) : "–"}
+              </td>
             </tr>
           ))}
         </tbody>

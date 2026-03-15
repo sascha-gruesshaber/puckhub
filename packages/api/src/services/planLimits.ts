@@ -21,13 +21,13 @@ type FeatureKey =
   | "featureWebsiteBuilder"
   | "featureSponsorMgmt"
   | "featureTrikotDesigner"
-  | "featureExportImport"
   | "featureGameReports"
   | "featurePlayerStats"
   | "featureScheduler"
   | "featureScheduledNews"
   | "featureAdvancedRoles"
   | "featureAiRecaps"
+  | "featurePublicReports"
 
 interface Plan {
   [key: string]: unknown
@@ -45,13 +45,13 @@ interface Plan {
   featureWebsiteBuilder: boolean
   featureSponsorMgmt: boolean
   featureTrikotDesigner: boolean
-  featureExportImport: boolean
   featureGameReports: boolean
   featurePlayerStats: boolean
   featureScheduler: boolean
   featureScheduledNews: boolean
   featureAdvancedRoles: boolean
   featureAiRecaps: boolean
+  featurePublicReports: boolean
   aiMonthlyTokenLimit: number | null
 }
 

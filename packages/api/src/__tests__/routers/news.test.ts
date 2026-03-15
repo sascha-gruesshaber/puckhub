@@ -97,9 +97,7 @@ describe("news router", () => {
 
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.news.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "NEWS_NOT_FOUND",
-      )
+      await expect(admin.news.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow("NEWS_NOT_FOUND")
     })
   })
 

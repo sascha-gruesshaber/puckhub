@@ -29,7 +29,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
 
   const triggerLabel = hasSelection
     ? value.length === 1
-      ? options.find((o) => o.value === value[0])?.label ?? label
+      ? (options.find((o) => o.value === value[0])?.label ?? label)
       : `${label.replace(/^All\s+/i, "").replace(/^Alle\s+/i, "")} (${value.length})`
     : label
 
@@ -38,9 +38,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
       if (singleSelect) {
         onChange(value.includes(optionValue) ? [] : [optionValue])
       } else {
-        const next = value.includes(optionValue)
-          ? value.filter((v) => v !== optionValue)
-          : [...value, optionValue]
+        const next = value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue]
         onChange(next)
       }
     },
@@ -136,7 +134,9 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
             role="button"
             tabIndex={-1}
             onClick={clearSelection}
-            onKeyDown={(e) => { if (e.key === "Enter") clearSelection(e as unknown as React.MouseEvent) }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") clearSelection(e as unknown as React.MouseEvent)
+            }}
             className="ml-0.5 -mr-1 rounded-full p-0.5 hover:bg-primary-foreground/20 transition-colors"
             aria-label="Clear filter"
           >
@@ -184,11 +184,12 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
                         : "border-border",
                     )}
                   >
-                    {isSelected && (
-                      singleSelect
-                        ? <div className="h-2 w-2 rounded-full bg-primary" />
-                        : <Check className="h-3 w-3" />
-                    )}
+                    {isSelected &&
+                      (singleSelect ? (
+                        <div className="h-2 w-2 rounded-full bg-primary" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      ))}
                   </div>
                   {option.icon && <span className="shrink-0">{option.icon}</span>}
                   <span className="truncate">{option.label}</span>

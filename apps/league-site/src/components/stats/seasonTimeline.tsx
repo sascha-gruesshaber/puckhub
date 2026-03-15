@@ -31,7 +31,15 @@ interface DivisionInfo {
 interface SeasonEntry {
   season: { id: string; name: string; seasonStart: Date | string; seasonEnd: Date | string }
   divisions: DivisionInfo[]
-  totals: { gamesPlayed: number; wins: number; draws: number; losses: number; goalsFor: number; goalsAgainst: number; goalDifference: number }
+  totals: {
+    gamesPlayed: number
+    wins: number
+    draws: number
+    losses: number
+    goalsFor: number
+    goalsAgainst: number
+    goalDifference: number
+  }
   bestRank: number | null
   bestRankRoundType: string | null
 }
@@ -85,7 +93,8 @@ function TopPerformers({ scorers, goalie }: { scorers: ScorerInfo[]; goalie: Goa
       {goalie && (
         <span>
           <span className="text-league-text/30 mr-1">TW:</span>
-          {goalie.player.firstName.charAt(0)}. {goalie.player.lastName} ({goalie.gaa ? Number(goalie.gaa.toString()).toFixed(2) : "–"})
+          {goalie.player.firstName.charAt(0)}. {goalie.player.lastName} (
+          {goalie.gaa ? Number(goalie.gaa.toString()).toFixed(2) : "–"})
         </span>
       )}
     </div>
@@ -114,7 +123,12 @@ function SeasonCard({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-sm">{season.name}</span>
             {divisions.map((d) => (
-              <span key={d.id} className="text-[10px] border border-league-text/10 rounded px-1.5 py-0.5 text-league-text/50">{d.name}</span>
+              <span
+                key={d.id}
+                className="text-[10px] border border-league-text/10 rounded px-1.5 py-0.5 text-league-text/50"
+              >
+                {d.name}
+              </span>
             ))}
           </div>
         </div>
@@ -129,16 +143,24 @@ function SeasonCard({
       <SeasonRecordBar wins={totals.wins} draws={totals.draws} losses={totals.losses} />
 
       <div className="flex items-center gap-4 text-xs text-league-text/50">
-        <span>{totals.wins}{t.abbr.w} {totals.draws}{t.abbr.d} {totals.losses}{t.abbr.l}</span>
+        <span>
+          {totals.wins}
+          {t.abbr.w} {totals.draws}
+          {t.abbr.d} {totals.losses}
+          {t.abbr.l}
+        </span>
         <span>&middot;</span>
         <span>
           {totals.goalsFor}:{totals.goalsAgainst}{" "}
           <span className={totals.goalDifference >= 0 ? "text-emerald-600" : "text-red-500"}>
-            ({totals.goalDifference > 0 ? "+" : ""}{totals.goalDifference})
+            ({totals.goalDifference > 0 ? "+" : ""}
+            {totals.goalDifference})
           </span>
         </span>
         <span>&middot;</span>
-        <span>{totals.gamesPlayed} {t.abbr.gp}</span>
+        <span>
+          {totals.gamesPlayed} {t.abbr.gp}
+        </span>
       </div>
 
       <TopPerformers scorers={scorers} goalie={goalie} />
@@ -162,11 +184,18 @@ function SeasonCard({
                     {divisions.length > 1 && <p className="text-xs font-medium text-league-text/40 mb-1">{div.name}</p>}
                     <div className="space-y-1">
                       {div.rounds.map((round) => (
-                        <div key={round.id} className="flex items-center justify-between text-xs px-2 py-1 rounded bg-league-text/[0.03]">
+                        <div
+                          key={round.id}
+                          className="flex items-center justify-between text-xs px-2 py-1 rounded bg-league-text/[0.03]"
+                        >
                           <span className="font-medium">{round.name}</span>
                           {round.standing ? (
                             <span className="tabular-nums text-league-text/50">
-                              #{round.standing.rank} &middot; {round.standing.wins}{t.abbr.w} {round.standing.draws}{t.abbr.d} {round.standing.losses}{t.abbr.l} &middot; {round.standing.goalsFor}:{round.standing.goalsAgainst} &middot; {round.standing.totalPoints} {t.abbr.pts}
+                              #{round.standing.rank} &middot; {round.standing.wins}
+                              {t.abbr.w} {round.standing.draws}
+                              {t.abbr.d} {round.standing.losses}
+                              {t.abbr.l} &middot; {round.standing.goalsFor}:{round.standing.goalsAgainst} &middot;{" "}
+                              {round.standing.totalPoints} {t.abbr.pts}
                             </span>
                           ) : (
                             <span className="text-league-text/30">–</span>
@@ -185,7 +214,15 @@ function SeasonCard({
   )
 }
 
-function SeasonTimeline({ seasons, topScorers, topGoalies }: { seasons: SeasonEntry[]; topScorers: ScorerInfo[]; topGoalies: GoalieInfo[] }) {
+function SeasonTimeline({
+  seasons,
+  topScorers,
+  topGoalies,
+}: {
+  seasons: SeasonEntry[]
+  topScorers: ScorerInfo[]
+  topGoalies: GoalieInfo[]
+}) {
   const t = useT()
 
   if (seasons.length === 0) {

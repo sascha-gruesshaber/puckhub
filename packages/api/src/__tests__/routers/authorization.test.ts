@@ -1,6 +1,12 @@
 import { TRPCError } from "@trpc/server"
 import { beforeEach, describe, expect, it } from "vitest"
-import { createTestCaller, createPlatformAdminCaller, createOtherOrgAdminCaller, createCrossOrgCaller, seedSecondOrg } from "../testUtils"
+import {
+  createTestCaller,
+  createPlatformAdminCaller,
+  createOtherOrgAdminCaller,
+  createCrossOrgCaller,
+  seedSecondOrg,
+} from "../testUtils"
 
 const FAKE_ID = "00000000-0000-0000-0000-000000000000"
 
@@ -195,9 +201,9 @@ describe("authorization", () => {
 
     describe("bonusPoints", () => {
       it("create requires auth", async () => {
-        await expect(
-          caller.bonusPoints.create({ teamId: FAKE_ID, roundId: FAKE_ID, points: 1 }),
-        ).rejects.toThrow("Not authenticated")
+        await expect(caller.bonusPoints.create({ teamId: FAKE_ID, roundId: FAKE_ID, points: 1 })).rejects.toThrow(
+          "Not authenticated",
+        )
       })
 
       it("update requires auth", async () => {
@@ -599,7 +605,6 @@ describe("authorization", () => {
         await expect(caller.page.listByMenuLocation({ location: "main_nav" })).rejects.toThrow("Not authenticated")
       })
     })
-
   })
 
   describe("public procedures remain accessible without auth", () => {
@@ -676,9 +681,7 @@ describe("authorization", () => {
     })
 
     it("team.create rejects non-admin member", async () => {
-      await expect(caller.team.create({ name: "Test", shortName: "TST" })).rejects.toThrow(
-        "Keine Administratorrechte",
-      )
+      await expect(caller.team.create({ name: "Test", shortName: "TST" })).rejects.toThrow("Keine Administratorrechte")
     })
 
     it("player.create rejects non-admin member", async () => {
@@ -728,9 +731,7 @@ describe("authorization", () => {
     })
 
     it("organization.removeMember rejects non-admin member", async () => {
-      await expect(caller.organization.removeMember({ memberId: "fake" })).rejects.toThrow(
-        "Keine Administratorrechte",
-      )
+      await expect(caller.organization.removeMember({ memberId: "fake" })).rejects.toThrow("Keine Administratorrechte")
     })
 
     it("organization.updateMemberRole rejects non-admin member", async () => {
@@ -740,9 +741,9 @@ describe("authorization", () => {
     })
 
     it("game.create rejects member without game_manager role", async () => {
-      await expect(
-        caller.game.create({ roundId: FAKE_ID, homeTeamId: FAKE_ID, awayTeamId: FAKE_ID }),
-      ).rejects.toThrow("Unzureichende Berechtigungen")
+      await expect(caller.game.create({ roundId: FAKE_ID, homeTeamId: FAKE_ID, awayTeamId: FAKE_ID })).rejects.toThrow(
+        "Unzureichende Berechtigungen",
+      )
     })
 
     it("contract.signPlayer rejects member without team_manager role", async () => {
@@ -782,9 +783,7 @@ describe("authorization", () => {
     })
 
     it("organization.delete rejects non-platform-admin", async () => {
-      await expect(caller.organization.delete({ id: "fake" })).rejects.toThrow(
-        "Keine Plattform-Administratorrechte",
-      )
+      await expect(caller.organization.delete({ id: "fake" })).rejects.toThrow("Keine Plattform-Administratorrechte")
     })
 
     it("organization.setActiveForAdmin rejects non-platform-admin", async () => {

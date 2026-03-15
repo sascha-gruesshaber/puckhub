@@ -1604,5 +1604,36 @@
     "resetHint": "Wird am 1. jedes Monats zurückgesetzt.",
     "unavailable": "KI-Funktionen sind in deinem aktuellen Plan nicht verfügbar.",
     "headerChip": "KI {{percent}}%"
+  },
+  "publicReports": {
+    "title": "Öffentliche Spielberichte",
+    "description": "Von der Öffentlichkeit gemeldete Ergebnisse",
+    "empty": "Noch keine öffentlichen Berichte.",
+    "emptyDesc": "Wenn aktiviert, können Besucher Spielergebnisse über die Liga-Website melden.",
+    "game": "Spiel",
+    "score": "Ergebnis",
+    "submitter": "Melder",
+    "date": "Datum",
+    "status": "Status",
+    "active": "Aktiv",
+    "reverted": "Zurückgesetzt",
+    "revert": "Zurücksetzen",
+    "revertTitle": "Bericht zurücksetzen",
+    "revertDescription": "Das gemeldete Ergebnis wird rückgängig gemacht und das Spiel auf geplant zurückgesetzt. Die Tabelle wird neu berechnet.",
+    "revertNote": "Notiz (optional)",
+    "revertNotePlaceholder": "Grund für die Rücksetzung...",
+    "revertSuccess": "Bericht erfolgreich zurückgesetzt.",
+    "publicReportNotice": "Dieses Spiel wurde über eine öffentliche Meldung abgeschlossen.",
+    "viewPublicReports": "Öffentliche Berichte anzeigen"
+  },
+  "settingsPublicReports": {
+    "title": "Öffentliche Spielberichte",
+    "description": "Ermöglicht Besuchern, Spielergebnisse über die öffentliche Liga-Website zu melden.",
+    "enableToggle": "Öffentliche Spielberichte akzeptieren",
+    "enableDescription": "Wenn aktiviert, können Besucher Ergebnisse für geplante Spiele melden.",
+    "requireEmail": "E-Mail-Verifizierung erforderlich",
+    "requireEmailDescription": "Sendet einen 6-stelligen Code an die E-Mail des Meldenden. Wird dringend empfohlen, um Missbrauch zu verhindern.",
+    "botDetection": "Bot- & Spam-Erkennung",
+    "botDetectionDescription": "Zeigt ein Mathe-Captcha und verwendet versteckte Felder, um automatische Einreichungen zu blockieren."
   }
 }

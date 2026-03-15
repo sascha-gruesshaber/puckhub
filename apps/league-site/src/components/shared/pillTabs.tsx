@@ -20,13 +20,7 @@ const sizeClasses = {
   md: "text-sm px-4 py-2",
 }
 
-export function PillTabs<T extends string>({
-  items,
-  value,
-  onChange,
-  size = "md",
-  className,
-}: PillTabsProps<T>) {
+export function PillTabs<T extends string>({ items, value, onChange, size = "md", className }: PillTabsProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map())
   const [indicator, setIndicator] = useState({ left: 0, width: 0, ready: false })

@@ -11,7 +11,7 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test.skip("magic link login flow", async ({ page }) => {
+  test("magic link login flow", async ({ page }) => {
     writeFileSync(apiLogFile, "")
 
     await page.goto("/login")
@@ -34,8 +34,15 @@ test.describe("Authentication", () => {
 
     // Navigate to magic link — verifies token, sets session, redirects to admin
     await page.goto(magicLinkUrl)
+    await page.waitForLoadState("networkidle")
 
-    // Should land on the dashboard (org auto-selects for single-org user)
+    // Platform admins see the org picker — select the E2E org
+    const orgButton = page.getByRole("button", { name: /E2E Test League/ })
+    if (await orgButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await orgButton.click()
+    }
+
+    // Should land on the dashboard
     await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
       timeout: 15_000,
     })
@@ -53,12 +60,13 @@ test.describe("Authentication", () => {
     await expect(page).toHaveURL(/\/login/)
   })
 
-  test.skip("logout", async ({ page }) => {
+  test("logout", async ({ page }) => {
     // Login first via magic link
     await login(page)
 
-    // Logout
-    await page.getByTitle("logout").click()
+    // Open user dropdown in top bar, then click logout
+    await page.locator(".topbar-user-trigger").click()
+    await page.getByText("topBar.logout").click()
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 })
   })
 })

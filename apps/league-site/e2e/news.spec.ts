@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 const ORG_ID = "e2e-org-id"
 const q = `?orgId=${ORG_ID}`
 
-test.describe.skip("News", () => {
+test.describe("News", () => {
   test("published articles visible on home, draft not visible", async ({ page }) => {
     await page.goto(`/${q}`)
 

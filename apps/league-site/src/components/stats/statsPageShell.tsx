@@ -19,8 +19,8 @@ export function StatsPageShell({ title, selectedSeasonId, onSeasonChange, childr
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
             <h2 className="text-2xl font-bold">{title}</h2>
-            {season.all.length > 1 && (
-              season.all.length <= 4 ? (
+            {season.all.length > 1 &&
+              (season.all.length <= 4 ? (
                 <PillTabs
                   size="sm"
                   items={season.all.map((s) => ({ id: s.id, label: s.name }))}
@@ -34,8 +34,7 @@ export function StatsPageShell({ title, selectedSeasonId, onSeasonChange, childr
                   onChange={onSeasonChange}
                   icon={<Calendar className="h-3.5 w-3.5 text-league-text/40" />}
                 />
-              )
-            )}
+              ))}
           </div>
           {children}
         </div>

@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Sparkles } from "lucide-react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
 import { PlayerHoverCard } from "~/components/shared/playerHoverCard"
+import { PublicReportForm } from "~/components/shared/publicReportForm"
 import { ScoreBadge } from "~/components/shared/scoreBadge"
 import { StatusBadge } from "~/components/shared/statusBadge"
 import { TeamLogo } from "~/components/shared/teamLogo"
@@ -41,6 +42,14 @@ export function GameDetailPage() {
     return () => clearInterval(interval)
   }, [isRecapGenerating, gameId, org.id, utils])
 
+  const showPublicReportForm =
+    features.publicReports && !!game && (game.status === "scheduled" || game.status === "postponed")
+
+  const { data: reportStatus } = trpc.publicSite.reportHasReport.useQuery(
+    { organizationId: org.id, gameId },
+    { enabled: showPublicReportForm, staleTime: 30_000 },
+  )
+
   if (isLoading) return <PageSkeleton />
 
   if (!game) {
@@ -64,7 +73,10 @@ export function GameDetailPage() {
   return (
     <div className="animate-fade-in">
       <SectionWrapper>
-        <Link to="/schedule" className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6">
+        <Link
+          to="/schedule"
+          className="inline-flex items-center gap-1 text-sm text-league-text/50 hover:text-league-primary mb-6"
+        >
           <ArrowLeft className="h-4 w-4" />
           {t.gameDetail.backToSchedule}
         </Link>
@@ -79,29 +91,38 @@ export function GameDetailPage() {
         <div className="bg-league-surface rounded-xl border border-league-text/10 p-6 sm:p-8 mb-8">
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             {/* Home team */}
-            <Link to="/teams/$teamId" params={{ teamId: game.homeTeam.id }} search={{ from: backPath }} className="text-center flex-1 group">
+            <Link
+              to="/teams/$teamId"
+              params={{ teamId: game.homeTeam.id }}
+              search={{ from: backPath }}
+              className="text-center flex-1 group"
+            >
               <TeamLogo name={game.homeTeam.name} logoUrl={game.homeTeam.logoUrl} size="lg" className="mx-auto mb-2" />
-              <div className="font-bold text-lg group-hover:text-league-primary transition-colors">{game.homeTeam.shortName}</div>
+              <div className="font-bold text-lg group-hover:text-league-primary transition-colors">
+                {game.homeTeam.shortName}
+              </div>
               <div className="text-xs text-league-text/50">{t.gameDetail.home}</div>
             </Link>
 
             {/* Score */}
             <div className="text-center">
-              <ScoreBadge
-                homeScore={game.homeScore}
-                awayScore={game.awayScore}
-                status={game.status}
-                size="lg"
-              />
+              <ScoreBadge homeScore={game.homeScore} awayScore={game.awayScore} status={game.status} size="lg" />
               <div className="mt-2">
                 <StatusBadge status={game.status} />
               </div>
             </div>
 
             {/* Away team */}
-            <Link to="/teams/$teamId" params={{ teamId: game.awayTeam.id }} search={{ from: backPath }} className="text-center flex-1 group">
+            <Link
+              to="/teams/$teamId"
+              params={{ teamId: game.awayTeam.id }}
+              search={{ from: backPath }}
+              className="text-center flex-1 group"
+            >
               <TeamLogo name={game.awayTeam.name} logoUrl={game.awayTeam.logoUrl} size="lg" className="mx-auto mb-2" />
-              <div className="font-bold text-lg group-hover:text-league-primary transition-colors">{game.awayTeam.shortName}</div>
+              <div className="font-bold text-lg group-hover:text-league-primary transition-colors">
+                {game.awayTeam.shortName}
+              </div>
               <div className="text-xs text-league-text/50">{t.gameDetail.away}</div>
             </Link>
           </div>
@@ -113,6 +134,25 @@ export function GameDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Public Report */}
+        {showPublicReportForm && (
+          <div className="mb-8">
+            {reportStatus?.hasReport ? (
+              <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 text-center text-sm text-green-700">
+                {t.publicReport.alreadyReported}
+              </div>
+            ) : (
+              <PublicReportForm
+                gameId={gameId}
+                homeTeamShortName={game.homeTeam.shortName}
+                awayTeamShortName={game.awayTeam.shortName}
+                homeTeamLogoUrl={game.homeTeam.logoUrl}
+                awayTeamLogoUrl={game.awayTeam.logoUrl}
+              />
+            )}
+          </div>
+        )}
 
         {/* AI Recap */}
         {(game as any).recapGenerating && (
@@ -161,7 +201,10 @@ export function GameDetailPage() {
               {goals.map((event) => {
                 const isHome = event.team.id === game.homeTeamId
                 return (
-                  <div key={event.id} className={cn("flex items-center px-4 py-3 text-sm", isHome ? "flex-row" : "flex-row-reverse")}>
+                  <div
+                    key={event.id}
+                    className={cn("flex items-center px-4 py-3 text-sm", isHome ? "flex-row" : "flex-row-reverse")}
+                  >
                     <div className={cn("flex-1", isHome ? "text-left" : "text-right")}>
                       {features.advancedStats && event.scorer ? (
                         <PlayerHoverCard
@@ -236,7 +279,11 @@ export function GameDetailPage() {
                     <span className="text-league-text/50 ml-2 text-xs">({event.team.shortName})</span>
                   </div>
                   <div className="text-league-text/60 text-xs">
-                    {event.penaltyMinutes && <span>{event.penaltyMinutes} {t.abbr.min}</span>}
+                    {event.penaltyMinutes && (
+                      <span>
+                        {event.penaltyMinutes} {t.abbr.min}
+                      </span>
+                    )}
                     {event.penaltyType && <span> &middot; {event.penaltyType.name}</span>}
                   </div>
                   <div className="pl-4 text-league-text/50 text-xs tabular-nums">
@@ -250,11 +297,13 @@ export function GameDetailPage() {
         )}
 
         {/* No detailed data hint */}
-        {goals.length === 0 && penalties.length === 0 && homeLineup.length === 0 && awayLineup.length === 0 && game.status === "completed" && (
-          <div className="text-center text-sm text-league-text/40 py-6">
-            {t.gameDetail.noDetailedReports}
-          </div>
-        )}
+        {goals.length === 0 &&
+          penalties.length === 0 &&
+          homeLineup.length === 0 &&
+          awayLineup.length === 0 &&
+          game.status === "completed" && (
+            <div className="text-center text-sm text-league-text/40 py-6">{t.gameDetail.noDetailedReports}</div>
+          )}
 
         {/* Lineups */}
         {(homeLineup.length > 0 || awayLineup.length > 0) && (
@@ -265,7 +314,10 @@ export function GameDetailPage() {
                 { team: game.homeTeam, lineup: homeLineup },
                 { team: game.awayTeam, lineup: awayLineup },
               ].map(({ team, lineup }) => (
-                <div key={team.id} className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
+                <div
+                  key={team.id}
+                  className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden"
+                >
                   <Link
                     to="/teams/$teamId"
                     params={{ teamId: team.id }}
@@ -301,7 +353,9 @@ export function GameDetailPage() {
                               </Link>
                             </PlayerHoverCard>
                           ) : (
-                            <>{l.player.firstName} {l.player.lastName}</>
+                            <>
+                              {l.player.firstName} {l.player.lastName}
+                            </>
                           )}
                         </span>
                         <span className="text-xs text-league-text/40 uppercase">{l.position}</span>

@@ -43,7 +43,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) rotate(-1deg);
   }
   50% {
@@ -78,8 +79,9 @@
 .scroll-reveal {
   opacity: 0;
   transform: translateY(32px);
-  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-reveal.revealed {
@@ -92,8 +94,9 @@
 .scroll-stagger > * {
   opacity: 0;
   transform: translateY(24px);
-  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-stagger.revealed > * {
@@ -101,20 +104,40 @@
   transform: translateY(0);
 }
 
-.scroll-stagger.revealed > *:nth-child(1) { transition-delay: 0ms; }
-.scroll-stagger.revealed > *:nth-child(2) { transition-delay: 60ms; }
-.scroll-stagger.revealed > *:nth-child(3) { transition-delay: 120ms; }
-.scroll-stagger.revealed > *:nth-child(4) { transition-delay: 180ms; }
-.scroll-stagger.revealed > *:nth-child(5) { transition-delay: 240ms; }
-.scroll-stagger.revealed > *:nth-child(6) { transition-delay: 300ms; }
-.scroll-stagger.revealed > *:nth-child(7) { transition-delay: 360ms; }
-.scroll-stagger.revealed > *:nth-child(8) { transition-delay: 420ms; }
+.scroll-stagger.revealed > *:nth-child(1) {
+  transition-delay: 0ms;
+}
+.scroll-stagger.revealed > *:nth-child(2) {
+  transition-delay: 60ms;
+}
+.scroll-stagger.revealed > *:nth-child(3) {
+  transition-delay: 120ms;
+}
+.scroll-stagger.revealed > *:nth-child(4) {
+  transition-delay: 180ms;
+}
+.scroll-stagger.revealed > *:nth-child(5) {
+  transition-delay: 240ms;
+}
+.scroll-stagger.revealed > *:nth-child(6) {
+  transition-delay: 300ms;
+}
+.scroll-stagger.revealed > *:nth-child(7) {
+  transition-delay: 360ms;
+}
+.scroll-stagger.revealed > *:nth-child(8) {
+  transition-delay: 420ms;
+}
 
 /* ---- Dialog entrance ---- */
 
 @keyframes dialog-backdrop-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes dialog-content-in {
@@ -139,7 +162,8 @@
 /* ---- Ambient glow drift ---- */
 
 @keyframes glow-drift {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) translateY(0);
     opacity: 0.6;
   }
@@ -160,8 +184,12 @@
 /* ---- Slider progress bar ---- */
 
 @keyframes progress-fill {
-  from { width: 0; }
-  to { width: 100%; }
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
 }
 
 .animate-progress {
@@ -182,14 +210,46 @@
 /* ---- Hero screenshot hover ---- */
 
 .screenshot-hover {
-  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .screenshot-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.5),
-              0 0 40px rgba(56, 189, 248, 0.06);
+  box-shadow:
+    0 25px 60px -12px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(56, 189, 248, 0.06);
+}
+
+/* ---- Showcase image auto-advance progress ---- */
+
+@keyframes showcase-progress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-showcase-progress {
+  animation: showcase-progress 4s linear both;
+}
+
+/* ---- Lightbox entrance ---- */
+
+@keyframes lightbox-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-lightbox-in {
+  animation: lightbox-in 0.2s ease-out both;
 }
 
 /* ---- Reduced motion ---- */
@@ -215,7 +275,9 @@
   .animate-float,
   .animate-dialog-backdrop,
   .animate-dialog-content,
-  .animate-progress {
+  .animate-progress,
+  .animate-showcase-progress,
+  .animate-lightbox-in {
     animation: none !important;
   }
 

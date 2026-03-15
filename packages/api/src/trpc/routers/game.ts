@@ -215,10 +215,7 @@ export const gameRouter = router({
       }
 
       // game_manager: check for both teams of the game
-      if (
-        !ctx.hasRole("game_manager", existing.homeTeamId) &&
-        !ctx.hasRole("game_manager", existing.awayTeamId)
-      ) {
+      if (!ctx.hasRole("game_manager", existing.homeTeamId) && !ctx.hasRole("game_manager", existing.awayTeamId)) {
         requireRole(ctx, "game_manager")
       }
 
@@ -245,23 +242,25 @@ export const gameRouter = router({
 
       // Auto-regenerate AI recap when notes change on a completed game
       if (isNotesOnly && existing.status === "completed" && data.notes !== undefined && data.notes !== existing.notes) {
-        checkRecapEligibility(ctx.db, ctx.organizationId).then(async (eligibility) => {
-          if (eligibility.eligible) {
-            // Clear existing recap so the lock can be acquired
-            await ctx.db.game.update({
-              where: { id },
-              data: {
-                recapTitle: null,
-                recapContent: null,
-                recapGeneratedAt: null,
-                recapGenerating: false,
-              },
-            })
-            generateAndPersistRecap(ctx.db, id, ctx.organizationId).catch((err) =>
-              console.error("[ai-recap] Auto-regeneration on notes change failed:", err),
-            )
-          }
-        }).catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
+        checkRecapEligibility(ctx.db, ctx.organizationId)
+          .then(async (eligibility) => {
+            if (eligibility.eligible) {
+              // Clear existing recap so the lock can be acquired
+              await ctx.db.game.update({
+                where: { id },
+                data: {
+                  recapTitle: null,
+                  recapContent: null,
+                  recapGeneratedAt: null,
+                  recapGenerating: false,
+                },
+              })
+              generateAndPersistRecap(ctx.db, id, ctx.organizationId).catch((err) =>
+                console.error("[ai-recap] Auto-regeneration on notes change failed:", err),
+              )
+            }
+          })
+          .catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
       }
 
       return game
@@ -356,13 +355,15 @@ export const gameRouter = router({
     }
 
     // Auto-generate AI recap (fire-and-forget)
-    checkRecapEligibility(ctx.db, ctx.organizationId).then((eligibility) => {
-      if (eligibility.eligible) {
-        generateAndPersistRecap(ctx.db, input.id, ctx.organizationId).catch((err) =>
-          console.error("[ai-recap] Auto-generation on complete failed:", err),
-        )
-      }
-    }).catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
+    checkRecapEligibility(ctx.db, ctx.organizationId)
+      .then((eligibility) => {
+        if (eligibility.eligible) {
+          generateAndPersistRecap(ctx.db, input.id, ctx.organizationId).catch((err) =>
+            console.error("[ai-recap] Auto-generation on complete failed:", err),
+          )
+        }
+      })
+      .catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
 
     return updated
   }),
@@ -577,10 +578,7 @@ export const gameRouter = router({
       where: { organizationId: ctx.organizationId, homeVenue: { not: null } },
       select: { homeVenue: true },
     })
-    const all = new Set([
-      ...results.map((r) => r.location!),
-      ...teamVenues.map((t) => t.homeVenue!),
-    ])
+    const all = new Set([...results.map((r) => r.location!), ...teamVenues.map((t) => t.homeVenue!)])
     return [...all].sort()
   }),
 })

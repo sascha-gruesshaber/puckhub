@@ -65,7 +65,9 @@ function TransferDialog({ open, onOpenChange, contract, currentTeamId, seasonId,
       toast.success(t("rosterPage.transferDialog.toast.transferred"))
     },
     onError: (err) => {
-      toast.error(t("rosterPage.transferDialog.toast.transferError"), { description: resolveTranslatedError(err, tErrors) })
+      toast.error(t("rosterPage.transferDialog.toast.transferError"), {
+        description: resolveTranslatedError(err, tErrors),
+      })
     },
   })
 

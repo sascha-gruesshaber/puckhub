@@ -21,6 +21,13 @@
   body {
     @apply bg-league-bg text-league-text antialiased;
   }
+
+  /* Ensure native select/option elements are readable in dark themes */
+  select,
+  option {
+    color: inherit;
+    background-color: inherit;
+  }
 }
 
 @layer components {
@@ -98,7 +105,8 @@
 }
 
 @keyframes skeleton-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
   }
   50% {
@@ -122,18 +130,6 @@
 }
 
 .scroll-fade-mask {
-  mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 20px,
-    black calc(100% - 20px),
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent 0%,
-    black 20px,
-    black calc(100% - 20px),
-    transparent 100%
-  );
+  mask-image: linear-gradient(to right, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 20px, black calc(100% - 20px), transparent 100%);
 }

@@ -187,7 +187,6 @@ describe("users router", () => {
     })
   })
 
-
   describe("updateRole", () => {
     it("updates a member role", async () => {
       const admin = createTestCaller({ asAdmin: true })
@@ -334,30 +333,26 @@ describe("users router", () => {
 
     it("prevents deleting yourself", async () => {
       const platformAdmin = createPlatformAdminCaller()
-      await expect(
-        platformAdmin.users.deleteGlobal({ id: "test-platform-admin-id" }),
-      ).rejects.toThrow("USER_CANNOT_DELETE_SELF")
+      await expect(platformAdmin.users.deleteGlobal({ id: "test-platform-admin-id" })).rejects.toThrow(
+        "USER_CANNOT_DELETE_SELF",
+      )
     })
 
     it("throws NOT_FOUND for non-existent user", async () => {
       const platformAdmin = createPlatformAdminCaller()
-      await expect(
-        platformAdmin.users.deleteGlobal({ id: "non-existent-user-id" }),
-      ).rejects.toThrow("USER_NOT_FOUND")
+      await expect(platformAdmin.users.deleteGlobal({ id: "non-existent-user-id" })).rejects.toThrow("USER_NOT_FOUND")
     })
 
     it("rejects non-platform-admin caller", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.users.deleteGlobal({ id: "test-user-id" }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(admin.users.deleteGlobal({ id: "test-user-id" })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.users.deleteGlobal({ id: "test-user-id" }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.users.deleteGlobal({ id: "test-user-id" })).rejects.toThrow("Not authenticated")
     })
   })
 

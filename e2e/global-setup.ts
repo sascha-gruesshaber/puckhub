@@ -77,8 +77,8 @@ export default async function globalSetup() {
       AUTO_MIGRATE: "false",
       API_PORT: String(API_PORT),
       BETTER_AUTH_BASE_URL: `http://localhost:${API_PORT}`,
-      TRUSTED_ORIGINS:
-        "http://localhost:4000,http://localhost:4002,http://localhost:4003,http://localhost:4004",
+      COOKIE_DOMAIN: "localhost",
+      TRUSTED_ORIGINS: "http://localhost:4000,http://localhost:4002,http://localhost:4003,http://localhost:4004",
     },
     stdio: "pipe",
     shell: isWindows,

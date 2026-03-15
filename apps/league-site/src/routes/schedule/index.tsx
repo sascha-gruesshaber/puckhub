@@ -1,5 +1,6 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router"
-import { Calendar, MapPin } from "lucide-react"
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
+import { Calendar, LayoutGrid, MapPin } from "lucide-react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { FilterDropdown } from "~/components/shared/filterDropdown"
 import { FilterPill } from "~/components/shared/filterPill"
@@ -11,7 +12,9 @@ import { useT, type Translations } from "~/lib/i18n"
 import { cn, formatDate, formatTime } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
-export const scheduleSearchValidator = (s: Record<string, unknown>): { season?: string; status?: string; team?: string } => ({
+export const scheduleSearchValidator = (
+  s: Record<string, unknown>,
+): { season?: string; status?: string; team?: string } => ({
   ...(typeof s.season === "string" && s.season ? { season: s.season } : {}),
   ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
   ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
@@ -119,19 +122,18 @@ function GameCard({ game, isDE }: { game: GameData; isDE: boolean }) {
       {/* Teams & Score — horizontal: home | score | away */}
       <div className="flex-1 flex items-center px-4 pt-4 pb-3 gap-2">
         {/* Home team */}
-        <div className={cn(
-          "flex-1 flex flex-col items-center gap-1.5 min-w-0",
-          isCancelled && "opacity-60",
-        )}>
+        <div className={cn("flex-1 flex flex-col items-center gap-1.5 min-w-0", isCancelled && "opacity-60")}>
           <TeamLogo name={game.homeTeam.name} logoUrl={game.homeTeam.logoUrl} size="md" />
-          <span className={cn(
-            "text-sm text-center truncate max-w-full",
-            isCancelled && "line-through",
-            winner === "home" && "font-bold text-league-text",
-            winner === "away" && "text-league-text/45",
-            winner === "draw" && "font-semibold",
-            !isCompleted && !isCancelled && "font-medium",
-          )}>
+          <span
+            className={cn(
+              "text-sm text-center truncate max-w-full",
+              isCancelled && "line-through",
+              winner === "home" && "font-bold text-league-text",
+              winner === "away" && "text-league-text/45",
+              winner === "draw" && "font-semibold",
+              !isCompleted && !isCancelled && "font-medium",
+            )}
+          >
             {game.homeTeam.shortName}
           </span>
         </div>
@@ -139,10 +141,7 @@ function GameCard({ game, isDE }: { game: GameData; isDE: boolean }) {
         {/* Center: score or vs */}
         <div className="shrink-0 flex flex-col items-center gap-1">
           {hasScore ? (
-            <span className={cn(
-              "text-lg tabular-nums font-bold",
-              isLive && "text-red-600",
-            )}>
+            <span className={cn("text-lg tabular-nums font-bold", isLive && "text-red-600")}>
               {game.homeScore} : {game.awayScore}
             </span>
           ) : isCancelled ? (
@@ -164,29 +163,30 @@ function GameCard({ game, isDE }: { game: GameData; isDE: boolean }) {
 
           {/* Postponed / Cancelled label */}
           {(isPostponed || isCancelled) && (
-            <span className={cn(
-              "text-[10px] font-semibold uppercase tracking-wide",
-              isPostponed ? "text-amber-600" : "text-league-text/35",
-            )}>
+            <span
+              className={cn(
+                "text-[10px] font-semibold uppercase tracking-wide",
+                isPostponed ? "text-amber-600" : "text-league-text/35",
+              )}
+            >
               {isPostponed ? t.status.postponed : t.status.cancelled}
             </span>
           )}
         </div>
 
         {/* Away team */}
-        <div className={cn(
-          "flex-1 flex flex-col items-center gap-1.5 min-w-0",
-          isCancelled && "opacity-60",
-        )}>
+        <div className={cn("flex-1 flex flex-col items-center gap-1.5 min-w-0", isCancelled && "opacity-60")}>
           <TeamLogo name={game.awayTeam.name} logoUrl={game.awayTeam.logoUrl} size="md" />
-          <span className={cn(
-            "text-sm text-center truncate max-w-full",
-            isCancelled && "line-through",
-            winner === "away" && "font-bold text-league-text",
-            winner === "home" && "text-league-text/45",
-            winner === "draw" && "font-semibold",
-            !isCompleted && !isCancelled && "font-medium",
-          )}>
+          <span
+            className={cn(
+              "text-sm text-center truncate max-w-full",
+              isCancelled && "line-through",
+              winner === "away" && "font-bold text-league-text",
+              winner === "home" && "text-league-text/45",
+              winner === "draw" && "font-semibold",
+              !isCompleted && !isCancelled && "font-medium",
+            )}
+          >
             {game.awayTeam.shortName}
           </span>
         </div>
@@ -214,11 +214,7 @@ function GameCard({ game, isDE }: { game: GameData; isDE: boolean }) {
         </div>
 
         {/* Round info */}
-        {roundInfo && (
-          <div className="mt-1 text-[11px] text-league-text/30 truncate">
-            {roundInfo}
-          </div>
-        )}
+        {roundInfo && <div className="mt-1 text-[11px] text-league-text/30 truncate">{roundInfo}</div>}
       </div>
     </Link>
   )
@@ -298,8 +294,12 @@ export function SchedulePage() {
   const org = useOrg()
   const season = useSeason()
   const t = useT()
-  const navigate: any = useNavigate()
-  const { season: seasonParam, status: statusParam, team: teamParam } = useSearch({ strict: false }) as { season?: string; status?: string; team?: string }
+  const filterNavigate = useFilterNavigate()
+  const {
+    season: seasonParam,
+    status: statusParam,
+    team: teamParam,
+  } = useSearch({ strict: false }) as { season?: string; status?: string; team?: string }
 
   const isDE = (t as Translations).common.back === "Zurück"
 
@@ -308,11 +308,13 @@ export function SchedulePage() {
   const teamFilter = teamParam || undefined
 
   const setSelectedSeasonId = (v: string) =>
-    navigate({ search: (prev: any) => ({ ...prev, season: v === season.current?.id ? undefined : v, team: undefined }), replace: true })
+    filterNavigate({
+      search: (prev: any) => ({ ...prev, season: v === season.current?.id ? undefined : v, team: undefined }),
+    })
   const setStatusFilter = (v: string | undefined) =>
-    navigate({ search: (prev: any) => ({ ...prev, status: v || undefined }), replace: true })
+    filterNavigate({ search: (prev: any) => ({ ...prev, status: v || undefined }) })
   const setTeamFilter = (v: string | undefined) =>
-    navigate({ search: (prev: any) => ({ ...prev, team: v || undefined }), replace: true })
+    filterNavigate({ search: (prev: any) => ({ ...prev, team: v || undefined }) })
 
   const { data: teams } = trpc.publicSite.listTeams.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId },
@@ -345,14 +347,20 @@ export function SchedulePage() {
     grouped.get(key)!.push(game)
   }
 
-  const teamOptions = [...(teams ?? [])].sort((a, b) => a.name.localeCompare(b.name, "de")).map((team) => ({
-    value: team.id,
-    label: team.name,
-    icon: <TeamLogo name={team.name} logoUrl={team.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
-  }))
+  const teamOptions = [...(teams ?? [])]
+    .sort((a, b) => a.name.localeCompare(b.name, "de"))
+    .map((team) => ({
+      value: team.id,
+      label: team.name,
+      icon: <TeamLogo name={team.name} logoUrl={team.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
+    }))
 
   return (
-    <StatsPageShell title={t.schedule.titleFull} selectedSeasonId={selectedSeasonId} onSeasonChange={setSelectedSeasonId}>
+    <StatsPageShell
+      title={t.schedule.titleFull}
+      selectedSeasonId={selectedSeasonId}
+      onSeasonChange={setSelectedSeasonId}
+    >
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         {teamOptions.length > 0 && (
@@ -365,11 +373,36 @@ export function SchedulePage() {
           />
         )}
         {teamOptions.length > 0 && <div className="w-px h-5 bg-league-text/10 mx-1" />}
-        <FilterPill label={t.common.all} active={statusFilter === undefined} onClick={() => setStatusFilter(undefined)} />
-        <FilterPill label={t.schedule.scheduled} active={statusFilter === "scheduled"} onClick={() => setStatusFilter("scheduled")} />
-        <FilterPill label={t.schedule.completed} active={statusFilter === "completed"} onClick={() => setStatusFilter("completed")} />
+        <FilterPill
+          label={t.common.all}
+          active={statusFilter === undefined}
+          onClick={() => setStatusFilter(undefined)}
+        />
+        <FilterPill
+          label={t.schedule.scheduled}
+          active={statusFilter === "scheduled"}
+          onClick={() => setStatusFilter("scheduled")}
+        />
+        <FilterPill
+          label={t.schedule.completed}
+          active={statusFilter === "completed"}
+          onClick={() => setStatusFilter("completed")}
+        />
         <FilterPill label={t.schedule.live} active={statusFilter === "live"} onClick={() => setStatusFilter("live")} />
-        <FilterPill label={t.schedule.cancelled} active={statusFilter === "cancelled"} onClick={() => setStatusFilter("cancelled")} />
+        <FilterPill
+          label={t.schedule.cancelled}
+          active={statusFilter === "cancelled"}
+          onClick={() => setStatusFilter("cancelled")}
+        />
+        <div className="w-px h-5 bg-league-text/10 mx-1" />
+        <Link
+          to="/structure"
+          search={{ season: selectedSeasonId !== season.current?.id ? selectedSeasonId : undefined } as any}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-league-text/50 hover:text-league-primary border border-league-text/8 hover:border-league-primary/30 transition-colors"
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+          {t.structure.title}
+        </Link>
       </div>
 
       {/* Game cards */}
@@ -379,12 +412,7 @@ export function SchedulePage() {
         <>
           <div className="space-y-10">
             {Array.from(grouped.entries()).map(([monthKey, games]) => (
-              <MonthGroup
-                key={monthKey}
-                label={getMonthLabel(monthKey, t.months)}
-                games={games}
-                isDE={isDE}
-              />
+              <MonthGroup key={monthKey} label={getMonthLabel(monthKey, t.months)} games={games} isDE={isDE} />
             ))}
           </div>
 

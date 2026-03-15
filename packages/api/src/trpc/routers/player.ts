@@ -176,10 +176,7 @@ export const playerRouter = router({
           playerId: input.playerId,
           organizationId: ctx.organizationId,
           startSeason: { seasonStart: { lte: season.seasonEnd } },
-          OR: [
-            { endSeasonId: null },
-            { endSeason: { seasonEnd: { gte: season.seasonStart } } },
-          ],
+          OR: [{ endSeasonId: null }, { endSeason: { seasonEnd: { gte: season.seasonStart } } }],
         },
       })
       if (!activeContract) throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)

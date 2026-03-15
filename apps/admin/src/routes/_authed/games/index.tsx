@@ -13,7 +13,7 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { Ban, CalendarDays, ClipboardList, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react"
+import { Ban, CalendarDays, ClipboardList, FileText, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
@@ -308,14 +308,10 @@ function GamesPage() {
       )
     }
     if (teamFilter.length > 0) {
-      result = result.filter(
-        (g) => teamFilter.includes(g.homeTeamId) || teamFilter.includes(g.awayTeamId),
-      )
+      result = result.filter((g) => teamFilter.includes(g.homeTeamId) || teamFilter.includes(g.awayTeamId))
     }
     if (statusFilter.length > 0) {
-      result = result.filter((g) =>
-        statusFilter.includes(deriveDisplayStatus(g.status, g.scheduledAt, g.location)),
-      )
+      result = result.filter((g) => statusFilter.includes(deriveDisplayStatus(g.status, g.scheduledAt, g.location)))
     }
     return result
   }, [games, search, teamFilter, statusFilter, activeTab])
@@ -462,6 +458,12 @@ function GamesPage() {
         description={t("gamesPage.description", { season: season.name })}
         action={
           <div className="flex items-center gap-2">
+            <Link to="/games/public-reports">
+              <Button variant="outline" size="sm">
+                <FileText className="mr-2 h-4 w-4" />
+                {t("publicReports.title")}
+              </Button>
+            </Link>
             <Button variant="outline" onClick={() => setGenerateDialogOpen(true)}>
               <Sparkles className="mr-2 h-4 w-4" />
               {t("gamesPage.actions.generate")}
@@ -480,7 +482,10 @@ function GamesPage() {
             {isStructureLoading ? (
               <FilterPillsSkeleton />
             ) : (
-              <FilterBar label={t("filters")} search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}>
+              <FilterBar
+                label={t("filters")}
+                search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}
+              >
                 <FilterDropdown
                   label={t("gamesPage.filters.allTeams")}
                   options={teamOptions}
@@ -561,7 +566,11 @@ function GamesPage() {
                                       </span>
                                       <div className="h-9 w-9 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
                                         {g.homeTeam.logoUrl ? (
-                                          <img src={g.homeTeam.logoUrl} alt="" className="h-full w-full object-contain" />
+                                          <img
+                                            src={g.homeTeam.logoUrl}
+                                            alt=""
+                                            className="h-full w-full object-contain"
+                                          />
                                         ) : (
                                           <span className="text-[11px] font-bold text-muted-foreground/60">
                                             {g.homeTeam.shortName.slice(0, 2)}
@@ -585,7 +594,12 @@ function GamesPage() {
                                     <div className="text-[11px] text-muted-foreground mt-0.5 truncate mb-1">
                                       {g.round.name} • {t(`seasonStructure.roundTypes.${g.round.roundType}`)}
                                     </div>
-                                    <GameStatusBadge status={g.status} scheduledAt={g.scheduledAt} location={g.location} t={t} />
+                                    <GameStatusBadge
+                                      status={g.status}
+                                      scheduledAt={g.scheduledAt}
+                                      location={g.location}
+                                      t={t}
+                                    />
                                   </div>
 
                                   {/* Away team – left-aligned */}
@@ -599,7 +613,11 @@ function GamesPage() {
                                     <div className="flex items-center gap-2.5 flex-1 min-w-0 cursor-default">
                                       <div className="h-9 w-9 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
                                         {g.awayTeam.logoUrl ? (
-                                          <img src={g.awayTeam.logoUrl} alt="" className="h-full w-full object-contain" />
+                                          <img
+                                            src={g.awayTeam.logoUrl}
+                                            alt=""
+                                            className="h-full w-full object-contain"
+                                          />
                                         ) : (
                                           <span className="text-[11px] font-bold text-muted-foreground/60">
                                             {g.awayTeam.shortName.slice(0, 2)}

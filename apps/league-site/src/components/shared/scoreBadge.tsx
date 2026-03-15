@@ -16,11 +16,7 @@ const sizeClasses = {
 
 export function ScoreBadge({ homeScore, awayScore, status, size = "md", className }: ScoreBadgeProps) {
   if (status === "scheduled" || homeScore === null || awayScore === null) {
-    return (
-      <span className={cn(sizeClasses[size], "text-league-text/40", className)}>
-        vs
-      </span>
-    )
+    return <span className={cn(sizeClasses[size], "text-league-text/40", className)}>vs</span>
   }
 
   return (

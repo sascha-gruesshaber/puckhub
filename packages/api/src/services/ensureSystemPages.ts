@@ -9,10 +9,46 @@ import type { Database } from "@puckhub/db"
  */
 const SYSTEM_ROUTES = [
   { slug: "_route-home", routePath: "/", routePathDe: "/", sortOrder: 0, titleDe: "Start", titleEn: "Home" },
-  { slug: "_route-standings", routePath: "/standings", routePathDe: "/tabelle", sortOrder: 1, titleDe: "Tabelle", titleEn: "Standings" },
-  { slug: "_route-schedule", routePath: "/schedule", routePathDe: "/spielplan", sortOrder: 2, titleDe: "Spielplan", titleEn: "Schedule" },
-  { slug: "_route-teams", routePath: "/teams", routePathDe: "/teams", sortOrder: 3, titleDe: "Teams", titleEn: "Teams" },
-  { slug: "_route-stats", routePath: "/stats", routePathDe: "/statistiken", sortOrder: 4, titleDe: "Statistiken", titleEn: "Statistics" },
+  {
+    slug: "_route-standings",
+    routePath: "/standings",
+    routePathDe: "/tabelle",
+    sortOrder: 1,
+    titleDe: "Tabelle",
+    titleEn: "Standings",
+  },
+  {
+    slug: "_route-schedule",
+    routePath: "/schedule",
+    routePathDe: "/spielplan",
+    sortOrder: 2,
+    titleDe: "Spielplan",
+    titleEn: "Schedule",
+  },
+  {
+    slug: "_route-structure",
+    routePath: "/structure",
+    routePathDe: "/struktur",
+    sortOrder: 3,
+    titleDe: "Saisonstruktur",
+    titleEn: "Structure",
+  },
+  {
+    slug: "_route-teams",
+    routePath: "/teams",
+    routePathDe: "/teams",
+    sortOrder: 4,
+    titleDe: "Teams",
+    titleEn: "Teams",
+  },
+  {
+    slug: "_route-stats",
+    routePath: "/stats",
+    routePathDe: "/statistiken",
+    sortOrder: 5,
+    titleDe: "Statistiken",
+    titleEn: "Statistics",
+  },
 ]
 
 /**
@@ -21,12 +57,60 @@ const SYSTEM_ROUTES = [
  * menuLocations is always [] — they only appear as children of their parent.
  */
 const SYSTEM_SUB_ROUTES = [
-  { slug: "_route-stats-scorers", routePath: "/stats/scorers", routePathDe: "/statistiken/scorer", parentSlug: "_route-stats", sortOrder: 0, titleDe: "Scorer", titleEn: "Scorers" },
-  { slug: "_route-stats-goals", routePath: "/stats/goals", routePathDe: "/statistiken/tore", parentSlug: "_route-stats", sortOrder: 1, titleDe: "Tore", titleEn: "Goals" },
-  { slug: "_route-stats-assists", routePath: "/stats/assists", routePathDe: "/statistiken/vorlagen", parentSlug: "_route-stats", sortOrder: 2, titleDe: "Vorlagen", titleEn: "Assists" },
-  { slug: "_route-stats-penalties", routePath: "/stats/penalties", routePathDe: "/statistiken/strafen", parentSlug: "_route-stats", sortOrder: 3, titleDe: "Strafen", titleEn: "Penalties" },
-  { slug: "_route-stats-goalies", routePath: "/stats/goalies", routePathDe: "/statistiken/torhueter", parentSlug: "_route-stats", sortOrder: 4, titleDe: "Torhüter", titleEn: "Goalies" },
-  { slug: "_route-teams-compare", routePath: "/stats/compare-teams", routePathDe: "/statistiken/teamvergleich", parentSlug: "_route-teams", sortOrder: 0, titleDe: "Teamvergleich", titleEn: "Team Comparison" },
+  {
+    slug: "_route-stats-scorers",
+    routePath: "/stats/scorers",
+    routePathDe: "/statistiken/scorer",
+    parentSlug: "_route-stats",
+    sortOrder: 0,
+    titleDe: "Scorer",
+    titleEn: "Scorers",
+  },
+  {
+    slug: "_route-stats-goals",
+    routePath: "/stats/goals",
+    routePathDe: "/statistiken/tore",
+    parentSlug: "_route-stats",
+    sortOrder: 1,
+    titleDe: "Tore",
+    titleEn: "Goals",
+  },
+  {
+    slug: "_route-stats-assists",
+    routePath: "/stats/assists",
+    routePathDe: "/statistiken/vorlagen",
+    parentSlug: "_route-stats",
+    sortOrder: 2,
+    titleDe: "Vorlagen",
+    titleEn: "Assists",
+  },
+  {
+    slug: "_route-stats-penalties",
+    routePath: "/stats/penalties",
+    routePathDe: "/statistiken/strafen",
+    parentSlug: "_route-stats",
+    sortOrder: 3,
+    titleDe: "Strafen",
+    titleEn: "Penalties",
+  },
+  {
+    slug: "_route-stats-goalies",
+    routePath: "/stats/goalies",
+    routePathDe: "/statistiken/torhueter",
+    parentSlug: "_route-stats",
+    sortOrder: 4,
+    titleDe: "Torhüter",
+    titleEn: "Goalies",
+  },
+  {
+    slug: "_route-teams-compare",
+    routePath: "/stats/compare-teams",
+    routePathDe: "/statistiken/teamvergleich",
+    parentSlug: "_route-teams",
+    sortOrder: 0,
+    titleDe: "Teamvergleich",
+    titleEn: "Team Comparison",
+  },
 ]
 
 /**
@@ -120,10 +204,7 @@ export async function ensureSystemPages(
 
   // Unmark orphaned system pages whose slugs are no longer in the canonical list.
   // This turns them into regular pages so users can delete them in the admin UI.
-  const allKnownSlugs = new Set([
-    ...SYSTEM_ROUTES.map((r) => r.slug),
-    ...SYSTEM_SUB_ROUTES.map((r) => r.slug),
-  ])
+  const allKnownSlugs = new Set([...SYSTEM_ROUTES.map((r) => r.slug), ...SYSTEM_SUB_ROUTES.map((r) => r.slug)])
 
   const orphaned = await db.page.findMany({
     where: {

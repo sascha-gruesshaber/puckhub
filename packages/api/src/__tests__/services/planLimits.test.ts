@@ -20,7 +20,6 @@ function makePlan(overrides: Partial<Plan> = {}): Plan {
     featureWebsiteBuilder: false,
     featureSponsorMgmt: false,
     featureTrikotDesigner: false,
-    featureExportImport: false,
     featureGameReports: true,
     featurePlayerStats: true,
     featureScheduler: false,
@@ -103,7 +102,6 @@ describe("planLimits service", () => {
         featureWebsiteBuilder: true,
         featureSponsorMgmt: true,
         featureTrikotDesigner: true,
-        featureExportImport: true,
         featureGameReports: true,
         featurePlayerStats: true,
         featureScheduler: true,
@@ -130,6 +128,7 @@ describe("planLimits service", () => {
       // Create a plan
       const plan = await db.plan.create({
         data: {
+          id: crypto.randomUUID(),
           name: "Pro Plan",
           slug: "pro",
           maxTeams: 20,

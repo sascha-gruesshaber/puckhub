@@ -201,11 +201,7 @@ function buildUserPrompt(data: GameDataForPrompt): string {
 
 // ─── Generate and Persist ───────────────────────────────────────────────────
 
-export async function generateAndPersistRecap(
-  db: PrismaClient,
-  gameId: string,
-  organizationId: string,
-): Promise<void> {
+export async function generateAndPersistRecap(db: PrismaClient, gameId: string, organizationId: string): Promise<void> {
   // Optimistic lock: only one concurrent request succeeds
   const lockResult = await db.game.updateMany({
     where: {
@@ -266,9 +262,7 @@ export async function generateAndPersistRecap(
         time: `${String(e.timeMinutes).padStart(2, "0")}:${String(e.timeSeconds).padStart(2, "0")}`,
         team: e.team.shortName,
         scorer: e.scorer ? `${e.scorer.firstName} ${e.scorer.lastName}` : "Unknown",
-        assists: [e.assist1, e.assist2]
-          .filter(Boolean)
-          .map((a) => `${a!.firstName} ${a!.lastName}`),
+        assists: [e.assist1, e.assist2].filter(Boolean).map((a) => `${a!.firstName} ${a!.lastName}`),
       }))
 
     const penalties = game.events
@@ -318,7 +312,10 @@ export async function generateAndPersistRecap(
     if (!content) throw new Error("Empty response from AI")
 
     // Parse JSON response
-    const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim()
+    const cleaned = content
+      .replace(/```json\s*/g, "")
+      .replace(/```\s*/g, "")
+      .trim()
     const parsed = JSON.parse(cleaned) as { title: string; content: string }
 
     // Log token usage

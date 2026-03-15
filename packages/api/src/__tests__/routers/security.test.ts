@@ -31,15 +31,15 @@ describe("role escalation prevention", () => {
     })
 
     it("team.create rejects non-admin member", async () => {
-      await expect(
-        memberCaller.team.create({ name: "Blocked Team", shortName: "BLK" }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(memberCaller.team.create({ name: "Blocked Team", shortName: "BLK" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
     })
 
     it("player.create rejects non-admin member", async () => {
-      await expect(
-        memberCaller.player.create({ firstName: "Blocked", lastName: "Player" }),
-      ).rejects.toThrow("Keine Administratorrechte")
+      await expect(memberCaller.player.create({ firstName: "Blocked", lastName: "Player" })).rejects.toThrow(
+        "Keine Administratorrechte",
+      )
     })
 
     it("settings.update rejects non-admin member", async () => {
@@ -57,15 +57,13 @@ describe("role escalation prevention", () => {
     })
 
     it("news.create rejects member without editor role", async () => {
-      await expect(
-        memberCaller.news.create({ title: "Blocked News", content: "<p>No</p>" }),
-      ).rejects.toThrow("Unzureichende Berechtigungen")
+      await expect(memberCaller.news.create({ title: "Blocked News", content: "<p>No</p>" })).rejects.toThrow(
+        "Unzureichende Berechtigungen",
+      )
     })
 
     it("page.create rejects member without editor role", async () => {
-      await expect(
-        memberCaller.page.create({ title: "Blocked Page" }),
-      ).rejects.toThrow("Unzureichende Berechtigungen")
+      await expect(memberCaller.page.create({ title: "Blocked Page" })).rejects.toThrow("Unzureichende Berechtigungen")
     })
 
     it("game.create rejects member without game_manager role", async () => {
@@ -158,16 +156,16 @@ describe("cross-organization data isolation", () => {
 
     it("team.create rejects cross-org caller (orgAdminProcedure)", async () => {
       const crossOrgCaller = createCrossOrgCaller()
-      await expect(
-        crossOrgCaller.team.create({ name: "Cross-Org Team", shortName: "COT" }),
-      ).rejects.toThrow("Kein Mitglied dieser Organisation")
+      await expect(crossOrgCaller.team.create({ name: "Cross-Org Team", shortName: "COT" })).rejects.toThrow(
+        "Kein Mitglied dieser Organisation",
+      )
     })
 
     it("player.create rejects cross-org caller (orgAdminProcedure)", async () => {
       const crossOrgCaller = createCrossOrgCaller()
-      await expect(
-        crossOrgCaller.player.create({ firstName: "Cross", lastName: "Player" }),
-      ).rejects.toThrow("Kein Mitglied dieser Organisation")
+      await expect(crossOrgCaller.player.create({ firstName: "Cross", lastName: "Player" })).rejects.toThrow(
+        "Kein Mitglied dieser Organisation",
+      )
     })
 
     it("settings.update rejects cross-org caller (orgAdminProcedure)", async () => {
@@ -187,9 +185,9 @@ describe("cross-organization data isolation", () => {
 
     it("news.create rejects cross-org caller (orgProcedure)", async () => {
       const crossOrgCaller = createCrossOrgCaller()
-      await expect(
-        crossOrgCaller.news.create({ title: "Cross-Org News", content: "<p>No</p>" }),
-      ).rejects.toThrow("Kein Mitglied dieser Organisation")
+      await expect(crossOrgCaller.news.create({ title: "Cross-Org News", content: "<p>No</p>" })).rejects.toThrow(
+        "Kein Mitglied dieser Organisation",
+      )
     })
 
     it("users.create rejects cross-org caller (orgAdminProcedure)", async () => {
@@ -236,9 +234,9 @@ describe("platform admin boundaries", () => {
 
     it("organization.delete rejects regular org admin", async () => {
       const orgAdmin = createTestCaller({ asAdmin: true })
-      await expect(
-        orgAdmin.organization.delete({ id: OTHER_ORG_ID }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(orgAdmin.organization.delete({ id: OTHER_ORG_ID })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
 
     it("organization.listAll rejects regular org member", async () => {

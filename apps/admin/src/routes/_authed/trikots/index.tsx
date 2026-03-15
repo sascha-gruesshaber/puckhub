@@ -110,7 +110,8 @@ function TrikotsPage() {
       closeDialog()
       toast.success(t("trikotsPage.toast.created"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("trikotsPage.toast.createError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const updateMutation = trpc.trikot.update.useMutation({
@@ -119,7 +120,8 @@ function TrikotsPage() {
       closeDialog()
       toast.success(t("trikotsPage.toast.updated"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("trikotsPage.toast.saveError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const deleteMutation = trpc.trikot.delete.useMutation({
@@ -129,7 +131,8 @@ function TrikotsPage() {
       setDeletingTrikot(null)
       toast.success(t("trikotsPage.toast.deleted"))
     },
-    onError: (err) => toast.error(t("trikotsPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) }),
+    onError: (err) =>
+      toast.error(t("trikotsPage.toast.deleteError"), { description: resolveTranslatedError(err, tErrors) }),
   })
 
   const assignMutation = trpc.teamTrikot.assign.useMutation({

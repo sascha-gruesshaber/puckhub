@@ -164,9 +164,7 @@ describe("page router", () => {
 
     it("throws NOT_FOUND for non-existent id", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.page.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
-        "PAGE_NOT_FOUND",
-      )
+      await expect(admin.page.getById({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow("PAGE_NOT_FOUND")
     })
   })
 
@@ -373,9 +371,7 @@ describe("page router", () => {
     it("cannot delete system route pages", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const systemPage = await createSystemRoutePage()
-      await expect(admin.page.delete({ id: systemPage.id })).rejects.toThrow(
-        "PAGE_SYSTEM_ROUTE_CANNOT_DELETE",
-      )
+      await expect(admin.page.delete({ id: systemPage.id })).rejects.toThrow("PAGE_SYSTEM_ROUTE_CANNOT_DELETE")
     })
 
     it("can update title of system route pages (slug stays fixed)", async () => {

@@ -388,7 +388,12 @@ function TeamsPage() {
         action={
           <div className="flex items-center gap-2">
             <Badge variant="outline">{usageText("maxTeams")}</Badge>
-            <Button variant="accent" onClick={openCreate} disabled={atTeamLimit} title={atTeamLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}>
+            <Button
+              variant="accent"
+              onClick={openCreate}
+              disabled={atTeamLimit}
+              title={atTeamLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
+            >
               <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
               {t("teamsPage.actions.new")}
             </Button>
@@ -614,7 +619,9 @@ function TeamsPage() {
                 <Input
                   value={form.homeVenue}
                   onChange={(e) => setField("homeVenue", e.target.value)}
-                  placeholder={t("teamsPage.fields.homeVenuePlaceholder", { defaultValue: "z.B. Eisstadion Musterstadt" })}
+                  placeholder={t("teamsPage.fields.homeVenuePlaceholder", {
+                    defaultValue: "z.B. Eisstadion Musterstadt",
+                  })}
                 />
               </FormField>
             </div>

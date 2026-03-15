@@ -1,15 +1,11 @@
 import { describe, expect, it } from "vitest"
-import {
-  createTestCaller,
-  createPlatformAdminCaller,
-  getTestDb,
-  TEST_ORG_ID,
-} from "../testUtils"
+import { createTestCaller, createPlatformAdminCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 async function createTestPlan(overrides: Record<string, unknown> = {}) {
   const db = getTestDb()
   return db.plan.create({
     data: {
+      id: crypto.randomUUID(),
       name: "Basic",
       slug: `basic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       priceMonthly: 999,
@@ -25,6 +21,7 @@ async function createFreePlan() {
   const db = getTestDb()
   return db.plan.create({
     data: {
+      id: crypto.randomUUID(),
       name: "Free",
       slug: `free-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       priceMonthly: 0,
@@ -215,16 +212,14 @@ describe("subscription router", () => {
 
     it("rejects non-platform-admin", async () => {
       const caller = createTestCaller({ asAdmin: true })
-      await expect(
-        caller.subscription.getByOrg({ organizationId: TEST_ORG_ID }),
-      ).rejects.toThrow("Keine Plattform-Administratorrechte")
+      await expect(caller.subscription.getByOrg({ organizationId: TEST_ORG_ID })).rejects.toThrow(
+        "Keine Plattform-Administratorrechte",
+      )
     })
 
     it("rejects unauthenticated", async () => {
       const caller = createTestCaller()
-      await expect(
-        caller.subscription.getByOrg({ organizationId: TEST_ORG_ID }),
-      ).rejects.toThrow("Not authenticated")
+      await expect(caller.subscription.getByOrg({ organizationId: TEST_ORG_ID })).rejects.toThrow("Not authenticated")
     })
   })
 

@@ -26,13 +26,19 @@ function ProfilePage() {
       <PageHeader title={t("profile.title")} description={t("profile.description")} />
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2 items-start">
-        <ProfileSection title={`${t("profile.personalInfo")} & ${t("profile.languagePreference")}`} description={t("profile.description")}>
+        <ProfileSection
+          title={`${t("profile.personalInfo")} & ${t("profile.languagePreference")}`}
+          description={t("profile.description")}
+        >
           {session && <PersonalInfoSection session={session} />}
           <LanguageSection />
         </ProfileSection>
 
         <ProfileSection title={t("security.title")} description={t("security.description")}>
-          <TwoFactorSection disabled={isDemoUser} disabledReason={isDemoUser ? t("security.demoRestricted") : undefined} />
+          <TwoFactorSection
+            disabled={isDemoUser}
+            disabledReason={isDemoUser ? t("security.demoRestricted") : undefined}
+          />
           <PasskeySection />
         </ProfileSection>
       </div>

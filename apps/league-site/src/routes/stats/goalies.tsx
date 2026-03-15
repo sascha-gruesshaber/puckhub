@@ -1,4 +1,5 @@
-import { createFileRoute, Navigate, useNavigate, useSearch } from "@tanstack/react-router"
+import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy } from "react"
 import { StatsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
@@ -31,17 +32,23 @@ export function GoaliesPage() {
   const org = useOrg()
   const season = useSeason()
   const features = useFeatures()
-  const navigate: any = useNavigate()
+  const filterNavigate = useFilterNavigate()
   const { season: seasonParam, team: teamParam } = useSearch({ strict: false }) as { season?: string; team?: string }
 
   const selectedSeasonId = seasonParam ?? season.current?.id
   const selectedTeamId = teamParam || undefined
 
-  const setSeasonId = (v: string) => navigate({ search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }), replace: true })
-  const setTeamId = (v: string | undefined) => navigate({ search: (p: any) => ({ ...p, team: v || undefined }), replace: true })
+  const setSeasonId = (v: string) =>
+    filterNavigate({
+      search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }),
+    })
+  const setTeamId = (v: string | undefined) => filterNavigate({ search: (p: any) => ({ ...p, team: v || undefined }) })
 
   const shouldFetch = !!selectedSeasonId && visible !== false
-  const { data: teams } = trpc.publicSite.listTeams.useQuery({ organizationId: org.id, seasonId: selectedSeasonId }, { enabled: shouldFetch, staleTime: 300_000 })
+  const { data: teams } = trpc.publicSite.listTeams.useQuery(
+    { organizationId: org.id, seasonId: selectedSeasonId },
+    { enabled: shouldFetch, staleTime: 300_000 },
+  )
   const { data: goalieData, isLoading } = trpc.publicSite.getGoalieStats.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId!, teamId: selectedTeamId },
     { enabled: shouldFetch, staleTime: 60_000 },
@@ -49,19 +56,31 @@ export function GoaliesPage() {
 
   if (visible === false) return <Navigate to={lp("/stats")} replace />
 
-  const teamOptions = [...(teams ?? [])].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((t: any) => ({
-    value: t.id, label: t.name,
-    icon: <TeamLogo name={t.name} logoUrl={t.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
-  }))
+  const teamOptions = [...(teams ?? [])]
+    .sort((a: any, b: any) => a.name.localeCompare(b.name))
+    .map((t: any) => ({
+      value: t.id,
+      label: t.name,
+      icon: <TeamLogo name={t.name} logoUrl={t.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
+    }))
 
   return (
     <StatsPageShell title={t.statsGoalies.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSeasonId}>
       <StatsFilterBar teamOptions={teamOptions} teamValue={selectedTeamId} onTeamChange={setTeamId} />
       {features.advancedStats && !isLoading && goalieData && goalieData.qualified.length > 0 && (
-        <div className="mb-8"><ChartSuspense><GoalieChart stats={goalieData.qualified} title={t.statsGoalies.comparison} /></ChartSuspense></div>
+        <div className="mb-8">
+          <ChartSuspense>
+            <GoalieChart stats={goalieData.qualified} title={t.statsGoalies.comparison} />
+          </ChartSuspense>
+        </div>
       )}
-      {isLoading ? <StatsTableSkeleton /> : (
-        <GoalieTable data={goalieData ?? { qualified: [], belowThreshold: [], minGames: 7 }} advancedStats={features.advancedStats} />
+      {isLoading ? (
+        <StatsTableSkeleton />
+      ) : (
+        <GoalieTable
+          data={goalieData ?? { qualified: [], belowThreshold: [], minGames: 7 }}
+          advancedStats={features.advancedStats}
+        />
       )}
     </StatsPageShell>
   )

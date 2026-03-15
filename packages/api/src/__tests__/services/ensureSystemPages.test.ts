@@ -2,13 +2,7 @@ import { describe, expect, it } from "vitest"
 import { ensureSystemPages } from "../../services/ensureSystemPages"
 import { getTestDb, TEST_ORG_ID } from "../testUtils"
 
-const TOP_LEVEL_SLUGS = [
-  "_route-home",
-  "_route-standings",
-  "_route-schedule",
-  "_route-teams",
-  "_route-stats",
-]
+const TOP_LEVEL_SLUGS = ["_route-home", "_route-standings", "_route-schedule", "_route-teams", "_route-stats"]
 
 const SUB_ROUTE_SLUGS = [
   "_route-stats-scorers",

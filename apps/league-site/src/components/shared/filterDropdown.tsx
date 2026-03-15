@@ -30,7 +30,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
 
   const triggerLabel = hasSelection
     ? value.length === 1
-      ? options.find((o) => o.value === value[0])?.label ?? label
+      ? (options.find((o) => o.value === value[0])?.label ?? label)
       : `${label.replace(/^Alle?\s+/i, "")} (${value.length})`
     : label
 
@@ -39,9 +39,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
       if (singleSelect) {
         onChange(value.includes(optionValue) ? [] : [optionValue])
       } else {
-        const next = value.includes(optionValue)
-          ? value.filter((v) => v !== optionValue)
-          : [...value, optionValue]
+        const next = value.includes(optionValue) ? value.filter((v) => v !== optionValue) : [...value, optionValue]
         onChange(next)
       }
     },
@@ -133,7 +131,9 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
             role="button"
             tabIndex={-1}
             onClick={clearSelection}
-            onKeyDown={(e) => { if (e.key === "Enter") clearSelection(e as unknown as React.MouseEvent) }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") clearSelection(e as unknown as React.MouseEvent)
+            }}
             className="ml-0.5 -mr-1 rounded-full p-0.5 hover:bg-white/20 transition-colors"
             aria-label={t.layout.resetFilters}
           >
@@ -165,7 +165,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
                   data-index={index}
                   onClick={() => toggleValue(option.value)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors",
+                    "flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left text-league-text transition-colors",
                     isFocused ? "bg-league-text/[0.06]" : "hover:bg-league-text/[0.03]",
                   )}
                 >
@@ -180,11 +180,12 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
                         : "border-league-text/20",
                     )}
                   >
-                    {isSelected && (
-                      singleSelect
-                        ? <div className="h-2 w-2 rounded-full bg-league-primary" />
-                        : <Check className="h-3 w-3" />
-                    )}
+                    {isSelected &&
+                      (singleSelect ? (
+                        <div className="h-2 w-2 rounded-full bg-league-primary" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      ))}
                   </div>
                   {option.icon && <span className="shrink-0">{option.icon}</span>}
                   <span className="truncate">{option.label}</span>

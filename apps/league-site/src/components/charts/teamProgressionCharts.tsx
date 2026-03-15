@@ -3,7 +3,15 @@ import { LEAGUE_CHART_COLORS, EChartsWrapper } from "./echartsWrapper"
 
 interface SeasonEntry {
   season: { name: string }
-  totals: { gamesPlayed: number; wins: number; draws: number; losses: number; goalsFor: number; goalsAgainst: number; goalDifference: number }
+  totals: {
+    gamesPlayed: number
+    wins: number
+    draws: number
+    losses: number
+    goalsFor: number
+    goalsAgainst: number
+    goalDifference: number
+  }
   bestRank: number | null
 }
 
@@ -71,9 +79,30 @@ function GoalsChart({ seasons }: { seasons: SeasonEntry[] }) {
     xAxis: { type: "category" as const, data: labels },
     yAxis: { type: "value" as const, minInterval: 1 },
     series: [
-      { name: t.charts.goals, type: "bar" as const, data: gf, itemStyle: { color: LEAGUE_CHART_COLORS[3], borderRadius: [4, 4, 0, 0] }, barMaxWidth: 30 },
-      { name: t.charts.goalsAgainst, type: "bar" as const, data: ga, itemStyle: { color: LEAGUE_CHART_COLORS[2], borderRadius: [4, 4, 0, 0] }, barMaxWidth: 30 },
-      { name: t.charts.difference, type: "line" as const, data: diff, smooth: true, symbol: "circle", symbolSize: 6, itemStyle: { color: LEAGUE_CHART_COLORS[4] }, lineStyle: { width: 2 } },
+      {
+        name: t.charts.goals,
+        type: "bar" as const,
+        data: gf,
+        itemStyle: { color: LEAGUE_CHART_COLORS[3], borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 30,
+      },
+      {
+        name: t.charts.goalsAgainst,
+        type: "bar" as const,
+        data: ga,
+        itemStyle: { color: LEAGUE_CHART_COLORS[2], borderRadius: [4, 4, 0, 0] },
+        barMaxWidth: 30,
+      },
+      {
+        name: t.charts.difference,
+        type: "line" as const,
+        data: diff,
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 6,
+        itemStyle: { color: LEAGUE_CHART_COLORS[4] },
+        lineStyle: { width: 2 },
+      },
     ],
   }
 

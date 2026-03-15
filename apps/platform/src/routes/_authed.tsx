@@ -134,11 +134,19 @@ function AuthedLayout() {
                 <Building2 {...iconProps} />
                 Leagues
               </Link>
-              <Link to="/plans" className="sidebar-link" activeProps={{ className: "sidebar-link sidebar-link-active" }}>
+              <Link
+                to="/plans"
+                className="sidebar-link"
+                activeProps={{ className: "sidebar-link sidebar-link-active" }}
+              >
                 <CreditCard {...iconProps} />
                 Plans
               </Link>
-              <Link to="/users" className="sidebar-link" activeProps={{ className: "sidebar-link sidebar-link-active" }}>
+              <Link
+                to="/users"
+                className="sidebar-link"
+                activeProps={{ className: "sidebar-link sidebar-link-active" }}
+              >
                 <Users {...iconProps} />
                 Users
               </Link>
@@ -148,12 +156,14 @@ function AuthedLayout() {
               </Link>
             </div>
           </div>
-
         </nav>
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-h-screen flex flex-col" style={{ marginLeft: "var(--sidebar-width)", background: "var(--content-bg)" }}>
+      <main
+        className="flex-1 min-h-screen flex flex-col"
+        style={{ marginLeft: "var(--sidebar-width)", background: "var(--content-bg)" }}
+      >
         <TopBar />
         <div className="content-enter flex-1" style={{ padding: "24px 44px" }}>
           <Suspense
