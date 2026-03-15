@@ -37,6 +37,7 @@ export const publicSiteRouter = router({
         featureScheduledNews: true,
         featureAdvancedRoles: true,
         featureAdvancedStats: true,
+        featurePublicReports: true,
       },
     })
   }),

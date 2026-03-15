@@ -154,6 +154,8 @@ export async function runSeed(db: Database) {
       featureScheduledNews: true,
       featureAdvancedRoles: true,
       featureAdvancedStats: true,
+      featureAiRecaps: true,
+      featurePublicReports: true,
     },
   ] as const
 
@@ -236,15 +238,17 @@ export async function runSeed(db: Database) {
           { title: "Start", slug: "_route-home", routePath: "/", menuLocations: ml, sortOrder: 0 },
           { title: "Tabelle", slug: "_route-standings", routePath: "/standings", menuLocations: ml, sortOrder: 1 },
           { title: "Spielplan", slug: "_route-schedule", routePath: "/schedule", menuLocations: ml, sortOrder: 2 },
-          { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 3 },
-          { title: "Statistiken", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 4 },
+          { title: "Saisonstruktur", slug: "_route-structure", routePath: "/struktur", menuLocations: ml, sortOrder: 3 },
+          { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 4 },
+          { title: "Statistiken", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 5 },
         ]
       : [
           { title: "Home", slug: "_route-home", routePath: "/", menuLocations: ml, sortOrder: 0 },
           { title: "Standings", slug: "_route-standings", routePath: "/standings", menuLocations: ml, sortOrder: 1 },
           { title: "Schedule", slug: "_route-schedule", routePath: "/schedule", menuLocations: ml, sortOrder: 2 },
-          { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 3 },
-          { title: "Statistics", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 4 },
+          { title: "Structure", slug: "_route-structure", routePath: "/structure", menuLocations: ml, sortOrder: 3 },
+          { title: "Teams", slug: "_route-teams", routePath: "/teams", menuLocations: ml, sortOrder: 4 },
+          { title: "Statistics", slug: "_route-stats", routePath: "/stats", menuLocations: ml, sortOrder: 5 },
         ]
 
     await db.page.createMany({

@@ -245,6 +245,7 @@ export const translations = {
         scheduler: "Spielplan-Generator",
         scheduledNews: "Geplante News",
         advancedRoles: "Erweiterte Rollen",
+        publicReports: "Öffentliche Spielmeldungen",
       },
     },
     demoCta: {
@@ -517,6 +518,7 @@ export const translations = {
         scheduler: "Schedule Generator",
         scheduledNews: "Scheduled News",
         advancedRoles: "Advanced Roles",
+        publicReports: "Public Game Reports",
       },
     },
     demoCta: {
