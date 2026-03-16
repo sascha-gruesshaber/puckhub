@@ -24,6 +24,7 @@ const ADMIN_URL = process.env.ADMIN_URL ?? "http://admin.puckhub.localhost"
 const API_URL = process.env.API_URL ?? "http://api.puckhub.localhost"
 const LEAGUE_SITE_URL = process.env.LEAGUE_SITE_URL ?? "http://demo-league.puckhub.localhost"
 const SUBDOMAIN_SUFFIX = process.env.SUBDOMAIN_SUFFIX ?? ".puckhub.localhost"
+const DEMO_ORG_SLUG = process.env.DEMO_ORG_SLUG ?? "demo-league"
 const EMAIL = process.env.DEMO_EMAIL ?? `admin@demo-league${SUBDOMAIN_SUFFIX}`
 const OUTPUT_DIR = resolve(__dirname, "../apps/marketing-site/public/screenshots")
 
@@ -45,19 +46,19 @@ interface ScreenshotTarget {
   delay?: number
 }
 
-// Admin portal screenshots
+// Admin portal screenshots (paths include org slug)
 const adminTargets: ScreenshotTarget[] = [
-  { name: "dashboard", baseUrl: "admin", path: "/", waitFor: "main", delay: 3000 },
-  { name: "game-report", baseUrl: "admin", path: "/games", waitFor: "main", delay: 2000 },
-  { name: "team-list", baseUrl: "admin", path: "/teams", waitFor: "main", delay: 2000 },
-  { name: "website-config", baseUrl: "admin", path: "/website", waitFor: "main", delay: 2000 },
-  { name: "trikot-designer", baseUrl: "admin", path: "/trikots", waitFor: "main", delay: 2500 },
-  { name: "pages-cms", baseUrl: "admin", path: "/pages", waitFor: "main", delay: 2000 },
+  { name: "dashboard", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}`, waitFor: "main", delay: 3000 },
+  { name: "game-report", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/games`, waitFor: "main", delay: 2000 },
+  { name: "team-list", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/teams`, waitFor: "main", delay: 2000 },
+  { name: "website-config", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/website`, waitFor: "main", delay: 2000 },
+  { name: "trikot-designer", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/trikots`, waitFor: "main", delay: 2500 },
+  { name: "pages-cms", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/pages`, waitFor: "main", delay: 2000 },
 ]
 
 // Admin portal screenshots (require auth)
 const adminExtraTargets: ScreenshotTarget[] = [
-  { name: "public-report-admin", baseUrl: "admin", path: "/games/public-reports", waitFor: "main", delay: 3000 },
+  { name: "public-report-admin", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/games/public-reports`, waitFor: "main", delay: 3000 },
 ]
 
 // Public league site screenshots
@@ -302,7 +303,7 @@ async function main() {
 
     if (bestSeason) {
       console.log(`  Using season "${bestSeason.name}" (${bestSeason._count.divisions} divisions)`)
-      await page.goto(`${ADMIN_URL}/seasons/${bestSeason.id}/structure`, {
+      await page.goto(`${ADMIN_URL}/${DEMO_ORG_SLUG}/seasons/${bestSeason.id}/structure`, {
         waitUntil: "domcontentloaded",
         timeout: 20000,
       })
@@ -439,19 +440,32 @@ async function main() {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
       await page.waitForTimeout(4000)
 
-      // The TeamComparisonSelector renders pill buttons with the team's shortName.
-      // Click up to 3 to populate the comparison charts.
+      // The TeamComparisonSelector uses a dropdown to add teams.
+      // Click "Add team" button, then select each team from the dropdown list.
       for (const team of teamsForComparison.slice(0, 3)) {
-        const label = team.shortName ?? team.name
-        const teamBtn = page.getByRole("button", { name: label, exact: true })
-        if (await teamBtn.count()) {
-          await teamBtn.click()
-          console.log(`  Selected team: ${label}`)
-          await page.waitForTimeout(800)
+        const addBtn = page.getByRole("button", { name: /add team|team hinzufügen/i })
+        if (await addBtn.count()) {
+          await addBtn.click()
+          await page.waitForTimeout(300)
+
+          // Click the team entry in the dropdown
+          const teamOption = page.getByRole("option", { name: team.name })
+          if (await teamOption.count()) {
+            await teamOption.click()
+            console.log(`  Selected team: ${team.shortName ?? team.name}`)
+            await page.waitForTimeout(500)
+          } else {
+            console.log(`  Team option "${team.name}" not found in dropdown, skipping`)
+          }
         } else {
-          console.log(`  Team button "${label}" not found, skipping`)
+          console.log(`  "Add team" button not found, skipping`)
+          break
         }
       }
+
+      // Close dropdown if still open by clicking outside
+      await page.locator("body").click({ position: { x: 10, y: 10 } })
+      await page.waitForTimeout(300)
 
       // Wait for lazy-loaded charts to render
       await page.waitForTimeout(4000)

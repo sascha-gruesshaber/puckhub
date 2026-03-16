@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { login } from "./helpers"
+import { adminPath, login } from "./helpers"
 
 test.describe("Public Reports Management", () => {
   test("public reports page loads and shows seeded report", async ({ page }) => {
     await login(page)
-    await page.goto("/games/public-reports")
+    await page.goto(adminPath("games/public-reports"))
     await expect(page.getByRole("heading", { name: "publicReports.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -21,7 +21,7 @@ test.describe("Public Reports Management", () => {
 
   test("revert a public report", async ({ page }) => {
     await login(page)
-    await page.goto("/games/public-reports")
+    await page.goto(adminPath("games/public-reports"))
     await expect(page.getByRole("heading", { name: "publicReports.title" })).toBeVisible({
       timeout: 10_000,
     })

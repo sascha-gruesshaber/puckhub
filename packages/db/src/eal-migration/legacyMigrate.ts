@@ -56,11 +56,11 @@ const LEGACY_IMAGES_DIR = join(MONOREPO_ROOT, "_legacy", "src", "frontend", "img
 const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, "uploads"))
 
 /**
- * Maps legacy team IDs to their name-based logo filenames in the legacy images dir.
- * The legacy system stored team logos as `<name>.jpg` but the DB `logo` column often
- * just references `logo_unknown.jpg`. This mapping bridges the gap.
+ * Maps legacy team IDs to their team photo filenames in the legacy images dir.
+ * These are team group photos (not logos). The DB `logo` column often just
+ * references `logo_unknown.jpg`, so this mapping provides the actual photo files.
  */
-const TEAM_ID_TO_LOGO_FILE: Record<number, string> = {
+const TEAM_ID_TO_PHOTO_FILE: Record<number, string> = {
   1: "tsv-dietmannsried-tigers.jpg",
   2: "cosmos.jpg",
   3: "allgeier.jpg",
@@ -68,12 +68,8 @@ const TEAM_ID_TO_LOGO_FILE: Record<number, string> = {
   5: "apfeltrang.jpg",
   6: "memmingen.jpg",
   7: "dachser.jpg",
-  // 8: Sauriers — has sauriers_logo.jpg in DB column (handled by existing logic)
-  // 9: ESK Piranhas — has piranhas_logo.jpg in DB column (handled by existing logic)
   10: "oberguenzburg.jpg",
-  // 11: SSV Niedersonthofen — has niedersonthofen_logo.gif in DB column (handled by existing logic)
   12: "sv_29_kempten.jpg",
-  // 13: Taxi Pepe — has taxipepe_logo.gif in DB column (handled by existing logic)
   16: "tsv_lengenwang.jpg",
   18: "castle_mountain.jpg",
   21: "elbsee.jpg",
@@ -309,6 +305,72 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
     }
   }
 
+  // Phantom season references (seasons referenced in data tables but missing from alSaison)
+  const phantomInPT = data.playerTeams.filter((pt) => !seasonIds.has(pt.saisonID))
+  const phantomInGames = data.games.filter((g) => !seasonIds.has(g.saisonID))
+  const phantomInGroups = data.groups.filter((g) => !seasonIds.has(g.saisonID))
+  const phantomInLineups = data.lineups.filter((lu) => !seasonIds.has(lu.saisonID))
+  if (phantomInPT.length > 0 || phantomInGames.length > 0 || phantomInGroups.length > 0 || phantomInLineups.length > 0) {
+    const allPhantomIds = new Set([
+      ...phantomInPT.map((pt) => pt.saisonID),
+      ...phantomInGames.map((g) => g.saisonID),
+      ...phantomInGroups.map((g) => g.saisonID),
+      ...phantomInLineups.map((lu) => lu.saisonID),
+    ])
+    console.log(
+      `  WARN: Phantom season IDs found (not in alSaison): ${[...allPhantomIds].sort((a, b) => a - b).join(", ")}`,
+    )
+    if (phantomInPT.length > 0) {
+      const activePT = phantomInPT.filter((pt) => pt.active === 1)
+      const affectedPlayers = new Set(activePT.map((pt) => pt.playersID))
+      console.log(
+        `  WARN:   alPlayerTeam: ${phantomInPT.length} rows (${activePT.length} active, ${affectedPlayers.size} players affected)`,
+      )
+      warnings += phantomInPT.length
+    }
+    if (phantomInGames.length > 0) {
+      console.log(`  WARN:   alGames: ${phantomInGames.length} games`)
+      warnings += phantomInGames.length
+    }
+    if (phantomInGroups.length > 0) {
+      console.log(`  WARN:   alGroups: ${phantomInGroups.length} group entries`)
+      warnings += phantomInGroups.length
+    }
+    if (phantomInLineups.length > 0) {
+      console.log(`  WARN:   alTeamLineUp: ${phantomInLineups.length} lineup entries`)
+      warnings += phantomInLineups.length
+    }
+  }
+
+  // Players with active roster entries but no valid contract seasons
+  const validPTSeasons = new Set(data.seasons.map((s) => s.id))
+  const playersWithOnlyPhantom = new Set<number>()
+  const playerTeamsByPlayer = new Map<number, { valid: number[]; phantom: number[]; teamId: number }>()
+  for (const pt of data.playerTeams.filter((pt) => pt.active === 1)) {
+    const key = pt.playersID
+    if (!playerTeamsByPlayer.has(key)) playerTeamsByPlayer.set(key, { valid: [], phantom: [], teamId: pt.teamsID })
+    const entry = playerTeamsByPlayer.get(key)!
+    if (validPTSeasons.has(pt.saisonID)) {
+      entry.valid.push(pt.saisonID)
+    } else {
+      entry.phantom.push(pt.saisonID)
+    }
+  }
+  const playerMap = new Map(data.players.map((p) => [p.id, p]))
+  const teamNameMap = new Map(data.teams.map((t) => [t.id, t.name]))
+  for (const [playerId, entry] of playerTeamsByPlayer) {
+    if (entry.valid.length === 0 && entry.phantom.length > 0) {
+      playersWithOnlyPhantom.add(playerId)
+      const player = playerMap.get(playerId)
+      if (player) {
+        console.log(
+          `  WARN: Player ${player.firstname} ${player.lastname} (${playerId}) has ONLY phantom-season roster entries (${entry.phantom.join(", ")}) — will get NO contracts`,
+        )
+      }
+      warnings++
+    }
+  }
+
   console.log(`  Total warnings: ${warnings}`)
 
   // Migration preview
@@ -321,8 +383,8 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
     for (const d of divs) totalRounds += d.rounds.length
   }
 
-  // Contract consolidation preview
-  const activePlayerTeams = data.playerTeams.filter((pt) => pt.active === 1)
+  // Contract consolidation preview (filter phantom seasons, same as migration step 8)
+  const activePlayerTeams = data.playerTeams.filter((pt) => pt.active === 1 && validPTSeasons.has(pt.saisonID))
   const ptByPlayerTeam = new Map<string, number[]>()
   for (const pt of activePlayerTeams) {
     const key = `${pt.playersID}:${pt.teamsID}`
@@ -459,7 +521,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       contactName: t.kontakt1 || undefined,
       contactEmail: t.email1 || undefined,
       contactPhone: t.telefon1 || undefined,
-      website: t.homepage || undefined,
+      website: t.homepage
+        ? t.homepage.match(/^https?:\/\//) ? t.homepage : `http://${t.homepage}`
+        : undefined,
     })),
   })
   data.teams.forEach((t, i) => teamUuidMap.set(t.id, insertedTeams[i]!.id))
@@ -488,60 +552,44 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       let logoUrl: string | null = null
       let teamPhotoUrl: string | null = null
 
-      // --- Logo: try teamlogo_<id>.jpg, then logo column value, then name-based file ---
-      const logoById = join(LEGACY_IMAGES_DIR, `teamlogo_${team.id}.jpg`)
-      const logoByIdExists = await stat(logoById)
-        .then(() => true)
-        .catch(() => false)
-
-      let logoSource: string | null = null
-      if (logoByIdExists) {
-        logoSource = logoById
-      } else if (team.logo && team.logo !== "") {
-        // logo column may contain path like ./imgs/teams/piranhas_logo.jpg or just a filename
+      // --- Logo: only use files with "_logo" in the name from the DB column ---
+      // (e.g. piranhas_logo.jpg, sauriers_logo.jpg, niedersonthofen_logo.gif)
+      if (team.logo && team.logo !== "") {
         const logoFilename = basename(team.logo)
-        // Skip placeholders
-        if (logoFilename !== "logo_unknown.jpg" && logoFilename !== "noteampic.jpg") {
+        if (logoFilename.includes("_logo") && logoFilename !== "logo_unknown.jpg") {
           const logoByCol = join(LEGACY_IMAGES_DIR, logoFilename)
           const logoByColExists = await stat(logoByCol)
             .then(() => true)
             .catch(() => false)
           if (logoByColExists) {
-            logoSource = logoByCol
+            const ext = extname(logoByCol).toLowerCase()
+            const newFilename = `${randomUUID()}${ext}`
+            await copyFile(logoByCol, join(logosDir, newFilename))
+            logoUrl = `/api/uploads/${ORG_ID}/logos/${newFilename}`
+            logoCount++
           }
         }
       }
 
-      // Fallback: team-name-based logo file (e.g. memmingen.jpg, cosmos.jpg)
-      if (!logoSource && TEAM_ID_TO_LOGO_FILE[team.id]) {
-        const logoByName = join(LEGACY_IMAGES_DIR, TEAM_ID_TO_LOGO_FILE[team.id]!)
-        const logoByNameExists = await stat(logoByName)
+      // --- Team photo: teambild_<id>.jpg, teamlogo_<id>.jpg, or name-based photo ---
+      const photoSources = [
+        join(LEGACY_IMAGES_DIR, `teambild_${team.id}.jpg`),
+        join(LEGACY_IMAGES_DIR, `teamlogo_${team.id}.jpg`),
+        ...(TEAM_ID_TO_PHOTO_FILE[team.id]
+          ? [join(LEGACY_IMAGES_DIR, TEAM_ID_TO_PHOTO_FILE[team.id]!)]
+          : []),
+      ]
+      for (const photoPath of photoSources) {
+        const photoExists = await stat(photoPath)
           .then(() => true)
           .catch(() => false)
-        if (logoByNameExists) {
-          logoSource = logoByName
+        if (photoExists) {
+          const newFilename = `${randomUUID()}.jpg`
+          await copyFile(photoPath, join(photosDir, newFilename))
+          teamPhotoUrl = `/api/uploads/${ORG_ID}/photos/${newFilename}`
+          photoCount++
+          break
         }
-      }
-
-      if (logoSource) {
-        const ext = extname(logoSource).toLowerCase()
-        const newFilename = `${randomUUID()}${ext}`
-        await copyFile(logoSource, join(logosDir, newFilename))
-        logoUrl = `/api/uploads/${ORG_ID}/logos/${newFilename}`
-        logoCount++
-      }
-
-      // --- Team photo: teambild_<id>.jpg ---
-      const photoPath = join(LEGACY_IMAGES_DIR, `teambild_${team.id}.jpg`)
-      const photoExists = await stat(photoPath)
-        .then(() => true)
-        .catch(() => false)
-
-      if (photoExists) {
-        const newFilename = `${randomUUID()}.jpg`
-        await copyFile(photoPath, join(photosDir, newFilename))
-        teamPhotoUrl = `/api/uploads/${ORG_ID}/photos/${newFilename}`
-        photoCount++
       }
 
       // Update team record if we found any images
@@ -728,7 +776,49 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
 
   // ── Step 8: Contracts (consolidated) ─────────────────────────────────
   console.log("[step 8] Creating contracts (consolidated)...")
-  const activePlayerTeams = data.playerTeams.filter((pt) => pt.active === 1)
+
+  // Filter out playerTeam entries referencing non-existent seasons (phantom seasons).
+  // The legacy DB has season IDs (e.g. 14, 15) in alPlayerTeam/alGroups that were
+  // deleted from alSaison. Including them breaks contract consolidation because
+  // SEASON_ORDER.indexOf() returns -1, corrupting the sort and causing entire
+  // contracts to be silently dropped.
+  const validSeasonIds = new Set(data.seasons.map((s) => s.id))
+  const phantomSeasonPT = data.playerTeams.filter((pt) => pt.active === 1 && !validSeasonIds.has(pt.saisonID))
+  if (phantomSeasonPT.length > 0) {
+    const phantomSeasons = [...new Set(phantomSeasonPT.map((pt) => pt.saisonID))].sort((a, b) => a - b)
+    const affectedPlayers = new Set(phantomSeasonPT.map((pt) => pt.playersID))
+    console.log(
+      `[step 8]   ⚠ WARNING: ${phantomSeasonPT.length} active playerTeam entries reference non-existent seasons: ${phantomSeasons.join(", ")}`,
+    )
+    console.log(
+      `[step 8]   ⚠ ${affectedPlayers.size} players affected — these phantom season entries will be skipped`,
+    )
+    // Print details for the first few affected players
+    const playerMap = new Map(data.players.map((p) => [p.id, p]))
+    const teamNameMap = new Map(data.teams.map((t) => [t.id, t.name]))
+    const printed = new Set<number>()
+    for (const pt of phantomSeasonPT) {
+      if (printed.size >= 15) break
+      if (printed.has(pt.playersID)) continue
+      printed.add(pt.playersID)
+      const player = playerMap.get(pt.playersID)
+      const teamName = teamNameMap.get(pt.teamsID)
+      if (player) {
+        const phantomForPlayer = phantomSeasonPT
+          .filter((p) => p.playersID === pt.playersID)
+          .map((p) => `s${p.saisonID}`)
+          .join(", ")
+        console.log(
+          `[step 8]     → ${player.firstname} ${player.lastname} (team: ${teamName ?? pt.teamsID}): phantom seasons ${phantomForPlayer}`,
+        )
+      }
+    }
+    if (affectedPlayers.size > 15) {
+      console.log(`[step 8]     → ... and ${affectedPlayers.size - 15} more players`)
+    }
+  }
+
+  const activePlayerTeams = data.playerTeams.filter((pt) => pt.active === 1 && validSeasonIds.has(pt.saisonID))
   const ptByPlayerTeam = new Map<string, number[]>()
   for (const pt of activePlayerTeams) {
     const key = `${pt.playersID}:${pt.teamsID}`
@@ -1261,6 +1351,62 @@ async function printVerification(db: Database, data: LegacyData): Promise<void> 
     console.log(
       `  ${g.homeTeam.name} ${g.homeScore}-${g.awayScore} ${g.awayTeam.name} (${goals} goals, ${pens} penalties)`,
     )
+  }
+
+  // Players without contracts (should have at least one from legacy data)
+  const playersWithContracts = new Set(
+    (
+      await db.contract.findMany({
+        where: { organizationId: ORG_ID },
+        select: { playerId: true },
+        distinct: ["playerId"],
+      })
+    ).map((c) => c.playerId),
+  )
+  const allPlayers = await db.player.findMany({
+    where: { organizationId: ORG_ID },
+    select: { id: true, firstName: true, lastName: true },
+  })
+  const playersWithoutContracts = allPlayers.filter((p) => !playersWithContracts.has(p.id))
+  if (playersWithoutContracts.length > 0) {
+    console.log(`\n⚠ WARNING: ${playersWithoutContracts.length} players have NO contracts:`)
+    // Show first 20
+    for (const p of playersWithoutContracts.slice(0, 20)) {
+      console.log(`  → ${p.firstName} ${p.lastName} (${p.id})`)
+    }
+    if (playersWithoutContracts.length > 20) {
+      console.log(`  ... and ${playersWithoutContracts.length - 20} more`)
+    }
+  } else {
+    console.log("\n✓ All players have at least one contract")
+  }
+
+  // Teams with no contracts (suspicious if team has games)
+  const teamsWithContracts = new Set(
+    (
+      await db.contract.findMany({
+        where: { organizationId: ORG_ID },
+        select: { teamId: true },
+        distinct: ["teamId"],
+      })
+    ).map((c) => c.teamId),
+  )
+  const allTeams = await db.team.findMany({
+    where: { organizationId: ORG_ID },
+    select: { id: true, name: true },
+  })
+  const teamsWithNoContracts = allTeams.filter((t) => !teamsWithContracts.has(t.id))
+  if (teamsWithNoContracts.length > 0) {
+    console.log(`\n⚠ WARNING: ${teamsWithNoContracts.length} teams have NO player contracts:`)
+    for (const t of teamsWithNoContracts) {
+      const gameCount = await db.game.count({
+        where: {
+          organizationId: ORG_ID,
+          OR: [{ homeTeamId: t.id }, { awayTeamId: t.id }],
+        },
+      })
+      console.log(`  → ${t.name} (${gameCount} games)`)
+    }
   }
 
   console.log("\n══════════════════════════════════════════════════════════\n")

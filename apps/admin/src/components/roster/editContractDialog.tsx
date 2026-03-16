@@ -1,18 +1,26 @@
 import {
   Button,
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   FormField,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
   toast,
 } from "@puckhub/ui"
-import { useEffect, useState } from "react"
+import { useMemo, useEffect, useState } from "react"
 import { trpc } from "@/trpc"
+import { ConfirmDialog } from "~/components/confirmDialog"
+import { PlayerInfoCard } from "~/components/player/playerInfoCard"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 import type { ContractRow } from "./rosterTable"
@@ -30,6 +38,7 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
   const { t: tErrors } = useTranslation("errors")
   const [position, setPosition] = useState<"forward" | "defense" | "goalie">("forward")
   const [jerseyNumber, setJerseyNumber] = useState("")
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
 
   const utils = trpc.useUtils()
 
@@ -39,6 +48,11 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
       setJerseyNumber(contract.jerseyNumber?.toString() ?? "")
     }
   }, [contract])
+
+  // Track dirty state
+  const isDirty = contract
+    ? position !== contract.position || jerseyNumber !== (contract.jerseyNumber?.toString() ?? "")
+    : false
 
   const updateMutation = trpc.contract.updateContract.useMutation({
     onSuccess: () => {
@@ -62,56 +76,96 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
     })
   }
 
+  const { data: allSeasons } = trpc.season.list.useQuery(undefined, { enabled: open })
+
+  const sinceSeasonName = useMemo(() => {
+    if (!allSeasons || !contract) return null
+    return allSeasons.find((s) => s.id === contract.startSeasonId)?.name ?? null
+  }, [allSeasons, contract])
+
   if (!contract) return null
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogClose onClick={() => onOpenChange(false)} />
-        <DialogHeader>
-          <DialogTitle>{t("rosterPage.editDialog.title")}</DialogTitle>
-          <DialogDescription>
-            {contract.player.firstName} {contract.player.lastName}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Sheet
+        open={open}
+        onOpenChange={onOpenChange}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
+        <SheetContent>
+          <SheetClose />
+          <SheetHeader>
+            <SheetTitle>{t("rosterPage.editDialog.title")}</SheetTitle>
+            <SheetDescription>
+              {contract.player.firstName} {contract.player.lastName}
+            </SheetDescription>
+          </SheetHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-6 pt-2">
-          <FormField label={t("rosterPage.editDialog.fields.position")} required>
-            <select
-              value={position}
-              onChange={(e) => setPosition(e.target.value as "forward" | "defense" | "goalie")}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <option value="goalie">{t("rosterPage.positions.goalie")}</option>
-              <option value="defense">{t("rosterPage.positions.defense")}</option>
-              <option value="forward">{t("rosterPage.positions.forward")}</option>
-            </select>
-          </FormField>
+          <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
+            <SheetBody className="space-y-6">
+              <PlayerInfoCard
+                player={contract.player}
+                position={contract.position}
+                jerseyNumber={contract.jerseyNumber}
+                sinceSeasonName={sinceSeasonName}
+              />
 
-          <FormField label={t("rosterPage.editDialog.fields.jerseyNumber")}>
-            <Input
-              type="number"
-              min="1"
-              max="99"
-              value={jerseyNumber}
-              onChange={(e) => setJerseyNumber(e.target.value)}
-              placeholder={t("rosterPage.editDialog.fields.jerseyNumberPlaceholder")}
-            />
-          </FormField>
+              <FormField label={t("rosterPage.editDialog.fields.position")} required>
+                <Select value={position} onValueChange={(v) => setPosition(v as "forward" | "defense" | "goalie")}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="goalie">{t("rosterPage.positions.goalie")}</SelectItem>
+                    <SelectItem value="defense">{t("rosterPage.positions.defense")}</SelectItem>
+                    <SelectItem value="forward">{t("rosterPage.positions.forward")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
 
-          <DialogFooter className="p-0 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {t("cancel")}
-            </Button>
-            <Button type="submit" variant="accent" disabled={updateMutation.isPending}>
-              {updateMutation.isPending
-                ? t("rosterPage.editDialog.actions.saving")
-                : t("rosterPage.editDialog.actions.save")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <FormField label={t("rosterPage.editDialog.fields.jerseyNumber")}>
+                <Input
+                  type="number"
+                  min="1"
+                  max="99"
+                  value={jerseyNumber}
+                  onChange={(e) => setJerseyNumber(e.target.value)}
+                  placeholder={t("rosterPage.editDialog.fields.jerseyNumberPlaceholder")}
+                />
+              </FormField>
+            </SheetBody>
+
+            <SheetFooter>
+              <div className="flex-1" />
+              <Button type="button" variant="outline" onClick={() => {
+                if (isDirty) { setConfirmCloseOpen(true) } else { onOpenChange(false) }
+              }}>
+                {t("cancel")}
+              </Button>
+              <Button type="submit" variant="accent" disabled={updateMutation.isPending}>
+                {updateMutation.isPending
+                  ? t("rosterPage.editDialog.actions.saving")
+                  : t("rosterPage.editDialog.actions.save")}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      <ConfirmDialog
+        open={confirmCloseOpen}
+        onOpenChange={setConfirmCloseOpen}
+        title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
+        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
+        variant="destructive"
+        onConfirm={() => {
+          setConfirmCloseOpen(false)
+          onOpenChange(false)
+        }}
+      />
+    </>
   )
 }
 

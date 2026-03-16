@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, formField, login } from "./helpers"
 
 test.describe("Pages Management", () => {
   test("pages list shows system routes and custom pages", async ({ page }) => {
     await login(page)
-    await page.goto("/pages")
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -21,7 +21,7 @@ test.describe("Pages Management", () => {
 
   test("create, edit, and delete a custom page", async ({ page }) => {
     await login(page)
-    await page.goto("/pages")
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -93,7 +93,7 @@ test.describe("Pages Management", () => {
 
   test("system routes cannot be deleted", async ({ page }) => {
     await login(page)
-    await page.goto("/pages")
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })

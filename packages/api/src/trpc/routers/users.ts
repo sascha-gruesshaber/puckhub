@@ -385,6 +385,10 @@ export const usersRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (input.userId === ctx.session.user.id) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.MEMBER_CANNOT_REMOVE_SELF)
+      }
+
       await ctx.db.member.deleteMany({
         where: { userId: input.userId, organizationId: input.organizationId },
       })

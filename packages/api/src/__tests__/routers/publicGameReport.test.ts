@@ -44,7 +44,6 @@ async function createPublicReportFixtures(opts?: {
       slug: "pro",
       sortOrder: 1,
       isActive: true,
-      priceMonthly: 2900,
       priceYearly: 29900,
       featurePublicReports: true,
     },
@@ -55,10 +54,10 @@ async function createPublicReportFixtures(opts?: {
     data: {
       organizationId: TEST_ORG_ID,
       planId: plan.id,
-      interval: "monthly",
+      interval: "yearly",
       status: "active",
       currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 86400000),
+      currentPeriodEnd: new Date(Date.now() + 365 * 86400000),
     },
   })
 

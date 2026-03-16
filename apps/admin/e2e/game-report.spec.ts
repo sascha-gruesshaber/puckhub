@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { login } from "./helpers"
+import { adminPath, login } from "./helpers"
 
 test.describe("Game Report", () => {
   test("completed game report shows header with teams and score", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -25,7 +25,7 @@ test.describe("Game Report", () => {
 
   test("scheduled game report allows completing the game", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })

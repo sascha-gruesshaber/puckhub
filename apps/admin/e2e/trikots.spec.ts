@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, formField, login } from "./helpers"
 
 test.describe("Trikots Management", () => {
   test("create, update, and delete a trikot", async ({ page }) => {
     await login(page)
-    await page.goto("/trikots")
+    await page.goto(adminPath("trikots"))
     await expect(page.getByRole("heading", { name: "trikotsPage.title" })).toBeVisible({
       timeout: 10_000,
     })

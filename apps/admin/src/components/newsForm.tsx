@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, FormField, Input, Label, Textarea } from "@puckhub/ui"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useParams } from "@tanstack/react-router"
 import { useState } from "react"
 import { useTranslation } from "~/i18n/use-translation"
 import { RichTextEditorLazy as RichTextEditor } from "./richTextEditorLazy"
@@ -55,6 +55,7 @@ function initFromData(data: NewsFormData): FormState {
 
 export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: NewsFormProps) {
   const { t } = useTranslation("common")
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(initialData ? initFromData(initialData) : emptyForm)
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
@@ -181,7 +182,7 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: News
               <Button type="submit" variant="accent" disabled={isPending} className="w-full">
                 {isPending ? t("saving") : resolvedSubmitLabel}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/news" })}>
+              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/$orgSlug/news", params: { orgSlug } })}>
                 {t("cancel")}
               </Button>
             </div>

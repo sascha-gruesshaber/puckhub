@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowRight, Globe, MapPin } from "lucide-react"
 import type { ReactNode } from "react"
 import { useT } from "~/lib/i18n"
-import { useBackPath } from "~/lib/utils"
+import { slugify, useBackPath } from "~/lib/utils"
 import { HoverCard } from "./hoverCard"
 
 interface TeamHoverCardProps {
@@ -133,8 +133,8 @@ function TeamHoverCardContent({
         {teamId && (
           <div className="mt-3 pt-3 border-t border-league-text/[0.08]">
             <Link
-              to="/teams/$teamId"
-              params={{ teamId }}
+              to="/teams/$teamId/$slug"
+              params={{ teamId, slug: slugify(name) }}
               search={{ from: backPath }}
               className="flex items-center justify-between w-full text-xs font-medium transition-colors"
               style={{ color: accentColor }}

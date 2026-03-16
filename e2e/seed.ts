@@ -111,7 +111,7 @@ export async function seed(dbUrl: string) {
     await sql`
       INSERT INTO plans (
         id, name, slug, sort_order, is_active,
-        price_monthly, price_yearly, currency,
+        price_yearly, currency,
         max_teams, max_players, max_divisions_per_season, max_seasons, max_admins,
         max_news_articles, max_pages, max_sponsors, max_documents, storage_quota_mb,
         feature_custom_domain, feature_website_builder, feature_sponsor_mgmt,
@@ -121,13 +121,13 @@ export async function seed(dbUrl: string) {
         feature_public_reports
       ) VALUES (
         ${planId}, ${"E2E Pro"}, ${"e2e-pro"}, ${1}, ${true},
-        ${2900}, ${29900}, ${"EUR"},
+        ${29900}, ${"EUR"},
         ${null}, ${null}, ${null}, ${null}, ${null},
         ${null}, ${null}, ${null}, ${null}, ${null},
         ${true}, ${true}, ${true},
         ${true}, ${true},
         ${true}, ${true}, ${false},
-        ${true}
+        ${true}, ${true}, ${true}, ${true}
       ) ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         slug = EXCLUDED.slug
@@ -137,8 +137,8 @@ export async function seed(dbUrl: string) {
         id, organization_id, plan_id, "interval", status,
         current_period_start, current_period_end
       ) VALUES (
-        ${subscriptionId}, ${orgId}, ${planId}, ${"monthly"}, ${"active"},
-        ${now}, ${new Date(Date.now() + 30 * 86400000).toISOString()}
+        ${subscriptionId}, ${orgId}, ${planId}, ${"yearly"}, ${"active"},
+        ${now}, ${new Date(Date.now() + 365 * 86400000).toISOString()}
       )
     `
 

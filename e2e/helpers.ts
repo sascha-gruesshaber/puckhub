@@ -61,13 +61,13 @@ export async function login(page: Page) {
   await page.goto(magicLinkUrl)
   await page.waitForLoadState("networkidle")
 
-  // Platform admins see the org picker — select the E2E org
+  // Platform admins see the org picker — select the E2E org (navigates to /$orgSlug/)
   const orgButton = page.getByRole("button", { name: /E2E Test League/ })
   if (await orgButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await orgButton.click()
   }
 
-  // Wait for the dashboard to load
+  // Wait for the dashboard to load (now at /$orgSlug/)
   await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
     timeout: 15_000,
   })
@@ -76,14 +76,17 @@ export async function login(page: Page) {
 /**
  * Locates the input inside a FormField by its label text.
  * FormField components don't use htmlFor/id linking, so we locate
- * the parent div containing the label and find the input within it.
+ * the label, go to its parent container, and find the input there.
  */
 export function formField(page: Page, labelKey: string) {
-  return page.locator("div", { has: page.locator("label", { hasText: labelKey }) }).locator("input")
+  return page.locator("label", { hasText: labelKey }).locator("xpath=..").locator("input")
 }
 
 /** E2E org ID — matches seed data */
 export const E2E_ORG_ID = "e2e-org-id"
+
+/** E2E org slug — matches seed data */
+export const E2E_ORG_SLUG = "e2e-league"
 
 /**
  * Builds a league-site URL with `?orgId` appended (needed for localhost E2E).

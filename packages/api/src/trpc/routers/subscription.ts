@@ -11,7 +11,6 @@ export const subscriptionRouter = router({
       z.object({
         organizationId: z.string(),
         planId: z.string().uuid(),
-        interval: z.enum(["monthly", "yearly"]).default("monthly"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -27,13 +26,11 @@ export const subscriptionRouter = router({
 
       const now = new Date()
       const periodEnd = new Date(now)
-      if (plan.priceMonthly === 0 && plan.priceYearly === 0) {
+      if (plan.priceYearly === 0) {
         // Free plan — set a far-future end date
         periodEnd.setFullYear(periodEnd.getFullYear() + 100)
-      } else if (input.interval === "yearly") {
-        periodEnd.setFullYear(periodEnd.getFullYear() + 1)
       } else {
-        periodEnd.setMonth(periodEnd.getMonth() + 1)
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1)
       }
 
       return ctx.db.orgSubscription.upsert({
@@ -41,14 +38,14 @@ export const subscriptionRouter = router({
         create: {
           organizationId: input.organizationId,
           planId: input.planId,
-          interval: input.interval,
+          interval: "yearly",
           status: "active",
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
         },
         update: {
           planId: input.planId,
-          interval: input.interval,
+          interval: "yearly",
           status: "active",
           currentPeriodStart: now,
           currentPeriodEnd: periodEnd,
@@ -71,7 +68,7 @@ export const subscriptionRouter = router({
     return ctx.db.orgSubscription.findMany({
       include: {
         organization: { select: { id: true, name: true, slug: true } },
-        plan: { select: { id: true, name: true, slug: true, priceMonthly: true, priceYearly: true } },
+        plan: { select: { id: true, name: true, slug: true, priceYearly: true } },
       },
       orderBy: { createdAt: "desc" },
     })

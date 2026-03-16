@@ -79,7 +79,6 @@ export function GoaliesPage() {
       ) : (
         <GoalieTable
           data={goalieData ?? { qualified: [], belowThreshold: [], minGames: 7 }}
-          advancedStats={features.advancedStats}
         />
       )}
     </StatsPageShell>

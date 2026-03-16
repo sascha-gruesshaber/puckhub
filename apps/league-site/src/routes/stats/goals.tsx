@@ -99,7 +99,7 @@ export function GoalsPage() {
       {isLoading ? (
         <StatsTableSkeleton />
       ) : (
-        <PlayerTable stats={sorted} sortBy="goals" advancedStats={features.advancedStats} />
+        <PlayerTable stats={sorted} sortBy="goals" />
       )}
     </StatsPageShell>
   )

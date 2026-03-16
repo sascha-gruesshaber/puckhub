@@ -6,7 +6,7 @@ import { useTranslation } from "~/i18n/use-translation"
 
 export function OrgPickerPage() {
   const { t } = useTranslation("common")
-  const { organizations, switchOrganization, isLoading, isPlatformAdmin } = useOrganization()
+  const { organizations, isLoading, isPlatformAdmin } = useOrganization()
   const navigate = useNavigate()
 
   async function handleLogout() {
@@ -66,7 +66,7 @@ export function OrgPickerPage() {
             <button
               key={org.id}
               type="button"
-              onClick={() => switchOrganization(org.id)}
+              onClick={() => navigate({ to: "/$orgSlug", params: { orgSlug: org.slug } })}
               className="flex w-full items-center gap-4 rounded-xl border border-border/50 bg-white p-4 text-left shadow-sm transition-all hover:border-border hover:shadow-md"
               style={{ cursor: "pointer" }}
             >

@@ -89,7 +89,7 @@ export function PenaltiesPage() {
       {isLoading ? (
         <StatsTableSkeleton />
       ) : (
-        <PenaltyTable stats={penaltyStats ?? []} advancedStats={features.advancedStats} />
+        <PenaltyTable stats={penaltyStats ?? []} />
       )}
     </StatsPageShell>
   )

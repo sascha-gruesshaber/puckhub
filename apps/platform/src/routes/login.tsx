@@ -21,12 +21,22 @@ function LoginPage() {
     return null
   }
 
-  // Build admin login URL from current hostname (platform.x.y → admin.x.y)
+  // Build admin login URL — prefer VITE_ADMIN_URL for dev/e2e, else derive from hostname
   if (typeof window !== "undefined") {
-    const parts = window.location.hostname.split(".")
-    parts[0] = "admin"
-    const adminOrigin = `${window.location.protocol}//${parts.join(".")}`
-    const returnUrl = `${window.location.protocol}//${window.location.hostname}/`
+    const envAdminUrl = import.meta.env?.VITE_ADMIN_URL
+    let adminOrigin: string
+    let returnUrl: string
+
+    if (envAdminUrl) {
+      adminOrigin = envAdminUrl
+      returnUrl = `${window.location.protocol}//${window.location.host}/`
+    } else {
+      const parts = window.location.hostname.split(".")
+      parts[0] = "admin"
+      adminOrigin = `${window.location.protocol}//${parts.join(".")}`
+      returnUrl = `${window.location.protocol}//${window.location.hostname}/`
+    }
+
     window.location.href = `${adminOrigin}/login?redirect=${encodeURIComponent(returnUrl)}`
   }
 

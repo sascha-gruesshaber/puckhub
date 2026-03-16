@@ -15,15 +15,12 @@ function DashboardPage() {
   const totalMembers = orgs?.reduce((sum, o) => sum + o.memberCount, 0) ?? 0
   const userCount = users?.length ?? 0
 
-  // Calculate MRR from active subscriptions
+  // Calculate MRR from active yearly subscriptions
   const mrr =
     subscriptions
       ?.filter((s) => s.status === "active")
       .reduce((sum, s) => {
-        if (s.interval === "yearly") {
-          return sum + Math.round(s.plan.priceYearly / 12)
-        }
-        return sum + s.plan.priceMonthly
+        return sum + Math.round(s.plan.priceYearly / 12)
       }, 0) ?? 0
 
   // Plan distribution

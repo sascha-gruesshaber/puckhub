@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, formField, login } from "./helpers"
 
 test.describe("News Management", () => {
   test("news list shows seeded articles", async ({ page }) => {
     await login(page)
-    await page.goto("/news")
+    await page.goto(adminPath("news"))
     await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -16,7 +16,7 @@ test.describe("News Management", () => {
 
   test("create, edit, and delete a news article", async ({ page }) => {
     await login(page)
-    await page.goto("/news")
+    await page.goto(adminPath("news"))
     await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
       timeout: 10_000,
     })

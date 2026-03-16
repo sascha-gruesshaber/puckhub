@@ -362,6 +362,18 @@
       "description": "Ziehe Teams auf eine Spielgruppe, um sie zuzuweisen.",
       "searchPlaceholder": "Teams suchen...",
       "noTeams": "Keine Teams gefunden"
+    },
+    "confirmDelete": {
+      "divisionTitle": "Spielgruppe löschen?",
+      "divisionWarning": "Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden. Alle Runden, Spiele, Tabellen und Statistiken in dieser Spielgruppe werden unwiderruflich gelöscht.",
+      "divisionDescription": "Bist du sicher, dass du \"{{name}}\" und alle zugehörigen Daten löschen möchtest?",
+      "roundTitle": "Runde löschen?",
+      "roundWarning": "Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden. Alle Spiele, Tabellen und Statistiken in dieser Runde werden unwiderruflich gelöscht.",
+      "roundDescription": "Bist du sicher, dass du \"{{name}}\" und alle zugehörigen Daten löschen möchtest?",
+      "teamRemoveTitle": "Team aus Spielgruppe entfernen?",
+      "teamRemoveDescription": "Bist du sicher, dass du \"{{team}}\" aus dieser Spielgruppe entfernen möchtest? Die Spiele und Statistiken des Teams in dieser Spielgruppe werden nicht mehr zugeordnet.",
+      "confirmDelete": "Endgültig löschen",
+      "confirmRemove": "Entfernen"
     }
   },
   "dashboard": {
@@ -720,7 +732,55 @@
     "hoverCard": {
       "withoutTeam": "Ohne Team",
       "nationality": "Nationalität: {{value}}",
-      "ageYears": "{{age}} Jahre"
+      "ageYears": "{{age}} Jahre",
+      "viewDetails": "Details"
+    },
+    "playerDetail": {
+      "backToPlayers": "Zurück zu Spieler",
+      "editInfo": "Spielerinfo bearbeiten",
+      "currentStatus": "Aktueller Status",
+      "freeAgent": "Vereinslos",
+      "freeAgentDescription": "Dieser Spieler ist derzeit keinem Team zugeordnet.",
+      "signToTeam": "Bei Team verpflichten",
+      "editContract": "Vertrag bearbeiten",
+      "transfer": "Transfer",
+      "release": "Freigeben",
+      "contractHistory": "Vertragshistorie",
+      "noContracts": "Noch keine Verträge.",
+      "notFound": "Spieler nicht gefunden.",
+      "ongoing": "laufend",
+      "active": "Aktiv",
+      "ended": "Beendet",
+      "events": {
+        "signed": "Verpflichtet",
+        "transferred": "Transferiert",
+        "released": "Freigegeben"
+      },
+      "reopenContract": {
+        "button": "Wiedereröffnen",
+        "toast": {
+          "reopened": "Vertrag wiedereröffnet",
+          "reopenError": "Vertrag konnte nicht wiedereröffnet werden"
+        }
+      },
+      "deleteContract": {
+        "title": "Vertrag löschen",
+        "description": "Dieser Vertrag wird dauerhaft entfernt und alle zugehörigen Daten bereinigt.",
+        "warning": "Folgende Daten werden dauerhaft gelöscht:",
+        "consequences": {
+          "lineups": "Spielaufstellungen für diesen Spieler bei diesem Team",
+          "stats": "Spieler-Saisonstatistiken für dieses Team",
+          "goalieStats": "Torwart-Saisonstatistiken für dieses Team"
+        },
+        "endInstead": "Vertrag stattdessen beenden?",
+        "endInsteadDescription": "Beim Beenden des Vertrags bleiben alle Spieldaten, Aufstellungen und Statistiken erhalten. Der Spieler wird lediglich vom Team freigegeben.",
+        "confirm": "Vertrag löschen",
+        "deleting": "Löschen...",
+        "toast": {
+          "deleted": "Vertrag gelöscht",
+          "deleteError": "Vertrag konnte nicht gelöscht werden"
+        }
+      }
     },
     "timeline": {
       "sinceSeason": "Seit {{season}}",
@@ -972,7 +1032,19 @@
     "hoverCard": {
       "noContactData": "Keine Kontaktdaten hinterlegt",
       "roster": "Kader",
-      "edit": "Bearbeiten"
+      "edit": "Bearbeiten",
+      "viewDetails": "Details"
+    },
+    "teamDetail": {
+      "backToTeams": "Teams",
+      "roster": "Kader",
+      "seasonHistory": "Saisonhistorie",
+      "noHistory": "Keine Saisonhistorie vorhanden",
+      "noRoster": "Kein Kader vorhanden",
+      "notFound": "Team nicht gefunden",
+      "record": "S{{wins}} U{{draws}} N{{losses}}",
+      "rank": "#{{rank}}",
+      "goalDifference": "TD"
     },
     "dialogs": {
       "newTitle": "Neues Team erstellen",
@@ -1185,7 +1257,8 @@
         "playerSearchPlaceholder": "Spieler suchen...",
         "position": "Position",
         "jerseyNumber": "Trikotnummer",
-        "jerseyNumberPlaceholder": "z.B. 17"
+        "jerseyNumberPlaceholder": "z.B. 17",
+        "season": "Saison"
       },
       "actions": {
         "change": "Ändern",
@@ -1237,6 +1310,8 @@
       "validation": {
         "teamRequired": "Bitte ein Team auswählen"
       },
+      "effectiveSeason": "Transfer gültig ab",
+      "transferFromSeason": "{{player}} wird ab {{season}} transferiert.",
       "toast": {
         "transferred": "Transfer erfolgreich",
         "transferError": "Fehler beim Transfer"
@@ -1244,8 +1319,14 @@
     },
     "releaseDialog": {
       "title": "Spieler freigeben",
-      "description": "Bist du sicher, dass du {{player}} freigeben möchtest? Der Vertrag wird zum Ende dieser Saison beendet.",
-      "confirm": "Freigeben"
+      "description": "Beende den Vertrag von {{player}}.",
+      "since": "seit {{season}}",
+      "lastActiveSeason": "Letzte aktive Saison",
+      "future": "Zukunft",
+      "removeFromSeason": "{{player}} wird ab der Saison {{season}} aus dem Kader entfernt.",
+      "keepCurrentSeason": "{{player}} bleibt im Kader der Saison {{season}} und wird ab der nächsten Saison entfernt.",
+      "confirm": "Freigeben",
+      "releasing": "Wird freigegeben..."
     },
     "toast": {
       "released": "Spieler freigegeben",

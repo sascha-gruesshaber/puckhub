@@ -23,7 +23,6 @@ export const Route = createFileRoute("/_authed/plans")({
 interface PlanForm {
   sortOrder: number
   isActive: boolean
-  priceMonthly: number
   priceYearly: number
   maxTeams: number | null
   maxPlayers: number | null
@@ -53,7 +52,6 @@ interface PlanForm {
 const emptyForm: PlanForm = {
   sortOrder: 0,
   isActive: true,
-  priceMonthly: 0,
   priceYearly: 0,
   maxTeams: null,
   maxPlayers: null,
@@ -177,7 +175,6 @@ function PlansPage() {
     setForm({
       sortOrder: plan.sortOrder,
       isActive: plan.isActive,
-      priceMonthly: plan.priceMonthly,
       priceYearly: plan.priceYearly,
       maxTeams: plan.maxTeams,
       maxPlayers: plan.maxPlayers,
@@ -253,13 +250,8 @@ function PlansPage() {
                 </div>
 
                 <p className="text-2xl font-bold text-foreground mb-1">
-                  {plan.priceMonthly === 0 ? "Free" : formatPrice(plan.priceMonthly)}
+                  {plan.priceYearly === 0 ? "Free" : `${formatPrice(plan.priceYearly)} / year`}
                 </p>
-                {plan.priceMonthly > 0 && (
-                  <p className="text-xs text-muted-foreground mb-4">
-                    / month &middot; {formatPrice(plan.priceYearly)} / year
-                  </p>
-                )}
 
                 <div className="space-y-1.5 text-xs text-muted-foreground">
                   <p>Teams: {plan.maxTeams ?? "Unlimited"}</p>
@@ -291,16 +283,8 @@ function PlansPage() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-5 p-6 pt-2">
-            <div className="grid grid-cols-3 gap-3">
-              <FormField label="Monthly (cents)">
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.priceMonthly}
-                  onChange={(e) => setForm((p) => ({ ...p, priceMonthly: Number.parseInt(e.target.value) || 0 }))}
-                />
-              </FormField>
-              <FormField label="Yearly (cents)">
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Yearly price (cents)">
                 <Input
                   type="number"
                   min={0}

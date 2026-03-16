@@ -115,7 +115,7 @@ export function ScorersPage() {
       {isLoading ? (
         <StatsTableSkeleton />
       ) : (
-        <PlayerTable stats={playerStats ?? []} sortBy="scorers" advancedStats={features.advancedStats} />
+        <PlayerTable stats={playerStats ?? []} sortBy="scorers" />
       )}
     </StatsPageShell>
   )

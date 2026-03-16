@@ -28,4 +28,38 @@ test.describe("Stats", () => {
     // Dalton has 2 PIM from seed
     await expect(page.getByText("Dalton").or(page.getByText("PIM").first())).toBeVisible()
   })
+
+  test("compare-teams page allows selecting teams via dropdown", async ({ page }) => {
+    await page.goto(`/stats/compare-teams${q}`)
+
+    // Should show the "Add team" button
+    const addBtn = page.getByRole("button", { name: /add team/i })
+    await expect(addBtn).toBeVisible({ timeout: 15_000 })
+
+    // Select first team via dropdown
+    await addBtn.click()
+    await expect(page.getByRole("option", { name: "E2E Hawks" })).toBeVisible()
+    await page.getByRole("option", { name: "E2E Hawks" }).click()
+
+    // Hawks should appear as a selected chip with an X button
+    await expect(page.getByText("HWK")).toBeVisible()
+
+    // Select second team
+    await addBtn.click()
+    await page.getByRole("option", { name: "E2E Bears" }).click()
+
+    // Bears chip should appear
+    await expect(page.getByText("BRS")).toBeVisible()
+
+    // Charts should now render (at least one SVG from ECharts)
+    await expect(page.locator("svg").first()).toBeVisible({ timeout: 10_000 })
+
+    // Remove Hawks via the X button on its chip
+    const hawksChip = page.locator("span", { hasText: "HWK" })
+    await hawksChip.getByRole("button").click()
+
+    // HWK chip should disappear, hint text should show
+    await expect(hawksChip).not.toBeVisible()
+    await expect(page.getByText(/select at least/i)).toBeVisible()
+  })
 })

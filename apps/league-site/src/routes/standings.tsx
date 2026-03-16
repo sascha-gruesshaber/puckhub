@@ -3,13 +3,12 @@ import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { EmptyState } from "~/components/shared/emptyState"
 import { StandingsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { RoundNavigator } from "~/components/shared/roundNavigator"
-import { TeamHoverCard } from "~/components/shared/teamHoverCard"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { Th } from "~/components/stats/statsTables"
-import { useFeatures, useOrg, useSeason } from "~/lib/context"
+import { useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
-import { cn, useBackPath } from "~/lib/utils"
+import { cn, slugify, useBackPath } from "~/lib/utils"
 import { trpc } from "../../lib/trpc"
 
 export const standingsSearchValidator = (
@@ -29,7 +28,6 @@ export const Route = createFileRoute("/standings")({
 export function StandingsPage() {
   const org = useOrg()
   const season = useSeason()
-  const features = useFeatures()
   const t = useT()
   const filterNavigate = useFilterNavigate()
   const {
@@ -128,38 +126,15 @@ export function StandingsPage() {
                   <tr key={s.id} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
                     <td className="px-4 py-3 text-league-text/50 font-medium">{i + 1}</td>
                     <td className="px-4 py-3">
-                      {features.advancedStats ? (
-                        <TeamHoverCard
-                          name={s.team.name}
-                          shortName={s.team.shortName}
-                          logoUrl={s.team.logoUrl}
-                          primaryColor={s.team.primaryColor}
-                          city={s.team.city}
-                          homeVenue={s.team.homeVenue}
-                          website={s.team.website}
-                          teamId={s.team.id}
-                        >
-                          <Link
-                            to="/teams/$teamId"
-                            params={{ teamId: s.team.id }}
-                            search={{ from: backPath }}
-                            className="flex items-center gap-2 hover:text-league-primary transition-colors"
-                          >
-                            <TeamLogo name={s.team.name} logoUrl={s.team.logoUrl} size="sm" />
-                            <span className="font-medium">{s.team.name}</span>
-                          </Link>
-                        </TeamHoverCard>
-                      ) : (
-                        <Link
-                          to="/teams/$teamId"
-                          params={{ teamId: s.team.id }}
-                          search={{ from: backPath }}
-                          className="flex items-center gap-2 hover:text-league-primary transition-colors"
-                        >
-                          <TeamLogo name={s.team.name} logoUrl={s.team.logoUrl} size="sm" />
-                          <span className="font-medium">{s.team.name}</span>
-                        </Link>
-                      )}
+                      <Link
+                        to="/teams/$teamId/$slug"
+                        params={{ teamId: s.team.id, slug: slugify(s.team.name) }}
+                        search={{ from: backPath }}
+                        className="flex items-center gap-2 hover:text-league-primary transition-colors"
+                      >
+                        <TeamLogo name={s.team.name} logoUrl={s.team.logoUrl} size="sm" />
+                        <span className="font-medium">{s.team.name}</span>
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-center tabular-nums">{s.gamesPlayed}</td>
                     <td className="px-4 py-3 text-center tabular-nums">{s.wins}</td>

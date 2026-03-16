@@ -1,4 +1,4 @@
-import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, Input, toast } from "@puckhub/ui"
+import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { PlayerCombobox } from "~/components/playerCombobox"
@@ -22,9 +22,6 @@ interface SuspensionDialogProps {
   awayTeam: TeamInfo
   lineups: LineupPlayer[]
 }
-
-const selectClass =
-  'w-full h-10 rounded-lg border border-input bg-background px-3 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 appearance-none bg-[url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E")] bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10'
 
 function TeamToggleButton({ team, isSelected, onClick }: { team: TeamInfo; isSelected: boolean; onClick: () => void }) {
   return (
@@ -161,14 +158,15 @@ function SuspensionDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, line
 
             {/* Suspension type */}
             <FormField label={t("gameReport.fields.suspensionType")}>
-              <select
-                value={suspensionType}
-                onChange={(e) => setSuspensionType(e.target.value as any)}
-                className={selectClass}
-              >
-                <option value="match_penalty">{t("gameReport.suspensionTypes.matchPenalty")}</option>
-                <option value="game_misconduct">{t("gameReport.suspensionTypes.gameMisconduct")}</option>
-              </select>
+              <Select value={suspensionType} onValueChange={(v) => setSuspensionType(v as "match_penalty" | "game_misconduct")}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="match_penalty">{t("gameReport.suspensionTypes.matchPenalty")}</SelectItem>
+                  <SelectItem value="game_misconduct">{t("gameReport.suspensionTypes.gameMisconduct")}</SelectItem>
+                </SelectContent>
+              </Select>
             </FormField>
 
             {/* Games + Reason */}

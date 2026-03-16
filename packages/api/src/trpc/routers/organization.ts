@@ -31,6 +31,7 @@ export const organizationRouter = router({
     return memberships.map((m: any) => ({
       id: m.organization.id,
       name: m.organization.name,
+      slug: m.organization.slug,
       logo: m.organization.logo,
       role: m.role,
     }))
@@ -330,7 +331,7 @@ export const organizationRouter = router({
             data: {
               organizationId: orgId,
               planId,
-              interval: "monthly",
+              interval: "yearly",
               status: "active",
               currentPeriodStart: now,
               currentPeriodEnd: periodEnd,

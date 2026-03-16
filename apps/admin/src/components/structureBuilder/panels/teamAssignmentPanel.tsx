@@ -1,6 +1,8 @@
 import { Button, toast } from "@puckhub/ui"
 import { Trash2 } from "lucide-react"
+import { useState } from "react"
 import { trpc } from "@/trpc"
+import { ConfirmDialog } from "~/components/confirmDialog"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
@@ -21,6 +23,7 @@ export function TeamAssignmentPanel({
 }: TeamAssignmentPanelProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false)
   const removeMutation = trpc.teamDivision.remove.useMutation({
     onSuccess: () => {
       onInvalidate()
@@ -62,7 +65,7 @@ export function TeamAssignmentPanel({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => removeMutation.mutate({ id: assignmentId })}
+          onClick={() => setRemoveDialogOpen(true)}
           disabled={removeMutation.isPending}
           className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
         >
@@ -70,6 +73,21 @@ export function TeamAssignmentPanel({
           {t("seasonStructure.teamAssignment.removeFromDivision")}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={removeDialogOpen}
+        onOpenChange={setRemoveDialogOpen}
+        title={t("seasonStructure.confirmDelete.teamRemoveTitle")}
+        description={t("seasonStructure.confirmDelete.teamRemoveDescription", { team: teamName })}
+        confirmLabel={t("seasonStructure.confirmDelete.confirmRemove")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => {
+          removeMutation.mutate({ id: assignmentId })
+          setRemoveDialogOpen(false)
+        }}
+        isPending={removeMutation.isPending}
+        variant="destructive"
+      />
     </div>
   )
 }

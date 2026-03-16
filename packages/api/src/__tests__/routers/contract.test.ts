@@ -30,7 +30,7 @@ describe("contract router", () => {
       expect(contract?.endSeasonId).toBeNull()
     })
 
-    it("rejects signing a player who already has an active contract", async () => {
+    it("allows signing a player to multiple teams simultaneously", async () => {
       const { season, team, player } = await createContractFixtures()
       const admin = createTestCaller({ asAdmin: true })
       const otherTeam = (await admin.team.create({ name: "Wolves", shortName: "WOL" }))!
@@ -42,10 +42,32 @@ describe("contract router", () => {
         position: "forward",
       })
 
+      const secondContract = await admin.contract.signPlayer({
+        playerId: player.id,
+        teamId: otherTeam.id,
+        seasonId: season.id,
+        position: "defense",
+      })
+
+      expect(secondContract?.teamId).toBe(otherTeam.id)
+      expect(secondContract?.position).toBe("defense")
+    })
+
+    it("rejects signing a player to the same team twice", async () => {
+      const { season, team, player } = await createContractFixtures()
+      const admin = createTestCaller({ asAdmin: true })
+
+      await admin.contract.signPlayer({
+        playerId: player.id,
+        teamId: team.id,
+        seasonId: season.id,
+        position: "forward",
+      })
+
       await expect(
         admin.contract.signPlayer({
           playerId: player.id,
-          teamId: otherTeam.id,
+          teamId: team.id,
           seasonId: season.id,
           position: "defense",
         }),

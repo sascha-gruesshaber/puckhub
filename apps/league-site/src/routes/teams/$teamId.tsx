@@ -1,16 +1,15 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute, Link, useParams, useSearch } from "@tanstack/react-router"
 import { ArrowLeft, Globe, Mail, MapPin, Shield, User, Users } from "lucide-react"
-import { lazy, Suspense } from "react"
+import { lazy, Suspense, useEffect } from "react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { EmptyState } from "~/components/shared/emptyState"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
-import { PlayerHoverCard } from "~/components/shared/playerHoverCard"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { AllTimeStats } from "~/components/stats/allTimeStats"
 import { SeasonTimeline } from "~/components/stats/seasonTimeline"
 import { useFeatures, useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
-import { cn, useBackPath } from "~/lib/utils"
+import { cn, slugify, useBackPath } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
 const TeamProgressionCharts = lazy(() =>
@@ -61,10 +60,10 @@ function SectionDivider({ icon, title }: { icon: React.ReactNode; title: string 
   )
 }
 
-function TeamDetailPage() {
+export function TeamDetailPage() {
   const t = useT()
-  const { teamId } = Route.useParams()
-  const { from: fromParam } = Route.useSearch()
+  const { teamId } = useParams({ strict: false }) as { teamId: string }
+  const { from: fromParam } = useSearch({ strict: false }) as { from?: string }
   const org = useOrg()
   const season = useSeason()
   const features = useFeatures()
@@ -81,6 +80,16 @@ function TeamDetailPage() {
     { organizationId: org.id, teamId, seasonId: season.current?.id },
     { staleTime: 60_000 },
   )
+
+  useEffect(() => {
+    if (team) {
+      const slug = slugify(team.name)
+      const expected = `/teams/${teamId}/${slug}`
+      if (window.location.pathname !== expected) {
+        window.history.replaceState(null, "", expected + window.location.search)
+      }
+    }
+  }, [team, teamId])
 
   const { data: historyData, isLoading: historyLoading } = trpc.publicSite.getTeamHistory.useQuery(
     { organizationId: org.id, teamId },
@@ -179,14 +188,16 @@ function TeamDetailPage() {
                     {positionLabels[pos] ?? pos}
                   </h3>
                   <div className="flex flex-wrap gap-3">
-                    {players.map((p) => {
-                      const card = (
+                    {players.map((p) => (
+                      <Link
+                        key={p.playerId}
+                        to="/players/$playerId/$slug"
+                        params={{ playerId: p.playerId, slug: slugify(`${p.firstName} ${p.lastName}`) }}
+                        search={{ from: backPath }}
+                        className="block"
+                      >
                         <div
-                          key={p.playerId}
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg border border-league-text/10 bg-league-surface px-4 py-3 transition-colors w-full sm:w-72",
-                            features.advancedStats && "hover:border-league-primary/30",
-                          )}
+                          className="flex items-center gap-3 rounded-lg border border-league-text/10 bg-league-surface px-4 py-3 transition-colors w-full sm:w-72 hover:border-league-primary/30"
                         >
                           {p.photoUrl ? (
                             <img
@@ -208,34 +219,8 @@ function TeamDetailPage() {
                             #{p.jerseyNumber ?? "-"}
                           </span>
                         </div>
-                      )
-
-                      if (features.advancedStats) {
-                        return (
-                          <PlayerHoverCard
-                            key={p.playerId}
-                            firstName={p.firstName}
-                            lastName={p.lastName}
-                            photoUrl={p.photoUrl}
-                            jerseyNumber={p.jerseyNumber}
-                            position={pos}
-                            team={{ name: team.name, shortName: team.shortName, logoUrl: team.logoUrl }}
-                            playerId={p.playerId}
-                          >
-                            <Link
-                              to="/stats/players/$playerId"
-                              params={{ playerId: p.playerId }}
-                              search={{ from: backPath }}
-                              className="block"
-                            >
-                              {card}
-                            </Link>
-                          </PlayerHoverCard>
-                        )
-                      }
-
-                      return card
-                    })}
+                      </Link>
+                    ))}
                   </div>
                 </div>
               )

@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, formField, login } from "./helpers"
 
 test.describe("Settings", () => {
   test("settings page loads with seeded league name", async ({ page }) => {
     await login(page)
-    await page.goto("/settings")
+    await page.goto(adminPath("settings"))
     await expect(page.getByRole("heading", { name: "settings.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -16,7 +16,7 @@ test.describe("Settings", () => {
 
   test("change league name persists after navigation", async ({ page }) => {
     await login(page)
-    await page.goto("/settings")
+    await page.goto(adminPath("settings"))
     await expect(page.getByRole("heading", { name: "settings.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -31,13 +31,13 @@ test.describe("Settings", () => {
     await page.waitForLoadState("networkidle")
 
     // Navigate away
-    await page.goto("/")
+    await page.goto(adminPath(""))
     await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
       timeout: 10_000,
     })
 
     // Navigate back to settings
-    await page.goto("/settings")
+    await page.goto(adminPath("settings"))
     const nameInput2 = formField(page, "settings.leagueName")
     await expect(nameInput2).toHaveValue("E2E Updated League")
 

@@ -1,7 +1,8 @@
 import { Button, Input, toast } from "@puckhub/ui"
-import { Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
+import { ConfirmDialog } from "~/components/confirmDialog"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
 
@@ -27,6 +28,7 @@ export function DivisionEditPanel({
   const [editName, setEditName] = useState(name)
   const [editOrder, setEditOrder] = useState(String(sortOrder))
   const [editGoalieMinGames, setEditGoalieMinGames] = useState(String(goalieMinGames))
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   useEffect(() => {
     setEditName(name)
@@ -142,7 +144,7 @@ export function DivisionEditPanel({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => deleteMutation.mutate({ id: divisionId })}
+          onClick={() => setDeleteDialogOpen(true)}
           disabled={deleteMutation.isPending}
           className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
         >
@@ -150,6 +152,29 @@ export function DivisionEditPanel({
           {t("seasonStructure.divisionPanel.deleteDivision")}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={t("seasonStructure.confirmDelete.divisionTitle")}
+        description={
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 p-3">
+              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+              <span className="text-sm text-red-800">{t("seasonStructure.confirmDelete.divisionWarning")}</span>
+            </div>
+            <p className="text-sm text-gray-600">{t("seasonStructure.confirmDelete.divisionDescription", { name: editName })}</p>
+          </div>
+        }
+        confirmLabel={t("seasonStructure.confirmDelete.confirmDelete")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => {
+          deleteMutation.mutate({ id: divisionId })
+          setDeleteDialogOpen(false)
+        }}
+        isPending={deleteMutation.isPending}
+        variant="destructive"
+      />
     </div>
   )
 }

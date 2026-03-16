@@ -1,5 +1,5 @@
-import { Button, Card, CardContent, FormField, Input, Label } from "@puckhub/ui"
-import { useNavigate } from "@tanstack/react-router"
+import { Button, Card, CardContent, FormField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@puckhub/ui"
+import { useNavigate, useParams } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { useTranslation } from "~/i18n/use-translation"
@@ -43,6 +43,7 @@ const emptyForm: FormState = {
 
 export function PageForm({ initialData, currentSlug, onSubmit, isPending, submitLabel, isSystemRoute }: PageFormProps) {
   const { t } = useTranslation("common")
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
   const resolvedSubmitLabel = submitLabel ?? t("save")
   const [form, setForm] = useState<FormState>(
@@ -184,20 +185,21 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
             {!hasChildren && !isSystemRoute && (
               <div>
                 <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.parentPage")}</Label>
-                <select
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={form.parentId ?? ""}
-                  onChange={(e) => setField("parentId", e.target.value || null)}
-                >
-                  <option value="">{t("pageForm.fields.parentPageRootOption")}</option>
-                  {topLevelPages
-                    .filter((p) => p.slug !== currentSlug)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                </select>
+                <Select value={form.parentId ?? "__root__"} onValueChange={(v) => setField("parentId", v === "__root__" ? null : v)}>
+                  <SelectTrigger className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__root__">{t("pageForm.fields.parentPageRootOption")}</SelectItem>
+                    {topLevelPages
+                      .filter((p) => p.slug !== currentSlug)
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.title}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -243,7 +245,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
               <Button type="submit" variant="accent" disabled={isPending} className="w-full">
                 {isPending ? t("saving") : resolvedSubmitLabel}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/pages" })}>
+              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/$orgSlug/pages", params: { orgSlug } })}>
                 {t("cancel")}
               </Button>
             </div>

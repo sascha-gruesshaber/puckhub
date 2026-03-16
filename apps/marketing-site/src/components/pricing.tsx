@@ -1,4 +1,3 @@
-import { useState } from "react"
 import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
 import { Check, X, Loader2 } from "lucide-react"
 import { useT } from "~/i18n"
@@ -12,7 +11,6 @@ export function Pricing() {
   const t = useT()
   const header = useScrollReveal()
   const cards = useScrollReveal()
-  const [yearly, setYearly] = useState(false)
   const { data: plans, isLoading } = trpc.publicSite.listPlans.useQuery(undefined, {
     staleTime: 300_000,
   })
@@ -27,25 +25,6 @@ export function Pricing() {
         <div ref={header.ref} className={`text-center mb-12 ${revealClasses(header)}`}>
           <h2 className="text-3xl sm:text-4xl font-bold">{t.pricing.heading}</h2>
           <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">{t.pricing.subheading}</p>
-
-          {/* Billing toggle */}
-          <div className="mt-8 inline-flex items-center gap-3 rounded-full bg-white/5 p-1 border border-white/10">
-            <button
-              type="button"
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${!yearly ? "bg-brand-gold text-brand-navy" : "text-brand-slate hover:text-white"}`}
-              onClick={() => setYearly(false)}
-            >
-              {t.pricing.monthly}
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${yearly ? "bg-brand-gold text-brand-navy" : "text-brand-slate hover:text-white"}`}
-              onClick={() => setYearly(true)}
-            >
-              {t.pricing.yearly}
-              <span className="ml-1.5 text-xs opacity-80">{t.pricing.yearlySave}</span>
-            </button>
-          </div>
         </div>
 
         {isLoading ? (
@@ -60,7 +39,7 @@ export function Pricing() {
             className={`grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto ${revealClasses(cards, "stagger")}`}
           >
             {plans.map((plan, index) => {
-              const price = yearly ? plan.priceYearly : plan.priceMonthly
+              const price = plan.priceYearly
               const isPopular = index === 1
 
               return (
@@ -91,7 +70,7 @@ export function Pricing() {
                     ) : (
                       <>
                         <span className="text-4xl font-extrabold">{formatPrice(price)} €</span>
-                        <span className="text-brand-slate ml-1">{yearly ? t.pricing.perYear : t.pricing.perMonth}</span>
+                        <span className="text-brand-slate ml-1">{t.pricing.perYear}</span>
                       </>
                     )}
                   </div>

@@ -10,6 +10,11 @@ import {
   DialogTitle,
   FormField,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
@@ -559,18 +564,18 @@ function UsersPage() {
               <>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">League</label>
-                  <select
-                    value={assignOrgId}
-                    onChange={(e) => setAssignOrgId(e.target.value)}
-                    className="w-full rounded-lg border border-border/50 bg-white py-2 px-3 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    <option value="">Select a league...</option>
-                    {availableOrgs.map((org) => (
-                      <option key={org.id} value={org.id}>
-                        {org.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={assignOrgId || undefined} onValueChange={(v) => setAssignOrgId(v)}>
+                    <SelectTrigger className="w-full h-9">
+                      <SelectValue placeholder="Select a league..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableOrgs.map((org) => (
+                        <SelectItem key={org.id} value={org.id}>
+                          {org.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-foreground mb-1.5 block">Role</label>

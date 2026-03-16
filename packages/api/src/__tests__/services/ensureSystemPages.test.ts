@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest"
 import { ensureSystemPages } from "../../services/ensureSystemPages"
 import { getTestDb, TEST_ORG_ID } from "../testUtils"
 
-const TOP_LEVEL_SLUGS = ["_route-home", "_route-standings", "_route-schedule", "_route-teams", "_route-stats"]
+const TOP_LEVEL_SLUGS = [
+  "_route-home",
+  "_route-standings",
+  "_route-schedule",
+  "_route-structure",
+  "_route-teams",
+  "_route-stats",
+]
 
 const SUB_ROUTE_SLUGS = [
   "_route-stats-scorers",
@@ -20,14 +27,14 @@ describe("ensureSystemPages service", () => {
     const db = getTestDb()
     const result = await ensureSystemPages(db, TEST_ORG_ID)
 
-    expect(result.created).toHaveLength(11)
+    expect(result.created).toHaveLength(12)
     expect(result.created.sort()).toEqual(ALL_SYSTEM_SLUGS.sort())
 
     // Verify pages actually exist in DB
     const pages = await db.page.findMany({
       where: { organizationId: TEST_ORG_ID, isSystemRoute: true },
     })
-    expect(pages).toHaveLength(11)
+    expect(pages).toHaveLength(12)
   })
 
   it("returns German titles by default (locale de-DE)", async () => {
@@ -40,7 +47,7 @@ describe("ensureSystemPages service", () => {
     })
 
     const titles = pages.map((p) => p.title)
-    expect(titles).toEqual(["Start", "Tabelle", "Spielplan", "Teams", "Statistiken"])
+    expect(titles).toEqual(["Start", "Tabelle", "Spielplan", "Saisonstruktur", "Teams", "Statistiken"])
   })
 
   it("returns English titles for en-US locale", async () => {
@@ -53,14 +60,14 @@ describe("ensureSystemPages service", () => {
     })
 
     const titles = pages.map((p) => p.title)
-    expect(titles).toEqual(["Home", "Standings", "Schedule", "Teams", "Statistics"])
+    expect(titles).toEqual(["Home", "Standings", "Schedule", "Structure", "Teams", "Statistics"])
   })
 
   it("is idempotent — second call creates nothing", async () => {
     const db = getTestDb()
 
     const first = await ensureSystemPages(db, TEST_ORG_ID)
-    expect(first.created).toHaveLength(11)
+    expect(first.created).toHaveLength(12)
 
     const second = await ensureSystemPages(db, TEST_ORG_ID)
     expect(second.created).toHaveLength(0)
@@ -69,7 +76,7 @@ describe("ensureSystemPages service", () => {
     const pages = await db.page.findMany({
       where: { organizationId: TEST_ORG_ID, isSystemRoute: true },
     })
-    expect(pages).toHaveLength(11)
+    expect(pages).toHaveLength(12)
   })
 
   it("only creates missing pages when some already exist", async () => {
@@ -105,8 +112,8 @@ describe("ensureSystemPages service", () => {
 
     const result = await ensureSystemPages(db, TEST_ORG_ID)
 
-    // Should create the 3 missing top-level + 6 sub-routes = 9
-    expect(result.created).toHaveLength(9)
+    // Should create the 4 missing top-level + 6 sub-routes = 10
+    expect(result.created).toHaveLength(10)
     expect(result.created).not.toContain("_route-home")
     expect(result.created).not.toContain("_route-standings")
     expect(result.created).toContain("_route-schedule")
@@ -120,7 +127,7 @@ describe("ensureSystemPages service", () => {
     const pages = await db.page.findMany({
       where: { organizationId: TEST_ORG_ID, isSystemRoute: true },
     })
-    expect(pages).toHaveLength(11)
+    expect(pages).toHaveLength(12)
   })
 
   it("creates pages with correct routePath and sortOrder", async () => {
@@ -139,10 +146,12 @@ describe("ensureSystemPages service", () => {
     expect(pages[1]?.sortOrder).toBe(1)
     expect(pages[2]?.routePath).toBe("/spielplan")
     expect(pages[2]?.sortOrder).toBe(2)
-    expect(pages[3]?.routePath).toBe("/teams")
+    expect(pages[3]?.routePath).toBe("/struktur")
     expect(pages[3]?.sortOrder).toBe(3)
-    expect(pages[4]?.routePath).toBe("/statistiken")
+    expect(pages[4]?.routePath).toBe("/teams")
     expect(pages[4]?.sortOrder).toBe(4)
+    expect(pages[5]?.routePath).toBe("/statistiken")
+    expect(pages[5]?.sortOrder).toBe(5)
   })
 
   it("creates pages with published status and main_nav menu location", async () => {
@@ -257,7 +266,7 @@ describe("ensureSystemPages service", () => {
     const systemPages = await db.page.findMany({
       where: { organizationId: TEST_ORG_ID, isSystemRoute: true },
     })
-    expect(systemPages).toHaveLength(11)
+    expect(systemPages).toHaveLength(12)
   })
 
   it("returns empty unmarked array when no orphans exist", async () => {
@@ -265,7 +274,7 @@ describe("ensureSystemPages service", () => {
     const result = await ensureSystemPages(db, TEST_ORG_ID)
 
     expect(result.unmarked).toHaveLength(0)
-    expect(result.created).toHaveLength(11)
+    expect(result.created).toHaveLength(12)
   })
 
   it("creates sub-routes even when top-level already exists", async () => {
@@ -287,6 +296,6 @@ describe("ensureSystemPages service", () => {
     const total = await db.page.findMany({
       where: { organizationId: TEST_ORG_ID, isSystemRoute: true },
     })
-    expect(total).toHaveLength(11)
+    expect(total).toHaveLength(12)
   })
 })

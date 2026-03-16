@@ -67,7 +67,7 @@ Copy `.env.example` to `.env`. Key variables:
 | `UPLOAD_DIR` | `./uploads` | File upload directory |
 | `DEFAULT_USER_EMAIL` | `admin@puckhub.local` | Default admin user email (magic link login) |
 | `DEMO_MODE` | `false` | Enable demo mode with periodic resets |
-| `DEMO_RESET_CRON` | `0 */4 * * *` | Cron schedule for demo data reset |
+| `DEMO_RESET_CRON` | `0 4 * * *` | Cron schedule for demo data reset (daily at 04:00) |
 | `PASSKEY_RP_ID` | `puckhub.localhost` | WebAuthn relying party ID |
 | `PASSKEY_RP_NAME` | `PuckHub Admin` | WebAuthn relying party name |
 | `PASSKEY_ORIGIN` | `http://admin.puckhub.localhost` | WebAuthn origin |

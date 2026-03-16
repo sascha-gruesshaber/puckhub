@@ -1,7 +1,7 @@
 import { Badge, Button } from "@puckhub/ui"
-import { ArrowRightLeft, Pencil, UserMinus } from "lucide-react"
+import { useParams } from "@tanstack/react-router"
+import { ArrowRightLeft, UserMinus } from "lucide-react"
 import { useMemo } from "react"
-import { PlayerHoverCard } from "~/components/playerHoverCard"
 import { useTranslation } from "~/i18n/use-translation"
 
 const POSITION_ORDER = ["goalie", "defense", "forward"] as const
@@ -16,6 +16,8 @@ interface ContractRow {
   id: string
   position: string
   jerseyNumber: number | null
+  startSeasonId: string
+  endSeasonId: string | null
   player: {
     id: string
     firstName: string
@@ -35,6 +37,7 @@ interface RosterTableProps {
 
 function RosterTable({ contracts, onEdit, onRelease, onTransfer }: RosterTableProps) {
   const { t } = useTranslation("common")
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const grouped = useMemo(() => {
     const map = new Map<string, ContractRow[]>()
     for (const pos of POSITION_ORDER) {
@@ -94,10 +97,19 @@ function RosterTable({ contracts, onEdit, onRelease, onTransfer }: RosterTablePr
                 return (
                   <div
                     key={c.id}
-                    className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
+                    onClick={() => onEdit(c)}
+                    className={`data-row group flex items-center gap-2 sm:gap-4 px-3 sm:px-4 py-2.5 sm:py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
                       i < players.length - 1 ? "border-b border-border/40" : ""
                     }`}
                     style={{ "--row-index": rowIndex } as React.CSSProperties}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        onEdit(c)
+                      }
+                    }}
                   >
                     {/* Jersey number badge */}
                     <div className="w-16 flex justify-center shrink-0">
@@ -112,37 +124,28 @@ function RosterTable({ contracts, onEdit, onRelease, onTransfer }: RosterTablePr
 
                     {/* Avatar + Name */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <PlayerHoverCard
-                        playerId={c.player.id}
-                        name={`${c.player.firstName} ${c.player.lastName}`}
-                        position={c.position}
-                        jerseyNumber={c.jerseyNumber}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted overflow-hidden">
-                            {c.player.photoUrl ? (
-                              <img
-                                src={c.player.photoUrl}
-                                alt={`${c.player.firstName} ${c.player.lastName}`}
-                                className="h-full w-full rounded-lg object-cover"
-                              />
-                            ) : (
-                              <span className="text-xs font-bold text-muted-foreground">
-                                {c.player.firstName[0]}
-                                {c.player.lastName[0]}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-sm truncate">
-                            <span className="text-muted-foreground">{c.player.firstName}</span>{" "}
-                            <span className="font-semibold text-foreground">{c.player.lastName}</span>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted overflow-hidden">
+                        {c.player.photoUrl ? (
+                          <img
+                            src={c.player.photoUrl}
+                            alt={`${c.player.firstName} ${c.player.lastName}`}
+                            className="h-full w-full rounded-lg object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-muted-foreground">
+                            {c.player.firstName[0]}
+                            {c.player.lastName[0]}
                           </span>
-                        </div>
-                      </PlayerHoverCard>
+                        )}
+                      </div>
+                      <span className="text-sm truncate">
+                        <span className="text-muted-foreground">{c.player.firstName}</span>{" "}
+                        <span className="font-semibold text-foreground">{c.player.lastName}</span>
+                      </span>
                     </div>
 
                     {/* Nationality */}
-                    <div className="w-28 shrink-0">
+                    <div className="w-28 shrink-0 hidden sm:block">
                       {c.player.nationality ? (
                         <span className="inline-block bg-muted text-xs rounded px-1.5 py-0.5 font-medium">
                           {c.player.nationality}
@@ -152,43 +155,30 @@ function RosterTable({ contracts, onEdit, onRelease, onTransfer }: RosterTablePr
                       )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="shrink-0 flex justify-end">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-8 px-2 md:px-3"
-                          onClick={() => onEdit(c)}
-                          title={t("rosterPage.table.actions.editContract")}
-                          aria-label={t("rosterPage.table.actions.editContract")}
-                        >
-                          <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
-                          <span className="hidden md:inline">{t("rosterPage.table.actions.editContract")}</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-8 px-2 md:px-3"
-                          onClick={() => onTransfer(c)}
-                          title={t("rosterPage.table.actions.transfer")}
-                          aria-label={t("rosterPage.table.actions.transfer")}
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5 md:mr-1.5" />
-                          <span className="hidden md:inline">{t("rosterPage.table.actions.transfer")}</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-                          onClick={() => onRelease(c)}
-                          title={t("rosterPage.table.actions.releasePlayer")}
-                          aria-label={t("rosterPage.table.actions.releasePlayer")}
-                        >
-                          <UserMinus className="h-3.5 w-3.5 md:mr-1.5" />
-                          <span className="hidden md:inline">{t("rosterPage.table.actions.releasePlayer")}</span>
-                        </Button>
-                      </div>
+                    {/* Transfer + Release actions */}
+                    <div className="shrink-0 flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-8 px-2 md:px-3"
+                        onClick={(e) => { e.stopPropagation(); onTransfer(c) }}
+                        title={t("rosterPage.table.actions.transfer")}
+                        aria-label={t("rosterPage.table.actions.transfer")}
+                      >
+                        <ArrowRightLeft className="h-3.5 w-3.5 md:mr-1.5" />
+                        <span className="hidden md:inline">{t("rosterPage.table.actions.transfer")}</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); onRelease(c) }}
+                        title={t("rosterPage.table.actions.releasePlayer")}
+                        aria-label={t("rosterPage.table.actions.releasePlayer")}
+                      >
+                        <UserMinus className="h-3.5 w-3.5 md:mr-1.5" />
+                        <span className="hidden md:inline">{t("rosterPage.table.actions.releasePlayer")}</span>
+                      </Button>
                     </div>
                   </div>
                 )

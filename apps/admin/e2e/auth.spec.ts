@@ -42,11 +42,11 @@ test.describe("Authentication", () => {
       await orgButton.click()
     }
 
-    // Should land on the dashboard
+    // Should land on the dashboard (at /$orgSlug/ after org selection)
     await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
       timeout: 15_000,
     })
-    await expect(page).toHaveURL("/")
+    await expect(page).toHaveURL(/\/(e2e-league\/?)?$/)
   })
 
   test("show error with invalid email format", async ({ page }) => {

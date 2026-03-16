@@ -3,6 +3,7 @@ import { ChevronDown } from "lucide-react"
 import { useOrg, useSeason } from "~/lib/context"
 import { Skeleton } from "../shared/loadingSkeleton"
 import { TeamLogo } from "../shared/teamLogo"
+import { slugify } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 import type { MenuPage } from "./siteHeader"
 
@@ -49,8 +50,8 @@ export function TeamsDesktopMegaDropdown({ page, link }: { page: MenuPage; link:
                 {teams.map((team) => (
                   <Link
                     key={team.id}
-                    to="/teams/$teamId"
-                    params={{ teamId: team.id }}
+                    to="/teams/$teamId/$slug"
+                    params={{ teamId: team.id, slug: slugify(team.name) }}
                     className="flex flex-col items-center gap-1.5 rounded-md p-2 transition-colors hover:bg-white/10"
                     activeProps={{ className: "bg-white/15 ring-1 ring-white/20" }}
                     style={{ borderTop: `2px solid ${team.primaryColor || "transparent"}` }}
@@ -127,8 +128,8 @@ export function TeamsMobileGrid({ page, onNavigate }: { page: MenuPage; onNaviga
           {teams.map((team) => (
             <Link
               key={team.id}
-              to="/teams/$teamId"
-              params={{ teamId: team.id }}
+              to="/teams/$teamId/$slug"
+              params={{ teamId: team.id, slug: slugify(team.name) }}
               className="flex flex-col items-center gap-1.5 rounded-md p-2 transition-colors hover:bg-white/10"
               activeProps={{ className: "bg-white/15 ring-1 ring-white/20" }}
               style={{ borderTop: `2px solid ${team.primaryColor || "transparent"}` }}

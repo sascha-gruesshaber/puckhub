@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, formField, login } from "./helpers"
 
 test.describe("Games Management", () => {
   test("games list loads with seeded data", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -16,7 +16,7 @@ test.describe("Games Management", () => {
 
   test("filter by status tab shows correct games", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -43,7 +43,7 @@ test.describe("Games Management", () => {
 
   test("filter by team shows only that team's games", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -62,7 +62,7 @@ test.describe("Games Management", () => {
 
   test("create, edit, and delete a game", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -123,7 +123,7 @@ test.describe("Games Management", () => {
 
   test("cancel and reopen a game", async ({ page }) => {
     await login(page)
-    await page.goto("/games")
+    await page.goto(adminPath("games"))
     await expect(page.getByRole("heading", { name: "gamesPage.title" })).toBeVisible({
       timeout: 10_000,
     })

@@ -3,14 +3,13 @@ import { useEffect } from "react"
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
-import { PlayerHoverCard } from "~/components/shared/playerHoverCard"
 import { PublicReportForm } from "~/components/shared/publicReportForm"
 import { ScoreBadge } from "~/components/shared/scoreBadge"
 import { StatusBadge } from "~/components/shared/statusBadge"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { useFeatures, useOrg } from "~/lib/context"
 import { useT } from "~/lib/i18n"
-import { cn, formatDateTime, useBackPath } from "~/lib/utils"
+import { cn, formatDateTime, slugify, useBackPath } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
 export const Route = createFileRoute("/schedule/$gameId")({
@@ -92,8 +91,8 @@ export function GameDetailPage() {
           <div className="flex items-center justify-center gap-6 sm:gap-10">
             {/* Home team */}
             <Link
-              to="/teams/$teamId"
-              params={{ teamId: game.homeTeam.id }}
+              to="/teams/$teamId/$slug"
+              params={{ teamId: game.homeTeam.id, slug: slugify(game.homeTeam.name) }}
               search={{ from: backPath }}
               className="text-center flex-1 group"
             >
@@ -114,8 +113,8 @@ export function GameDetailPage() {
 
             {/* Away team */}
             <Link
-              to="/teams/$teamId"
-              params={{ teamId: game.awayTeam.id }}
+              to="/teams/$teamId/$slug"
+              params={{ teamId: game.awayTeam.id, slug: slugify(game.awayTeam.name) }}
               search={{ from: backPath }}
               className="text-center flex-1 group"
             >
@@ -206,25 +205,17 @@ export function GameDetailPage() {
                     className={cn("flex items-center px-4 py-3 text-sm", isHome ? "flex-row" : "flex-row-reverse")}
                   >
                     <div className={cn("flex-1", isHome ? "text-left" : "text-right")}>
-                      {features.advancedStats && event.scorer ? (
-                        <PlayerHoverCard
-                          firstName={event.scorer.firstName}
-                          lastName={event.scorer.lastName}
-                          playerId={event.scorer.id}
+                      {event.scorer ? (
+                        <Link
+                          to="/players/$playerId/$slug"
+                          params={{ playerId: event.scorer.id ?? "", slug: slugify(`${event.scorer.firstName} ${event.scorer.lastName}`) }}
+                          search={{ from: backPath }}
+                          className="font-medium hover:text-league-primary transition-colors"
                         >
-                          <Link
-                            to="/stats/players/$playerId"
-                            params={{ playerId: event.scorer.id ?? "" }}
-                            search={{ from: backPath }}
-                            className="font-medium hover:text-league-primary transition-colors"
-                          >
-                            {event.scorer.firstName} {event.scorer.lastName}
-                          </Link>
-                        </PlayerHoverCard>
+                          {event.scorer.firstName} {event.scorer.lastName}
+                        </Link>
                       ) : (
-                        <span className="font-medium">
-                          {event.scorer?.firstName} {event.scorer?.lastName}
-                        </span>
+                        <span className="font-medium">–</span>
                       )}
                       {(event.assist1 || event.assist2) && (
                         <span className="text-league-text/50 ml-2 text-xs">
@@ -256,25 +247,17 @@ export function GameDetailPage() {
               {penalties.map((event) => (
                 <div key={event.id} className="flex items-center px-4 py-3 text-sm">
                   <div className="flex-1">
-                    {features.advancedStats && event.penaltyPlayer ? (
-                      <PlayerHoverCard
-                        firstName={event.penaltyPlayer.firstName}
-                        lastName={event.penaltyPlayer.lastName}
-                        playerId={event.penaltyPlayer.id}
+                    {event.penaltyPlayer ? (
+                      <Link
+                        to="/players/$playerId/$slug"
+                        params={{ playerId: event.penaltyPlayer.id ?? "", slug: slugify(`${event.penaltyPlayer.firstName} ${event.penaltyPlayer.lastName}`) }}
+                        search={{ from: backPath }}
+                        className="font-medium hover:text-league-primary transition-colors"
                       >
-                        <Link
-                          to="/stats/players/$playerId"
-                          params={{ playerId: event.penaltyPlayer.id ?? "" }}
-                          search={{ from: backPath }}
-                          className="font-medium hover:text-league-primary transition-colors"
-                        >
-                          {event.penaltyPlayer.firstName} {event.penaltyPlayer.lastName}
-                        </Link>
-                      </PlayerHoverCard>
+                        {event.penaltyPlayer.firstName} {event.penaltyPlayer.lastName}
+                      </Link>
                     ) : (
-                      <span className="font-medium">
-                        {event.penaltyPlayer?.firstName} {event.penaltyPlayer?.lastName}
-                      </span>
+                      <span className="font-medium">–</span>
                     )}
                     <span className="text-league-text/50 ml-2 text-xs">({event.team.shortName})</span>
                   </div>
@@ -319,8 +302,8 @@ export function GameDetailPage() {
                   className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden"
                 >
                   <Link
-                    to="/teams/$teamId"
-                    params={{ teamId: team.id }}
+                    to="/teams/$teamId/$slug"
+                    params={{ teamId: team.id, slug: slugify(team.name) }}
                     search={{ from: backPath }}
                     className="px-4 py-2 bg-league-text/[0.03] font-semibold text-sm flex items-center gap-2 hover:text-league-primary transition-colors"
                   >
@@ -334,29 +317,14 @@ export function GameDetailPage() {
                           {l.jerseyNumber ?? "-"}
                         </span>
                         <span className="flex-1">
-                          {features.advancedStats ? (
-                            <PlayerHoverCard
-                              firstName={l.player.firstName}
-                              lastName={l.player.lastName}
-                              playerId={l.player.id}
-                              position={l.position}
-                              jerseyNumber={l.jerseyNumber}
-                              team={{ name: team.name, shortName: team.shortName, logoUrl: team.logoUrl }}
-                            >
-                              <Link
-                                to="/stats/players/$playerId"
-                                params={{ playerId: l.player.id }}
-                                search={{ from: backPath }}
-                                className="hover:text-league-primary transition-colors"
-                              >
-                                {l.player.firstName} {l.player.lastName}
-                              </Link>
-                            </PlayerHoverCard>
-                          ) : (
-                            <>
-                              {l.player.firstName} {l.player.lastName}
-                            </>
-                          )}
+                          <Link
+                            to="/players/$playerId/$slug"
+                            params={{ playerId: l.player.id, slug: slugify(`${l.player.firstName} ${l.player.lastName}`) }}
+                            search={{ from: backPath }}
+                            className="hover:text-league-primary transition-colors"
+                          >
+                            {l.player.firstName} {l.player.lastName}
+                          </Link>
                         </span>
                         <span className="text-xs text-league-text/40 uppercase">{l.position}</span>
                       </div>

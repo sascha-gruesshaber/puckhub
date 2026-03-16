@@ -99,7 +99,7 @@ export function AssistsPage() {
       {isLoading ? (
         <StatsTableSkeleton />
       ) : (
-        <PlayerTable stats={sorted} sortBy="assists" advancedStats={features.advancedStats} />
+        <PlayerTable stats={sorted} sortBy="assists" />
       )}
     </StatsPageShell>
   )

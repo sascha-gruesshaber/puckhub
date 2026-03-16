@@ -362,6 +362,18 @@
       "description": "Drag teams onto a division to assign them.",
       "searchPlaceholder": "Search teams...",
       "noTeams": "No teams found"
+    },
+    "confirmDelete": {
+      "divisionTitle": "Delete division?",
+      "divisionWarning": "This action is permanent and cannot be undone. All rounds, games, standings, and statistics within this division will be permanently deleted.",
+      "divisionDescription": "Are you sure you want to delete \"{{name}}\" and all its data?",
+      "roundTitle": "Delete round?",
+      "roundWarning": "This action is permanent and cannot be undone. All games, standings, and statistics within this round will be permanently deleted.",
+      "roundDescription": "Are you sure you want to delete \"{{name}}\" and all its data?",
+      "teamRemoveTitle": "Remove team from division?",
+      "teamRemoveDescription": "Are you sure you want to remove \"{{team}}\" from this division? The team's games and statistics in this division will no longer be associated.",
+      "confirmDelete": "Delete permanently",
+      "confirmRemove": "Remove"
     }
   },
   "dashboard": {
@@ -720,7 +732,55 @@
     "hoverCard": {
       "withoutTeam": "Without team",
       "nationality": "Nationality: {{value}}",
-      "ageYears": "{{age}} years"
+      "ageYears": "{{age}} years",
+      "viewDetails": "Details"
+    },
+    "playerDetail": {
+      "backToPlayers": "Back to players",
+      "editInfo": "Edit player info",
+      "currentStatus": "Current status",
+      "freeAgent": "Free Agent",
+      "freeAgentDescription": "This player is not currently signed to any team.",
+      "signToTeam": "Sign to team",
+      "editContract": "Edit contract",
+      "transfer": "Transfer",
+      "release": "Release",
+      "contractHistory": "Contract history",
+      "noContracts": "No contracts yet.",
+      "notFound": "Player not found.",
+      "ongoing": "ongoing",
+      "active": "Active",
+      "ended": "Ended",
+      "events": {
+        "signed": "Signed",
+        "transferred": "Transferred",
+        "released": "Released"
+      },
+      "reopenContract": {
+        "button": "Reopen",
+        "toast": {
+          "reopened": "Contract reopened",
+          "reopenError": "Could not reopen contract"
+        }
+      },
+      "deleteContract": {
+        "title": "Delete contract",
+        "description": "This will permanently remove this contract and clean up all associated data.",
+        "warning": "The following data will be permanently deleted:",
+        "consequences": {
+          "lineups": "Game lineups for this player on this team",
+          "stats": "Player season statistics for this team",
+          "goalieStats": "Goalie season statistics for this team"
+        },
+        "endInstead": "Want to end the contract instead?",
+        "endInsteadDescription": "Ending the contract keeps all game data, lineups, and statistics intact. The player is simply released from the team.",
+        "confirm": "Delete contract",
+        "deleting": "Deleting...",
+        "toast": {
+          "deleted": "Contract deleted",
+          "deleteError": "Could not delete contract"
+        }
+      }
     },
     "timeline": {
       "sinceSeason": "Since {{season}}",
@@ -972,7 +1032,19 @@
     "hoverCard": {
       "noContactData": "No contact details available",
       "roster": "Roster",
-      "edit": "Edit"
+      "edit": "Edit",
+      "viewDetails": "Details"
+    },
+    "teamDetail": {
+      "backToTeams": "Teams",
+      "roster": "Roster",
+      "seasonHistory": "Season History",
+      "noHistory": "No season history available",
+      "noRoster": "No roster available",
+      "notFound": "Team not found",
+      "record": "W{{wins}} D{{draws}} L{{losses}}",
+      "rank": "#{{rank}}",
+      "goalDifference": "GD"
     },
     "dialogs": {
       "newTitle": "Create new team",
@@ -1185,7 +1257,8 @@
         "playerSearchPlaceholder": "Search players...",
         "position": "Position",
         "jerseyNumber": "Jersey number",
-        "jerseyNumberPlaceholder": "e.g. 17"
+        "jerseyNumberPlaceholder": "e.g. 17",
+        "season": "Season"
       },
       "actions": {
         "change": "Change",
@@ -1237,6 +1310,8 @@
       "validation": {
         "teamRequired": "Please select a team"
       },
+      "effectiveSeason": "Transfer effective from",
+      "transferFromSeason": "{{player}} will be transferred starting from {{season}}.",
       "toast": {
         "transferred": "Transfer successful",
         "transferError": "Could not transfer player"
@@ -1244,8 +1319,14 @@
     },
     "releaseDialog": {
       "title": "Release player",
-      "description": "Are you sure you want to release {{player}}? The contract will end at the end of this season.",
-      "confirm": "Release"
+      "description": "End the contract for {{player}}.",
+      "since": "since {{season}}",
+      "lastActiveSeason": "Last active season",
+      "future": "Future",
+      "removeFromSeason": "{{player}} will be removed from the roster starting from {{season}}.",
+      "keepCurrentSeason": "{{player}} will remain on the {{season}} roster and be removed from future seasons.",
+      "confirm": "Release",
+      "releasing": "Releasing..."
     },
     "toast": {
       "released": "Player released",

@@ -9,7 +9,6 @@ const planUpdateSchema = z.object({
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 
-  priceMonthly: z.number().int().min(0).optional(),
   priceYearly: z.number().int().min(0).optional(),
   currency: z.string().optional(),
 

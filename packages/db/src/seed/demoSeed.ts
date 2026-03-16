@@ -653,7 +653,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       create: {
         organizationId: DEMO_ORG_ID,
         planId: proPlan.id,
-        interval: "monthly",
+        interval: "yearly",
         status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: farFuture,

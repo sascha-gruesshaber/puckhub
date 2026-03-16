@@ -8,7 +8,6 @@ async function createTestPlan(overrides: Record<string, unknown> = {}) {
       id: crypto.randomUUID(),
       name: "Basic",
       slug: `basic-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      priceMonthly: 999,
       priceYearly: 9990,
       maxTeams: 10,
       maxPlayers: 50,
@@ -24,7 +23,6 @@ async function createFreePlan() {
       id: crypto.randomUUID(),
       name: "Free",
       slug: `free-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      priceMonthly: 0,
       priceYearly: 0,
       maxTeams: 2,
       maxPlayers: 10,
@@ -36,28 +34,6 @@ describe("subscription router", () => {
   // ─── assignPlan ───────────────────────────────────────────────────────────
 
   describe("assignPlan", () => {
-    it("assigns a monthly plan to an org", async () => {
-      const caller = createPlatformAdminCaller()
-      const plan = await createTestPlan()
-
-      const result = await caller.subscription.assignPlan({
-        organizationId: TEST_ORG_ID,
-        planId: plan.id,
-        interval: "monthly",
-      })
-
-      expect(result.planId).toBe(plan.id)
-      expect(result.organizationId).toBe(TEST_ORG_ID)
-      expect(result.status).toBe("active")
-      expect(result.interval).toBe("monthly")
-
-      const start = new Date(result.currentPeriodStart)
-      const end = new Date(result.currentPeriodEnd)
-      const diffDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      expect(diffDays).toBeGreaterThanOrEqual(28)
-      expect(diffDays).toBeLessThanOrEqual(31)
-    })
-
     it("assigns a yearly plan to an org", async () => {
       const caller = createPlatformAdminCaller()
       const plan = await createTestPlan()
@@ -65,9 +41,11 @@ describe("subscription router", () => {
       const result = await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "yearly",
       })
 
+      expect(result.planId).toBe(plan.id)
+      expect(result.organizationId).toBe(TEST_ORG_ID)
+      expect(result.status).toBe("active")
       expect(result.interval).toBe("yearly")
 
       const start = new Date(result.currentPeriodStart)
@@ -84,7 +62,6 @@ describe("subscription router", () => {
       const result = await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
       })
 
       const start = new Date(result.currentPeriodStart)
@@ -102,13 +79,11 @@ describe("subscription router", () => {
       await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan1.id,
-        interval: "monthly",
       })
 
       const result = await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan2.id,
-        interval: "yearly",
       })
 
       expect(result.planId).toBe(plan2.id)
@@ -128,7 +103,7 @@ describe("subscription router", () => {
       const result = await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
+
       })
 
       expect(result.plan).toBeDefined()
@@ -142,7 +117,7 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
           planId: "00000000-0000-0000-0000-000000000099",
-          interval: "monthly",
+  
         }),
       ).rejects.toThrow("PLAN_NOT_FOUND")
     })
@@ -155,7 +130,7 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: "non-existent-org-id",
           planId: plan.id,
-          interval: "monthly",
+  
         }),
       ).rejects.toThrow("ORG_NOT_FOUND")
     })
@@ -166,7 +141,7 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
           planId: "00000000-0000-0000-0000-000000000099",
-          interval: "monthly",
+  
         }),
       ).rejects.toThrow("Keine Plattform-Administratorrechte")
     })
@@ -177,7 +152,7 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
           planId: "00000000-0000-0000-0000-000000000099",
-          interval: "monthly",
+  
         }),
       ).rejects.toThrow("Not authenticated")
     })
@@ -199,7 +174,7 @@ describe("subscription router", () => {
       await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
+
       })
 
       const result = await caller.subscription.getByOrg({ organizationId: TEST_ORG_ID })
@@ -239,7 +214,7 @@ describe("subscription router", () => {
       await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
+
       })
 
       const result = await caller.subscription.listAll()
@@ -279,7 +254,6 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "yearly",
       })
 
       const caller = createTestCaller({ asAdmin: true })
@@ -297,7 +271,7 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
+
       })
 
       const caller = createTestCaller({ asUser: true })
@@ -321,7 +295,7 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
+
       })
 
       const caller = createTestCaller({ asAdmin: true })
@@ -349,7 +323,7 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-        interval: "monthly",
+
       })
 
       const caller = createTestCaller({ asAdmin: true })

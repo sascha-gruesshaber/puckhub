@@ -136,11 +136,12 @@ export const contractRouter = router({
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
       }
 
-      // Check if player already has an active contract with ANY team for this season
+      // Check if player already has an active contract with the SAME team for this season
       const existingContracts = await ctx.db.contract.findMany({
         where: {
           organizationId: ctx.organizationId,
           playerId: input.playerId,
+          teamId: input.teamId,
           startSeason: {
             seasonStart: { lte: targetSeason.seasonEnd },
           },
@@ -284,6 +285,30 @@ export const contractRouter = router({
     }),
 
   /**
+   * Reopen a closed contract by removing the endSeasonId.
+   */
+  reopenContract: orgProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.contract.findFirst({
+        where: { id: input.id, organizationId: ctx.organizationId },
+      })
+      if (!existing) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
+      }
+      if (!existing.endSeasonId) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_ALREADY_ACTIVE)
+      }
+
+      requireRole(ctx, "team_manager", existing.teamId)
+
+      return ctx.db.contract.update({
+        where: { id: input.id },
+        data: { endSeasonId: null, updatedAt: new Date() },
+      })
+    }),
+
+  /**
    * Update contract details (position, jersey number).
    */
   updateContract: orgProcedure
@@ -318,5 +343,77 @@ export const contractRouter = router({
       })
 
       return updated
+    }),
+
+  /**
+   * Permanently delete a contract and clean up related game data
+   * (lineups, stats, suspensions) for that player+team within the contract's season range.
+   */
+  deleteContract: orgProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.contract.findFirst({
+        where: { id: input.id, organizationId: ctx.organizationId },
+        include: { startSeason: true, endSeason: true },
+      })
+      if (!existing) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
+      }
+
+      requireRole(ctx, "team_manager", existing.teamId)
+
+      const { playerId, teamId, organizationId } = existing
+      const seasonStart = existing.startSeason.seasonStart
+      const seasonEnd = existing.endSeason?.seasonEnd ?? new Date("2099-12-31")
+
+      // Find all games within the contract's season range for this team
+      const gamesInRange = await ctx.db.game.findMany({
+        where: {
+          organizationId,
+          OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }],
+          round: {
+            division: {
+              season: {
+                seasonStart: { lte: seasonEnd },
+                seasonEnd: { gte: seasonStart },
+              },
+            },
+          },
+        },
+        select: { id: true },
+      })
+      const gameIds = gamesInRange.map((g) => g.id)
+
+      await ctx.db.$transaction(async (tx: any) => {
+        // Remove lineups for this player in these games
+        if (gameIds.length > 0) {
+          await tx.gameLineup.deleteMany({
+            where: { playerId, teamId, gameId: { in: gameIds }, organizationId },
+          })
+        }
+
+        // Remove season stats for this player+team in overlapping seasons
+        const overlappingSeasons = await tx.season.findMany({
+          where: {
+            organizationId,
+            seasonStart: { lte: seasonEnd },
+            seasonEnd: { gte: seasonStart },
+          },
+          select: { id: true },
+        })
+        const seasonIds = overlappingSeasons.map((s: any) => s.id)
+
+        if (seasonIds.length > 0) {
+          await tx.playerSeasonStat.deleteMany({
+            where: { playerId, teamId, seasonId: { in: seasonIds }, organizationId },
+          })
+          await tx.goalieSeasonStat.deleteMany({
+            where: { playerId, teamId, seasonId: { in: seasonIds }, organizationId },
+          })
+        }
+
+        // Delete the contract
+        await tx.contract.delete({ where: { id: input.id } })
+      })
     }),
 })
