@@ -1,6 +1,6 @@
 import { Button, toast } from "@puckhub/ui"
 import { CircleDot, Clock, ShieldBan } from "lucide-react"
-import { useMemo, useState } from "react"
+import { forwardRef, useImperativeHandle, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { resolveTranslatedError } from "~/lib/errorI18n"
@@ -27,6 +27,14 @@ interface GameTimelineProps {
   lineups: any[]
   penaltyTypes: any[]
   readOnly?: boolean
+  /** When true, action buttons are not rendered inline (caller renders them externally) */
+  externalActions?: boolean
+}
+
+export interface GameTimelineHandle {
+  openGoalDialog: () => void
+  openPenaltyDialog: () => void
+  openSuspensionDialog: () => void
 }
 
 const periodNames: Record<number, string> = {
@@ -37,7 +45,10 @@ const periodNames: Record<number, string> = {
   5: "Penaltyschießen",
 }
 
-function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyTypes, readOnly }: GameTimelineProps) {
+const GameTimeline = forwardRef<GameTimelineHandle, GameTimelineProps>(function GameTimeline(
+  { gameId, homeTeam, awayTeam, events, lineups, penaltyTypes, readOnly, externalActions },
+  ref,
+) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
@@ -45,6 +56,13 @@ function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyType
   const [goalDialogOpen, setGoalDialogOpen] = useState(false)
   const [penaltyDialogOpen, setPenaltyDialogOpen] = useState(false)
   const [suspensionDialogOpen, setSuspensionDialogOpen] = useState(false)
+
+  useImperativeHandle(ref, () => ({
+    openGoalDialog: () => { setEditingGoal(null); setGoalDialogOpen(true) },
+    openPenaltyDialog: () => { setEditingPenalty(null); setPenaltyDialogOpen(true) },
+    openSuspensionDialog: () => setSuspensionDialogOpen(true),
+  }))
+
   const [editingGoal, setEditingGoal] = useState<any>(null)
   const [editingPenalty, setEditingPenalty] = useState<any>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string } | null>(null)
@@ -99,8 +117,8 @@ function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyType
 
   return (
     <div>
-      {/* Action buttons — top right */}
-      {!readOnly && (
+      {/* Action buttons — top right (hidden when externalActions) */}
+      {!readOnly && !externalActions && (
         <div className="flex justify-end gap-2 mb-4">
           <Button
             variant="outline"
@@ -229,6 +247,6 @@ function GameTimeline({ gameId, homeTeam, awayTeam, events, lineups, penaltyType
       />
     </div>
   )
-}
+})
 
 export { GameTimeline }

@@ -103,6 +103,7 @@ function NewsPage() {
               <Button
                 variant="accent"
                 disabled={atNewsLimit}
+                data-testid="news-new"
                 title={atNewsLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
               >
                 <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -173,6 +174,7 @@ function NewsPage() {
             return (
               <div
                 key={article.id}
+                data-testid="news-row"
                 role="button"
                 tabIndex={0}
                 onClick={() =>

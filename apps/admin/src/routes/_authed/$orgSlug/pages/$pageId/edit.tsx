@@ -1,11 +1,12 @@
-import { Button, Skeleton, toast } from "@puckhub/ui"
+import { Button, toast } from "@puckhub/ui"
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { DangerZone } from "~/components/dangerZone"
+import { DetailPageLayout } from "~/components/detailPageLayout"
 import { PageForm, type PageFormData } from "~/components/pageForm"
-import { PageHeader } from "~/components/pageHeader"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
@@ -62,62 +63,54 @@ function EditPagePage() {
     })
   }
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <Skeleton className="h-9 w-64 rounded" />
-          <Skeleton className="h-5 w-40 rounded mt-2" />
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-          <div className="space-y-5">
-            <Skeleton className="h-10 w-full rounded" />
-            <Skeleton className="h-64 w-full rounded" />
-          </div>
-          <Skeleton className="h-56 w-full rounded" />
-        </div>
-      </div>
-    )
-  }
-
-  if (!page) return null
-
-  const initialData: PageFormData = {
-    title: page.title,
-    content: page.content,
-    status: page.status,
-    parentId: page.parentId,
-    menuLocations: page.menuLocations as ("main_nav" | "footer")[],
-    sortOrder: page.sortOrder,
-  }
+  const initialData: PageFormData | null = page
+    ? {
+        title: page.title,
+        content: page.content,
+        status: page.status,
+        parentId: page.parentId,
+        menuLocations: page.menuLocations as ("main_nav" | "footer")[],
+        sortOrder: page.sortOrder,
+      }
+    : null
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={t("pagesEdit.title")}
-        description={page.title}
-        action={
-          !page.isSystemRoute ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-              {t("pagesPage.actions.delete")}
-            </Button>
-          ) : undefined
-        }
-      />
-      <PageForm
-        initialData={initialData}
-        currentSlug={page.slug}
-        onSubmit={handleSubmit}
-        isPending={updateMutation.isPending}
-        isSystemRoute={page.isSystemRoute}
-      />
+    <DetailPageLayout
+      backTo="/$orgSlug/pages"
+      backParams={{ orgSlug }}
+      backLabel={t("pagesPage.title")}
+      maxWidth=""
+      isLoading={isLoading}
+      notFound={!isLoading && !page}
+    >
+      {page && initialData && (
+        <PageForm
+          initialData={initialData}
+          currentSlug={page.slug}
+          onSubmit={handleSubmit}
+          isPending={updateMutation.isPending}
+          isSystemRoute={page.isSystemRoute}
+          sidebarFooter={
+            !page.isSystemRoute ? (
+              <DangerZone hint={t("pagesPage.deletePageDialog.hint")}>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  data-testid="page-delete"
+                >
+                  <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                  {t("pagesPage.actions.delete")}
+                </Button>
+              </DangerZone>
+            ) : undefined
+          }
+        />
+      )}
 
-      {!page.isSystemRoute && (
+      {page && !page.isSystemRoute && (
         <ConfirmDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
@@ -126,9 +119,10 @@ function EditPagePage() {
           confirmLabel={t("pagesPage.actions.delete")}
           variant="destructive"
           isPending={deleteMutation.isPending}
+          confirmTestId="page-delete-confirm"
           onConfirm={() => deleteMutation.mutate({ id: pageId })}
         />
       )}
-    </div>
+    </DetailPageLayout>
   )
 }

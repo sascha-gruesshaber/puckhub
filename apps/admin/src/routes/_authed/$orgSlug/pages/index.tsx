@@ -243,8 +243,8 @@ function PagesPage() {
       {
         key: "positions",
         tabs: [
-          { id: "main_nav", label: t("pagesPage.tabs.mainNav") },
-          { id: "footer", label: t("pagesPage.tabs.footerNav") },
+          { id: "main_nav", label: t("pagesPage.tabs.mainNav"), testId: "pages-tab-main-nav" },
+          { id: "footer", label: t("pagesPage.tabs.footerNav"), testId: "pages-tab-footer" },
         ],
       },
     ],
@@ -481,6 +481,7 @@ function PagesPage() {
                 <Button
                   variant="accent"
                   disabled={atPageLimit}
+                  data-testid="pages-new"
                   title={atPageLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
                 >
                   <Plus className="mr-2 h-4 w-4" aria-hidden="true" />

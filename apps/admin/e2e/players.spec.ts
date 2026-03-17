@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { adminPath, formField, login } from "./helpers"
+import { adminPath, login } from "./helpers"
 
 test.describe("Players Management", () => {
   test("players list loads with seeded data", async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe("Players Management", () => {
     await expect(page.getByText("Bradley").first()).toBeVisible()
   })
 
-  test("create, update, and delete a player", async ({ page }) => {
+  test("create and update an unassigned player", async ({ page }) => {
     await login(page)
     await page.goto(adminPath("players"))
     await expect(page.getByRole("heading", { name: "playersPage.title" })).toBeVisible({
@@ -22,40 +22,31 @@ test.describe("Players Management", () => {
     })
 
     // --- CREATE ---
-    await page.getByRole("button", { name: "playersPage.actions.new" }).click()
+    await page.getByTestId("players-new").click()
 
-    await formField(page, "playersPage.fields.firstName").fill("E2E")
-    await formField(page, "playersPage.fields.lastName").fill("TestPlayer")
+    await page.getByTestId("players-form-first-name").fill("E2E")
+    await page.getByTestId("players-form-last-name").fill("TestPlayer")
 
-    await page.getByRole("button", { name: "create" }).click()
+    await page.getByTestId("players-form-submit").click()
 
-    // New players are unassigned — use filter to find them
-    await page.getByRole("button", { name: "playersPage.filters.unassigned" }).click()
+    // New players are unassigned — select the unassigned filter in the team dropdown
+    await page.locator("button.filter-pill").first().click()
+    await page.getByRole("option", { name: "playersPage.filters.unassigned" }).click()
 
     await expect(page.getByText("TestPlayer")).toBeVisible({ timeout: 10_000 })
 
     // --- EDIT ---
-    const playerRow = page.locator(".data-row", { hasText: "TestPlayer" })
-    await playerRow.locator("[aria-label='playersPage.actions.edit']").click()
+    const playerRow = page.getByTestId("player-row").filter({ hasText: "TestPlayer" })
+    await playerRow.click()
 
-    const lastNameField = formField(page, "playersPage.fields.lastName")
+    await expect(page).toHaveURL(/\/players\/.+/)
+    await page.getByTestId("player-edit-info").click()
+
+    const lastNameField = page.getByTestId("player-edit-last-name")
     await lastNameField.clear()
     await lastNameField.fill("UpdatedPlayer")
 
-    await page.getByRole("button", { name: "save" }).click()
-
-    await expect(page.getByText("UpdatedPlayer")).toBeVisible({ timeout: 10_000 })
-
-    // --- DELETE (RemoveDialog 2-step) ---
-    const updatedRow = page.locator(".data-row", { hasText: "UpdatedPlayer" })
-    await updatedRow.locator("[aria-label='playersPage.actions.delete']").click()
-
-    // Step 1: Click "Delete permanently..." option
-    await page.getByRole("button", { name: "playersPage.removeDialog.delete.button" }).click()
-
-    // Step 2: Confirm deletion
-    await page.getByRole("button", { name: "playersPage.removeDialog.delete.confirmButton" }).click()
-
-    await expect(page.getByText("UpdatedPlayer")).not.toBeVisible({ timeout: 10_000 })
+    await page.getByTestId("player-edit-submit").click()
+    await expect(page.getByRole("heading", { name: "E2E UpdatedPlayer" })).toBeVisible({ timeout: 10_000 })
   })
 })

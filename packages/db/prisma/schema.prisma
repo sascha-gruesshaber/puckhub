@@ -995,19 +995,20 @@ model OrgSubscription {
 // ─── Public Game Reports ────────────────────────────────────────────────────
 
 model PublicGameReport {
-  id              String    @id @default(uuid(7)) @db.Uuid
-  organizationId  String    @map("organization_id")
-  gameId          String    @map("game_id") @db.Uuid
-  homeScore       Int       @map("home_score")
-  awayScore       Int       @map("away_score")
-  comment         String?
-  submitterEmail  String    @map("submitter_email")
-  submitterIp     String?   @map("submitter_ip")
-  reverted        Boolean   @default(false)
-  revertedBy      String?   @map("reverted_by")
-  revertedAt      DateTime? @map("reverted_at") @db.Timestamptz
-  revertNote      String?   @map("revert_note")
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  organizationId       String    @map("organization_id")
+  gameId               String    @map("game_id") @db.Uuid
+  homeScore            Int       @map("home_score")
+  awayScore            Int       @map("away_score")
+  comment              String?
+  submitterEmailHash   String?   @map("submitter_email_hash")
+  submitterEmailMasked String?   @map("submitter_email_masked")
+  submitterIpHash      String?   @map("submitter_ip_hash")
+  reverted             Boolean   @default(false)
+  revertedBy           String?   @map("reverted_by")
+  revertedAt           DateTime? @map("reverted_at") @db.Timestamptz
+  revertNote           String?   @map("revert_note")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -1015,6 +1016,8 @@ model PublicGameReport {
 
   @@index([organizationId])
   @@index([gameId])
+  @@index([organizationId, submitterEmailHash])
+  @@index([organizationId, submitterIpHash])
   @@map("public_game_reports")
 }
 

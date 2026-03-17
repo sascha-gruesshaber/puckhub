@@ -206,13 +206,58 @@ export function otpEmail(code: string) {
   )
 }
 
+/** OTP verification code for contact form */
+export function contactOtpEmail(code: string) {
+  return layout(
+    [
+      heading("Your verification code"),
+      paragraph("Enter this code to verify your email address and submit your contact request. It expires in 10 minutes."),
+      codeBlock(code),
+      muted(
+        "If you didn't request this code, someone may have entered your email address by mistake. You can safely ignore this email.",
+      ),
+    ].join(""),
+    { preheader: `Your code: ${code}` },
+  )
+}
+
+/** Admin notification: new contact form submission */
+export function contactNotificationEmail(opts: {
+  name: string
+  email: string
+  type: string
+  message: string
+}) {
+  return layout(
+    [
+      heading("New Contact Request"),
+      paragraph(
+        "Someone has submitted a contact request through the PuckHub website.",
+      ),
+      detailsTable([
+        { label: "Name", value: opts.name },
+        { label: "Email", value: opts.email },
+        { label: "Type", value: opts.type },
+      ]),
+      `<div style="background:${C.borderLight};border-radius:10px;padding:16px 20px;margin:20px 0;">
+        <p style="margin:0 0 6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:${C.light};">Message</p>
+        <p style="margin:0;font-size:14px;line-height:1.7;color:${C.text};white-space:pre-wrap;">${opts.message}</p>
+      </div>`,
+      infoBox("You can reply directly to the sender at the email address above.", "info"),
+    ].join(""),
+    {
+      preheader: `${opts.type} from ${opts.name} (${opts.email})`,
+    },
+  )
+}
+
 /** Admin notification: new public game report submitted */
 export function adminReportNotificationEmail(opts: {
   homeTeam: string
   awayTeam: string
   homeScore: number
   awayScore: number
-  submitterEmail: string
+  submitterEmailMasked: string
   comment?: string | null
 }) {
   return layout(
@@ -223,35 +268,13 @@ export function adminReportNotificationEmail(opts: {
       ),
       scoreBanner(opts.homeTeam, opts.homeScore, opts.awayScore, opts.awayTeam),
       detailsTable([
-        { label: "Submitted by", value: opts.submitterEmail },
+        { label: "Submitted by", value: opts.submitterEmailMasked },
         ...(opts.comment ? [{ label: "Comment", value: opts.comment }] : []),
       ]),
       infoBox("You can review and revert this report in the admin panel under Games → Public Reports.", "info"),
     ].join(""),
     {
-      preheader: `${opts.homeTeam} ${opts.homeScore}:${opts.awayScore} ${opts.awayTeam} — submitted by ${opts.submitterEmail}`,
+      preheader: `${opts.homeTeam} ${opts.homeScore}:${opts.awayScore} ${opts.awayTeam} — submitted by ${opts.submitterEmailMasked}`,
     },
-  )
-}
-
-/** Submitter notification: game report was reverted by admin */
-export function reportRevertedEmail(opts: {
-  homeTeam: string
-  awayTeam: string
-  homeScore: number
-  awayScore: number
-  revertNote?: string | null
-}) {
-  return layout(
-    [
-      heading("Your game report was reverted"),
-      paragraph(
-        "An administrator has reviewed and reverted the game result you submitted. The game has been set back to its previous state.",
-      ),
-      scoreBanner(opts.homeTeam, opts.homeScore, opts.awayScore, opts.awayTeam),
-      ...(opts.revertNote ? [infoBox(`<strong>Admin note:</strong> ${opts.revertNote}`, "warn")] : []),
-      muted("If you believe this was a mistake, please contact your league administrator."),
-    ].join(""),
-    { preheader: "Your submitted game result has been reverted" },
   )
 }

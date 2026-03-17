@@ -4,10 +4,14 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  CircleDot,
   ClipboardList,
+  Clock,
   Loader2,
   RefreshCw,
   RotateCcw,
+  Save,
+  ShieldBan,
   Sparkles,
   StickyNote,
   Users,
@@ -15,10 +19,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { TabNavigation } from "~/components/tabNavigation"
 import { GameReportHeader } from "~/components/gameReport/gameReportHeader"
 import { GameSuspensionList } from "~/components/gameReport/gameSuspensionList"
-import { GameTimeline } from "~/components/gameReport/gameTimeline"
-import { LineupEditor } from "~/components/gameReport/lineupEditor"
+import { GameTimeline, type GameTimelineHandle } from "~/components/gameReport/gameTimeline"
+import { LineupEditor, type LineupEditorHandle } from "~/components/gameReport/lineupEditor"
 import { SuspensionWarnings } from "~/components/gameReport/suspensionWarnings"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
@@ -32,7 +37,7 @@ export const Route = createFileRoute("/_authed/$orgSlug/games/$gameId/report")({
   component: GameReportPage,
 })
 
-type Tab = "lineup" | "report"
+type Tab = "lineup" | "report" | "ai"
 
 function GameReportPage() {
   usePermissionGuard("games")
@@ -43,6 +48,8 @@ function GameReportPage() {
   const utils = trpc.useUtils()
   const [activeTab, setActiveTab] = useState<Tab>("report")
   const initialTabSet = useRef(false)
+  const timelineRef = useRef<GameTimelineHandle>(null)
+  const lineupRef = useRef<LineupEditorHandle>(null)
   const { canUseFeature } = usePlanLimits()
 
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
@@ -172,6 +179,13 @@ function GameReportPage() {
     }
   }, [game, lineupPlayers.length])
 
+  // Check if this game has a public report (hooks must be before early returns)
+  const { data: publicReportCount } = trpc.publicGameReport.count.useQuery()
+  const { data: publicReports } = trpc.publicGameReport.list.useQuery(
+    { limit: 1 },
+    { enabled: !!(game && game.status === "completed") },
+  )
+
   if (reportQuery.isLoading) {
     return (
       <div className="space-y-6">
@@ -198,13 +212,9 @@ function GameReportPage() {
   const readOnly = isCompleted || isCancelled
   const canComplete = !isCompleted && !isCancelled
 
-  // Check if this game has a public report
-  const { data: publicReportCount } = trpc.publicGameReport.count.useQuery()
-  const hasPublicReport = isCompleted && (game as any).publicReports?.length > 0
-
-  // Simpler approach: check if this game has public reports via the list
-  const { data: publicReports } = trpc.publicGameReport.list.useQuery({ limit: 1 }, { enabled: isCompleted })
-  const gamePublicReport = publicReports?.find((r: any) => r.gameId === gameId && !r.reverted)
+  const gamePublicReport = isCompleted
+    ? publicReports?.find((r: any) => r.gameId === gameId && !r.reverted)
+    : undefined
 
   return (
     <div className="space-y-6">
@@ -236,93 +246,92 @@ function GameReportPage() {
         </div>
       )}
 
-      {/* Complete Game section */}
-      {canComplete && (
-        <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-4">
-              <div className="text-center">
-                <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium mb-1">
-                  {t("gameReport.completeSection.score")}
-                </div>
-                <div className="text-3xl font-black tabular-nums">
-                  {game.homeScore ?? 0} : {game.awayScore ?? 0}
-                </div>
-              </div>
-              {!hasBothLineups && (
-                <p className="text-sm text-amber-600">{t("gameReport.completeSection.lineupsRequired")}</p>
-              )}
-            </div>
-            <Button
-              variant="default"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white"
-              disabled={!hasBothLineups || completeGame.isPending}
-              onClick={() => setShowCompleteConfirm(true)}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              {t("gameReport.completeSection.button")}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Suspension warnings (from other games) */}
+      <SuspensionWarnings
+        suspensions={game.activeSuspensions}
+        homeTeamId={game.homeTeamId}
+        awayTeamId={game.awayTeamId}
+      />
 
-      {/* Reopen section (shown when completed or cancelled) */}
-      {(isCompleted || isCancelled) && (
-        <div className="rounded-xl border border-border/50 bg-muted/30 px-5 py-3">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <p className="text-sm text-muted-foreground">
-              {isCompleted
-                ? t("gameReport.reopenSection.finalized", {
-                    date: game.finalizedAt
-                      ? new Date(game.finalizedAt).toLocaleDateString(i18n.language, {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "—",
-                  })
-                : t("gamesPage.status.cancelled")}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowReopenConfirm(true)}
-              disabled={reopenGame.isPending}
-            >
-              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-              {t("gameReport.reopenSection.button")}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Suspensions in this game */}
+      <GameSuspensionList
+        gameId={gameId}
+        suspensions={game.suspensions as any}
+        homeTeamId={game.homeTeamId}
+        readOnly={readOnly}
+      />
 
-      {/* AI Recap section (when completed and AI feature available) */}
-      {isCompleted && canUseFeature("featureAiRecaps") && (
+      {/* Tab bar */}
+      <TabNavigation
+        groups={[{
+          key: "report-tabs",
+          tabs: [
+            { id: "lineup" as const, label: t("gameReport.tabs.lineup"), icon: Users },
+            { id: "report" as const, label: t("gameReport.tabs.report"), icon: ClipboardList },
+            ...(isCompleted && canUseFeature("featureAiRecaps")
+              ? [{ id: "ai" as const, label: t("gameReport.tabs.ai"), icon: Sparkles }]
+              : []),
+          ],
+        }]}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
+
+      {/* Grid: Tab content + Sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+        {/* ── Tab content ── */}
+        <div>
+          {activeTab === "lineup" && (
+            <LineupEditor
+              ref={lineupRef}
+              gameId={gameId}
+              homeTeamId={game.homeTeamId}
+              awayTeamId={game.awayTeamId}
+              homeTeamName={game.homeTeam.name}
+              awayTeamName={game.awayTeam.name}
+              homeRoster={homeRoster}
+              awayRoster={awayRoster}
+              existingLineup={lineupPlayers}
+              activeSuspensions={game.activeSuspensions}
+              readOnly={readOnly}
+              externalActions
+            />
+          )}
+
+          {activeTab === "report" && (
+            <GameTimeline
+              ref={timelineRef}
+              gameId={gameId}
+              homeTeam={{
+                id: game.homeTeamId,
+                name: game.homeTeam.name,
+                shortName: game.homeTeam.shortName,
+                logoUrl: game.homeTeam.logoUrl,
+                primaryColor: game.homeTeam.primaryColor,
+              }}
+              awayTeam={{
+                id: game.awayTeamId,
+                name: game.awayTeam.name,
+                shortName: game.awayTeam.shortName,
+                logoUrl: game.awayTeam.logoUrl,
+                primaryColor: game.awayTeam.primaryColor,
+              }}
+              events={game.events}
+              lineups={lineupPlayers}
+              penaltyTypes={penaltyTypesQuery.data ?? []}
+              readOnly={readOnly}
+              externalActions
+            />
+          )}
+
+      {/* AI Recap tab */}
+      {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
         <Card>
           <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                {t("gameReport.recap.title")}
-              </h3>
-              {!(game as any).recapGenerating && canUseFeature("featureAiRecaps") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => regenerateRecap.mutate({ gameId })}
-                  disabled={regenerateRecap.isPending}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${regenerateRecap.isPending ? `animate-spin` : ``}`} />
-                  {regenerateRecap.isPending
-                    ? t("gameReport.recap.regenerating")
-                    : (game as any).recapTitle
-                      ? t("gameReport.recap.regenerate")
-                      : t("gameReport.recap.generate")}
-                </Button>
-              )}
-            </div>
+            <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              {t("gameReport.recap.title")}
+            </h3>
 
             {(game as any).recapGenerating ? (
               <div className="space-y-3">
@@ -366,115 +375,162 @@ function GameReportPage() {
           </CardContent>
         </Card>
       )}
+        </div>
 
-      {/* Suspension warnings (from other games) */}
-      <SuspensionWarnings
-        suspensions={game.activeSuspensions}
-        homeTeamId={game.homeTeamId}
-        awayTeamId={game.awayTeamId}
-      />
+        {/* ── Sidebar ── */}
+        <Card className="lg:sticky lg:top-20">
+          <CardContent className="p-5 space-y-4">
+            {/* Score + Complete/Reopen */}
+            {canComplete && (
+              <div className="space-y-3">
+                <div className="text-center">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium mb-1">
+                    {t("gameReport.completeSection.score")}
+                  </div>
+                  <div className="text-3xl font-black tabular-nums">
+                    {game.homeScore ?? 0} : {game.awayScore ?? 0}
+                  </div>
+                </div>
+                {!hasBothLineups && (
+                  <p className="text-xs text-amber-600 text-center">{t("gameReport.completeSection.lineupsRequired")}</p>
+                )}
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={!hasBothLineups || completeGame.isPending}
+                  onClick={() => setShowCompleteConfirm(true)}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  {t("gameReport.completeSection.button")}
+                </Button>
+              </div>
+            )}
 
-      {/* Suspensions in this game */}
-      <GameSuspensionList
-        gameId={gameId}
-        suspensions={game.suspensions as any}
-        homeTeamId={game.homeTeamId}
-        readOnly={readOnly}
-      />
+            {(isCompleted || isCancelled) && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground text-center">
+                  {isCompleted
+                    ? t("gameReport.reopenSection.finalized", {
+                        date: game.finalizedAt
+                          ? new Date(game.finalizedAt).toLocaleDateString(i18n.language, {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—",
+                      })
+                    : t("gamesPage.status.cancelled")}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setShowReopenConfirm(true)}
+                  disabled={reopenGame.isPending}
+                >
+                  <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                  {t("gameReport.reopenSection.button")}
+                </Button>
+              </div>
+            )}
 
-      {/* Notes section */}
-      <Card>
-        <CardContent className="p-5">
-          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <StickyNote className="w-4 h-4 text-muted-foreground" />
-            {t("gameReport.notes.label")}
-          </h3>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={t("gameReport.notes.placeholder")}
-            className="w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"
-            rows={3}
-          />
-          {notes !== (game.notes ?? "") && (
-            <div className="flex justify-end mt-2">
-              <Button
-                size="sm"
-                onClick={() => updateNotes.mutate({ id: gameId, notes: notes || null })}
-                disabled={updateNotes.isPending}
-              >
-                {updateNotes.isPending ? t("saving") : t("save")}
-              </Button>
+            {/* Notes */}
+            <div className="border-t border-border/40 pt-4">
+              <h3 className="text-xs font-semibold flex items-center gap-1.5 mb-2 text-muted-foreground">
+                <StickyNote className="w-3.5 h-3.5" />
+                {t("gameReport.notes.label")}
+              </h3>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t("gameReport.notes.placeholder")}
+                className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"
+                rows={2}
+              />
+              {notes !== (game.notes ?? "") && (
+                <div className="flex justify-end mt-2">
+                  <Button
+                    size="sm"
+                    onClick={() => updateNotes.mutate({ id: gameId, notes: notes || null })}
+                    disabled={updateNotes.isPending}
+                  >
+                    {updateNotes.isPending ? t("saving") : t("save")}
+                  </Button>
+                </div>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Tab bar */}
-      <div className="flex gap-1 border-b">
-        <button
-          type="button"
-          onClick={() => setActiveTab("lineup")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "lineup"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          {t("gameReport.tabs.lineup")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("report")}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "report"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <ClipboardList className="w-4 h-4" />
-          {t("gameReport.tabs.report")}
-        </button>
+            {/* Tab-specific actions */}
+            {activeTab === "report" && !readOnly && (
+              <div className="border-t border-border/40 pt-4 space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                  onClick={() => timelineRef.current?.openGoalDialog()}
+                >
+                  <CircleDot className="w-3.5 h-3.5" />
+                  {t("gameReport.addGoalBtn")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                  onClick={() => timelineRef.current?.openPenaltyDialog()}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  {t("gameReport.addPenaltyBtn")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+                  onClick={() => timelineRef.current?.openSuspensionDialog()}
+                >
+                  <ShieldBan className="w-3.5 h-3.5" />
+                  {t("gameReport.addSuspensionBtn")}
+                </Button>
+              </div>
+            )}
+
+            {activeTab === "lineup" && !readOnly && (
+              <div className="border-t border-border/40 pt-4">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => lineupRef.current?.save()}
+                  disabled={lineupRef.current?.isSaving}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {t("gameReport.saveLineup")}
+                </Button>
+              </div>
+            )}
+
+            {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
+              <div className="border-t border-border/40 pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => regenerateRecap.mutate({ gameId })}
+                  disabled={regenerateRecap.isPending || (game as any).recapGenerating}
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${regenerateRecap.isPending ? "animate-spin" : ""}`} />
+                  {regenerateRecap.isPending
+                    ? t("gameReport.recap.regenerating")
+                    : (game as any).recapTitle
+                      ? t("gameReport.recap.regenerate")
+                      : t("gameReport.recap.generate")}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Tab content */}
-      {activeTab === "lineup" ? (
-        <LineupEditor
-          gameId={gameId}
-          homeTeamId={game.homeTeamId}
-          awayTeamId={game.awayTeamId}
-          homeTeamName={game.homeTeam.name}
-          awayTeamName={game.awayTeam.name}
-          homeRoster={homeRoster}
-          awayRoster={awayRoster}
-          existingLineup={lineupPlayers}
-          activeSuspensions={game.activeSuspensions}
-          readOnly={readOnly}
-        />
-      ) : (
-        <GameTimeline
-          gameId={gameId}
-          homeTeam={{
-            id: game.homeTeamId,
-            name: game.homeTeam.name,
-            shortName: game.homeTeam.shortName,
-            logoUrl: game.homeTeam.logoUrl,
-            primaryColor: game.homeTeam.primaryColor,
-          }}
-          awayTeam={{
-            id: game.awayTeamId,
-            name: game.awayTeam.name,
-            shortName: game.awayTeam.shortName,
-            logoUrl: game.awayTeam.logoUrl,
-            primaryColor: game.awayTeam.primaryColor,
-          }}
-          events={game.events}
-          lineups={lineupPlayers}
-          penaltyTypes={penaltyTypesQuery.data ?? []}
-          readOnly={readOnly}
-        />
-      )}
 
       {/* Complete confirmation */}
       <ConfirmDialog

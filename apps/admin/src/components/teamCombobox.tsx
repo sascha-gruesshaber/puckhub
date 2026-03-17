@@ -30,6 +30,8 @@ interface TeamComboboxProps {
   label?: string
   required?: boolean
   className?: string
+  testId?: string
+  optionTestIdPrefix?: string
 }
 
 export function TeamCombobox({
@@ -40,6 +42,8 @@ export function TeamCombobox({
   label: _label,
   required: _required,
   className,
+  testId,
+  optionTestIdPrefix,
 }: TeamComboboxProps) {
   const [open, setOpen] = useState(false)
 
@@ -64,6 +68,7 @@ export function TeamCombobox({
           type="button"
           role="combobox"
           aria-expanded={open}
+          data-testid={testId}
           className={cn(
             "relative w-full h-12 px-4 rounded-lg border-2 transition-all duration-200",
             "bg-white hover:bg-gray-50",
@@ -154,12 +159,14 @@ export function TeamCombobox({
               {sortedTeams.map((team) => {
                 const isSelected = team.id === value
                 const teamColor = team.primaryColor || "hsl(var(--primary))"
+                const optionTestIdSuffix = team.shortName.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")
 
                 return (
                   <CommandItem
                     key={team.id}
                     value={team.id}
                     onSelect={handleSelect}
+                    data-testid={optionTestIdPrefix ? `${optionTestIdPrefix}-${optionTestIdSuffix}` : undefined}
                     className="flex items-center gap-3 py-2.5 px-3 cursor-pointer"
                   >
                     <div

@@ -1,5 +1,5 @@
 import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
-import { Check, X, Loader2 } from "lucide-react"
+import { Check, X, Loader2, MessageSquare } from "lucide-react"
 import { useT } from "~/i18n"
 import { trpc } from "../../lib/trpc"
 
@@ -107,14 +107,15 @@ export function Pricing() {
                   </div>
 
                   <a
-                    href="#demo"
-                    className={`mt-8 block text-center rounded-lg py-3 text-sm font-semibold transition-colors ${
+                    href={`/contact?plan=${plan.slug}`}
+                    className={`mt-8 group flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all ${
                       isPopular
                         ? "bg-brand-gold text-brand-navy hover:bg-brand-gold-dark"
                         : "border border-white/20 text-white hover:bg-white/5"
                     }`}
                   >
-                    {price === 0 ? t.pricing.startFree : t.pricing.tryDemo}
+                    <MessageSquare className="h-4 w-4" />
+                    {t.pricing.getInTouch}
                   </a>
                 </div>
               )

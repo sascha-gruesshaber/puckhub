@@ -1,6 +1,6 @@
 import { Button, toast } from "@puckhub/ui"
 import { Save, Users } from "lucide-react"
-import { useCallback, useState } from "react"
+import { forwardRef, useCallback, useImperativeHandle, useState } from "react"
 import { trpc } from "@/trpc"
 import { useTranslation } from "~/i18n/use-translation"
 import type { ActiveSuspension } from "./suspensionWarnings"
@@ -24,20 +24,31 @@ interface LineupEditorProps {
   }>
   activeSuspensions: ActiveSuspension[]
   readOnly?: boolean
+  /** When true, save button is not rendered inline (caller renders it externally) */
+  externalActions?: boolean
 }
 
-function LineupEditor({
-  gameId,
-  homeTeamId,
-  awayTeamId,
-  homeTeamName,
-  awayTeamName,
-  homeRoster,
-  awayRoster,
-  existingLineup,
-  activeSuspensions,
-  readOnly,
-}: LineupEditorProps) {
+export interface LineupEditorHandle {
+  save: () => void
+  isSaving: boolean
+}
+
+const LineupEditor = forwardRef<LineupEditorHandle, LineupEditorProps>(function LineupEditor(
+  {
+    gameId,
+    homeTeamId,
+    awayTeamId,
+    homeTeamName,
+    awayTeamName,
+    homeRoster,
+    awayRoster,
+    existingLineup,
+    activeSuspensions,
+    readOnly,
+    externalActions,
+  },
+  ref,
+) {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
 
@@ -146,6 +157,11 @@ function LineupEditor({
     setLineup.mutate({ gameId, players })
   }
 
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+    isSaving: setLineup.isPending,
+  }))
+
   const homeSelected = selected.filter((s) => s.teamId === homeTeamId)
   const awaySelected = selected.filter((s) => s.teamId === awayTeamId)
 
@@ -193,7 +209,7 @@ function LineupEditor({
         </div>
       </div>
 
-      {!readOnly && (
+      {!readOnly && !externalActions && (
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={setLineup.isPending}>
             <Save className="w-4 h-4 mr-2" />
@@ -203,6 +219,6 @@ function LineupEditor({
       )}
     </div>
   )
-}
+})
 
 export { LineupEditor }

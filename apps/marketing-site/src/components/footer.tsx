@@ -15,6 +15,9 @@ export function Footer() {
           </div>
 
           <nav className="flex items-center gap-6 text-sm text-brand-slate">
+            <Link to="/contact" search={{ plan: undefined }} className="hover:text-white transition-colors">
+              {t.contact.navLabel}
+            </Link>
             <Link to="/impressum" className="hover:text-white transition-colors">
               {t.footer.impressum}
             </Link>

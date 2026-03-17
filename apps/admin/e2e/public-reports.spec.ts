@@ -9,10 +9,10 @@ test.describe("Public Reports Management", () => {
       timeout: 10_000,
     })
 
-    // Seeded report: Hawks (HWK) vs Bears (BRS), 3:2, fan@example.com
+    // Seeded report: Hawks (HWK) vs Bears (BRS), 3:2, masked submitter email
     await expect(page.getByText("HWK").first()).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText("BRS").first()).toBeVisible()
-    await expect(page.getByText("fan@example.com")).toBeVisible()
+    await expect(page.getByText("f***@example.com")).toBeVisible()
     await expect(page.getByText("3").first()).toBeVisible()
 
     // Report should show "active" badge
@@ -27,7 +27,7 @@ test.describe("Public Reports Management", () => {
     })
 
     // Wait for report data to load
-    await expect(page.getByText("fan@example.com")).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText("f***@example.com")).toBeVisible({ timeout: 10_000 })
 
     // Click revert button on the active report
     await page.getByRole("button", { name: "publicReports.revert" }).first().click()

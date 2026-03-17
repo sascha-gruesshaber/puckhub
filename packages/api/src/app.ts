@@ -26,6 +26,15 @@ app.use(
   }),
 )
 
+// Contact form tRPC routes — allow any origin (public, no auth)
+app.use(
+  "/api/trpc/contactForm.*",
+  cors({
+    origin: "*",
+    credentials: false,
+  }),
+)
+
 // Demo login — CORS must be registered before the strict origin check
 if (process.env.DEMO_MODE === "true") {
   app.use(
@@ -39,7 +48,7 @@ if (process.env.DEMO_MODE === "true") {
 
 // Authenticated routes — strict origin checking (skip routes with their own CORS above)
 app.use("/api/*", async (c, next) => {
-  if (c.req.path.startsWith("/api/trpc/publicSite.")) {
+  if (c.req.path.startsWith("/api/trpc/publicSite.") || c.req.path.startsWith("/api/trpc/contactForm.")) {
     return next()
   }
   if (process.env.DEMO_MODE === "true" && c.req.path === "/api/demo-login") {

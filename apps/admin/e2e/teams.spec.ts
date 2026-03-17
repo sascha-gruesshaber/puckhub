@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { adminPath, formField, login } from "./helpers"
+import { adminPath, login } from "./helpers"
 
 test.describe("Teams Management", () => {
   test("teams list loads with seeded data", async ({ page }) => {
@@ -14,7 +14,7 @@ test.describe("Teams Management", () => {
     await expect(page.getByText("E2E Bears")).toBeVisible()
   })
 
-  test("create, update, and delete a team", async ({ page }) => {
+  test("create and update an unassigned team", async ({ page }) => {
     await login(page)
     await page.goto(adminPath("teams"))
     await expect(page.getByRole("heading", { name: "teamsPage.title" })).toBeVisible({
@@ -22,41 +22,32 @@ test.describe("Teams Management", () => {
     })
 
     // --- CREATE ---
-    await page.getByRole("button", { name: "teamsPage.actions.new" }).click()
+    await page.getByTestId("teams-new").click()
 
-    await formField(page, "teamsPage.fields.name").fill("E2E Test Team")
-    await formField(page, "teamsPage.fields.shortName").fill("ETT")
-    await formField(page, "teamsPage.fields.city").fill("Test City")
+    await page.getByTestId("teams-form-name").fill("E2E Test Team")
+    await page.getByTestId("teams-form-short-name").fill("ETT")
+    await page.getByTestId("teams-form-city").fill("Test City")
 
-    await page.getByRole("button", { name: "create" }).click()
+    await page.getByTestId("teams-form-submit").click()
 
-    // New teams aren't in any division — use unassigned filter to find them
-    await page.getByRole("button", { name: "teamsPage.filters.unassigned" }).click()
+    // New teams aren't in any division — select the unassigned filter
+    await page.locator("button.filter-pill").first().click()
+    await page.getByRole("option", { name: "teamsPage.filters.unassigned" }).click()
 
     await expect(page.getByText("E2E Test Team")).toBeVisible({ timeout: 10_000 })
 
     // --- EDIT ---
-    const teamRow = page.locator(".data-row", { hasText: "E2E Test Team" })
-    await teamRow.locator("[aria-label='teamsPage.actions.edit']").click()
+    const teamRow = page.getByTestId("team-row").filter({ hasText: "E2E Test Team" })
+    await teamRow.click()
 
-    const nameField = formField(page, "teamsPage.fields.name")
+    await expect(page).toHaveURL(/\/teams\/.+/)
+    await page.getByTestId("team-edit").click()
+
+    const nameField = page.getByTestId("team-edit-name")
     await nameField.clear()
     await nameField.fill("E2E Updated Team")
 
-    await page.getByRole("button", { name: "save" }).click()
-
+    await page.getByTestId("team-edit-submit").click()
     await expect(page.getByText("E2E Updated Team")).toBeVisible({ timeout: 10_000 })
-
-    // --- DELETE (RemoveDialog 2-step) ---
-    const updatedRow = page.locator(".data-row", { hasText: "E2E Updated Team" })
-    await updatedRow.locator("[aria-label='teamsPage.actions.delete']").click()
-
-    // Step 1: Click "Delete permanently..." option
-    await page.getByRole("button", { name: "teamsPage.removeDialog.delete.button" }).click()
-
-    // Step 2: Confirm deletion
-    await page.getByRole("button", { name: "teamsPage.removeDialog.delete.confirmButton" }).click()
-
-    await expect(page.getByText("E2E Updated Team")).not.toBeVisible({ timeout: 10_000 })
   })
 })

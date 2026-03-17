@@ -6,7 +6,7 @@ import { AmbientBackground } from "~/components/ambientBackground"
 import { Features } from "~/components/features"
 import { FeatureShowcase } from "~/components/featureShowcase"
 import { Pricing } from "~/components/pricing"
-import { DemoCta, DemoDialog } from "~/components/demoCta"
+import { BottomCtas, DemoDialog } from "~/components/demoCta"
 import { Footer } from "~/components/footer"
 
 export const Route = createFileRoute("/")({
@@ -27,7 +27,7 @@ function LandingPage() {
         </AmbientBackground>
         <FeatureShowcase />
         <Pricing />
-        <DemoCta onOpenDemo={openDemo} />
+        <BottomCtas onOpenDemo={openDemo} />
       </main>
       <Footer />
       {demoOpen && <DemoDialog onClose={() => setDemoOpen(false)} />}

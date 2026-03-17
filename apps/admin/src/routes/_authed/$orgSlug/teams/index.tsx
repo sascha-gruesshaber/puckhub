@@ -251,6 +251,7 @@ function TeamsPage() {
             <Button
               variant="accent"
               onClick={() => openSheet("new")}
+              data-testid="teams-new"
               disabled={atTeamLimit}
               title={atTeamLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
             >
@@ -272,6 +273,8 @@ function TeamsPage() {
                 options={divisionOptions}
                 value={divisionFilter}
                 onChange={setDivisionFilter}
+                testId="teams-division-filter"
+                optionTestIdPrefix="teams-division-filter-option"
               />
             ) : null}
           </FilterBar>
@@ -315,6 +318,7 @@ function TeamsPage() {
               return (
                 <div
                   key={team.id}
+                  data-testid="team-row"
                   onClick={() => navigate({ to: '/$orgSlug/teams/$teamId', params: { orgSlug, teamId: team.id } })}
                   className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
                     i < filtered.length - 1 ? "border-b border-border/40" : ""
@@ -418,6 +422,7 @@ function TeamsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField label={t("teamsPage.fields.name")} error={errors.name} required>
                   <Input
+                    data-testid="teams-form-name"
                     value={form.name}
                     onChange={(e) => setField("name", e.target.value)}
                     placeholder={t("teamsPage.fields.namePlaceholder")}
@@ -425,6 +430,7 @@ function TeamsPage() {
                 </FormField>
                 <FormField label={t("teamsPage.fields.shortName")} error={errors.shortName} required>
                   <Input
+                    data-testid="teams-form-short-name"
                     value={form.shortName}
                     onChange={(e) => setField("shortName", e.target.value)}
                     placeholder={t("teamsPage.fields.shortNamePlaceholder")}
@@ -436,6 +442,7 @@ function TeamsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField label={t("teamsPage.fields.city")}>
                   <Input
+                    data-testid="teams-form-city"
                     value={form.city}
                     onChange={(e) => setField("city", e.target.value)}
                     placeholder={t("teamsPage.fields.cityPlaceholder")}
@@ -494,7 +501,7 @@ function TeamsPage() {
               <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={isSaving}>
+              <Button type="submit" variant="accent" disabled={isSaving} data-testid="teams-form-submit">
                 {isSaving ? t("teamsPage.actions.saving") : t("create")}
               </Button>
             </SheetFooter>

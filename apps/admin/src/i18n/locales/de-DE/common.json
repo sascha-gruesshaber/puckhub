@@ -6,6 +6,9 @@
   "create": "Erstellen",
   "cancel": "Abbrechen",
   "filters": "Filter",
+  "dangerZone": {
+    "title": "Gefahrenzone"
+  },
   "draft": "Entwurf",
   "published": "Veröffentlicht",
   "logout": "Abmelden",
@@ -557,7 +560,8 @@
     },
     "deleteDialog": {
       "title": "News löschen",
-      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "hint": "Dieser Artikel wird unwiderruflich entfernt. Überlege, ihn stattdessen als Entwurf zu speichern."
     },
     "toast": {
       "deleted": "News gelöscht",
@@ -621,7 +625,8 @@
     },
     "deletePageDialog": {
       "title": "Seite löschen",
-      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Unterseiten werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Unterseiten werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "hint": "Diese Seite und alle Unterseiten werden unwiderruflich entfernt. Überlege, sie stattdessen zu deaktivieren."
     },
     "deleteAliasDialog": {
       "title": "Alias löschen",
@@ -736,8 +741,19 @@
       "viewDetails": "Details"
     },
     "playerDetail": {
-      "backToPlayers": "Zurück zu Spieler",
-      "editInfo": "Spielerinfo bearbeiten",
+      "backToPlayers": "Spieler",
+      "editInfo": "Bearbeiten",
+      "deletePlayer": {
+        "button": "Spieler löschen",
+        "hint": "Alle Verträge, Statistiken und Spieldaten werden unwiderruflich entfernt. Überlege, den Spieler stattdessen von seinem Team freizugeben.",
+        "title": "Spieler löschen?",
+        "description": "Der Spieler und alle zugehörigen Verträge, Statistiken und Spieldaten werden unwiderruflich gelöscht.",
+        "confirm": "Endgültig löschen",
+        "toast": {
+          "deleted": "Spieler gelöscht",
+          "deleteError": "Spieler konnte nicht gelöscht werden"
+        }
+      },
       "currentStatus": "Aktueller Status",
       "freeAgent": "Vereinslos",
       "freeAgentDescription": "Dieser Spieler ist derzeit keinem Team zugeordnet.",
@@ -780,6 +796,18 @@
           "deleted": "Vertrag gelöscht",
           "deleteError": "Vertrag konnte nicht gelöscht werden"
         }
+      },
+      "tabs": {
+        "contracts": "Verträge",
+        "history": "Historie"
+      },
+      "historyTable": {
+        "season": "Saison",
+        "team": "Team",
+        "position": "Position",
+        "jersey": "#",
+        "status": "Status",
+        "noHistory": "Noch keine Teamhistorie."
       }
     },
     "timeline": {
@@ -1037,6 +1065,17 @@
     },
     "teamDetail": {
       "backToTeams": "Teams",
+      "deleteTeam": {
+        "button": "Team löschen",
+        "hint": "Alle Kaderdaten, Saisonhistorie und Statistiken werden unwiderruflich entfernt. Überlege, das Team stattdessen aus den Divisionen zu entfernen.",
+        "title": "Team löschen?",
+        "description": "Das Team und alle zugehörigen Kaderdaten, Saisonhistorie und Statistiken werden unwiderruflich gelöscht.",
+        "confirm": "Endgültig löschen",
+        "toast": {
+          "deleted": "Team gelöscht",
+          "deleteError": "Team konnte nicht gelöscht werden"
+        }
+      },
       "roster": "Kader",
       "seasonHistory": "Saisonhistorie",
       "noHistory": "Keine Saisonhistorie vorhanden",
@@ -1044,7 +1083,17 @@
       "notFound": "Team nicht gefunden",
       "record": "S{{wins}} U{{draws}} N{{losses}}",
       "rank": "#{{rank}}",
-      "goalDifference": "TD"
+      "goalDifference": "TD",
+      "historyTable": {
+        "season": "Saison",
+        "division": "Division",
+        "gp": "Sp",
+        "wins": "S",
+        "draws": "U",
+        "losses": "N",
+        "gd": "TD",
+        "rank": "Platz"
+      }
     },
     "dialogs": {
       "newTitle": "Neues Team erstellen",
@@ -1558,7 +1607,8 @@
     "backToGames": "Zurück zu Spiele",
     "tabs": {
       "lineup": "Aufstellung",
-      "report": "Spielbericht"
+      "report": "Spielbericht",
+      "ai": "KI-Bericht"
     },
     "period": "Drittel",
     "overtime": "Verlängerung",

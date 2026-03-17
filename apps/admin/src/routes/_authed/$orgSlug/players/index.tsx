@@ -288,6 +288,7 @@ function PlayersPage() {
     return (
       <div
         key={player.id}
+        data-testid="player-row"
         onClick={() => navigateToPlayer(player.id)}
         className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
           !isLast ? "border-b border-border/40" : ""
@@ -393,6 +394,7 @@ function PlayersPage() {
             <Button
               variant="accent"
               onClick={openSheet}
+              data-testid="players-new"
               disabled={atPlayerLimit}
               title={atPlayerLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
             >
@@ -414,6 +416,8 @@ function PlayersPage() {
                 options={teamOptions}
                 value={teamFilter}
                 onChange={setTeamFilter}
+                testId="players-team-filter"
+                optionTestIdPrefix="players-team-filter-option"
               />
             ) : null}
           </FilterBar>
@@ -504,6 +508,7 @@ function PlayersPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField label={t("playersPage.fields.firstName")} error={errors.firstName} required>
                   <Input
+                    data-testid="players-form-first-name"
                     value={form.firstName}
                     onChange={(e) => setField("firstName", e.target.value)}
                     placeholder={t("playersPage.fields.firstNamePlaceholder")}
@@ -511,6 +516,7 @@ function PlayersPage() {
                 </FormField>
                 <FormField label={t("playersPage.fields.lastName")} error={errors.lastName} required>
                   <Input
+                    data-testid="players-form-last-name"
                     value={form.lastName}
                     onChange={(e) => setField("lastName", e.target.value)}
                     placeholder={t("playersPage.fields.lastNamePlaceholder")}
@@ -538,7 +544,7 @@ function PlayersPage() {
               <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={isSaving}>
+              <Button type="submit" variant="accent" disabled={isSaving} data-testid="players-form-submit">
                 {isSaving ? t("saving") : t("create")}
               </Button>
             </SheetFooter>

@@ -51,6 +51,7 @@ test.describe("Authentication", () => {
 
   test("show error with invalid email format", async ({ page }) => {
     await page.goto("/login")
+    await page.waitForLoadState("networkidle")
 
     await page.getByLabel("login.email").fill("not-an-email")
     await page.getByRole("button", { name: "login.magicLink.submit" }).click()

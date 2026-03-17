@@ -201,11 +201,20 @@ async function main() {
     console.log(`  Cookie overridden: SameSite=None on .${COOKIE_DOMAIN}`)
   }
 
-  // Navigate to admin dashboard to verify session
+  // Navigate to admin dashboard to verify session.
+  // The first load sometimes redirects to login before the async session check
+  // completes, so we retry once if needed.
   await page.goto(ADMIN_URL, { waitUntil: "domcontentloaded", timeout: 20000 })
   await page.waitForTimeout(5000)
 
-  const currentUrl = page.url()
+  let currentUrl = page.url()
+  if (currentUrl.includes("/login")) {
+    console.log("Session not yet recognized on first load, retrying...")
+    await page.goto(`${ADMIN_URL}/${DEMO_ORG_SLUG}`, { waitUntil: "domcontentloaded", timeout: 20000 })
+    await page.waitForTimeout(5000)
+    currentUrl = page.url()
+  }
+
   if (currentUrl.includes("/login")) {
     console.error("Session not recognized by admin app — still on login page")
     const debugPath = resolve(OUTPUT_DIR, "_debug-login-failure.png")
@@ -440,30 +449,33 @@ async function main() {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
       await page.waitForTimeout(4000)
 
-      // The TeamComparisonSelector uses a dropdown to add teams.
-      // Click "Add team" button, then select each team from the dropdown list.
+      // The TeamComparisonSelector uses a Radix Popover dropdown.
+      // After selecting a team the popover state can be unpredictable,
+      // so we close it explicitly after each selection and reopen fresh.
       for (const team of teamsForComparison.slice(0, 3)) {
-        const addBtn = page.getByRole("button", { name: /add team|team hinzufügen/i })
-        if (await addBtn.count()) {
-          await addBtn.click()
-          await page.waitForTimeout(300)
+        // Ensure any previously open popover is closed
+        await page.locator("body").click({ position: { x: 10, y: 10 } })
+        await page.waitForTimeout(300)
 
-          // Click the team entry in the dropdown
-          const teamOption = page.getByRole("option", { name: team.name })
-          if (await teamOption.count()) {
-            await teamOption.click()
-            console.log(`  Selected team: ${team.shortName ?? team.name}`)
-            await page.waitForTimeout(500)
-          } else {
-            console.log(`  Team option "${team.name}" not found in dropdown, skipping`)
-          }
-        } else {
-          console.log(`  "Add team" button not found, skipping`)
+        const addBtn = page.getByRole("button", { name: /add team|team hinzufügen/i })
+        if (!(await addBtn.count())) {
+          console.log(`  "Add team" button not found, skipping remaining teams`)
           break
+        }
+        await addBtn.click()
+        await page.waitForTimeout(500)
+
+        const teamOption = page.getByRole("option", { name: team.name })
+        if (await teamOption.count()) {
+          await teamOption.click()
+          console.log(`  Selected team: ${team.shortName ?? team.name}`)
+          await page.waitForTimeout(500)
+        } else {
+          console.log(`  Team option "${team.name}" not found in dropdown, skipping`)
         }
       }
 
-      // Close dropdown if still open by clicking outside
+      // Close dropdown if still open
       await page.locator("body").click({ position: { x: 10, y: 10 } })
       await page.waitForTimeout(300)
 

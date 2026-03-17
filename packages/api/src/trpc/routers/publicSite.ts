@@ -3,6 +3,12 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
+import {
+  hashPublicReportEmail,
+  hashPublicReportIp,
+  maskPublicReportEmail,
+  normalizePublicReportEmail,
+} from "../../lib/publicReportPrivacy"
 import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
@@ -1263,8 +1269,9 @@ export const publicSiteRouter = router({
   reportRequestOtp: publicProcedure
     .input(z.object({ organizationId: z.string(), email: z.string().email() }))
     .mutation(async ({ ctx, input }) => {
-      const { organizationId, email } = input
-      const identifier = `public-report:${email}:${organizationId}`
+      const { organizationId } = input
+      const normalizedEmail = normalizePublicReportEmail(input.email)
+      const identifier = `public-report:${normalizedEmail}:${organizationId}`
 
       // Rate limit: max 3 OTP requests per email per hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
@@ -1298,7 +1305,7 @@ export const publicSiteRouter = router({
       // Send email with code
       const { otpEmail } = await import("../../lib/emailTemplates")
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
         subject: "Your verification code",
         html: otpEmail(code),
       })
@@ -1322,7 +1329,10 @@ export const publicSiteRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { organizationId, gameId, homeScore, awayScore, comment, email, otpCode } = input
+      const { organizationId, gameId, homeScore, awayScore, comment, otpCode } = input
+      const normalizedEmail = normalizePublicReportEmail(input.email)
+      const submitterEmailHash = hashPublicReportEmail(normalizedEmail, organizationId)
+      const submitterEmailMasked = maskPublicReportEmail(normalizedEmail)
 
       // Validate feature is enabled + load settings
       const [settings, subscription] = await Promise.all([
@@ -1368,7 +1378,7 @@ export const publicSiteRouter = router({
             "Verification code is required.",
           )
         }
-        const identifier = `public-report:${email}:${organizationId}`
+        const identifier = `public-report:${normalizedEmail}:${organizationId}`
         verification = await ctx.db.verification.findFirst({
           where: {
             identifier,
@@ -1403,7 +1413,7 @@ export const publicSiteRouter = router({
 
       // Duplicate check
       const existingReport = await ctx.db.publicGameReport.findFirst({
-        where: { gameId, submitterEmail: email, reverted: false },
+        where: { gameId, submitterEmailHash, reverted: false },
       })
       if (existingReport) {
         throw createAppError(
@@ -1416,7 +1426,7 @@ export const publicSiteRouter = router({
       // Rate limit: max 10 submissions per email per day
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
       const dailyCount = await ctx.db.publicGameReport.count({
-        where: { submitterEmail: email, createdAt: { gte: oneDayAgo } },
+        where: { organizationId, submitterEmailHash, createdAt: { gte: oneDayAgo } },
       })
       if (dailyCount >= 10) {
         throw createAppError(
@@ -1427,7 +1437,7 @@ export const publicSiteRouter = router({
       }
 
       // Get submitter IP from request headers
-      const submitterIp = (ctx as any).ip ?? null
+      const submitterIpHash = hashPublicReportIp((ctx as any).ip ?? null, organizationId)
 
       // Transaction: create report + update game + recalculate + delete OTP
       await ctx.db.$transaction(async (tx: any) => {
@@ -1439,8 +1449,9 @@ export const publicSiteRouter = router({
             homeScore,
             awayScore,
             comment: comment ?? null,
-            submitterEmail: email,
-            submitterIp,
+            submitterEmailHash,
+            submitterEmailMasked,
+            submitterIpHash,
           },
         })
 
@@ -1503,7 +1514,7 @@ export const publicSiteRouter = router({
               awayTeam: gameData.awayTeam.shortName,
               homeScore,
               awayScore,
-              submitterEmail: email,
+              submitterEmailMasked,
               comment,
             }),
           }).catch((err) => console.error("[public-report] Admin notification failed:", err))

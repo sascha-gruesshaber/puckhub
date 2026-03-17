@@ -176,6 +176,8 @@ function RosterPage() {
                 value={activeTeamId ? [activeTeamId] : []}
                 onChange={(selected) => setSelectedTeamId(selected[0] ?? null)}
                 singleSelect
+                testId="roster-team-filter"
+                optionTestIdPrefix="roster-team-filter-option"
               />
             </FilterBar>
           }

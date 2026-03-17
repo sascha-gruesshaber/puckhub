@@ -8,9 +8,11 @@ test.describe("Seasons Management", () => {
     // Click roster link in sidebar (season-scoped link)
     await page.getByRole("link", { name: "sidebar.items.roster" }).click()
 
-    // Verify roster page loads with seeded player names
+    // Verify roster page loads and team filter works for seeded players
+    await page.locator("button.filter-pill").first().click()
+    await page.getByRole("option", { name: "HWK" }).click()
+
     await expect(page.getByText("Hawkins")).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByText("Bradley")).toBeVisible()
     await expect(page.getByText("Garrett")).toBeVisible()
   })
 })

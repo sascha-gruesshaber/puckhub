@@ -112,7 +112,7 @@ function PublicReportsPage() {
                         {report.homeScore} : {report.awayScore}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs">{report.submitterEmail}</span>
+                        <span className="text-xs">{report.submitterEmailMasked ?? "anonymous"}</span>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
                         {formatDate(report.createdAt)}

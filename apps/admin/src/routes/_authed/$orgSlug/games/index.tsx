@@ -451,6 +451,8 @@ function GamesPage() {
                   options={teamOptions}
                   value={teamFilter}
                   onChange={setTeamFilter}
+                  testId="games-team-filter"
+                  optionTestIdPrefix="games-team-filter-option"
                 />
                 <FilterBarDivider />
                 <FilterDropdown
@@ -458,6 +460,8 @@ function GamesPage() {
                   options={statusOptions}
                   value={statusFilter}
                   onChange={setStatusFilter}
+                  testId="games-status-filter"
+                  optionTestIdPrefix="games-status-filter-option"
                 />
               </FilterBar>
             )}
@@ -496,6 +500,8 @@ function GamesPage() {
                     {group.games.map((g, i) => (
                       <div
                         key={g.id}
+                        data-testid="game-row"
+                        data-game-status={g.status}
                         onClick={() => navigate({ to: '/$orgSlug/games/$gameId/report', params: { orgSlug, gameId: g.id } })}
                         className={`data-row group px-4 py-4 hover:bg-accent/5 transition-colors cursor-pointer lg:col-span-full lg:grid lg:grid-cols-[subgrid] lg:items-center ${i < group.games.length - 1 ? `border-b border-border/40` : ``}`}
                         style={{ "--row-index": rowIndex++ } as React.CSSProperties}
@@ -648,12 +654,12 @@ function GamesPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <FormField label={t("gamesPage.form.fields.round", { defaultValue: "Round" })} required>
                     <Select value={gameForm.roundId || undefined} onValueChange={(v) => setGameForm((p) => ({ ...p, roundId: v }))}>
-                      <SelectTrigger className="h-10 w-full">
+                      <SelectTrigger className="h-10 w-full" data-testid="games-form-round">
                         <SelectValue placeholder={t("gamesPage.placeholders.round")} />
                       </SelectTrigger>
                       <SelectContent>
                         {rounds.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
+                          <SelectItem key={r.id} value={r.id} data-testid={`games-form-round-option-${r.id}`}>
                             {r.name}
                           </SelectItem>
                         ))}
@@ -662,6 +668,7 @@ function GamesPage() {
                   </FormField>
                   <FormField label={t("gamesPage.form.fields.location", { defaultValue: "Location" })}>
                     <Input
+                      data-testid="games-form-location"
                       list="location-suggestions"
                       value={gameForm.location}
                       onChange={(e) => setGameForm((p) => ({ ...p, location: e.target.value }))}
@@ -681,6 +688,8 @@ function GamesPage() {
                       value={gameForm.homeTeamId}
                       onChange={handleHomeTeamChange}
                       placeholder={t("gamesPage.placeholders.homeTeam")}
+                      testId="games-form-home-team"
+                      optionTestIdPrefix="games-form-home-team-option"
                     />
                   </FormField>
                   <FormField label={t("gamesPage.form.fields.awayTeam", { defaultValue: "Away team" })} required>
@@ -689,6 +698,8 @@ function GamesPage() {
                       value={gameForm.awayTeamId}
                       onChange={(teamId) => setGameForm((p) => ({ ...p, awayTeamId: teamId }))}
                       placeholder={t("gamesPage.placeholders.awayTeam")}
+                      testId="games-form-away-team"
+                      optionTestIdPrefix="games-form-away-team-option"
                     />
                   </FormField>
                 </div>
@@ -703,6 +714,7 @@ function GamesPage() {
                 <div className="mt-2">
                   <FormField label={t("gamesPage.form.fields.scheduledAt", { defaultValue: "Date and time" })}>
                     <Input
+                      data-testid="games-form-scheduled-at"
                       type="datetime-local"
                       value={gameForm.scheduledAt}
                       min={toLocalInputValue(season.seasonStart)}
@@ -718,7 +730,12 @@ function GamesPage() {
               <Button type="button" variant="outline" onClick={() => { if (isGameDirty) setConfirmGameCloseOpen(true); else closeGameDialog() }}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={createGame.isPending || updateGame.isPending}>
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={createGame.isPending || updateGame.isPending}
+                data-testid="games-form-submit"
+              >
                 {editingGameId ? t("save") : t("create")}
               </Button>
             </SheetFooter>

@@ -6,6 +6,9 @@
   "create": "Create",
   "cancel": "Cancel",
   "filters": "Filters",
+  "dangerZone": {
+    "title": "Danger zone"
+  },
   "draft": "Draft",
   "published": "Published",
   "logout": "Sign out",
@@ -557,7 +560,8 @@
     },
     "deleteDialog": {
       "title": "Delete news",
-      "description": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone."
+      "description": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+      "hint": "This article will be permanently removed. Consider setting it to draft instead."
     },
     "toast": {
       "deleted": "News deleted",
@@ -621,7 +625,8 @@
     },
     "deletePageDialog": {
       "title": "Delete page",
-      "description": "Are you sure you want to delete \"{{title}}\"? Subpages will also be deleted. This action cannot be undone."
+      "description": "Are you sure you want to delete \"{{title}}\"? Subpages will also be deleted. This action cannot be undone.",
+      "hint": "This page and all subpages will be permanently removed. Consider unpublishing instead."
     },
     "deleteAliasDialog": {
       "title": "Delete alias",
@@ -736,8 +741,19 @@
       "viewDetails": "Details"
     },
     "playerDetail": {
-      "backToPlayers": "Back to players",
-      "editInfo": "Edit player info",
+      "backToPlayers": "Players",
+      "editInfo": "Edit",
+      "deletePlayer": {
+        "button": "Delete player",
+        "hint": "This permanently removes all contracts, stats, and game data. Consider releasing the player from their team instead.",
+        "title": "Delete player?",
+        "description": "This will permanently remove this player and all their contracts, statistics, and game data. This action cannot be undone.",
+        "confirm": "Delete permanently",
+        "toast": {
+          "deleted": "Player deleted",
+          "deleteError": "Could not delete player"
+        }
+      },
       "currentStatus": "Current status",
       "freeAgent": "Free Agent",
       "freeAgentDescription": "This player is not currently signed to any team.",
@@ -780,6 +796,18 @@
           "deleted": "Contract deleted",
           "deleteError": "Could not delete contract"
         }
+      },
+      "tabs": {
+        "contracts": "Contracts",
+        "history": "History"
+      },
+      "historyTable": {
+        "season": "Season",
+        "team": "Team",
+        "position": "Position",
+        "jersey": "#",
+        "status": "Status",
+        "noHistory": "No team history yet."
       }
     },
     "timeline": {
@@ -1037,6 +1065,17 @@
     },
     "teamDetail": {
       "backToTeams": "Teams",
+      "deleteTeam": {
+        "button": "Delete team",
+        "hint": "This permanently removes all roster data, season history, and statistics. Consider removing the team from division assignments instead.",
+        "title": "Delete team?",
+        "description": "This will permanently remove this team and all their roster data, season history, and statistics. This action cannot be undone.",
+        "confirm": "Delete permanently",
+        "toast": {
+          "deleted": "Team deleted",
+          "deleteError": "Could not delete team"
+        }
+      },
       "roster": "Roster",
       "seasonHistory": "Season History",
       "noHistory": "No season history available",
@@ -1044,7 +1083,17 @@
       "notFound": "Team not found",
       "record": "W{{wins}} D{{draws}} L{{losses}}",
       "rank": "#{{rank}}",
-      "goalDifference": "GD"
+      "goalDifference": "GD",
+      "historyTable": {
+        "season": "Season",
+        "division": "Division",
+        "gp": "GP",
+        "wins": "W",
+        "draws": "D",
+        "losses": "L",
+        "gd": "GD",
+        "rank": "Rank"
+      }
     },
     "dialogs": {
       "newTitle": "Create new team",
@@ -1558,7 +1607,8 @@
     "backToGames": "Back to Games",
     "tabs": {
       "lineup": "Lineup",
-      "report": "Game Report"
+      "report": "Game Report",
+      "ai": "AI Recap"
     },
     "period": "Period",
     "overtime": "Overtime",

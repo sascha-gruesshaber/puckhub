@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { adminPath, formField, login } from "./helpers"
+import { adminPath, login } from "./helpers"
 
 test.describe("Users Management", () => {
   test("users list shows the test user", async ({ page }) => {
@@ -10,7 +10,7 @@ test.describe("Users Management", () => {
     })
 
     // Should show the seeded admin user in the list (use the row heading to avoid matching top-bar)
-    const userRow = page.locator(".data-row", { hasText: "admin@test.local" })
+    const userRow = page.getByTestId("user-row").filter({ hasText: "admin@test.local" })
     await expect(userRow).toBeVisible()
     await expect(userRow.getByText("E2E Admin")).toBeVisible()
   })
@@ -23,20 +23,21 @@ test.describe("Users Management", () => {
     })
 
     // --- CREATE ---
-    await page.getByRole("button", { name: "usersPage.actions.newMember" }).click()
+    await page.getByTestId("users-new").click()
 
-    await formField(page, "usersPage.fields.name").fill("E2E New User")
-    await formField(page, "usersPage.fields.email").fill("e2e-new@test.local")
+    await page.getByTestId("users-form-name").fill("E2E New User")
+    await page.getByTestId("users-form-email").fill("e2e-new@test.local")
 
-    await page.getByRole("button", { name: "create" }).click()
+    await page.getByTestId("users-form-submit").click()
 
     // Verify user appears in list
     await expect(page.getByText("E2E New User")).toBeVisible({ timeout: 10_000 })
 
     // --- REMOVE ---
-    const userRow = page.locator(".data-row", { hasText: "E2E New User" })
-    await userRow.locator("[aria-label='usersPage.actions.remove']").click()
-    await page.getByRole("button", { name: "usersPage.actions.remove" }).last().click()
+    const userRow = page.getByTestId("user-row").filter({ hasText: "E2E New User" })
+    await userRow.click()
+    await page.getByTestId("user-remove").click()
+    await page.getByTestId("user-remove-confirm").click()
 
     await expect(page.getByText("E2E New User")).not.toBeVisible({ timeout: 10_000 })
   })

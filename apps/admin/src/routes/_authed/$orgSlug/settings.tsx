@@ -6,6 +6,7 @@ import { trpc } from "@/trpc"
 import { PageHeader } from "~/components/pageHeader"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
+import { normalizeLocale } from "~/i18n/resources"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -51,12 +52,12 @@ function SettingsPage() {
     if (settings) {
       setForm({
         leagueName: settings.leagueName,
-        leagueShortName: settings.leagueShortName,
-        locale: settings.locale,
-        timezone: settings.timezone,
-        pointsWin: settings.pointsWin,
-        pointsDraw: settings.pointsDraw,
-        pointsLoss: settings.pointsLoss,
+        leagueShortName: settings.leagueShortName || settings.leagueName,
+        locale: settings.locale || "de-DE",
+        timezone: settings.timezone || "Europe/Berlin",
+        pointsWin: settings.pointsWin ?? 2,
+        pointsDraw: settings.pointsDraw ?? 1,
+        pointsLoss: settings.pointsLoss ?? 0,
         publicReportsEnabled: (settings as any).publicReportsEnabled ?? false,
         publicReportsRequireEmail: (settings as any).publicReportsRequireEmail ?? true,
         publicReportsBotDetection: (settings as any).publicReportsBotDetection ?? true,
@@ -74,9 +75,19 @@ function SettingsPage() {
     },
   })
 
+  const normalizedLocale = normalizeLocale(form.locale) ?? "de-DE"
+
   function handleSubmit(ev: React.FormEvent) {
     ev.preventDefault()
-    updateMutation.mutate(form)
+    updateMutation.mutate({
+      ...form,
+      leagueShortName: form.leagueShortName || form.leagueName,
+      locale: normalizedLocale,
+      timezone: form.timezone || "Europe/Berlin",
+      pointsWin: Number.isFinite(form.pointsWin) ? form.pointsWin : 2,
+      pointsDraw: Number.isFinite(form.pointsDraw) ? form.pointsDraw : 1,
+      pointsLoss: Number.isFinite(form.pointsLoss) ? form.pointsLoss : 0,
+    })
   }
 
   if (isLoading) {
@@ -127,6 +138,7 @@ function SettingsPage() {
                     {t("settings.leagueName")}
                   </label>
                   <Input
+                    data-testid="settings-league-name"
                     value={form.leagueName}
                     onChange={(e) => setForm({ ...form, leagueName: e.target.value })}
                     className="h-10"
@@ -152,7 +164,7 @@ function SettingsPage() {
                   <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                     {t("settings.language")}
                   </label>
-                  <Select value={form.locale} onValueChange={(v) => setForm({ ...form, locale: v })}>
+                  <Select value={normalizedLocale} onValueChange={(v) => setForm({ ...form, locale: v })}>
                     <SelectTrigger className="w-full h-10">
                       <SelectValue />
                     </SelectTrigger>
@@ -222,7 +234,7 @@ function SettingsPage() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" disabled={updateMutation.isPending}>
+              <Button type="submit" disabled={updateMutation.isPending} data-testid="settings-save">
                 <Save className="w-4 h-4 mr-2" />
                 {updateMutation.isPending ? t("saving") : t("save")}
               </Button>

@@ -18,9 +18,20 @@ interface FilterDropdownProps {
   onChange: (selected: string[]) => void
   singleSelect?: boolean
   className?: string
+  testId?: string
+  optionTestIdPrefix?: string
 }
 
-function FilterDropdown({ label, options, value, onChange, singleSelect, className }: FilterDropdownProps) {
+function FilterDropdown({
+  label,
+  options,
+  value,
+  onChange,
+  singleSelect,
+  className,
+  testId,
+  optionTestIdPrefix,
+}: FilterDropdownProps) {
   const t = useT()
 
   const hasSelection = value.length > 0
@@ -56,6 +67,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
       <PopoverTrigger asChild>
         <button
           type="button"
+          data-testid={testId}
           className={cn(
             "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 cursor-pointer transition-colors",
             hasSelection
@@ -101,6 +113,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
                 type="button"
                 role="option"
                 aria-selected={isSelected}
+                data-testid={optionTestIdPrefix ? `${optionTestIdPrefix}-${option.value}` : undefined}
                 onClick={() => toggleValue(option.value)}
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left text-league-text transition-colors hover:bg-league-text/[0.03] focus:bg-league-text/[0.06] focus:outline-none"
               >

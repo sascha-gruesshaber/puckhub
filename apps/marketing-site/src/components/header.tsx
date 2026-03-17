@@ -75,6 +75,13 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
               {t.header.pricing}
             </a>
 
+            <a
+              href="/contact"
+              className="text-sm font-medium text-brand-slate hover:text-white transition-colors"
+            >
+              {t.contact.navLabel}
+            </a>
+
             {onOpenDemo && (
               <button
                 type="button"
@@ -122,6 +129,13 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
               onClick={() => setMobileOpen(false)}
             >
               {t.header.pricing}
+            </a>
+            <a
+              href="/contact"
+              className="block py-2 text-sm font-medium text-brand-slate hover:text-white"
+              onClick={() => setMobileOpen(false)}
+            >
+              {t.contact.navLabel}
             </a>
             {onOpenDemo && (
               <button

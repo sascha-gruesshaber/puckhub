@@ -215,6 +215,7 @@ export const translations = {
       perYear: "/ Jahr",
       startFree: "Kostenlos starten",
       tryDemo: "Demo testen",
+      getInTouch: "Fragen? Kontaktiere uns",
       unlimited: "Unbegrenzt",
       limits: {
         teams: "Teams",
@@ -250,6 +251,12 @@ export const translations = {
         "Teste alle Features in unserer Demo-Umgebung – kein Account nötig. Die Demo-Daten werden regelmäßig zurückgesetzt.",
       openPortal: "Demo-Portal öffnen",
     },
+    contactCta: {
+      heading: "Noch Fragen?",
+      subheading:
+        "Ob individuelle Anforderungen, eine persönliche Demo oder einfach ein kurzes Gespräch – wir sind für dich da.",
+      button: "Kontakt aufnehmen",
+    },
     demoDialog: {
       title: "Demo-Zugang wählen",
       subtitle: "Wähle eine Rolle – du wirst automatisch eingeloggt.",
@@ -261,6 +268,47 @@ export const translations = {
         { label: "Editor", description: "Inhalte bearbeiten, keine Verwaltung" },
         { label: "Reporter", description: "Nur Spielberichte erfassen" },
       ],
+    },
+    contact: {
+      navLabel: "Kontakt",
+      heading: "Lass uns sprechen",
+      subheading:
+        "Du interessierst dich für PuckHub oder möchtest eine Demo-Session? Schick uns eine Nachricht und wir melden uns bei dir.",
+      form: {
+        name: "Name",
+        namePlaceholder: "Dein Name",
+        email: "E-Mail",
+        emailPlaceholder: "deine@email.de",
+        type: "Anliegen",
+        types: {
+          general: "Allgemeine Anfrage",
+          demo: "Demo anfordern",
+          support: "Support",
+        },
+        message: "Nachricht",
+        messagePlaceholder: "Erzähl uns von deiner Liga oder was du wissen möchtest...",
+        planContext: "Ich interessiere mich für den {plan}-Plan und hätte gerne weitere Informationen.",
+        sendCode: "Code senden",
+        sending: "Wird gesendet...",
+      },
+      otp: {
+        heading: "E-Mail bestätigen",
+        description: "Wir haben einen 6-stelligen Code an {email} gesendet. Gib ihn unten ein.",
+        submit: "Absenden",
+        submitting: "Wird gesendet...",
+        resend: "Code erneut senden",
+        back: "Zurück zum Formular",
+      },
+      success: {
+        heading: "Nachricht gesendet!",
+        description: "Vielen Dank für deine Nachricht. Wir melden uns so schnell wie möglich bei dir.",
+        backToHome: "Zurück zur Startseite",
+      },
+      errors: {
+        CONTACT_RATE_LIMITED: "Zu viele Anfragen. Bitte versuche es später erneut.",
+        CONTACT_INVALID_OTP: "Ungültiger oder abgelaufener Code. Bitte versuche es erneut.",
+        generic: "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+      },
     },
     footer: {
       impressum: "Impressum",
@@ -484,6 +532,7 @@ export const translations = {
       perYear: "/ year",
       startFree: "Start for free",
       tryDemo: "Try Demo",
+      getInTouch: "Questions? Get in touch",
       unlimited: "Unlimited",
       limits: {
         teams: "Teams",
@@ -518,6 +567,12 @@ export const translations = {
       subheading: "Test all features in our demo environment – no account required. Demo data is reset regularly.",
       openPortal: "Open Demo Portal",
     },
+    contactCta: {
+      heading: "Still have questions?",
+      subheading:
+        "Whether it's custom requirements, a personal demo, or just a quick chat – we're here to help.",
+      button: "Get in touch",
+    },
     demoDialog: {
       title: "Choose Demo Access",
       subtitle: "Pick a role – you'll be logged in automatically.",
@@ -529,6 +584,47 @@ export const translations = {
         { label: "Editor", description: "Edit content, no administration" },
         { label: "Reporter", description: "Game reports only" },
       ],
+    },
+    contact: {
+      navLabel: "Contact",
+      heading: "Let's Talk",
+      subheading:
+        "Interested in PuckHub or want to schedule a demo session? Drop us a message and we'll get back to you.",
+      form: {
+        name: "Name",
+        namePlaceholder: "Your name",
+        email: "Email",
+        emailPlaceholder: "your@email.com",
+        type: "Inquiry type",
+        types: {
+          general: "General Inquiry",
+          demo: "Request a Demo",
+          support: "Support",
+        },
+        message: "Message",
+        messagePlaceholder: "Tell us about your league or what you'd like to know...",
+        planContext: "I'm interested in the {plan} plan and would like to learn more.",
+        sendCode: "Send code",
+        sending: "Sending...",
+      },
+      otp: {
+        heading: "Verify your email",
+        description: "We sent a 6-digit code to {email}. Enter it below.",
+        submit: "Submit",
+        submitting: "Submitting...",
+        resend: "Resend code",
+        back: "Back to form",
+      },
+      success: {
+        heading: "Message sent!",
+        description: "Thanks for reaching out. We'll get back to you as soon as possible.",
+        backToHome: "Back to homepage",
+      },
+      errors: {
+        CONTACT_RATE_LIMITED: "Too many requests. Please try again later.",
+        CONTACT_INVALID_OTP: "Invalid or expired code. Please try again.",
+        generic: "Something went wrong. Please try again.",
+      },
     },
     footer: {
       impressum: "Legal Notice",

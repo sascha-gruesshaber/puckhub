@@ -6,6 +6,7 @@ interface TabDef<T extends string> {
   id: T
   label: string
   icon?: LucideIcon | ReactNode
+  testId?: string
 }
 
 interface TabGroup<T extends string> {
@@ -45,6 +46,7 @@ function TabNavigation<T extends string>({ groups, activeTab, onTabChange }: Tab
                         key={tab.id}
                         type="button"
                         onClick={() => onTabChange(tab.id)}
+                        data-testid={tab.testId}
                         className={`tab-nav__tab${isActive ? " tab-nav__tab--active" : ""}`}
                       >
                         {tab.icon && (

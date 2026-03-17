@@ -1,4 +1,22 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
+
+function hashPublicReportValue(value: string, organizationId: string) {
+  const secret = process.env.PUBLIC_REPORT_HASH_SECRET ?? process.env.AUTH_SECRET ?? "dev-secret-change-me"
+  return createHash("sha256")
+    .update(`${organizationId}:${secret}:${value}`)
+    .digest("hex")
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase()
+}
+
+function maskEmail(email: string) {
+  const normalized = normalizeEmail(email)
+  const [local, domain] = normalized.split("@")
+  if (!local || !domain) return "***"
+  return `${local[0]}***@${domain}`
+}
 
 // ---------------------------------------------------------------------------
 // Fixed IDs for cross-referencing in tests
@@ -393,9 +411,20 @@ export async function seed(dbUrl: string) {
 
     // ── Public Game Reports ──
     // A public report for Game 1 (Hawks 3 - Bears 2), submitted by a fan
+    const submitterEmail = "fan@example.com"
+    const normalizedEmail = normalizeEmail(submitterEmail)
     await sql`
-      INSERT INTO public_game_reports (id, organization_id, game_id, home_score, away_score, submitter_email, comment)
-      VALUES (${randomUUID()}, ${orgId}, ${game1Id}, ${3}, ${2}, ${"fan@example.com"}, ${"Great match!"})
+      INSERT INTO public_game_reports (id, organization_id, game_id, home_score, away_score, submitter_email_hash, submitter_email_masked, comment)
+      VALUES (
+        ${randomUUID()},
+        ${orgId},
+        ${game1Id},
+        ${3},
+        ${2},
+        ${hashPublicReportValue(normalizedEmail, orgId)},
+        ${maskEmail(normalizedEmail)},
+        ${"Great match!"}
+      )
     `
   } finally {
     await sql.end()

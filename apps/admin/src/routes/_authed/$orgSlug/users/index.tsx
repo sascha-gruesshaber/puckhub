@@ -398,6 +398,7 @@ function UsersPage() {
             <Button
               variant="accent"
               onClick={() => openSheet("new")}
+              data-testid="users-new"
               disabled={atAdminLimit || isDemoOrg}
               title={
                 isDemoOrg
@@ -464,6 +465,7 @@ function UsersPage() {
               return (
                 <div
                   key={user.id}
+                  data-testid="user-row"
                   onClick={() => !isDemoOrg && openSheet(user.id)}
                   className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
                     !isDemoOrg ? "cursor-pointer" : ""
@@ -559,6 +561,7 @@ function UsersPage() {
               {/* Name + Email */}
               <FormField label={t("usersPage.fields.name")} error={errors.name} required>
                 <Input
+                  data-testid="users-form-name"
                   value={form.name}
                   onChange={(e) => setField("name", e.target.value)}
                   placeholder={t("usersPage.fields.namePlaceholder")}
@@ -567,6 +570,7 @@ function UsersPage() {
 
               <FormField label={t("usersPage.fields.email")} error={errors.email} required>
                 <Input
+                  data-testid="users-form-email"
                   type="email"
                   value={form.email}
                   onChange={(e) => setField("email", e.target.value)}
@@ -749,6 +753,7 @@ function UsersPage() {
                   variant="destructive"
                   size="sm"
                   onClick={() => setDeleteDialogOpen(true)}
+                  data-testid="user-remove"
                 >
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   {t("usersPage.actions.remove")}
@@ -758,7 +763,7 @@ function UsersPage() {
               <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={isSaving}>
+              <Button type="submit" variant="accent" disabled={isSaving} data-testid="users-form-submit">
                 {isSaving ? t("saving") : isNew ? t("create") : t("save")}
               </Button>
             </SheetFooter>
@@ -789,6 +794,7 @@ function UsersPage() {
         confirmLabel={t("usersPage.actions.remove")}
         variant="destructive"
         isPending={deleteMutation.isPending}
+        confirmTestId="user-remove-confirm"
         onConfirm={() => {
           if (editingUser) deleteMutation.mutate({ id: editingUser.id })
         }}

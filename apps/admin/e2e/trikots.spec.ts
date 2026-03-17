@@ -28,7 +28,7 @@ test.describe("Trikots Management", () => {
 
     // --- EDIT ---
     const trikotRow = page.locator(".data-row", { hasText: "E2E Test Trikot" })
-    await trikotRow.locator("[aria-label='trikotsPage.actions.edit']").click()
+    await trikotRow.click()
 
     // Change name
     const nameField = formField(page, "trikotsPage.fields.name")
@@ -41,8 +41,8 @@ test.describe("Trikots Management", () => {
     await expect(page.getByText("E2E Updated Trikot")).toBeVisible({ timeout: 10_000 })
 
     // --- DELETE ---
-    const updatedRow = page.locator(".data-row", { hasText: "E2E Updated Trikot" })
-    await updatedRow.locator("[aria-label='trikotsPage.actions.delete']").click()
+    await page.locator(".data-row", { hasText: "E2E Updated Trikot" }).click()
+    await page.getByRole("button", { name: "trikotsPage.actions.delete" }).first().click()
 
     // ConfirmDialog — click the confirm/delete button
     await page.getByRole("button", { name: "trikotsPage.actions.delete" }).last().click()

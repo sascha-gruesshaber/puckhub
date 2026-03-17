@@ -17,9 +17,20 @@ interface FilterDropdownProps {
   /** When true, only one option can be selected at a time (radio behaviour). */
   singleSelect?: boolean
   className?: string
+  testId?: string
+  optionTestIdPrefix?: string
 }
 
-function FilterDropdown({ label, options, value, onChange, singleSelect, className }: FilterDropdownProps) {
+function FilterDropdown({
+  label,
+  options,
+  value,
+  onChange,
+  singleSelect,
+  className,
+  testId,
+  optionTestIdPrefix,
+}: FilterDropdownProps) {
   const hasSelection = value.length > 0
 
   const triggerLabel = hasSelection
@@ -53,6 +64,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
       <PopoverTrigger asChild>
         <button
           type="button"
+          data-testid={testId}
           className={cn(
             "filter-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 cursor-pointer transition-colors",
             hasSelection
@@ -98,6 +110,7 @@ function FilterDropdown({ label, options, value, onChange, singleSelect, classNa
                 type="button"
                 role="option"
                 aria-selected={isSelected}
+                data-testid={optionTestIdPrefix ? `${optionTestIdPrefix}-${option.value}` : undefined}
                 onClick={() => toggleValue(option.value)}
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left transition-colors hover:bg-accent/5 focus:bg-accent/10 focus:outline-none"
               >

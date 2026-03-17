@@ -15,7 +15,7 @@ test.describe("Stats", () => {
     await page.goto(`/stats/goalies${q}`)
 
     // Should show goalie names from seed
-    await expect(page.getByText("Garrett").or(page.getByText("Novak"))).toBeVisible({
+    await expect(page.getByRole("link", { name: /Sam Garrett/ })).toBeVisible({
       timeout: 15_000,
     })
   })
@@ -26,37 +26,37 @@ test.describe("Stats", () => {
     // Page should load without error
     await expect(page.locator("body")).toBeVisible({ timeout: 15_000 })
     // Dalton has 2 PIM from seed
-    await expect(page.getByText("Dalton").or(page.getByText("PIM").first())).toBeVisible()
+    await expect(page.getByRole("link", { name: /Nick Dalton/ })).toBeVisible()
   })
 
   test("compare-teams page allows selecting teams via dropdown", async ({ page }) => {
     await page.goto(`/stats/compare-teams${q}`)
 
     // Should show the "Add team" button
-    const addBtn = page.getByRole("button", { name: /add team/i })
+    const addBtn = page.getByTestId("compare-teams-add-team")
     await expect(addBtn).toBeVisible({ timeout: 15_000 })
 
     // Select first team via dropdown
     await addBtn.click()
-    await expect(page.getByRole("option", { name: "E2E Hawks" })).toBeVisible()
-    await page.getByRole("option", { name: "E2E Hawks" }).click()
+    await expect(page.getByTestId("compare-teams-option-hwk")).toBeVisible()
+    await page.getByTestId("compare-teams-option-hwk").click()
 
     // Hawks should appear as a selected chip with an X button
-    await expect(page.getByText("HWK")).toBeVisible()
+    await expect(page.getByTestId("compare-teams-chip-hwk")).toBeVisible()
 
     // Select second team
     await addBtn.click()
-    await page.getByRole("option", { name: "E2E Bears" }).click()
+    await page.getByTestId("compare-teams-option-brs").click()
 
     // Bears chip should appear
-    await expect(page.getByText("BRS")).toBeVisible()
+    await expect(page.getByTestId("compare-teams-chip-brs")).toBeVisible()
 
     // Charts should now render (at least one SVG from ECharts)
     await expect(page.locator("svg").first()).toBeVisible({ timeout: 10_000 })
 
     // Remove Hawks via the X button on its chip
-    const hawksChip = page.locator("span", { hasText: "HWK" })
-    await hawksChip.getByRole("button").click()
+    const hawksChip = page.getByTestId("compare-teams-chip-hwk")
+    await page.getByTestId("compare-teams-remove-hwk").click()
 
     // HWK chip should disappear, hint text should show
     await expect(hawksChip).not.toBeVisible()

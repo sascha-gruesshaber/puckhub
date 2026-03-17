@@ -154,6 +154,8 @@ function StatsFilterBar({
           value={teamValue ? [teamValue] : []}
           onChange={(v) => onTeamChange(v[0] || undefined)}
           singleSelect
+          testId="stats-team-filter"
+          optionTestIdPrefix="stats-team-filter-option"
         />
       )}
       {showPosition && onPositionChange && (

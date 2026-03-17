@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
-import { ExternalLink, Loader2, X, LogIn, Shield, Pencil, ClipboardList, Globe } from "lucide-react"
+import { ExternalLink, Loader2, X, LogIn, Shield, Pencil, ClipboardList, Globe, MessageSquare, ArrowRight } from "lucide-react"
 import { useT } from "~/i18n"
 import { getAdminUrl, getApiUrl } from "@/env"
 
@@ -16,7 +16,7 @@ function getDemoDomain(): string {
   return `${DEMO_ORG}.puckhub.localhost`
 }
 
-export function DemoCta({ onOpenDemo }: { onOpenDemo: () => void }) {
+export function BottomCtas({ onOpenDemo }: { onOpenDemo: () => void }) {
   const t = useT()
   const reveal = useScrollReveal()
 
@@ -25,20 +25,46 @@ export function DemoCta({ onOpenDemo }: { onOpenDemo: () => void }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div
           ref={reveal.ref}
-          className={`relative rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/[0.06] to-brand-blue/[0.04] p-10 sm:p-16 text-center overflow-hidden ${revealClasses(reveal)}`}
+          className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${revealClasses(reveal)}`}
         >
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-brand-gold/40 to-transparent" />
+          {/* Demo CTA */}
+          <div className="relative rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/[0.06] to-brand-blue/[0.04] p-10 sm:p-12 text-center overflow-hidden flex flex-col justify-center">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-brand-gold/40 to-transparent" />
 
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">{t.demoCta.heading}</h2>
-          <p className="text-lg text-brand-slate max-w-xl mx-auto mb-8">{t.demoCta.subheading}</p>
-          <button
-            type="button"
-            onClick={onOpenDemo}
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-gold px-6 py-3 text-base font-semibold text-brand-navy hover:bg-brand-gold-dark transition-colors shadow-lg shadow-brand-gold/20"
-          >
-            {t.demoCta.openPortal}
-            <ExternalLink className="h-4 w-4" />
-          </button>
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t.demoCta.heading}</h2>
+            <p className="text-base text-brand-slate max-w-md mx-auto mb-7">{t.demoCta.subheading}</p>
+            <div>
+              <button
+                type="button"
+                onClick={onOpenDemo}
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-gold px-6 py-3 text-base font-semibold text-brand-navy hover:bg-brand-gold-dark transition-colors shadow-lg shadow-brand-gold/20"
+              >
+                {t.demoCta.openPortal}
+                <ExternalLink className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Contact CTA */}
+          <div className="relative rounded-2xl border border-brand-blue/20 bg-gradient-to-br from-brand-blue/[0.06] to-brand-gold/[0.04] p-10 sm:p-12 text-center overflow-hidden flex flex-col justify-center">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-brand-blue/40 to-transparent" />
+
+            <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-blue/10">
+              <MessageSquare className="h-5 w-5 text-brand-blue" />
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">{t.contactCta.heading}</h2>
+            <p className="text-base text-brand-slate max-w-md mx-auto mb-7">{t.contactCta.subheading}</p>
+            <div>
+              <a
+                href="/contact"
+                className="group inline-flex items-center gap-2 rounded-lg border border-brand-blue/30 bg-brand-blue/10 px-6 py-3 text-base font-semibold text-white hover:bg-brand-blue/20 hover:border-brand-blue/50 transition-all shadow-lg shadow-brand-blue/10"
+              >
+                {t.contactCta.button}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>

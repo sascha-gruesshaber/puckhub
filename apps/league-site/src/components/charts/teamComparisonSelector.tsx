@@ -18,8 +18,13 @@ interface TeamComparisonSelectorProps {
   onToggle: (teamId: string) => void
 }
 
+function testIdSuffix(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")
+}
+
 function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparisonSelectorProps) {
   const t = useT()
+  const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -45,6 +50,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
     (teamId: string) => {
       onToggle(teamId)
       setSearch("")
+      setOpen(false)
     },
     [onToggle],
   )
@@ -58,6 +64,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
         {selectedTeams.map((team) => (
           <span
             key={team.id}
+            data-testid={`compare-teams-chip-${testIdSuffix(team.shortName)}`}
             className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-league-primary text-white text-sm font-medium shadow-sm animate-fade-in"
           >
             <TeamLogo name={team.name} logoUrl={team.logoUrl} size="sm" className="h-5 w-5 !text-[9px] rounded-full ring-1 ring-white/20" />
@@ -65,6 +72,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
             <button
               type="button"
               onClick={() => onToggle(team.id)}
+              data-testid={`compare-teams-remove-${testIdSuffix(team.shortName)}`}
               className="ml-0.5 rounded-full p-0.5 hover:bg-white/20 transition-colors cursor-pointer"
               aria-label={`Remove ${team.shortName}`}
             >
@@ -75,7 +83,9 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
 
         {/* Add team dropdown trigger */}
         <Popover
+          open={open}
           onOpenChange={(open) => {
+            setOpen(open)
             if (open) {
               setSearch("")
               requestAnimationFrame(() => inputRef.current?.focus())
@@ -85,6 +95,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-testid="compare-teams-add-team"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors cursor-pointer bg-league-surface border border-dashed border-league-text/20 text-league-text/60 hover:border-league-primary/40 hover:text-league-text"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -101,6 +112,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
               <input
                 ref={inputRef}
                 type="text"
+                data-testid="compare-teams-search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t.compareTeams.searchTeams}
@@ -121,6 +133,7 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
                     type="button"
                     role="option"
                     aria-selected={false}
+                    data-testid={`compare-teams-option-${testIdSuffix(team.shortName)}`}
                     onClick={() => selectTeam(team.id)}
                     className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left text-league-text transition-colors cursor-pointer hover:bg-league-text/[0.03] focus:bg-league-text/[0.06] focus:outline-none"
                   >
