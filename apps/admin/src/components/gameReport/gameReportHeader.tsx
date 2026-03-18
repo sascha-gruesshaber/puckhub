@@ -33,7 +33,7 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
   const aWins = done && game.homeScore != null && game.awayScore != null && game.awayScore > game.homeScore
 
   return (
-    <div className="sticky top-0 z-10 rounded-xl border bg-card/95 backdrop-blur-sm p-6 shadow-sm">
+    <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Home team */}
         <div className="flex items-center gap-3 flex-1 min-w-0 justify-end">

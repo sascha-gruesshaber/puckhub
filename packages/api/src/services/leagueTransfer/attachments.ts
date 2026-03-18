@@ -56,7 +56,7 @@ export function collectImageUrls(org: { logo: string | null }, records: Record<s
   }
 
   // Extract inline image URLs from news content
-  const newsItems = records["news"]
+  const newsItems = records.news
   if (newsItems) {
     for (const item of newsItems) {
       if (item.content) {

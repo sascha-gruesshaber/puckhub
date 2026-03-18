@@ -1,9 +1,10 @@
 import { Button } from "@puckhub/ui"
-import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router"
 import { Building2, Clock, CreditCard, LayoutDashboard, LogOut, Users } from "lucide-react"
-import { Suspense } from "react"
-import { TopBar } from "~/components/topBar"
+import { Suspense, useEffect } from "react"
 import { signOut, useSession } from "@/auth-client"
+import { TopBar } from "~/components/topBar"
+import { MobileSidebarProvider, useMobileSidebar } from "~/contexts/mobileSidebarContext"
 
 export const Route = createFileRoute("/_authed")({
   component: AuthedLayout,
@@ -69,10 +70,38 @@ function AuthedLayout() {
   }
 
   return (
+    <MobileSidebarProvider>
+      <PlatformSidebarLayout />
+    </MobileSidebarProvider>
+  )
+}
+
+function PlatformSidebarLayout() {
+  const { open: sidebarOpen, setOpen: setSidebarOpen } = useMobileSidebar()
+  const _pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  // Close sidebar on route change
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [setSidebarOpen])
+
+  return (
     <div className="flex min-h-screen">
+      {/* Mobile Backdrop */}
+      {sidebarOpen && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay has no meaningful keyboard interaction
+        <div
+          role="presentation"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className="fixed inset-y-0 left-0 z-40 flex flex-col"
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:z-40 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
         style={{
           width: "var(--sidebar-width)",
           background: "var(--sidebar-bg)",
@@ -111,7 +140,13 @@ function AuthedLayout() {
         </div>
 
         {/* Navigation */}
-        <nav className="sidebar-nav flex-1 overflow-y-auto" style={{ padding: "16px 12px" }}>
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: nav click closes mobile sidebar on link navigation */}
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: nav click closes mobile sidebar on link navigation */}
+        <nav
+          className="sidebar-nav flex-1 overflow-y-auto"
+          style={{ padding: "16px 12px" }}
+          onClick={() => setSidebarOpen(false)}
+        >
           <Link
             to="/"
             activeOptions={{ exact: true }}
@@ -160,12 +195,9 @@ function AuthedLayout() {
       </aside>
 
       {/* Main content */}
-      <main
-        className="flex-1 min-h-screen flex flex-col"
-        style={{ marginLeft: "var(--sidebar-width)", background: "var(--content-bg)" }}
-      >
+      <main className="flex-1 min-h-screen flex flex-col lg:ml-[260px]" style={{ background: "var(--content-bg)" }}>
         <TopBar />
-        <div className="content-enter flex-1" style={{ padding: "24px 44px" }}>
+        <div className="content-enter flex-1 px-4 py-4 sm:px-6 lg:px-11 lg:py-6">
           <Suspense
             fallback={
               <div className="space-y-4 animate-pulse">

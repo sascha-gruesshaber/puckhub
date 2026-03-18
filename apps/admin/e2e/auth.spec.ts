@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test"
+import { writeFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { readFileSync, writeFileSync } from "node:fs"
-import { login, clearApiLog, waitForMagicLink } from "./helpers"
+import { expect, test } from "@playwright/test"
+import { login, waitForMagicLink } from "./helpers"
 
 const apiLogFile = resolve(import.meta.dirname, "../../../e2e/.e2e-api.log")
 
@@ -42,15 +42,16 @@ test.describe("Authentication", () => {
       await orgButton.click()
     }
 
-    // Should land on the dashboard
+    // Should land on the dashboard (at /$orgSlug/ after org selection)
     await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
       timeout: 15_000,
     })
-    await expect(page).toHaveURL("/")
+    await expect(page).toHaveURL(/\/(e2e-league\/?)?$/)
   })
 
   test("show error with invalid email format", async ({ page }) => {
     await page.goto("/login")
+    await page.waitForLoadState("networkidle")
 
     await page.getByLabel("login.email").fill("not-an-email")
     await page.getByRole("button", { name: "login.magicLink.submit" }).click()

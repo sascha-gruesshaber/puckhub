@@ -3,6 +3,12 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
+import {
+  hashPublicReportEmail,
+  hashPublicReportIp,
+  maskPublicReportEmail,
+  normalizePublicReportEmail,
+} from "../../lib/publicReportPrivacy"
 import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
@@ -17,7 +23,6 @@ export const publicSiteRouter = router({
         name: true,
         slug: true,
         sortOrder: true,
-        priceMonthly: true,
         priceYearly: true,
         currency: true,
         maxTeams: true,
@@ -38,6 +43,10 @@ export const publicSiteRouter = router({
         featureAdvancedRoles: true,
         featureAdvancedStats: true,
         featurePublicReports: true,
+        maxAdmins: true,
+        maxDocuments: true,
+        storageQuotaMb: true,
+        featureAiRecaps: true,
       },
     })
   }),
@@ -396,7 +405,12 @@ export const publicSiteRouter = router({
           awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } },
           round: { select: { name: true, roundType: true, division: { select: { name: true } } } },
           events: {
-            orderBy: [{ period: "asc" }, { timeMinutes: "asc" }, { timeSeconds: "asc" }],
+            where: { OR: [{ eventType: { not: "note" } }, { notePublic: true }] },
+            orderBy: [
+              { period: { sort: "asc", nulls: "first" } },
+              { timeMinutes: { sort: "asc", nulls: "first" } },
+              { timeSeconds: { sort: "asc", nulls: "first" } },
+            ],
             include: {
               team: { select: { id: true, shortName: true } },
               scorer: { select: { id: true, firstName: true, lastName: true } },
@@ -845,7 +859,7 @@ export const publicSiteRouter = router({
       const playerMap = new Map<string, PlayerPenalty>()
 
       for (const row of penaltyAgg) {
-        if (!row.penaltyPlayerId) continue
+        if (!row.penaltyPlayerId || !row.teamId) continue
         const key = `${row.penaltyPlayerId}:${row.teamId}`
         let entry = playerMap.get(key)
         if (!entry) {
@@ -909,6 +923,7 @@ export const publicSiteRouter = router({
 
       const teamMap = new Map<string, TeamPenalty>()
       for (const row of penaltyAgg) {
+        if (!row.teamId) continue
         let entry = teamMap.get(row.teamId)
         if (!entry) {
           entry = { teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
@@ -1005,7 +1020,7 @@ export const publicSiteRouter = router({
               round: {
                 select: {
                   name: true,
-                  division: { select: { name: true, season: { select: { name: true } } } },
+                  division: { select: { name: true, season: { select: { id: true, name: true } } } },
                 },
               },
             },
@@ -1041,7 +1056,7 @@ export const publicSiteRouter = router({
       const { teamId } = input
       const orgId = input.organizationId
 
-      const [team, teamDivisions, allScorers, allGoalies] = await Promise.all([
+      const [team, teamDivisions, allScorers, allGoalies, contracts] = await Promise.all([
         ctx.db.team.findFirst({
           where: { id: teamId, organizationId: orgId },
         }),
@@ -1069,9 +1084,50 @@ export const publicSiteRouter = router({
           include: { player: { select: { firstName: true, lastName: true } } },
           orderBy: { gaa: "asc" },
         }),
+        ctx.db.contract.findMany({
+          where: { teamId, organizationId: orgId },
+          select: {
+            startSeasonId: true,
+            endSeasonId: true,
+            playerId: true,
+            jerseyNumber: true,
+            position: true,
+            player: { select: { firstName: true, lastName: true, photoUrl: true } },
+          },
+        }),
       ])
 
       if (!team) return null
+
+      // Build roster change maps from contracts
+      type RosterChangePlayer = {
+        playerId: string
+        firstName: string
+        lastName: string
+        photoUrl: string | null
+        jerseyNumber: number | null
+        position: string
+      }
+      const joinedBySeason = new Map<string, RosterChangePlayer[]>()
+      const departedBySeason = new Map<string, RosterChangePlayer[]>()
+      for (const c of contracts) {
+        const p: RosterChangePlayer = {
+          playerId: c.playerId,
+          firstName: c.player.firstName,
+          lastName: c.player.lastName,
+          photoUrl: c.player.photoUrl,
+          jerseyNumber: c.jerseyNumber,
+          position: c.position,
+        }
+        const j = joinedBySeason.get(c.startSeasonId) ?? []
+        j.push(p)
+        joinedBySeason.set(c.startSeasonId, j)
+        if (c.endSeasonId) {
+          const d = departedBySeason.get(c.endSeasonId) ?? []
+          d.push(p)
+          departedBySeason.set(c.endSeasonId, d)
+        }
+      }
 
       const seasonMap = new Map<
         string,
@@ -1175,6 +1231,10 @@ export const publicSiteRouter = router({
             },
             bestRank,
             bestRankRoundType,
+            rosterChanges: {
+              joined: joinedBySeason.get(entry.season.id) ?? [],
+              departed: departedBySeason.get(entry.season.id) ?? [],
+            },
           }
         })
         .sort((a, b) => new Date(b.season.seasonStart).getTime() - new Date(a.season.seasonStart).getTime())
@@ -1219,8 +1279,9 @@ export const publicSiteRouter = router({
   reportRequestOtp: publicProcedure
     .input(z.object({ organizationId: z.string(), email: z.string().email() }))
     .mutation(async ({ ctx, input }) => {
-      const { organizationId, email } = input
-      const identifier = `public-report:${email}:${organizationId}`
+      const { organizationId } = input
+      const normalizedEmail = normalizePublicReportEmail(input.email)
+      const identifier = `public-report:${normalizedEmail}:${organizationId}`
 
       // Rate limit: max 3 OTP requests per email per hour
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
@@ -1254,7 +1315,7 @@ export const publicSiteRouter = router({
       // Send email with code
       const { otpEmail } = await import("../../lib/emailTemplates")
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
         subject: "Your verification code",
         html: otpEmail(code),
       })
@@ -1278,7 +1339,10 @@ export const publicSiteRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { organizationId, gameId, homeScore, awayScore, comment, email, otpCode } = input
+      const { organizationId, gameId, homeScore, awayScore, comment, otpCode } = input
+      const normalizedEmail = normalizePublicReportEmail(input.email)
+      const submitterEmailHash = hashPublicReportEmail(normalizedEmail, organizationId)
+      const submitterEmailMasked = maskPublicReportEmail(normalizedEmail)
 
       // Validate feature is enabled + load settings
       const [settings, subscription] = await Promise.all([
@@ -1324,7 +1388,7 @@ export const publicSiteRouter = router({
             "Verification code is required.",
           )
         }
-        const identifier = `public-report:${email}:${organizationId}`
+        const identifier = `public-report:${normalizedEmail}:${organizationId}`
         verification = await ctx.db.verification.findFirst({
           where: {
             identifier,
@@ -1359,7 +1423,7 @@ export const publicSiteRouter = router({
 
       // Duplicate check
       const existingReport = await ctx.db.publicGameReport.findFirst({
-        where: { gameId, submitterEmail: email, reverted: false },
+        where: { gameId, submitterEmailHash, reverted: false },
       })
       if (existingReport) {
         throw createAppError(
@@ -1372,7 +1436,7 @@ export const publicSiteRouter = router({
       // Rate limit: max 10 submissions per email per day
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
       const dailyCount = await ctx.db.publicGameReport.count({
-        where: { submitterEmail: email, createdAt: { gte: oneDayAgo } },
+        where: { organizationId, submitterEmailHash, createdAt: { gte: oneDayAgo } },
       })
       if (dailyCount >= 10) {
         throw createAppError(
@@ -1383,7 +1447,7 @@ export const publicSiteRouter = router({
       }
 
       // Get submitter IP from request headers
-      const submitterIp = (ctx as any).ip ?? null
+      const submitterIpHash = hashPublicReportIp((ctx as any).ip ?? null, organizationId)
 
       // Transaction: create report + update game + recalculate + delete OTP
       await ctx.db.$transaction(async (tx: any) => {
@@ -1395,8 +1459,9 @@ export const publicSiteRouter = router({
             homeScore,
             awayScore,
             comment: comment ?? null,
-            submitterEmail: email,
-            submitterIp,
+            submitterEmailHash,
+            submitterEmailMasked,
+            submitterIpHash,
           },
         })
 
@@ -1459,7 +1524,7 @@ export const publicSiteRouter = router({
               awayTeam: gameData.awayTeam.shortName,
               homeScore,
               awayScore,
-              submitterEmail: email,
+              submitterEmailMasked,
               comment,
             }),
           }).catch((err) => console.error("[public-report] Admin notification failed:", err))
@@ -1468,6 +1533,111 @@ export const publicSiteRouter = router({
 
       return { success: true }
     }),
+
+  getAllTeamsHistory: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+    const orgId = input.organizationId
+
+    const [allTeams, teamDivisions, pimAgg] = await Promise.all([
+      ctx.db.team.findMany({
+        where: { organizationId: orgId },
+        select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true },
+        orderBy: { name: "asc" },
+      }),
+      ctx.db.teamDivision.findMany({
+        where: { organizationId: orgId },
+        include: {
+          division: {
+            include: {
+              season: { select: { id: true, name: true, seasonStart: true } },
+              rounds: {
+                include: { standings: true },
+                orderBy: { sortOrder: "asc" },
+              },
+            },
+          },
+        },
+      }),
+      ctx.db.playerSeasonStat.groupBy({
+        by: ["teamId", "seasonId"],
+        where: { organizationId: orgId },
+        _sum: { penaltyMinutes: true },
+      }),
+    ])
+
+    // Build PIM lookup
+    const pimMap = new Map<string, number>()
+    for (const row of pimAgg) {
+      pimMap.set(`${row.teamId}:${row.seasonId}`, row._sum.penaltyMinutes ?? 0)
+    }
+
+    // Collect unique seasons
+    const seasonMap = new Map<string, { id: string; name: string; seasonStart: Date }>()
+    // Build teamSeasons from standings
+    const teamSeasons: Array<{
+      teamId: string
+      seasonId: string
+      gamesPlayed: number
+      wins: number
+      draws: number
+      losses: number
+      goalsFor: number
+      goalsAgainst: number
+      goalDifference: number
+      bestRank: number | null
+      pim: number
+    }> = []
+
+    // Aggregate per team per season across all divisions/rounds
+    const tsMap = new Map<string, (typeof teamSeasons)[0]>()
+
+    for (const td of teamDivisions) {
+      const s = td.division.season
+      if (!seasonMap.has(s.id)) {
+        seasonMap.set(s.id, { id: s.id, name: s.name, seasonStart: s.seasonStart })
+      }
+
+      for (const round of td.division.rounds) {
+        for (const st of round.standings) {
+          const key = `${st.teamId}:${s.id}`
+          let entry = tsMap.get(key)
+          if (!entry) {
+            entry = {
+              teamId: st.teamId,
+              seasonId: s.id,
+              gamesPlayed: 0,
+              wins: 0,
+              draws: 0,
+              losses: 0,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              goalDifference: 0,
+              bestRank: null,
+              pim: pimMap.get(key) ?? 0,
+            }
+            tsMap.set(key, entry)
+          }
+          entry.gamesPlayed += st.gamesPlayed
+          entry.wins += st.wins
+          entry.draws += st.draws
+          entry.losses += st.losses
+          entry.goalsFor += st.goalsFor
+          entry.goalsAgainst += st.goalsAgainst
+          entry.goalDifference += st.goalsFor - st.goalsAgainst
+          if (st.rank != null && (entry.bestRank === null || st.rank < entry.bestRank)) {
+            entry.bestRank = st.rank
+          }
+        }
+      }
+    }
+
+    teamSeasons.push(...tsMap.values())
+
+    const seasons = Array.from(seasonMap.values()).sort(
+      (a, b) => new Date(a.seasonStart).getTime() - new Date(b.seasonStart).getTime(),
+    )
+
+    return { teams: allTeams, seasons, teamSeasons }
+  }),
 
   reportHasReport: publicProcedure
     .input(z.object({ organizationId: z.string(), gameId: z.string().uuid() }))

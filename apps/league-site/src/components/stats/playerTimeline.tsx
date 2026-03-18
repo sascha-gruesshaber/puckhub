@@ -1,4 +1,4 @@
-import { ArrowRight, FileText, Shield, AlertTriangle } from "lucide-react"
+import { AlertTriangle, FileText, Shield } from "lucide-react"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { useT } from "~/lib/i18n"
 
@@ -66,7 +66,7 @@ function PlayerTimeline({
   return (
     <div className="space-y-3">
       {filtered.map((event, i) => (
-        <div key={i} className="flex gap-3">
+        <div key={`${event.type}-${event.data.id}`} className="flex gap-3">
           <div className="flex flex-col items-center">
             <div
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
@@ -140,5 +140,5 @@ function SuspensionCard({ suspension }: { suspension: Suspension }) {
   )
 }
 
-export { PlayerTimeline }
 export type { Contract, Suspension }
+export { PlayerTimeline }

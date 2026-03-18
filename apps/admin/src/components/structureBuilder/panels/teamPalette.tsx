@@ -52,7 +52,8 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
           const initials = team.shortName.substring(0, 2).toUpperCase()
 
           return (
-            <div
+            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag-and-drop source item
+            <li
               key={team.id}
               draggable
               onDragStart={(e) => {
@@ -61,7 +62,7 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
                 onDragTypeChange("team")
               }}
               onDragEnd={() => onDragTypeChange(null)}
-              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors cursor-grab hover:bg-gray-100 active:cursor-grabbing"
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors cursor-grab hover:bg-gray-100 active:cursor-grabbing list-none"
             >
               <GripVertical className="h-3.5 w-3.5 text-gray-300 shrink-0" />
 
@@ -90,7 +91,7 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
                   {divisionCount}
                 </span>
               )}
-            </div>
+            </li>
           )
         })}
 

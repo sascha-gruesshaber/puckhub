@@ -1,14 +1,14 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
-import { ArrowRight, Calendar, ChevronRight, Users } from "lucide-react"
+import { ArrowRight, ChevronRight, Users } from "lucide-react"
 import { Fragment } from "react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { Skeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useOrg, useSeason } from "~/lib/context"
-import { useT, type Translations } from "~/lib/i18n"
-import { cn } from "~/lib/utils"
+import { type Translations, useT } from "~/lib/i18n"
+import { cn, slugify } from "~/lib/utils"
 import { trpc } from "../../lib/trpc"
 
 export const structureSearchValidator = (s: Record<string, unknown>): { season?: string } => ({
@@ -37,37 +37,6 @@ const ROUND_TYPE_COLORS: Record<string, string> = {
 }
 
 // ---------------------------------------------------------------------------
-// Season Banner
-// ---------------------------------------------------------------------------
-
-function SeasonBanner({ seasonName }: { seasonName: string }) {
-  return (
-    <div className="relative mb-10 rounded-2xl overflow-hidden bg-league-primary">
-      {/* Diagonal stripe pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.07]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(255,255,255,1) 6px, rgba(255,255,255,1) 12px)",
-        }}
-      />
-      {/* Gradient fade to the right */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/10" />
-
-      <div className="relative flex items-center gap-4 px-6 py-5 sm:px-8 sm:py-6">
-        <div className="flex items-center justify-center h-11 w-11 rounded-xl bg-white/15 backdrop-blur-sm">
-          <Calendar className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <span className="text-white/60 text-xs font-semibold uppercase tracking-[0.15em]">Season</span>
-          <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">{seasonName}</h3>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
 // Round Node (timeline step)
 // ---------------------------------------------------------------------------
 
@@ -77,17 +46,14 @@ function RoundNode({
   divisionIndex,
   roundId,
   gameCount,
-  t,
 }: {
   name: string
   roundType: string
   divisionIndex: number
   roundId: string
   gameCount: number
-  t: Translations
 }) {
   const color = ROUND_TYPE_COLORS[roundType] ?? "#9CA3AF"
-  const typeLabel = (t.structure.roundTypes as Record<string, string>)[roundType] ?? roundType
 
   return (
     <Link
@@ -110,7 +76,6 @@ function RoundNode({
         />
       </div>
       <span className="text-sm font-semibold text-league-text text-center leading-tight">{name}</span>
-      <span className="text-[10px] font-medium uppercase tracking-wider text-league-text/35 text-center">{typeLabel}</span>
     </Link>
   )
 }
@@ -122,8 +87,8 @@ function RoundNode({
 function TeamCard({ team }: { team: TeamInfo }) {
   return (
     <Link
-      to="/teams/$teamId"
-      params={{ teamId: team.id }}
+      to="/teams/$teamId/$slug"
+      params={{ teamId: team.id, slug: slugify(team.name) }}
       className={cn(
         "group/team flex items-center gap-3 px-4 py-3 rounded-xl",
         "bg-league-bg border border-league-text/6",
@@ -235,7 +200,6 @@ function DivisionCard({
                     divisionIndex={divisionIndex}
                     roundId={round.id}
                     gameCount={round._count.games}
-                    t={t}
                   />
                 </Fragment>
               ))}
@@ -244,9 +208,7 @@ function DivisionCard({
         )}
 
         {/* Divider */}
-        {division.rounds.length > 0 && teams.length > 0 && (
-          <div className="mx-6 my-2 h-px bg-league-text/5" />
-        )}
+        {division.rounds.length > 0 && teams.length > 0 && <div className="mx-6 my-2 h-px bg-league-text/5" />}
 
         {/* Teams grid */}
         {teams.length > 0 && (
@@ -275,10 +237,8 @@ function DivisionCard({
 function StructureSkeleton() {
   return (
     <div className="space-y-8">
-      {/* Season banner skeleton */}
-      <Skeleton className="h-[76px] w-full rounded-2xl" />
-
       {Array.from({ length: 2 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
         <div key={i} className="rounded-2xl overflow-hidden">
           {/* Header skeleton */}
           <div className="bg-league-primary/20 px-6 py-5">
@@ -293,10 +253,10 @@ function StructureSkeleton() {
               <Skeleton className="h-3 w-20 mb-4 mx-auto" />
               <div className="flex justify-center gap-6">
                 {Array.from({ length: 3 }).map((_, j) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                   <div key={j} className="flex flex-col items-center gap-2">
                     <Skeleton className="h-9 w-9 rounded-full" />
                     <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-2.5 w-14" />
                   </div>
                 ))}
               </div>
@@ -306,6 +266,7 @@ function StructureSkeleton() {
               <Skeleton className="h-3 w-20 mb-4 mx-auto" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {Array.from({ length: 6 }).map((_, j) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                   <Skeleton key={j} className="h-[56px] rounded-xl" />
                 ))}
               </div>
@@ -340,20 +301,12 @@ export function StructurePage() {
     { enabled: !!selectedSeasonId, staleTime: 300_000 },
   )
 
-  const currentSeason = season.all.find((s) => s.id === selectedSeasonId)
-
   return (
-    <StatsPageShell
-      title={t.structure.title}
-      selectedSeasonId={selectedSeasonId}
-      onSeasonChange={setSelectedSeasonId}
-    >
+    <StatsPageShell title={t.structure.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSelectedSeasonId}>
       {isLoading ? (
         <StructureSkeleton />
       ) : structure && structure.length > 0 ? (
         <div className="space-y-8">
-          {currentSeason && <SeasonBanner seasonName={currentSeason.name} />}
-
           {structure.map((division, i) => (
             <DivisionCard
               key={division.id}

@@ -132,6 +132,7 @@ const en = {
     goals: "Goals",
     penalties: "Penalties",
     noDetailedReports: "No detailed game reports available for this game.",
+    notes: "Notes",
     lineups: "Lineups",
     noLineup: "No lineup available",
   },
@@ -151,7 +152,7 @@ const en = {
     noTeams: "No teams available",
     notFound: "Team not found",
     backToTeams: "Back to Teams",
-    roster: "Roster",
+    roster: "Current Roster",
     seasonHistory: "Season History",
     teamPhoto: "Team photo",
     noRoster: "No roster available",
@@ -207,11 +208,15 @@ const en = {
   compareTeams: {
     title: "Team Comparison",
     selectTeams: "Select teams to compare",
-    radarTitle: "Radar Comparison",
-    barTitle: "Bar Comparison",
-    hintOneMore:
-      "Select at least one more team to compare wins, losses, goals, goals against and penalty minutes in radar and bar charts.",
-    hintSelectTwo: "Select at least two teams to compare them directly. Data is based on the current season standings.",
+    radarTitle: "All-Time Radar Comparison",
+    barTitle: "All-Time Bar Comparison",
+    progressionTitle: "Season Progression",
+    addTeam: "Add team",
+    searchTeams: "Search teams...",
+    allSelected: "All teams selected",
+    noMatch: "No teams found",
+    hintOneMore: "Select at least one more team to compare wins, losses, goals, goals against and penalty minutes.",
+    hintSelectTwo: "Select at least two teams to compare their all-time statistics across all seasons.",
     notEnoughTeams: "Not enough teams",
     notEnoughTeamsDesc: "At least two teams are required for a comparison.",
   },
@@ -228,6 +233,7 @@ const en = {
     career: "Career",
     contracts: "Contracts",
     suspensions: "Suspensions",
+    years: "years",
   },
 
   playerTimeline: {
@@ -250,6 +256,9 @@ const en = {
   seasonTimeline: {
     title: "Season by Season",
     noSeasons: "No seasons available",
+    roundDetails: "Round Details",
+    joined: "Joined",
+    departed: "Departed",
   },
 
   allTimeStats: {
@@ -282,6 +291,8 @@ const en = {
     goalsAgainst: "Goals Against",
     pim: "PIM",
     penaltyMinutes: "Penalty Minutes",
+    goalDifference: "Goal Difference",
+    gamesPlayed: "Games Played",
     difference: "Difference",
     winsPoints: "Wins/Points",
     placement: "Placement",
@@ -501,6 +512,7 @@ const de: Translations = {
     goals: "Tore",
     penalties: "Strafen",
     noDetailedReports: "Für dieses Spiel sind keine detaillierten Spielberichte verfügbar.",
+    notes: "Notizen",
     lineups: "Aufstellungen",
     noLineup: "Keine Aufstellung verfügbar",
   },
@@ -520,7 +532,7 @@ const de: Translations = {
     noTeams: "Keine Teams vorhanden",
     notFound: "Team nicht gefunden",
     backToTeams: "Zurück zur Teamliste",
-    roster: "Kader",
+    roster: "Aktueller Kader",
     seasonHistory: "Saisonverlauf",
     teamPhoto: "Teamfoto",
     noRoster: "Kein Kader verfügbar",
@@ -576,12 +588,16 @@ const de: Translations = {
   compareTeams: {
     title: "Teamvergleich",
     selectTeams: "Teams zum Vergleich auswählen",
-    radarTitle: "Radar-Vergleich",
-    barTitle: "Balken-Vergleich",
+    radarTitle: "Gesamt-Radarvergleich",
+    barTitle: "Gesamt-Balkenvergleich",
+    progressionTitle: "Saisonverlauf",
+    addTeam: "Team hinzufügen",
+    searchTeams: "Teams suchen...",
+    allSelected: "Alle Teams ausgewählt",
+    noMatch: "Keine Teams gefunden",
     hintOneMore:
-      "Wähle mindestens ein weiteres Team, um Siege, Niederlagen, Tore, Gegentore und Strafminuten im Radar- und Balkendiagramm zu vergleichen.",
-    hintSelectTwo:
-      "Wähle mindestens zwei Teams aus, um sie direkt miteinander zu vergleichen. Die Daten basieren auf der aktuellen Saisontabelle.",
+      "Wähle mindestens ein weiteres Team, um Siege, Niederlagen, Tore, Gegentore und Strafminuten zu vergleichen.",
+    hintSelectTwo: "Wähle mindestens zwei Teams aus, um ihre Gesamtstatistiken über alle Saisons zu vergleichen.",
     notEnoughTeams: "Nicht genügend Teams",
     notEnoughTeamsDesc: "Für einen Vergleich werden mindestens zwei Teams benötigt.",
   },
@@ -598,6 +614,7 @@ const de: Translations = {
     career: "Karriere",
     contracts: "Verträge",
     suspensions: "Sperren",
+    years: "Jahre",
   },
 
   playerTimeline: {
@@ -620,6 +637,9 @@ const de: Translations = {
   seasonTimeline: {
     title: "Saison für Saison",
     noSeasons: "Keine Saisons vorhanden",
+    roundDetails: "Runden-Details",
+    joined: "Zugang",
+    departed: "Abgang",
   },
 
   allTimeStats: {
@@ -652,6 +672,8 @@ const de: Translations = {
     goalsAgainst: "Gegentore",
     pim: "Strafmin.",
     penaltyMinutes: "Strafminuten",
+    goalDifference: "Tordifferenz",
+    gamesPlayed: "Spiele",
     difference: "Differenz",
     winsPoints: "Siege/Punkte",
     placement: "Platzierung",

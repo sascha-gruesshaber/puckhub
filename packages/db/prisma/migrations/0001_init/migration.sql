@@ -25,6 +25,12 @@ CREATE TYPE "menu_location" AS ENUM ('main_nav', 'footer');
 -- CreateEnum
 CREATE TYPE "trikot_template_type" AS ENUM ('one_color', 'two_color');
 
+-- CreateEnum
+CREATE TYPE "org_role" AS ENUM ('owner', 'admin', 'game_manager', 'game_reporter', 'team_manager', 'editor');
+
+-- CreateEnum
+CREATE TYPE "plan_interval" AS ENUM ('yearly');
+
 -- CreateTable
 CREATE TABLE "user" (
     "id" TEXT NOT NULL,
@@ -36,6 +42,7 @@ CREATE TABLE "user" (
     "twoFactorEnabled" BOOLEAN DEFAULT false,
     "role" TEXT,
     "banned" BOOLEAN DEFAULT false,
+    "isDemoUser" BOOLEAN NOT NULL DEFAULT false,
     "banReason" TEXT,
     "banExpires" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -126,6 +133,7 @@ CREATE TABLE "organization" (
     "slug" TEXT NOT NULL,
     "logo" TEXT,
     "metadata" TEXT,
+    "ai_enabled" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "organization_pkey" PRIMARY KEY ("id")
@@ -140,6 +148,17 @@ CREATE TABLE "member" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "member_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "member_role" (
+    "id" UUID NOT NULL,
+    "member_id" TEXT NOT NULL,
+    "role" "org_role" NOT NULL,
+    "team_id" UUID,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "member_role_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -216,7 +235,7 @@ CREATE TABLE "teams" (
     "contact_email" TEXT,
     "contact_phone" TEXT,
     "website" TEXT,
-    "default_venue_id" UUID,
+    "home_venue" TEXT,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -255,32 +274,23 @@ CREATE TABLE "contracts" (
 );
 
 -- CreateTable
-CREATE TABLE "venues" (
-    "id" UUID NOT NULL,
-    "organization_id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "city" TEXT,
-    "address" TEXT,
-    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT "venues_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "games" (
     "id" UUID NOT NULL,
     "organization_id" TEXT NOT NULL,
     "round_id" UUID NOT NULL,
     "home_team_id" UUID NOT NULL,
     "away_team_id" UUID NOT NULL,
-    "venue_id" UUID,
+    "location" TEXT,
     "scheduled_at" TIMESTAMPTZ,
     "status" "game_status" NOT NULL DEFAULT 'scheduled',
     "home_score" INTEGER,
     "away_score" INTEGER,
     "game_number" INTEGER,
     "notes" TEXT,
+    "recap_title" TEXT,
+    "recap_content" TEXT,
+    "recap_generated_at" TIMESTAMPTZ,
+    "recap_generating" BOOLEAN NOT NULL DEFAULT false,
     "finalized_at" TIMESTAMPTZ,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -489,10 +499,11 @@ CREATE TABLE "pages" (
     "slug" TEXT NOT NULL,
     "content" TEXT NOT NULL DEFAULT '',
     "status" "page_status" NOT NULL DEFAULT 'draft',
-    "is_static" BOOLEAN NOT NULL DEFAULT false,
     "parent_id" UUID,
     "menu_locations" "menu_location"[],
     "sort_order" INTEGER NOT NULL DEFAULT 0,
+    "is_system_route" BOOLEAN NOT NULL DEFAULT false,
+    "route_path" TEXT,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -535,6 +546,9 @@ CREATE TABLE "system_settings" (
     "points_win" INTEGER NOT NULL DEFAULT 2,
     "points_draw" INTEGER NOT NULL DEFAULT 1,
     "points_loss" INTEGER NOT NULL DEFAULT 0,
+    "public_reports_enabled" BOOLEAN NOT NULL DEFAULT false,
+    "public_reports_require_email" BOOLEAN NOT NULL DEFAULT true,
+    "public_reports_bot_detection" BOOLEAN NOT NULL DEFAULT true,
     "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "system_settings_pkey" PRIMARY KEY ("id")
@@ -580,6 +594,127 @@ CREATE TABLE "team_trikots" (
     CONSTRAINT "team_trikots_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "website_config" (
+    "id" UUID NOT NULL,
+    "organization_id" TEXT NOT NULL,
+    "domain" TEXT,
+    "is_active" BOOLEAN NOT NULL DEFAULT false,
+    "logo_url" TEXT,
+    "favicon_url" TEXT,
+    "og_image_url" TEXT,
+    "color_primary" TEXT,
+    "color_secondary" TEXT,
+    "color_accent" TEXT,
+    "color_background" TEXT,
+    "color_text" TEXT,
+    "color_header_bg" TEXT,
+    "color_header_text" TEXT,
+    "color_footer_bg" TEXT,
+    "color_footer_text" TEXT,
+    "template_preset" TEXT NOT NULL DEFAULT 'classic',
+    "layout_config" JSONB,
+    "seo_title" TEXT,
+    "seo_description" TEXT,
+    "domain_verified_at" TIMESTAMPTZ,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "website_config_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "plans" (
+    "id" UUID NOT NULL,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "sort_order" INTEGER NOT NULL DEFAULT 0,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "price_yearly" INTEGER NOT NULL DEFAULT 0,
+    "currency" TEXT NOT NULL DEFAULT 'EUR',
+    "max_teams" INTEGER,
+    "max_players" INTEGER,
+    "max_divisions_per_season" INTEGER,
+    "max_seasons" INTEGER,
+    "max_admins" INTEGER,
+    "max_news_articles" INTEGER,
+    "max_pages" INTEGER,
+    "max_sponsors" INTEGER,
+    "max_documents" INTEGER,
+    "storage_quota_mb" INTEGER,
+    "feature_custom_domain" BOOLEAN NOT NULL DEFAULT false,
+    "feature_website_builder" BOOLEAN NOT NULL DEFAULT false,
+    "feature_sponsor_mgmt" BOOLEAN NOT NULL DEFAULT false,
+    "feature_trikot_designer" BOOLEAN NOT NULL DEFAULT false,
+    "feature_game_reports" BOOLEAN NOT NULL DEFAULT true,
+    "feature_player_stats" BOOLEAN NOT NULL DEFAULT true,
+    "feature_scheduler" BOOLEAN NOT NULL DEFAULT false,
+    "feature_scheduled_news" BOOLEAN NOT NULL DEFAULT false,
+    "feature_advanced_roles" BOOLEAN NOT NULL DEFAULT false,
+    "feature_advanced_stats" BOOLEAN NOT NULL DEFAULT false,
+    "feature_ai_recaps" BOOLEAN NOT NULL DEFAULT false,
+    "feature_public_reports" BOOLEAN NOT NULL DEFAULT false,
+    "ai_monthly_token_limit" INTEGER,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "plans_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "org_subscriptions" (
+    "id" UUID NOT NULL,
+    "organization_id" TEXT NOT NULL,
+    "plan_id" UUID NOT NULL,
+    "interval" "plan_interval" NOT NULL DEFAULT 'yearly',
+    "status" TEXT NOT NULL DEFAULT 'active',
+    "current_period_start" TIMESTAMPTZ NOT NULL,
+    "current_period_end" TIMESTAMPTZ NOT NULL,
+    "cancelled_at" TIMESTAMPTZ,
+    "trial_ends_at" TIMESTAMPTZ,
+    "stripe_customer_id" TEXT,
+    "stripe_subscription_id" TEXT,
+    "stripe_price_id" TEXT,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "org_subscriptions_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public_game_reports" (
+    "id" UUID NOT NULL,
+    "organization_id" TEXT NOT NULL,
+    "game_id" UUID NOT NULL,
+    "home_score" INTEGER NOT NULL,
+    "away_score" INTEGER NOT NULL,
+    "comment" TEXT,
+    "submitter_email" TEXT NOT NULL,
+    "submitter_ip" TEXT,
+    "reverted" BOOLEAN NOT NULL DEFAULT false,
+    "reverted_by" TEXT,
+    "reverted_at" TIMESTAMPTZ,
+    "revert_note" TEXT,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "public_game_reports_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ai_usage_log" (
+    "id" UUID NOT NULL,
+    "organization_id" TEXT NOT NULL,
+    "feature" TEXT NOT NULL,
+    "model" TEXT NOT NULL,
+    "input_tokens" INTEGER NOT NULL,
+    "output_tokens" INTEGER NOT NULL,
+    "total_tokens" INTEGER NOT NULL,
+    "game_id" UUID,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ai_usage_log_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "user_email_key" ON "user"("email");
 
@@ -591,6 +726,12 @@ CREATE UNIQUE INDEX "passkey_credentialID_key" ON "passkey"("credentialID");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "organization_slug_key" ON "organization"("slug");
+
+-- CreateIndex
+CREATE INDEX "member_role_member_id_idx" ON "member_role"("member_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "member_role_member_id_role_team_id_key" ON "member_role"("member_id", "role", "team_id");
 
 -- CreateIndex
 CREATE INDEX "seasons_org_id_idx" ON "seasons"("organization_id");
@@ -629,9 +770,6 @@ CREATE INDEX "contracts_org_id_idx" ON "contracts"("organization_id");
 CREATE UNIQUE INDEX "contracts_player_id_team_id_start_season_id_key" ON "contracts"("player_id", "team_id", "start_season_id");
 
 -- CreateIndex
-CREATE INDEX "venues_org_id_idx" ON "venues"("organization_id");
-
--- CreateIndex
 CREATE INDEX "games_round_id_idx" ON "games"("round_id");
 
 -- CreateIndex
@@ -639,9 +777,6 @@ CREATE INDEX "games_home_team_id_idx" ON "games"("home_team_id");
 
 -- CreateIndex
 CREATE INDEX "games_away_team_id_idx" ON "games"("away_team_id");
-
--- CreateIndex
-CREATE INDEX "games_venue_id_idx" ON "games"("venue_id");
 
 -- CreateIndex
 CREATE INDEX "games_scheduled_at_idx" ON "games"("scheduled_at");
@@ -745,6 +880,45 @@ CREATE INDEX "team_trikots_org_id_idx" ON "team_trikots"("organization_id");
 -- CreateIndex
 CREATE UNIQUE INDEX "team_trikots_team_id_trikot_id_name_key" ON "team_trikots"("team_id", "trikot_id", "name");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "website_config_organization_id_key" ON "website_config"("organization_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "website_config_domain_key" ON "website_config"("domain");
+
+-- CreateIndex
+CREATE INDEX "website_config_domain_idx" ON "website_config"("domain");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "plans_name_key" ON "plans"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "plans_slug_key" ON "plans"("slug");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "org_subscriptions_organization_id_key" ON "org_subscriptions"("organization_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "org_subscriptions_stripe_customer_id_key" ON "org_subscriptions"("stripe_customer_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "org_subscriptions_stripe_subscription_id_key" ON "org_subscriptions"("stripe_subscription_id");
+
+-- CreateIndex
+CREATE INDEX "org_subscriptions_org_id_idx" ON "org_subscriptions"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "org_subscriptions_plan_id_idx" ON "org_subscriptions"("plan_id");
+
+-- CreateIndex
+CREATE INDEX "public_game_reports_organization_id_idx" ON "public_game_reports"("organization_id");
+
+-- CreateIndex
+CREATE INDEX "public_game_reports_game_id_idx" ON "public_game_reports"("game_id");
+
+-- CreateIndex
+CREATE INDEX "ai_usage_log_organization_id_created_at_idx" ON "ai_usage_log"("organization_id", "created_at");
+
 -- AddForeignKey
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "user"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -762,6 +936,12 @@ ALTER TABLE "member" ADD CONSTRAINT "member_userId_fkey" FOREIGN KEY ("userId") 
 
 -- AddForeignKey
 ALTER TABLE "member" ADD CONSTRAINT "member_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "member_role" ADD CONSTRAINT "member_role_member_id_fkey" FOREIGN KEY ("member_id") REFERENCES "member"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "member_role" ADD CONSTRAINT "member_role_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "invitation" ADD CONSTRAINT "invitation_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -788,9 +968,6 @@ ALTER TABLE "rounds" ADD CONSTRAINT "rounds_division_id_fkey" FOREIGN KEY ("divi
 ALTER TABLE "teams" ADD CONSTRAINT "teams_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "teams" ADD CONSTRAINT "teams_default_venue_id_fkey" FOREIGN KEY ("default_venue_id") REFERENCES "venues"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "players" ADD CONSTRAINT "players_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -809,9 +986,6 @@ ALTER TABLE "contracts" ADD CONSTRAINT "contracts_start_season_id_fkey" FOREIGN 
 ALTER TABLE "contracts" ADD CONSTRAINT "contracts_end_season_id_fkey" FOREIGN KEY ("end_season_id") REFERENCES "seasons"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "venues" ADD CONSTRAINT "venues_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "games" ADD CONSTRAINT "games_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -822,9 +996,6 @@ ALTER TABLE "games" ADD CONSTRAINT "games_home_team_id_fkey" FOREIGN KEY ("home_
 
 -- AddForeignKey
 ALTER TABLE "games" ADD CONSTRAINT "games_away_team_id_fkey" FOREIGN KEY ("away_team_id") REFERENCES "teams"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "games" ADD CONSTRAINT "games_venue_id_fkey" FOREIGN KEY ("venue_id") REFERENCES "venues"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "game_events" ADD CONSTRAINT "game_events_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -988,3 +1159,26 @@ ALTER TABLE "team_trikots" ADD CONSTRAINT "team_trikots_team_id_fkey" FOREIGN KE
 -- AddForeignKey
 ALTER TABLE "team_trikots" ADD CONSTRAINT "team_trikots_trikot_id_fkey" FOREIGN KEY ("trikot_id") REFERENCES "trikots"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+-- AddForeignKey
+ALTER TABLE "website_config" ADD CONSTRAINT "website_config_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "org_subscriptions" ADD CONSTRAINT "org_subscriptions_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "org_subscriptions" ADD CONSTRAINT "org_subscriptions_plan_id_fkey" FOREIGN KEY ("plan_id") REFERENCES "plans"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public_game_reports" ADD CONSTRAINT "public_game_reports_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public_game_reports" ADD CONSTRAINT "public_game_reports_game_id_fkey" FOREIGN KEY ("game_id") REFERENCES "games"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public_game_reports" ADD CONSTRAINT "public_game_reports_reverted_by_fkey" FOREIGN KEY ("reverted_by") REFERENCES "user"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_usage_log" ADD CONSTRAINT "ai_usage_log_organization_id_fkey" FOREIGN KEY ("organization_id") REFERENCES "organization"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ai_usage_log" ADD CONSTRAINT "ai_usage_log_game_id_fkey" FOREIGN KEY ("game_id") REFERENCES "games"("id") ON DELETE SET NULL ON UPDATE CASCADE;

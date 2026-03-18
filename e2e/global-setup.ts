@@ -107,6 +107,7 @@ export default async function globalSetup() {
       containerId: container.getId(),
       apiPid: apiProcess.pid,
       maintenanceUrl,
+      dbUrl: e2eDbUrl,
       dbName: E2E_DB,
     }),
   )

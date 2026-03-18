@@ -1,11 +1,11 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router"
+import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router"
 import { Calendar, Check, ChevronDown, Plus } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
 
-const SEASON_ROUTE_RE = /^\/seasons\/[^/]+\/(structure|roster)$/
+const SEASON_ROUTE_RE = /\/seasons\/[^/]+\/(structure|roster)$/
 
 function shortSeasonLabel(start: Date | string) {
   return String(new Date(start).getUTCFullYear()).slice(-2)
@@ -14,6 +14,7 @@ function shortSeasonLabel(start: Date | string) {
 export function SeasonIndicator() {
   const { t } = useTranslation("common")
   const { season, setWorkingSeason, isLoading } = useWorkingSeason()
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const { data: seasons } = trpc.season.list.useQuery()
   const { data: currentSeason } = trpc.season.getCurrent.useQuery()
   const [open, setOpen] = useState(false)
@@ -41,7 +42,7 @@ export function SeasonIndicator() {
       <div style={{ padding: "12px 12px 0" }}>
         <button
           type="button"
-          onClick={() => navigate({ to: "/seasons", search: { create: true } })}
+          onClick={() => navigate({ to: "/$orgSlug/seasons", params: { orgSlug }, search: { edit: "new" } })}
           className="flex items-center gap-3 w-full rounded-lg"
           style={{
             padding: "10px 12px",
@@ -120,7 +121,8 @@ export function SeasonIndicator() {
         </div>
         {/* Seasons management link */}
         <Link
-          to="/seasons"
+          to="/$orgSlug/seasons"
+          params={{ orgSlug }}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
           className="flex items-center justify-center shrink-0 group/seasons-link relative"
           style={{
@@ -221,8 +223,8 @@ export function SeasonIndicator() {
                   const match = pathname.match(SEASON_ROUTE_RE)
                   if (match) {
                     navigate({
-                      to: `/seasons/$seasonId/${match[1]}` as "/seasons/$seasonId/structure",
-                      params: { seasonId: s.id },
+                      to: `/$orgSlug/seasons/$seasonId/${match[1]}` as "/$orgSlug/seasons/$seasonId/structure",
+                      params: { orgSlug, seasonId: s.id },
                     })
                   }
                 }}

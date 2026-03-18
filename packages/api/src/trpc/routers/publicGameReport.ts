@@ -2,7 +2,6 @@ import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } 
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
-import { sendEmail } from "../../lib/email"
 import { orgProcedure, requireRole, router } from "../init"
 
 /** Resolve the seasonId from a roundId (round -> division -> season). */
@@ -118,21 +117,6 @@ export const publicGameReportRouter = router({
           await recalculateGoalieStats(ctx.db, seasonId)
         }
       }
-
-      // Send notification to submitter (fire-and-forget)
-      import("../../lib/emailTemplates").then(({ reportRevertedEmail }) => {
-        sendEmail({
-          to: report.submitterEmail,
-          subject: "Your game report was reverted",
-          html: reportRevertedEmail({
-            homeTeam: report.game.homeTeam.shortName,
-            awayTeam: report.game.awayTeam.shortName,
-            homeScore: report.homeScore,
-            awayScore: report.awayScore,
-            revertNote: input.revertNote,
-          }),
-        }).catch((err) => console.error("[public-report] Revert notification failed:", err))
-      })
 
       return { success: true }
     }),

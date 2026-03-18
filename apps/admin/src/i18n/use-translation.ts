@@ -31,7 +31,6 @@ function buildMap(json: Record<string, unknown>): Map<string, string> {
   return map
 }
 
-type Locale = "de" | "en" | "raw"
 type Namespace = "common" | "errors"
 
 const cache: Record<"de" | "en", Record<Namespace, Map<string, string>>> = {

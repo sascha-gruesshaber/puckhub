@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
 import { type OrgContext, orgProcedure, requireRole, router } from "../init"
 
 /** Verify the game is not completed or cancelled before allowing report modifications */
@@ -85,7 +85,11 @@ export const gameReportRouter = router({
             penaltyType: true,
             suspension: true,
           },
-          orderBy: [{ period: "asc" }, { timeMinutes: "asc" }, { timeSeconds: "asc" }],
+          orderBy: [
+            { period: { sort: "asc", nulls: "first" } },
+            { timeMinutes: { sort: "asc", nulls: "first" } },
+            { timeSeconds: { sort: "asc", nulls: "first" } },
+          ],
         },
         lineups: {
           include: { player: true, team: true },
@@ -302,32 +306,63 @@ export const gameReportRouter = router({
 
   addEvent: orgProcedure
     .input(
-      z.object({
-        gameId: z.string().uuid(),
-        eventType: z.enum(["goal", "penalty"]),
-        teamId: z.string().uuid(),
-        period: z.number().int().min(1),
-        timeMinutes: z.number().int().min(0).max(20),
-        timeSeconds: z.number().int().min(0).max(59),
-        // Goal fields
-        scorerId: z.string().uuid().optional(),
-        assist1Id: z.string().uuid().optional(),
-        assist2Id: z.string().uuid().optional(),
-        goalieId: z.string().uuid().optional(),
-        // Penalty fields
-        penaltyPlayerId: z.string().uuid().optional(),
-        penaltyTypeId: z.string().uuid().optional(),
-        penaltyMinutes: z.number().int().optional(),
-        penaltyDescription: z.string().optional(),
-        // Suspension (optional, for penalties)
-        suspension: z
-          .object({
-            suspensionType: z.enum(["match_penalty", "game_misconduct"]),
-            suspendedGames: z.number().int().min(1).default(1),
-            reason: z.string().optional(),
-          })
-          .optional(),
-      }),
+      z
+        .object({
+          gameId: z.string().uuid(),
+          eventType: z.enum(["goal", "penalty", "note"]),
+          teamId: z.string().uuid().optional(),
+          period: z.number().int().min(1).optional(),
+          timeMinutes: z.number().int().min(0).max(20).optional(),
+          timeSeconds: z.number().int().min(0).max(59).optional(),
+          // Goal fields
+          scorerId: z.string().uuid().optional(),
+          assist1Id: z.string().uuid().optional(),
+          assist2Id: z.string().uuid().optional(),
+          goalieId: z.string().uuid().optional(),
+          // Penalty fields
+          penaltyPlayerId: z.string().uuid().optional(),
+          penaltyTypeId: z.string().uuid().optional(),
+          penaltyMinutes: z.number().int().optional(),
+          penaltyDescription: z.string().optional(),
+          // Note fields
+          noteText: z.string().min(1).optional(),
+          notePublic: z.boolean().default(true).optional(),
+          // Suspension (optional, for penalties)
+          suspension: z
+            .object({
+              suspensionType: z.enum(["match_penalty", "game_misconduct"]),
+              suspendedGames: z.number().int().min(1).default(1),
+              reason: z.string().optional(),
+            })
+            .optional(),
+        })
+        .superRefine((data, ctx) => {
+          if (data.eventType === "goal" || data.eventType === "penalty") {
+            if (!data.teamId) ctx.addIssue({ code: "custom", message: "teamId is required", path: ["teamId"] })
+            if (data.period == null) ctx.addIssue({ code: "custom", message: "period is required", path: ["period"] })
+            if (data.timeMinutes == null)
+              ctx.addIssue({ code: "custom", message: "timeMinutes is required", path: ["timeMinutes"] })
+            if (data.timeSeconds == null)
+              ctx.addIssue({ code: "custom", message: "timeSeconds is required", path: ["timeSeconds"] })
+          }
+          if (data.eventType === "note") {
+            if (!data.noteText) ctx.addIssue({ code: "custom", message: "noteText is required", path: ["noteText"] })
+            if (data.period != null) {
+              if (data.timeMinutes == null)
+                ctx.addIssue({
+                  code: "custom",
+                  message: "timeMinutes is required when period is set",
+                  path: ["timeMinutes"],
+                })
+              if (data.timeSeconds == null)
+                ctx.addIssue({
+                  code: "custom",
+                  message: "timeSeconds is required when period is set",
+                  path: ["timeSeconds"],
+                })
+            }
+          }
+        }),
     )
     .mutation(async ({ ctx, input }) => {
       await assertGameReporter(ctx, input.gameId)
@@ -339,10 +374,10 @@ export const gameReportRouter = router({
           organizationId: ctx.organizationId,
           gameId: eventData.gameId,
           eventType: eventData.eventType,
-          teamId: eventData.teamId,
-          period: eventData.period,
-          timeMinutes: eventData.timeMinutes,
-          timeSeconds: eventData.timeSeconds,
+          teamId: eventData.teamId ?? null,
+          period: eventData.period ?? null,
+          timeMinutes: eventData.timeMinutes ?? null,
+          timeSeconds: eventData.timeSeconds ?? null,
           scorerId: eventData.scorerId ?? null,
           assist1Id: eventData.assist1Id ?? null,
           assist2Id: eventData.assist2Id ?? null,
@@ -351,11 +386,13 @@ export const gameReportRouter = router({
           penaltyTypeId: eventData.penaltyTypeId ?? null,
           penaltyMinutes: eventData.penaltyMinutes ?? null,
           penaltyDescription: eventData.penaltyDescription ?? null,
+          noteText: eventData.noteText ?? null,
+          notePublic: eventData.notePublic ?? true,
         },
       })
 
       // Create suspension if included
-      if (suspension && eventData.penaltyPlayerId && event) {
+      if (suspension && eventData.penaltyPlayerId && event && eventData.teamId) {
         await ctx.db.gameSuspension.create({
           data: {
             organizationId: ctx.organizationId,
@@ -382,10 +419,10 @@ export const gameReportRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        teamId: z.string().uuid().optional(),
-        period: z.number().int().min(1).optional(),
-        timeMinutes: z.number().int().min(0).max(20).optional(),
-        timeSeconds: z.number().int().min(0).max(59).optional(),
+        teamId: z.string().uuid().nullable().optional(),
+        period: z.number().int().min(1).nullable().optional(),
+        timeMinutes: z.number().int().min(0).max(20).nullable().optional(),
+        timeSeconds: z.number().int().min(0).max(59).nullable().optional(),
         scorerId: z.string().uuid().nullable().optional(),
         assist1Id: z.string().uuid().nullable().optional(),
         assist2Id: z.string().uuid().nullable().optional(),
@@ -394,6 +431,8 @@ export const gameReportRouter = router({
         penaltyTypeId: z.string().uuid().nullable().optional(),
         penaltyMinutes: z.number().int().nullable().optional(),
         penaltyDescription: z.string().nullable().optional(),
+        noteText: z.string().min(1).nullable().optional(),
+        notePublic: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

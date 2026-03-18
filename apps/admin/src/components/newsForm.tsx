@@ -1,5 +1,5 @@
 import { Button, Card, CardContent, FormField, Input, Label, Textarea } from "@puckhub/ui"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useParams } from "@tanstack/react-router"
 import { useState } from "react"
 import { useTranslation } from "~/i18n/use-translation"
 import { RichTextEditorLazy as RichTextEditor } from "./richTextEditorLazy"
@@ -17,6 +17,8 @@ interface NewsFormProps {
   onSubmit: (data: NewsFormData) => void
   isPending: boolean
   submitLabel?: string
+  /** Rendered at the bottom of the sidebar (e.g. danger zone with delete) */
+  sidebarFooter?: React.ReactNode
 }
 
 type PublishMode = "draft" | "scheduled" | "published"
@@ -53,8 +55,9 @@ function initFromData(data: NewsFormData): FormState {
   }
 }
 
-export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: NewsFormProps) {
+export function NewsForm({ initialData, onSubmit, isPending, submitLabel, sidebarFooter }: NewsFormProps) {
   const { t } = useTranslation("common")
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
   const [form, setForm] = useState<FormState>(initialData ? initFromData(initialData) : emptyForm)
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
@@ -109,6 +112,7 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: News
         <div className="space-y-5">
           <FormField label={t("newsForm.fields.title")} error={errors.title} required>
             <Input
+              data-testid="news-form-title"
               value={form.title}
               onChange={(e) => setField("title", e.target.value)}
               placeholder={t("newsForm.fields.titlePlaceholder")}
@@ -124,7 +128,7 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: News
             />
           </FormField>
 
-          <div>
+          <div data-testid="news-form-editor">
             <Label className="text-sm font-medium mb-2 block">
               {t("newsForm.fields.content")} <span className="text-destructive">*</span>
             </Label>
@@ -138,7 +142,7 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: News
         </div>
 
         {/* Sidebar */}
-        <Card className="lg:sticky lg:top-6">
+        <Card className="lg:sticky lg:top-20">
           <CardContent className="p-5 space-y-4">
             <div>
               <Label className="text-sm font-medium mb-3 block">{t("newsForm.publish.title")}</Label>
@@ -178,13 +182,26 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel }: News
             )}
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit" variant="accent" disabled={isPending} className="w-full">
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={isPending}
+                className="w-full"
+                data-testid="news-form-submit"
+              >
                 {isPending ? t("saving") : resolvedSubmitLabel}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/news" })}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate({ to: "/$orgSlug/news", params: { orgSlug } })}
+              >
                 {t("cancel")}
               </Button>
             </div>
+
+            {sidebarFooter}
           </CardContent>
         </Card>
       </div>

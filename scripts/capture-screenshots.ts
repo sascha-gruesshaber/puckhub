@@ -24,6 +24,7 @@ const ADMIN_URL = process.env.ADMIN_URL ?? "http://admin.puckhub.localhost"
 const API_URL = process.env.API_URL ?? "http://api.puckhub.localhost"
 const LEAGUE_SITE_URL = process.env.LEAGUE_SITE_URL ?? "http://demo-league.puckhub.localhost"
 const SUBDOMAIN_SUFFIX = process.env.SUBDOMAIN_SUFFIX ?? ".puckhub.localhost"
+const DEMO_ORG_SLUG = process.env.DEMO_ORG_SLUG ?? "demo-league"
 const EMAIL = process.env.DEMO_EMAIL ?? `admin@demo-league${SUBDOMAIN_SUFFIX}`
 const OUTPUT_DIR = resolve(__dirname, "../apps/marketing-site/public/screenshots")
 
@@ -45,19 +46,25 @@ interface ScreenshotTarget {
   delay?: number
 }
 
-// Admin portal screenshots
+// Admin portal screenshots (paths include org slug)
 const adminTargets: ScreenshotTarget[] = [
-  { name: "dashboard", baseUrl: "admin", path: "/", waitFor: "main", delay: 3000 },
-  { name: "game-report", baseUrl: "admin", path: "/games", waitFor: "main", delay: 2000 },
-  { name: "team-list", baseUrl: "admin", path: "/teams", waitFor: "main", delay: 2000 },
-  { name: "website-config", baseUrl: "admin", path: "/website", waitFor: "main", delay: 2000 },
-  { name: "trikot-designer", baseUrl: "admin", path: "/trikots", waitFor: "main", delay: 2500 },
-  { name: "pages-cms", baseUrl: "admin", path: "/pages", waitFor: "main", delay: 2000 },
+  { name: "dashboard", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}`, waitFor: "main", delay: 3000 },
+  { name: "game-report", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/games`, waitFor: "main", delay: 2000 },
+  { name: "team-list", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/teams`, waitFor: "main", delay: 2000 },
+  { name: "website-config", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/website`, waitFor: "main", delay: 2000 },
+  { name: "trikot-designer", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/trikots`, waitFor: "main", delay: 2500 },
+  { name: "pages-cms", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/pages`, waitFor: "main", delay: 2000 },
 ]
 
 // Admin portal screenshots (require auth)
 const adminExtraTargets: ScreenshotTarget[] = [
-  { name: "public-report-admin", baseUrl: "admin", path: "/games/public-reports", waitFor: "main", delay: 3000 },
+  {
+    name: "public-report-admin",
+    baseUrl: "admin",
+    path: `/${DEMO_ORG_SLUG}/games/public-reports`,
+    waitFor: "main",
+    delay: 3000,
+  },
 ]
 
 // Public league site screenshots
@@ -200,11 +207,20 @@ async function main() {
     console.log(`  Cookie overridden: SameSite=None on .${COOKIE_DOMAIN}`)
   }
 
-  // Navigate to admin dashboard to verify session
+  // Navigate to admin dashboard to verify session.
+  // The first load sometimes redirects to login before the async session check
+  // completes, so we retry once if needed.
   await page.goto(ADMIN_URL, { waitUntil: "domcontentloaded", timeout: 20000 })
   await page.waitForTimeout(5000)
 
-  const currentUrl = page.url()
+  let currentUrl = page.url()
+  if (currentUrl.includes("/login")) {
+    console.log("Session not yet recognized on first load, retrying...")
+    await page.goto(`${ADMIN_URL}/${DEMO_ORG_SLUG}`, { waitUntil: "domcontentloaded", timeout: 20000 })
+    await page.waitForTimeout(5000)
+    currentUrl = page.url()
+  }
+
   if (currentUrl.includes("/login")) {
     console.error("Session not recognized by admin app — still on login page")
     const debugPath = resolve(OUTPUT_DIR, "_debug-login-failure.png")
@@ -302,7 +318,7 @@ async function main() {
 
     if (bestSeason) {
       console.log(`  Using season "${bestSeason.name}" (${bestSeason._count.divisions} divisions)`)
-      await page.goto(`${ADMIN_URL}/seasons/${bestSeason.id}/structure`, {
+      await page.goto(`${ADMIN_URL}/${DEMO_ORG_SLUG}/seasons/${bestSeason.id}/structure`, {
         waitUntil: "domcontentloaded",
         timeout: 20000,
       })
@@ -373,10 +389,7 @@ async function main() {
     await page.waitForTimeout(3000)
     // Wait until the pulse skeleton disappears (chart has rendered)
     try {
-      await page.waitForFunction(
-        () => !document.querySelector(".animate-pulse"),
-        { timeout: 8000 },
-      )
+      await page.waitForFunction(() => !document.querySelector(".animate-pulse"), { timeout: 8000 })
     } catch {
       console.log("  Warning: chart skeleton still visible, taking screenshot anyway")
     }
@@ -439,27 +452,40 @@ async function main() {
       await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 })
       await page.waitForTimeout(4000)
 
-      // The TeamComparisonSelector renders pill buttons with the team's shortName.
-      // Click up to 3 to populate the comparison charts.
+      // The TeamComparisonSelector uses a Radix Popover dropdown.
+      // After selecting a team the popover state can be unpredictable,
+      // so we close it explicitly after each selection and reopen fresh.
       for (const team of teamsForComparison.slice(0, 3)) {
-        const label = team.shortName ?? team.name
-        const teamBtn = page.getByRole("button", { name: label, exact: true })
-        if (await teamBtn.count()) {
-          await teamBtn.click()
-          console.log(`  Selected team: ${label}`)
-          await page.waitForTimeout(800)
+        // Ensure any previously open popover is closed
+        await page.locator("body").click({ position: { x: 10, y: 10 } })
+        await page.waitForTimeout(300)
+
+        const addBtn = page.getByRole("button", { name: /add team|team hinzufügen/i })
+        if (!(await addBtn.count())) {
+          console.log(`  "Add team" button not found, skipping remaining teams`)
+          break
+        }
+        await addBtn.click()
+        await page.waitForTimeout(500)
+
+        const teamOption = page.getByRole("option", { name: team.name })
+        if (await teamOption.count()) {
+          await teamOption.click()
+          console.log(`  Selected team: ${team.shortName ?? team.name}`)
+          await page.waitForTimeout(500)
         } else {
-          console.log(`  Team button "${label}" not found, skipping`)
+          console.log(`  Team option "${team.name}" not found in dropdown, skipping`)
         }
       }
+
+      // Close dropdown if still open
+      await page.locator("body").click({ position: { x: 10, y: 10 } })
+      await page.waitForTimeout(300)
 
       // Wait for lazy-loaded charts to render
       await page.waitForTimeout(4000)
       try {
-        await page.waitForFunction(
-          () => !document.querySelector(".animate-pulse"),
-          { timeout: 8000 },
-        )
+        await page.waitForFunction(() => !document.querySelector(".animate-pulse"), { timeout: 8000 })
       } catch {
         console.log("  Warning: chart skeleton still visible")
       }

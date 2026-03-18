@@ -1,15 +1,15 @@
-import { useState, useEffect, useCallback } from "react"
 import {
-  LayoutDashboard,
   CalendarDays,
-  ClipboardList,
-  Globe,
-  Trophy,
-  Sparkles,
   ChevronLeft,
   ChevronRight,
+  ClipboardList,
+  Globe,
+  LayoutDashboard,
+  Sparkles,
+  Trophy,
 } from "lucide-react"
-import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
+import { useCallback, useEffect, useState } from "react"
+import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 
 const slideIcons = [LayoutDashboard, CalendarDays, ClipboardList, Globe, Trophy, Sparkles]
@@ -47,7 +47,7 @@ export function Features() {
     if (paused) return
     const id = setInterval(next, AUTOPLAY_MS)
     return () => clearInterval(id)
-  }, [paused, next, active])
+  }, [paused, next])
 
   const slide = slides[active]!
 
@@ -87,6 +87,8 @@ export function Features() {
           </div>
 
           {/* Slider */}
+          {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: mouse events pause autoplay on a visual container */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse enter/leave are used to pause autoplay, not for primary interaction */}
           <div className="relative" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
             <div className="relative mx-auto max-w-5xl">
               <div className="rounded-xl border border-white/10 bg-brand-navy-light shadow-2xl shadow-black/40 overflow-hidden">
@@ -106,6 +108,7 @@ export function Features() {
                         i === active ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]"
                       }`}
                     >
+                      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError hides broken images */}
                       <img
                         src={s.screenshot}
                         alt={s.title}

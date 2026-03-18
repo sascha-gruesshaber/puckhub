@@ -1,5 +1,5 @@
 import type { Database } from "@puckhub/db"
-import { EXPORT_REGISTRY, getSortedRegistryEntries, pluralize } from "./registry"
+import { getSortedRegistryEntries, pluralize } from "./registry"
 import type { PuckHubExport } from "./schema"
 
 export interface ValidationResult {

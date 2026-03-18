@@ -1,5 +1,5 @@
-import { createRoute, redirect } from "@tanstack/react-router"
 import type { AnyRoute } from "@tanstack/react-router"
+import { createRoute, redirect } from "@tanstack/react-router"
 import { lazy } from "react"
 
 /** Pass-through search validator – keeps any string-valued query params. */
@@ -65,6 +65,13 @@ const ROUTE_DEFS: RouteDef[] = [
     name: "NewsDetailPage",
   },
   {
+    en: "/news/$newsId/$slug",
+    de: "/neuigkeiten/$newsId/$slug",
+    title: "Artikel",
+    mod: () => import("../routes/news/$newsId"),
+    name: "NewsDetailPage",
+  },
+  {
     en: "/stats",
     de: "/statistiken",
     title: "Statistiken",
@@ -121,10 +128,18 @@ const ROUTE_DEFS: RouteDef[] = [
     search: true,
   },
   {
-    en: "/stats/players/$playerId",
-    de: "/statistiken/spieler/$playerId",
+    en: "/players/$playerId",
+    de: "/spieler/$playerId",
     title: "Spieler",
-    mod: () => import("../routes/stats/players/$playerId"),
+    mod: () => import("../routes/players/$playerId"),
+    name: "PlayerHistoryPage",
+    search: true,
+  },
+  {
+    en: "/players/$playerId/$slug",
+    de: "/spieler/$playerId/$slug",
+    title: "Spieler",
+    mod: () => import("../routes/players/$playerId"),
     name: "PlayerHistoryPage",
     search: true,
   },

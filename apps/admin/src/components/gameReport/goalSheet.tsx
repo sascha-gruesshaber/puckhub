@@ -1,0 +1,319 @@
+import {
+  Button,
+  FormField,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  toast,
+} from "@puckhub/ui"
+import { useEffect, useMemo, useState } from "react"
+import { trpc } from "@/trpc"
+import { PlayerCombobox } from "~/components/playerCombobox"
+import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
+import type { TeamInfo } from "./gameTimeline"
+
+interface LineupPlayer {
+  playerId: string
+  teamId: string
+  position: string
+  jerseyNumber: number | null
+  player: { firstName: string; lastName: string; photoUrl?: string | null }
+}
+
+interface GoalSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  gameId: string
+  homeTeam: TeamInfo
+  awayTeam: TeamInfo
+  lineups: LineupPlayer[]
+  editingEvent?: {
+    id: string
+    teamId: string
+    period: number
+    timeMinutes: number
+    timeSeconds: number
+    scorerId: string | null
+    assist1Id: string | null
+    assist2Id: string | null
+    goalieId: string | null
+  } | null
+}
+
+function TeamToggleButton({ team, isSelected, onClick }: { team: TeamInfo; isSelected: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-md text-sm transition-all ${
+        isSelected ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      <div className="w-7 h-7 rounded shrink-0 overflow-hidden flex items-center justify-center bg-muted/50 border border-border/40">
+        {team.logoUrl ? (
+          <img src={team.logoUrl} alt="" className="w-full h-full object-contain p-0.5" />
+        ) : (
+          <span className="text-[10px] font-bold text-muted-foreground">{team.shortName}</span>
+        )}
+      </div>
+      <div className="min-w-0 text-left">
+        <div className="text-xs font-bold tracking-wide uppercase truncate">{team.shortName}</div>
+        <div className="text-[11px] text-muted-foreground truncate leading-tight">{team.name}</div>
+      </div>
+    </button>
+  )
+}
+
+function GoalSheet({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, editingEvent }: GoalSheetProps) {
+  const { t } = useTranslation("common")
+  const { t: tErrors } = useTranslation("errors")
+  const utils = trpc.useUtils()
+
+  const isEdit = !!editingEvent
+
+  const [teamId, setTeamId] = useState(editingEvent?.teamId ?? homeTeam.id)
+  const [period, setPeriod] = useState(editingEvent?.period ?? 1)
+  const [minutes, setMinutes] = useState(editingEvent?.timeMinutes ?? 0)
+  const [seconds, setSeconds] = useState(editingEvent?.timeSeconds ?? 0)
+  const [scorerId, setScorerId] = useState(editingEvent?.scorerId ?? "")
+  const [assist1Id, setAssist1Id] = useState(editingEvent?.assist1Id ?? "")
+  const [assist2Id, setAssist2Id] = useState(editingEvent?.assist2Id ?? "")
+  const [goalieId, setGoalieId] = useState(editingEvent?.goalieId ?? "")
+
+  // Reset form state when dialog opens with new data
+  useEffect(() => {
+    if (open) {
+      setTeamId(editingEvent?.teamId ?? homeTeam.id)
+      setPeriod(editingEvent?.period ?? 1)
+      setMinutes(editingEvent?.timeMinutes ?? 0)
+      setSeconds(editingEvent?.timeSeconds ?? 0)
+      setScorerId(editingEvent?.scorerId ?? "")
+      setAssist1Id(editingEvent?.assist1Id ?? "")
+      setAssist2Id(editingEvent?.assist2Id ?? "")
+      setGoalieId(editingEvent?.goalieId ?? "")
+    }
+  }, [open, editingEvent, homeTeam.id])
+
+  const addEvent = trpc.gameReport.addEvent.useMutation({
+    onSuccess: () => {
+      toast.success(t("gameReport.toast.goalAdded"))
+      utils.gameReport.getReport.invalidate({ gameId })
+      onOpenChange(false)
+    },
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+  })
+
+  const updateEvent = trpc.gameReport.updateEvent.useMutation({
+    onSuccess: () => {
+      toast.success(t("gameReport.toast.goalUpdated"))
+      utils.gameReport.getReport.invalidate({ gameId })
+      onOpenChange(false)
+    },
+    onError: (err) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
+  })
+
+  const isPending = addEvent.isPending || updateEvent.isPending
+
+  const teamPlayers = lineups.filter((l) => l.teamId === teamId)
+  const opposingTeamId = teamId === homeTeam.id ? awayTeam.id : homeTeam.id
+  const opposingGoalies = lineups.filter((l) => l.teamId === opposingTeamId && l.position === "goalie")
+
+  // Map lineup players to PlayerCombobox format
+  const scorerOptions = useMemo(
+    () =>
+      teamPlayers.map((l) => ({
+        id: l.playerId,
+        firstName: l.player.firstName,
+        lastName: l.player.lastName,
+        photoUrl: l.player.photoUrl,
+        jerseyNumber: l.jerseyNumber,
+      })),
+    [teamPlayers],
+  )
+
+  const assist1Options = useMemo(
+    () =>
+      teamPlayers
+        .filter((p) => p.playerId !== scorerId)
+        .map((l) => ({
+          id: l.playerId,
+          firstName: l.player.firstName,
+          lastName: l.player.lastName,
+          photoUrl: l.player.photoUrl,
+          jerseyNumber: l.jerseyNumber,
+        })),
+    [teamPlayers, scorerId],
+  )
+
+  const assist2Options = useMemo(
+    () =>
+      teamPlayers
+        .filter((p) => p.playerId !== scorerId && p.playerId !== assist1Id)
+        .map((l) => ({
+          id: l.playerId,
+          firstName: l.player.firstName,
+          lastName: l.player.lastName,
+          photoUrl: l.player.photoUrl,
+          jerseyNumber: l.jerseyNumber,
+        })),
+    [teamPlayers, scorerId, assist1Id],
+  )
+
+  const goalieOptions = useMemo(
+    () =>
+      opposingGoalies.map((l) => ({
+        id: l.playerId,
+        firstName: l.player.firstName,
+        lastName: l.player.lastName,
+        photoUrl: l.player.photoUrl,
+        jerseyNumber: l.jerseyNumber,
+      })),
+    [opposingGoalies],
+  )
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!scorerId) return
+
+    const data = {
+      teamId,
+      period,
+      timeMinutes: minutes,
+      timeSeconds: seconds,
+      scorerId: scorerId || undefined,
+      assist1Id: assist1Id || undefined,
+      assist2Id: assist2Id || undefined,
+      goalieId: goalieId || undefined,
+    }
+
+    if (isEdit) {
+      updateEvent.mutate({ id: editingEvent.id, ...data })
+    } else {
+      addEvent.mutate({ gameId, eventType: "goal", ...data })
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetClose />
+
+        {/* Header with green accent */}
+        <SheetHeader>
+          <SheetTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+              {isEdit ? t("gameReport.editGoal") : t("gameReport.addGoal")}
+            </div>
+          </SheetTitle>
+          <SheetDescription>{t("gameReport.goalDescription")}</SheetDescription>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit}>
+          <SheetBody className="space-y-5">
+            {/* Period + Time row */}
+            <div className="grid grid-cols-3 gap-3">
+              <FormField label={t("gameReport.fields.period")}>
+                <Select value={String(period)} onValueChange={(v) => setPeriod(Number(v))}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1. {t("gameReport.period")}</SelectItem>
+                    <SelectItem value="2">2. {t("gameReport.period")}</SelectItem>
+                    <SelectItem value="3">3. {t("gameReport.period")}</SelectItem>
+                    <SelectItem value="4">{t("gameReport.overtime")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormField>
+              <FormField label={t("gameReport.fields.minutes")}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={minutes}
+                  onChange={(e) => setMinutes(Number(e.target.value))}
+                />
+              </FormField>
+              <FormField label={t("gameReport.fields.seconds")}>
+                <Input
+                  type="number"
+                  min={0}
+                  max={59}
+                  value={seconds}
+                  onChange={(e) => setSeconds(Number(e.target.value))}
+                />
+              </FormField>
+            </div>
+
+            {/* Team toggle */}
+            <FormField label={t("gameReport.fields.team")}>
+              <div className="grid grid-cols-2 gap-0 rounded-lg border border-input p-1 bg-muted/50">
+                <TeamToggleButton
+                  team={homeTeam}
+                  isSelected={teamId === homeTeam.id}
+                  onClick={() => setTeamId(homeTeam.id)}
+                />
+                <TeamToggleButton
+                  team={awayTeam}
+                  isSelected={teamId === awayTeam.id}
+                  onClick={() => setTeamId(awayTeam.id)}
+                />
+              </div>
+            </FormField>
+
+            <div className="border-t border-border/60" />
+
+            {/* Scorer */}
+            <FormField label={t("gameReport.fields.scorer")} required>
+              <PlayerCombobox
+                players={scorerOptions}
+                value={scorerId}
+                onChange={setScorerId}
+                placeholder={t("gameReport.selectPlayer")}
+              />
+            </FormField>
+
+            {/* Assists side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label={`${t("gameReport.fields.assist")} 1`}>
+                <PlayerCombobox players={assist1Options} value={assist1Id} onChange={setAssist1Id} placeholder="—" />
+              </FormField>
+              <FormField label={`${t("gameReport.fields.assist")} 2`}>
+                <PlayerCombobox players={assist2Options} value={assist2Id} onChange={setAssist2Id} placeholder="—" />
+              </FormField>
+            </div>
+
+            {/* Goalie */}
+            <FormField label={t("gameReport.fields.goalie")}>
+              <PlayerCombobox players={goalieOptions} value={goalieId} onChange={setGoalieId} placeholder="—" />
+            </FormField>
+          </SheetBody>
+
+          <SheetFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              {t("cancel")}
+            </Button>
+            <Button type="submit" disabled={isPending || !scorerId}>
+              {isPending ? t("saving") : t("save")}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+export { GoalSheet }

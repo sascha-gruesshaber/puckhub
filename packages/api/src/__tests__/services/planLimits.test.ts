@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { checkLimit, checkFeature, getOrgPlan, type PlanLimits } from "../../services/planLimits"
+import { checkFeature, checkLimit, getOrgPlan, type PlanLimits } from "../../services/planLimits"
 import { getTestDb, TEST_ORG_ID } from "../testUtils"
 
 type Plan = PlanLimits

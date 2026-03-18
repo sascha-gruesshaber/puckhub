@@ -1,10 +1,37 @@
+import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, E2E_ORG_ID, login, withE2EDb } from "./helpers"
+
+type PlayerFixture = {
+  id: string
+  firstName: string
+  lastName: string
+}
+
+async function createPlayerFixture(firstName: string, lastName: string): Promise<PlayerFixture> {
+  const id = randomUUID()
+  const now = new Date().toISOString()
+
+  await withE2EDb(async (sql) => {
+    await sql`
+      INSERT INTO players (id, organization_id, first_name, last_name, created_at, updated_at)
+      VALUES (${id}, ${E2E_ORG_ID}, ${firstName}, ${lastName}, ${now}, ${now})
+    `
+  })
+
+  return { id, firstName, lastName }
+}
+
+async function deletePlayerFixture(id: string) {
+  await withE2EDb(async (sql) => {
+    await sql`DELETE FROM players WHERE id = ${id}`
+  })
+}
 
 test.describe("Players Management", () => {
   test("players list loads with seeded data", async ({ page }) => {
     await login(page)
-    await page.goto("/players")
+    await page.goto(adminPath("players"))
     await expect(page.getByRole("heading", { name: "playersPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -14,48 +41,67 @@ test.describe("Players Management", () => {
     await expect(page.getByText("Bradley").first()).toBeVisible()
   })
 
-  test("create, update, and delete a player", async ({ page }) => {
+  test("create a player", async ({ page }) => {
+    const lastName = `TestPlayer${Date.now()}`
+
     await login(page)
-    await page.goto("/players")
+    await page.goto(adminPath("players"))
     await expect(page.getByRole("heading", { name: "playersPage.title" })).toBeVisible({
       timeout: 10_000,
     })
 
-    // --- CREATE ---
-    await page.getByRole("button", { name: "playersPage.actions.new" }).click()
+    try {
+      await page.getByTestId("players-new").click()
+      await page.getByTestId("players-form-first-name").fill("E2E")
+      await page.getByTestId("players-form-last-name").fill(lastName)
+      await page.getByTestId("players-form-submit").click()
 
-    await formField(page, "playersPage.fields.firstName").fill("E2E")
-    await formField(page, "playersPage.fields.lastName").fill("TestPlayer")
+      // New players are unassigned — select the unassigned filter
+      await page.locator("button.filter-pill").first().click()
+      await page.getByRole("option", { name: "playersPage.filters.unassigned" }).click()
 
-    await page.getByRole("button", { name: "create" }).click()
+      await expect(page.getByTestId("player-row").filter({ hasText: lastName })).toBeVisible({
+        timeout: 10_000,
+      })
+    } finally {
+      // Cleanup
+      await withE2EDb(async (sql) => {
+        await sql`DELETE FROM players WHERE organization_id = ${E2E_ORG_ID} AND last_name = ${lastName}`
+      })
+    }
+  })
 
-    // New players are unassigned — use filter to find them
-    await page.getByRole("button", { name: "playersPage.filters.unassigned" }).click()
+  test("update a player", async ({ page }) => {
+    const originalLastName = `EditablePlayer${Date.now()}`
+    const updatedLastName = `${originalLastName}Updated`
+    const player = await createPlayerFixture("E2E", originalLastName)
 
-    await expect(page.getByText("TestPlayer")).toBeVisible({ timeout: 10_000 })
+    try {
+      await login(page)
+      await page.goto(adminPath("players"))
+      await expect(page.getByRole("heading", { name: "playersPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
 
-    // --- EDIT ---
-    const playerRow = page.locator(".data-row", { hasText: "TestPlayer" })
-    await playerRow.locator("[aria-label='playersPage.actions.edit']").click()
+      // Unassigned fixture player needs unassigned filter
+      await page.locator("button.filter-pill").first().click()
+      await page.getByRole("option", { name: "playersPage.filters.unassigned" }).click()
 
-    const lastNameField = formField(page, "playersPage.fields.lastName")
-    await lastNameField.clear()
-    await lastNameField.fill("UpdatedPlayer")
+      await page.getByTestId("player-row").filter({ hasText: originalLastName }).click()
+      await expect(page).toHaveURL(/\/players\/.+/)
 
-    await page.getByRole("button", { name: "save" }).click()
+      await page.getByTestId("player-edit-info").click()
 
-    await expect(page.getByText("UpdatedPlayer")).toBeVisible({ timeout: 10_000 })
+      const lastNameField = page.getByTestId("player-edit-last-name")
+      await lastNameField.clear()
+      await lastNameField.fill(updatedLastName)
 
-    // --- DELETE (RemoveDialog 2-step) ---
-    const updatedRow = page.locator(".data-row", { hasText: "UpdatedPlayer" })
-    await updatedRow.locator("[aria-label='playersPage.actions.delete']").click()
-
-    // Step 1: Click "Delete permanently..." option
-    await page.getByRole("button", { name: "playersPage.removeDialog.delete.button" }).click()
-
-    // Step 2: Confirm deletion
-    await page.getByRole("button", { name: "playersPage.removeDialog.delete.confirmButton" }).click()
-
-    await expect(page.getByText("UpdatedPlayer")).not.toBeVisible({ timeout: 10_000 })
+      await page.getByTestId("player-edit-submit").click()
+      await expect(page.getByRole("heading", { name: `E2E ${updatedLastName}` })).toBeVisible({
+        timeout: 10_000,
+      })
+    } finally {
+      await deletePlayerFixture(player.id)
+    }
   })
 })

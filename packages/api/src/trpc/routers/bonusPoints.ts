@@ -1,7 +1,7 @@
 import { recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const bonusPointsRouter = router({

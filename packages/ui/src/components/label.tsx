@@ -3,6 +3,7 @@ import { cn } from "../lib/utils"
 
 const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
   ({ className, ...props }, ref) => (
+    // biome-ignore lint/a11y/noLabelWithoutControl: This is a reusable component — htmlFor is passed by consumers
     <label
       ref={ref}
       className={cn(

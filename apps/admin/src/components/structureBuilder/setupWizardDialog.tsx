@@ -2,8 +2,8 @@ import { Button, toast } from "@puckhub/ui"
 import { Check, ChevronRight, Copy, FileX, GitBranch, Layers, Sparkles } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 type Template = "standard" | "copy" | "empty"
 
@@ -130,9 +130,9 @@ export function SetupWizardDialog({ seasonId, seasonName, onComplete }: SetupWiz
           >
             {selected === "copy" && otherSeasons.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border">
-                <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">
                   {t("seasonStructure.setup.templates.copy.selectSource")}
-                </label>
+                </p>
                 <div className="flex flex-col gap-1.5 max-h-32 overflow-y-auto pr-1">
                   {otherSeasons.map((s) => (
                     <button

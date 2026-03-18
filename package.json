@@ -38,19 +38,20 @@
       "@parcel/watcher",
       "sharp",
       "@prisma/client",
+      "@prisma/engines",
       "prisma"
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.6",
-    "@playwright/test": "^1.52.0",
-    "@testcontainers/postgresql": "^10.24.0",
+    "@biomejs/biome": "^2.4.8",
+    "@playwright/test": "^1.58.2",
+    "@testcontainers/postgresql": "^10.28.0",
     "concurrently": "^9.2.1",
-    "playwright": "^1.52.0",
-    "postgres": "^3.4.0",
-    "testcontainers": "^10.24.0",
-    "turbo": "^2.8.16",
-    "tsx": "^4.19.0",
+    "playwright": "^1.58.2",
+    "postgres": "^3.4.8",
+    "testcontainers": "^10.28.0",
+    "tsx": "^4.21.0",
+    "turbo": "^2.8.18",
     "typescript": "^5.9.3",
     "wait-on": "^9.0.4"
   }

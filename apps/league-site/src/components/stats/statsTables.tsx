@@ -1,11 +1,9 @@
 import { Link } from "@tanstack/react-router"
 import { Suspense } from "react"
 import { EmptyState } from "~/components/shared/emptyState"
-import { PlayerHoverCard } from "~/components/shared/playerHoverCard"
-import { TeamHoverCard } from "~/components/shared/teamHoverCard"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { useT } from "~/lib/i18n"
-import { cn, useBackPath } from "~/lib/utils"
+import { cn, slugify, useBackPath } from "~/lib/utils"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -35,15 +33,7 @@ export function ChartSuspense({ children }: { children: React.ReactNode }) {
 
 type SortColumn = "scorers" | "goals" | "assists"
 
-export function PlayerTable({
-  stats,
-  sortBy,
-  advancedStats,
-}: {
-  stats: any[]
-  sortBy: SortColumn
-  advancedStats: boolean
-}) {
+export function PlayerTable({ stats, sortBy }: { stats: any[]; sortBy: SortColumn }) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -88,62 +78,26 @@ export function PlayerTable({
                   <span className="sm:hidden">
                     <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
                   </span>
-                  {advancedStats ? (
-                    <PlayerHoverCard
-                      firstName={s.player.firstName}
-                      lastName={s.player.lastName}
-                      photoUrl={s.player.photoUrl}
-                      jerseyNumber={s.player.jerseyNumber}
-                      position={s.player.position}
-                      team={s.team}
-                      nationality={s.player.nationality}
-                      dateOfBirth={s.player.dateOfBirth}
-                      playerId={s.playerId}
-                    >
-                      <Link
-                        to="/stats/players/$playerId"
-                        params={{ playerId: s.playerId }}
-                        search={{ from: backPath }}
-                        className="font-medium cursor-pointer hover:text-league-primary transition-colors"
-                      >
-                        {s.player.firstName} {s.player.lastName}
-                      </Link>
-                    </PlayerHoverCard>
-                  ) : (
-                    <span className="font-medium">
-                      {s.player.firstName} {s.player.lastName}
-                    </span>
-                  )}
+                  <Link
+                    to="/players/$playerId/$slug"
+                    params={{ playerId: s.playerId, slug: slugify(`${s.player.firstName} ${s.player.lastName}`) }}
+                    search={{ from: backPath }}
+                    className="font-medium hover:text-league-primary transition-colors"
+                  >
+                    {s.player.firstName} {s.player.lastName}
+                  </Link>
                 </div>
               </td>
               <td className="px-4 py-3 hidden sm:table-cell">
-                {advancedStats ? (
-                  <TeamHoverCard
-                    name={s.team?.name ?? ""}
-                    shortName={s.team?.shortName}
-                    logoUrl={s.team?.logoUrl}
-                    primaryColor={s.team?.primaryColor}
-                    city={s.team?.city}
-                    homeVenue={s.team?.homeVenue}
-                    website={s.team?.website}
-                    teamId={s.team?.id}
-                  >
-                    <Link
-                      to="/teams/$teamId"
-                      params={{ teamId: s.team?.id ?? "" }}
-                      search={{ from: backPath }}
-                      className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors"
-                    >
-                      <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
-                      <span>{s.team?.shortName ?? s.team?.name}</span>
-                    </Link>
-                  </TeamHoverCard>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
-                    <span>{s.team?.shortName ?? s.team?.name}</span>
-                  </div>
-                )}
+                <Link
+                  to="/teams/$teamId/$slug"
+                  params={{ teamId: s.team?.id ?? "", slug: slugify(s.team?.name ?? "") }}
+                  search={{ from: backPath }}
+                  className="flex items-center gap-2 hover:text-league-primary transition-colors"
+                >
+                  <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
+                  <span>{s.team?.shortName ?? s.team?.name}</span>
+                </Link>
               </td>
               <td className="px-4 py-3 text-center tabular-nums">{s.gamesPlayed}</td>
               <td className={cn("px-4 py-3 text-center tabular-nums", sortBy === "goals" && "font-bold")}>{s.goals}</td>
@@ -165,17 +119,7 @@ export function PlayerTable({
 // Goalie stats table
 // ---------------------------------------------------------------------------
 
-function GoalieSection({
-  title,
-  stats,
-  startRank,
-  advancedStats,
-}: {
-  title?: string
-  stats: any[]
-  startRank: number
-  advancedStats: boolean
-}) {
+function GoalieSection({ title, stats, startRank }: { title?: string; stats: any[]; startRank: number }) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -212,62 +156,26 @@ function GoalieSection({
                     <span className="sm:hidden">
                       <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
                     </span>
-                    {advancedStats ? (
-                      <PlayerHoverCard
-                        firstName={s.player.firstName}
-                        lastName={s.player.lastName}
-                        photoUrl={s.player.photoUrl}
-                        jerseyNumber={s.player.jerseyNumber}
-                        position={s.player.position}
-                        team={s.team}
-                        nationality={s.player.nationality}
-                        dateOfBirth={s.player.dateOfBirth}
-                        playerId={s.playerId}
-                      >
-                        <Link
-                          to="/stats/players/$playerId"
-                          params={{ playerId: s.playerId }}
-                          search={{ from: backPath }}
-                          className="font-medium cursor-pointer hover:text-league-primary transition-colors"
-                        >
-                          {s.player.firstName} {s.player.lastName}
-                        </Link>
-                      </PlayerHoverCard>
-                    ) : (
-                      <span className="font-medium">
-                        {s.player.firstName} {s.player.lastName}
-                      </span>
-                    )}
+                    <Link
+                      to="/players/$playerId/$slug"
+                      params={{ playerId: s.playerId, slug: slugify(`${s.player.firstName} ${s.player.lastName}`) }}
+                      search={{ from: backPath }}
+                      className="font-medium hover:text-league-primary transition-colors"
+                    >
+                      {s.player.firstName} {s.player.lastName}
+                    </Link>
                   </div>
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
-                  {advancedStats ? (
-                    <TeamHoverCard
-                      name={s.team?.name ?? ""}
-                      shortName={s.team?.shortName}
-                      logoUrl={s.team?.logoUrl}
-                      primaryColor={s.team?.primaryColor}
-                      city={s.team?.city}
-                      homeVenue={s.team?.homeVenue}
-                      website={s.team?.website}
-                      teamId={s.team?.id}
-                    >
-                      <Link
-                        to="/teams/$teamId"
-                        params={{ teamId: s.team?.id ?? "" }}
-                        search={{ from: backPath }}
-                        className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors"
-                      >
-                        <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
-                        <span>{s.team?.shortName ?? s.team?.name}</span>
-                      </Link>
-                    </TeamHoverCard>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
-                      <span>{s.team?.shortName ?? s.team?.name}</span>
-                    </div>
-                  )}
+                  <Link
+                    to="/teams/$teamId/$slug"
+                    params={{ teamId: s.team?.id ?? "", slug: slugify(s.team?.name ?? "") }}
+                    search={{ from: backPath }}
+                    className="flex items-center gap-2 hover:text-league-primary transition-colors"
+                  >
+                    <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
+                    <span>{s.team?.shortName ?? s.team?.name}</span>
+                  </Link>
                 </td>
                 <td className="px-4 py-3 text-center tabular-nums">{s.gamesPlayed}</td>
                 <td className="px-4 py-3 text-center tabular-nums">{s.goalsAgainst}</td>
@@ -281,13 +189,7 @@ function GoalieSection({
   )
 }
 
-export function GoalieTable({
-  data,
-  advancedStats,
-}: {
-  data: { qualified: any[]; belowThreshold: any[]; minGames: number }
-  advancedStats: boolean
-}) {
+export function GoalieTable({ data }: { data: { qualified: any[]; belowThreshold: any[]; minGames: number } }) {
   const t = useT()
 
   if (data.qualified.length === 0 && data.belowThreshold.length === 0) {
@@ -296,15 +198,12 @@ export function GoalieTable({
 
   return (
     <div>
-      {data.qualified.length > 0 && (
-        <GoalieSection stats={data.qualified} startRank={1} advancedStats={advancedStats} />
-      )}
+      {data.qualified.length > 0 && <GoalieSection stats={data.qualified} startRank={1} />}
       {data.belowThreshold.length > 0 && (
         <GoalieSection
           title={`${t.statsTables.belowMinGames} (${data.minGames} ${t.tooltip.gamesPlayed})`}
           stats={data.belowThreshold}
           startRank={data.qualified.length + 1}
-          advancedStats={advancedStats}
         />
       )}
     </div>
@@ -315,7 +214,7 @@ export function GoalieTable({
 // Penalty stats table
 // ---------------------------------------------------------------------------
 
-export function PenaltyTable({ stats, advancedStats }: { stats: any[]; advancedStats: boolean }) {
+export function PenaltyTable({ stats }: { stats: any[] }) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -351,56 +250,31 @@ export function PenaltyTable({ stats, advancedStats }: { stats: any[]; advancedS
                   <span className="sm:hidden">
                     <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
                   </span>
-                  {advancedStats && s.player ? (
-                    <PlayerHoverCard
-                      firstName={s.player.firstName}
-                      lastName={s.player.lastName}
-                      photoUrl={s.player.photoUrl}
-                      jerseyNumber={s.player.jerseyNumber}
-                      position={s.player.position}
-                      team={s.team}
-                      nationality={s.player.nationality}
-                      dateOfBirth={s.player.dateOfBirth}
-                      playerId={s.player.id}
+                  {s.player ? (
+                    <Link
+                      to="/players/$playerId/$slug"
+                      params={{ playerId: s.player.id, slug: slugify(`${s.player.firstName} ${s.player.lastName}`) }}
+                      search={{ from: backPath }}
+                      className="font-medium hover:text-league-primary transition-colors"
                     >
-                      <Link
-                        to="/stats/players/$playerId"
-                        params={{ playerId: s.player.id }}
-                        search={{ from: backPath }}
-                        className="font-medium cursor-pointer hover:text-league-primary transition-colors"
-                      >
-                        {s.player.firstName} {s.player.lastName}
-                      </Link>
-                    </PlayerHoverCard>
+                      {s.player.firstName} {s.player.lastName}
+                    </Link>
                   ) : (
-                    <span className="font-medium">
-                      {s.player?.firstName} {s.player?.lastName}
-                    </span>
+                    <span className="font-medium">–</span>
                   )}
                 </div>
               </td>
               <td className="px-4 py-3 hidden sm:table-cell">
-                {advancedStats && s.team ? (
-                  <TeamHoverCard
-                    name={s.team.name}
-                    shortName={s.team.shortName}
-                    logoUrl={s.team.logoUrl}
-                    primaryColor={s.team.primaryColor}
-                    city={s.team.city}
-                    homeVenue={s.team.homeVenue}
-                    website={s.team.website}
-                    teamId={s.team.id}
+                {s.team ? (
+                  <Link
+                    to="/teams/$teamId/$slug"
+                    params={{ teamId: s.team.id, slug: slugify(s.team.name ?? "") }}
+                    search={{ from: backPath }}
+                    className="flex items-center gap-2 hover:text-league-primary transition-colors"
                   >
-                    <Link
-                      to="/teams/$teamId"
-                      params={{ teamId: s.team.id }}
-                      search={{ from: backPath }}
-                      className="flex items-center gap-2 cursor-pointer hover:text-league-primary transition-colors"
-                    >
-                      <TeamLogo name={s.team.name ?? ""} logoUrl={s.team.logoUrl} size="sm" />
-                      <span>{s.team.shortName ?? s.team.name}</span>
-                    </Link>
-                  </TeamHoverCard>
+                    <TeamLogo name={s.team.name ?? ""} logoUrl={s.team.logoUrl} size="sm" />
+                    <span>{s.team.shortName ?? s.team.name}</span>
+                  </Link>
                 ) : (
                   <div className="flex items-center gap-2">
                     <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />

@@ -43,5 +43,5 @@ function GameStatusBadge({ status, scheduledAt, location, className, t }: GameSt
   )
 }
 
-export { GameStatusBadge, deriveDisplayStatus }
 export type { DisplayStatus, GameStatus }
+export { deriveDisplayStatus, GameStatusBadge }

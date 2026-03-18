@@ -10,6 +10,7 @@ export function DataListSkeleton({ rows = 5, showIcon = true }: DataListSkeleton
     <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
       {Array.from({ length: rows }, (_, i) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
           key={i}
           className={`flex items-center gap-4 px-4 py-3.5 ${i < rows - 1 ? "border-b border-border/40" : ""}`}
         >

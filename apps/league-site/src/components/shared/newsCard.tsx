@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { cn } from "~/lib/utils"
-import { formatDate } from "~/lib/utils"
+import { cn, formatDate } from "~/lib/utils"
 
 interface NewsCardProps {
   id: string

@@ -18,10 +18,15 @@ src/routes/
 │   ├── index.tsx           # Schedule with filters (status, team), grouped by date
 │   └── $gameId.tsx         # Game detail (events, lineups, AI recap)
 ├── news/
-│   └── $newsId.tsx         # News article detail
+│   ├── $newsId.tsx         # News article detail (fallback, redirects to slug URL)
+│   └── $newsId.$slug.tsx   # News article with SEO slug URL
+├── players/
+│   ├── $playerId.tsx       # Player detail (fallback, redirects to slug URL)
+│   └── $playerId.$slug.tsx # Player detail with SEO slug URL
 ├── teams/
 │   ├── index.tsx           # Teams list
-│   └── $teamId.tsx         # Team detail (roster by position, history tab if advancedStats)
+│   ├── $teamId.tsx         # Team detail (fallback, redirects to slug URL)
+│   └── $teamId.$slug.tsx   # Team detail with SEO slug URL (roster, history tab)
 ├── stats/
 │   ├── index.tsx           # Redirect to first available stats page
 │   ├── scorers.tsx         # Top scorers table + chart
@@ -30,7 +35,8 @@ src/routes/
 │   ├── goalies.tsx         # Goalie stats (qualified/below-threshold)
 │   ├── penalties.tsx       # Penalty stats by player
 │   ├── compare-teams.tsx   # Advanced: team comparison radar/bar charts (advancedStats only)
-│   ├── players/$playerId.tsx  # Player career stats + season history
+│   ├── players/$playerId.tsx      # Player career stats (fallback)
+│   ├── players/$playerId.$slug.tsx  # Player career stats with SEO slug URL
 │   └── teams/$teamId.tsx   # Redirect → /teams/$teamId?tab=history
 ```
 
@@ -62,6 +68,7 @@ src/components/
 │   ├── seasonProgressionCharts.tsx  # Multi-season player progression
 │   ├── teamProgressionCharts.tsx  # Team historical progression (lazy)
 │   ├── teamComparisonBar.tsx      # Team comparison bar chart
+│   ├── teamComparisonProgression.tsx # Team comparison progression over time
 │   ├── teamComparisonRadar.tsx    # Team comparison radar chart
 │   └── teamComparisonSelector.tsx # Team selection for comparison
 ├── stats/                 # Stats page components
@@ -69,6 +76,7 @@ src/components/
 │   ├── statsTables.tsx            # Shared PlayerTable, GoalieSection, ChartSuspense
 │   ├── allTimeStats.tsx           # Career/all-time statistics
 │   ├── careerStatsSummary.tsx     # Summary card for career stats
+│   ├── playerCareerTimeline.tsx   # Player career timeline across seasons
 │   ├── playerSeasonStatsTable.tsx # Player season stats table
 │   ├── seasonTimeline.tsx         # Season timeline visualization
 │   └── playerTimeline.tsx         # Player timeline
@@ -142,6 +150,7 @@ lib/
 - **StatsPageShell**: Common wrapper with season picker (pills for ≤4 seasons, select for >4)
 - **AI Recap Display**: Game detail page shows AI-generated recap with lazy background generation
 - **CMS Pages**: Dynamic `$slug` and `$parentSlug/$childSlug` routes render user-created pages from the admin CMS
+- **SEO Slug URLs**: Entity detail pages use `$id.$slug` pattern (e.g., `/teams/abc123.eishockey-club`) for SEO-friendly URLs. ID-only routes redirect to the slug variant. Dynamic page titles set via TanStack Router's `useEffect` + `document.title`
 
 ## E2E Testing
 

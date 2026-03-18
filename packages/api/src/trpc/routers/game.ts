@@ -1,9 +1,9 @@
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
-import { generateRoundRobin } from "../../services/schedulerService"
-import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
+import { generateRoundRobin } from "../../services/schedulerService"
 import { orgProcedure, requireRole, router } from "../init"
 
 const gameStatusValues = ["scheduled", "completed", "cancelled"] as const
@@ -322,7 +322,7 @@ export const gameRouter = router({
       })
       const goalsByTeam = new Map<string, number>()
       for (const e of goalEvents) {
-        goalsByTeam.set(e.teamId, (goalsByTeam.get(e.teamId) ?? 0) + 1)
+        if (e.teamId) goalsByTeam.set(e.teamId, (goalsByTeam.get(e.teamId) ?? 0) + 1)
       }
 
       // Delete existing goalie stats for this game (in case of re-complete after reopen)

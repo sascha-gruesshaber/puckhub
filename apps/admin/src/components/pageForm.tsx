@@ -1,5 +1,17 @@
-import { Button, Card, CardContent, FormField, Input, Label } from "@puckhub/ui"
-import { useNavigate } from "@tanstack/react-router"
+import {
+  Button,
+  Card,
+  CardContent,
+  FormField,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@puckhub/ui"
+import { useNavigate, useParams } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { useTranslation } from "~/i18n/use-translation"
@@ -21,6 +33,8 @@ interface PageFormProps {
   isPending: boolean
   submitLabel?: string
   isSystemRoute?: boolean
+  /** Rendered at the bottom of the sidebar (e.g. danger zone with delete) */
+  sidebarFooter?: React.ReactNode
 }
 
 interface FormState {
@@ -41,8 +55,17 @@ const emptyForm: FormState = {
   sortOrder: 0,
 }
 
-export function PageForm({ initialData, currentSlug, onSubmit, isPending, submitLabel, isSystemRoute }: PageFormProps) {
+export function PageForm({
+  initialData,
+  currentSlug,
+  onSubmit,
+  isPending,
+  submitLabel,
+  isSystemRoute,
+  sidebarFooter,
+}: PageFormProps) {
   const { t } = useTranslation("common")
+  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
   const resolvedSubmitLabel = submitLabel ?? t("save")
   const [form, setForm] = useState<FormState>(
@@ -63,7 +86,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
   const { data: allPages } = trpc.page.list.useQuery()
   const topLevelPages = useMemo(() => (allPages ?? []).filter((p) => !p.parentId && !p.isSystemRoute), [allPages])
 
-  const isSubPage = !!form.parentId
+  const _isSubPage = !!form.parentId
   const isChildSystemRoute = isSystemRoute && !!form.parentId
 
   // Compute slug preview
@@ -132,6 +155,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
 
           <FormField label={t("pageForm.fields.title")} error={errors.title} required>
             <Input
+              data-testid="page-form-title"
               value={form.title}
               onChange={(e) => setField("title", e.target.value)}
               placeholder={t("pageForm.fields.titlePlaceholder")}
@@ -145,7 +169,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
           )}
 
           {!isSystemRoute && (
-            <div>
+            <div data-testid="page-form-editor">
               <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.content")}</Label>
               <RichTextEditor
                 content={form.content}
@@ -157,7 +181,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
         </div>
 
         {/* Sidebar */}
-        <Card className="lg:sticky lg:top-6">
+        <Card className="lg:sticky lg:top-20">
           <CardContent className="p-5 space-y-4">
             {/* Status */}
             <div>
@@ -169,6 +193,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
                   onChange={(v) => setField("status", v)}
                   label={t("draft")}
                   description={t("pageForm.statusDescriptions.draft")}
+                  testId="page-form-status-draft"
                 />
                 <StatusOption
                   value="published"
@@ -176,6 +201,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
                   onChange={(v) => setField("status", v)}
                   label={t("published")}
                   description={t("pageForm.statusDescriptions.published")}
+                  testId="page-form-status-published"
                 />
               </div>
             </div>
@@ -184,20 +210,24 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
             {!hasChildren && !isSystemRoute && (
               <div>
                 <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.parentPage")}</Label>
-                <select
-                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                  value={form.parentId ?? ""}
-                  onChange={(e) => setField("parentId", e.target.value || null)}
+                <Select
+                  value={form.parentId ?? "__root__"}
+                  onValueChange={(v) => setField("parentId", v === "__root__" ? null : v)}
                 >
-                  <option value="">{t("pageForm.fields.parentPageRootOption")}</option>
-                  {topLevelPages
-                    .filter((p) => p.slug !== currentSlug)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.title}
-                      </option>
-                    ))}
-                </select>
+                  <SelectTrigger className="w-full h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__root__">{t("pageForm.fields.parentPageRootOption")}</SelectItem>
+                    {topLevelPages
+                      .filter((p) => p.slug !== currentSlug)
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.title}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -208,6 +238,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
+                      data-testid="page-form-menu-main-nav"
                       type="checkbox"
                       checked={form.menuLocations.includes("main_nav")}
                       onChange={() => toggleMenuLocation("main_nav")}
@@ -217,6 +248,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
+                      data-testid="page-form-menu-footer"
                       type="checkbox"
                       checked={form.menuLocations.includes("footer")}
                       onChange={() => toggleMenuLocation("footer")}
@@ -240,13 +272,26 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
             )}
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit" variant="accent" disabled={isPending} className="w-full">
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={isPending}
+                className="w-full"
+                data-testid="page-form-submit"
+              >
                 {isPending ? t("saving") : resolvedSubmitLabel}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/pages" })}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate({ to: "/$orgSlug/pages", params: { orgSlug } })}
+              >
                 {t("cancel")}
               </Button>
             </div>
+
+            {sidebarFooter}
           </CardContent>
         </Card>
       </div>
@@ -263,12 +308,14 @@ function StatusOption({
   onChange,
   label,
   description,
+  testId,
 }: {
   value: "draft" | "published"
   checked: boolean
   onChange: (value: "draft" | "published") => void
   label: string
   description: string
+  testId?: string
 }) {
   return (
     <label
@@ -279,6 +326,7 @@ function StatusOption({
       }}
     >
       <input
+        data-testid={testId}
         type="radio"
         name="pageStatus"
         value={value}

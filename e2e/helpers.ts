@@ -1,9 +1,11 @@
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
+import { resolve } from "node:path"
 import type { Page } from "@playwright/test"
 import { expect } from "@playwright/test"
-import { readFileSync, writeFileSync } from "node:fs"
-import { resolve } from "node:path"
 
 const apiLogFile = resolve(import.meta.dirname, ".e2e-api.log")
+const stateFile = resolve(import.meta.dirname, ".e2e-state.json")
+let cachedE2EDatabaseUrl: string | null = null
 
 /**
  * Polls the API log file for a magic link URL.
@@ -13,8 +15,9 @@ export async function waitForMagicLink(timeoutMs = 15_000): Promise<string> {
   const start = Date.now()
   while (Date.now() - start < timeoutMs) {
     const content = readFileSync(apiLogFile, "utf-8")
-    const match = content.match(/\[Email\] Link: (.+)/)
-    if (match) return match[1]!.trim()
+    const matches = [...content.matchAll(/\[Email\] Link: (.+)/g)]
+    const latestMatch = matches.at(-1)
+    if (latestMatch) return latestMatch[1]!.trim()
     await new Promise((r) => setTimeout(r, 200))
   }
   throw new Error("Magic link URL not found in API logs within timeout")
@@ -25,6 +28,35 @@ export async function waitForMagicLink(timeoutMs = 15_000): Promise<string> {
  */
 export function clearApiLog() {
   writeFileSync(apiLogFile, "")
+}
+
+function getE2EDatabaseUrl() {
+  if (cachedE2EDatabaseUrl) {
+    return cachedE2EDatabaseUrl
+  }
+
+  if (!existsSync(stateFile)) {
+    throw new Error(`E2E state file not found at ${stateFile}`)
+  }
+
+  const state = JSON.parse(readFileSync(stateFile, "utf-8")) as { dbUrl?: string }
+  if (!state.dbUrl) {
+    throw new Error("E2E database URL missing from state file")
+  }
+
+  cachedE2EDatabaseUrl = state.dbUrl
+  return cachedE2EDatabaseUrl
+}
+
+export async function withE2EDb<T>(fn: (sql: ReturnType<typeof import("postgres").default>) => Promise<T>): Promise<T> {
+  const postgres = (await import("postgres")).default
+  const sql = postgres(getE2EDatabaseUrl(), { max: 1 })
+
+  try {
+    return await fn(sql)
+  } finally {
+    await sql.end()
+  }
 }
 
 /**
@@ -61,13 +93,17 @@ export async function login(page: Page) {
   await page.goto(magicLinkUrl)
   await page.waitForLoadState("networkidle")
 
-  // Platform admins see the org picker — select the E2E org
+  // Platform admins see the org picker — select the E2E org (navigates to /$orgSlug/)
   const orgButton = page.getByRole("button", { name: /E2E Test League/ })
   if (await orgButton.isVisible({ timeout: 5_000 }).catch(() => false)) {
     await orgButton.click()
   }
 
-  // Wait for the dashboard to load
+  // Normalize to the org dashboard explicitly so tests start from a stable post-login route.
+  await page.goto(`/${E2E_ORG_SLUG}/`)
+  await page.waitForLoadState("networkidle")
+
+  // Wait for the dashboard to load (now at /$orgSlug/)
   await expect(page.getByRole("heading", { name: "dashboard.title" })).toBeVisible({
     timeout: 15_000,
   })
@@ -76,14 +112,24 @@ export async function login(page: Page) {
 /**
  * Locates the input inside a FormField by its label text.
  * FormField components don't use htmlFor/id linking, so we locate
- * the parent div containing the label and find the input within it.
+ * the label, go to its parent container, and find the input there.
  */
 export function formField(page: Page, labelKey: string) {
-  return page.locator("div", { has: page.locator("label", { hasText: labelKey }) }).locator("input")
+  return page
+    .locator("label", { hasText: labelKey })
+    .locator("xpath=..")
+    .locator("input:not([type='hidden']), textarea")
+    .last()
 }
 
-/** E2E org ID — matches seed data */
+/** E2E org ID - matches seed data */
 export const E2E_ORG_ID = "e2e-org-id"
+
+/** E2E admin user ID - matches seed data */
+export const E2E_ADMIN_USER_ID = "e2e-admin-id"
+
+/** E2E org slug - matches seed data */
+export const E2E_ORG_SLUG = "e2e-league"
 
 /**
  * Builds a league-site URL with `?orgId` appended (needed for localhost E2E).

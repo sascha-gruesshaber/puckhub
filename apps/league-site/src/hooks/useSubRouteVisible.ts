@@ -27,7 +27,7 @@ export function useSubRouteVisible(routePath: string): boolean | undefined {
 
   // Find the parent system route that would contain this sub-route
   // e.g. for "/stats/scorers" the parent is the page with routePath "/stats"
-  const parentPath = "/" + routePath.split("/").filter(Boolean)[0]
+  const parentPath = `/${routePath.split("/").filter(Boolean)[0]}`
   const parentVariants = allPathVariants(parentPath)
   const parentPage = menuPages.find((p: any) => p.isSystemRoute && parentVariants.includes(p.routePath))
 

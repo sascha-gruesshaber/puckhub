@@ -230,7 +230,7 @@ export const statsRouter = router({
       const playerMap = new Map<string, PlayerPenalty>()
 
       for (const row of penaltyAgg) {
-        if (!row.penaltyPlayerId) continue
+        if (!row.penaltyPlayerId || !row.teamId) continue
         const key = `${row.penaltyPlayerId}:${row.teamId}`
         let entry = playerMap.get(key)
         if (!entry) {
@@ -325,6 +325,7 @@ export const statsRouter = router({
       const teamMap = new Map<string, TeamPenalty>()
 
       for (const row of penaltyAgg) {
+        if (!row.teamId) continue
         let entry = teamMap.get(row.teamId)
         if (!entry) {
           entry = { teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }

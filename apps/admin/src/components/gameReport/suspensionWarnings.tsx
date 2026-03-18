@@ -29,6 +29,7 @@ function ProgressDots({ served, total }: { served: number; total: number }) {
     <span className="inline-flex gap-1 items-center">
       {Array.from({ length: total }, (_, i) => (
         <span
+          // biome-ignore lint/suspicious/noArrayIndexKey: static dot indicators have no unique id
           key={i}
           className={`inline-block w-2 h-2 rounded-full ${
             i < served ? "bg-orange-500 dark:bg-orange-400" : "bg-gray-300 dark:bg-gray-600"
@@ -161,5 +162,5 @@ function SuspensionWarnings({ suspensions, homeTeamId, awayTeamId }: SuspensionW
   )
 }
 
-export { SuspensionWarnings }
 export type { ActiveSuspension }
+export { SuspensionWarnings }

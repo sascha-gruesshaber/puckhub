@@ -76,7 +76,7 @@ describe("dashboard router", () => {
       homeTeamId: homeTeam.id,
       awayTeamId: awayTeam.id,
     }))!
-    const game2 = (await admin.game.create({
+    const _game2 = (await admin.game.create({
       roundId: round.id,
       homeTeamId: awayTeam.id,
       awayTeamId: homeTeam.id,

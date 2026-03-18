@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router"
 import { ChevronDown } from "lucide-react"
 import { useOrg, useSeason } from "~/lib/context"
+import { slugify } from "~/lib/utils"
+import { trpc } from "../../../lib/trpc"
 import { Skeleton } from "../shared/loadingSkeleton"
 import { TeamLogo } from "../shared/teamLogo"
-import { trpc } from "../../../lib/trpc"
 import type { MenuPage } from "./siteHeader"
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,7 @@ export function TeamsDesktopMegaDropdown({ page, link }: { page: MenuPage; link:
             {isLoading ? (
               <div className="grid grid-cols-4 gap-2">
                 {Array.from({ length: 8 }).map((_, i) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                   <div key={i} className="flex flex-col items-center gap-1.5 rounded-md p-2">
                     <Skeleton className="h-8 w-8 rounded-full" />
                     <Skeleton className="h-3 w-14" />
@@ -49,8 +51,8 @@ export function TeamsDesktopMegaDropdown({ page, link }: { page: MenuPage; link:
                 {teams.map((team) => (
                   <Link
                     key={team.id}
-                    to="/teams/$teamId"
-                    params={{ teamId: team.id }}
+                    to="/teams/$teamId/$slug"
+                    params={{ teamId: team.id, slug: slugify(team.name) }}
                     className="flex flex-col items-center gap-1.5 rounded-md p-2 transition-colors hover:bg-white/10"
                     activeProps={{ className: "bg-white/15 ring-1 ring-white/20" }}
                     style={{ borderTop: `2px solid ${team.primaryColor || "transparent"}` }}
@@ -116,6 +118,7 @@ export function TeamsMobileGrid({ page, onNavigate }: { page: MenuPage; onNaviga
       {isLoading ? (
         <div className="grid grid-cols-3 gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
             <div key={i} className="flex flex-col items-center gap-1.5 rounded-md p-2">
               <Skeleton className="h-7 w-7 rounded-full" />
               <Skeleton className="h-3 w-12" />
@@ -127,8 +130,8 @@ export function TeamsMobileGrid({ page, onNavigate }: { page: MenuPage; onNaviga
           {teams.map((team) => (
             <Link
               key={team.id}
-              to="/teams/$teamId"
-              params={{ teamId: team.id }}
+              to="/teams/$teamId/$slug"
+              params={{ teamId: team.id, slug: slugify(team.name) }}
               className="flex flex-col items-center gap-1.5 rounded-md p-2 transition-colors hover:bg-white/10"
               activeProps={{ className: "bg-white/15 ring-1 ring-white/20" }}
               style={{ borderTop: `2px solid ${team.primaryColor || "transparent"}` }}
@@ -168,7 +171,6 @@ export function TeamsMobileGrid({ page, onNavigate }: { page: MenuPage; onNaviga
           </Link>
         ),
       )}
-
     </div>
   )
 }

@@ -9,6 +9,11 @@ import {
   DialogTitle,
   FormField,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   toast,
 } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
@@ -531,30 +536,32 @@ function OrganizationsPage() {
             <div className="grid grid-cols-2 gap-3">
               {plans && plans.length > 0 && (
                 <FormField label="Plan">
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    value={form.planId}
-                    onChange={(e) => setForm((p) => ({ ...p, planId: e.target.value }))}
-                  >
-                    {plans
-                      .filter((p) => p.isActive)
-                      .map((plan) => (
-                        <option key={plan.id} value={plan.id}>
-                          {plan.name}
-                        </option>
-                      ))}
-                  </select>
+                  <Select value={form.planId || undefined} onValueChange={(v) => setForm((p) => ({ ...p, planId: v }))}>
+                    <SelectTrigger className="h-9 w-full">
+                      <SelectValue placeholder="Select plan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {plans
+                        .filter((p) => p.isActive)
+                        .map((plan) => (
+                          <SelectItem key={plan.id} value={plan.id}>
+                            {plan.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </FormField>
               )}
               <FormField label="Language">
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={form.locale}
-                  onChange={(e) => setField("locale", e.target.value)}
-                >
-                  <option value="de-DE">Deutsch</option>
-                  <option value="en-US">English</option>
-                </select>
+                <Select value={form.locale} onValueChange={(v) => setField("locale", v)}>
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="de-DE">Deutsch</SelectItem>
+                    <SelectItem value="en-US">English</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormField>
             </div>
 
@@ -737,20 +744,24 @@ function OrganizationsPage() {
 
             {plans && plans.length > 0 && (
               <FormField label="Plan">
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  value={editForm.planId}
-                  onChange={(e) => setEditForm((p) => ({ ...p, planId: e.target.value }))}
+                <Select
+                  value={editForm.planId || "__none__"}
+                  onValueChange={(v) => setEditForm((p) => ({ ...p, planId: v === "__none__" ? "" : v }))}
                 >
-                  <option value="">No plan</option>
-                  {plans
-                    .filter((p) => p.isActive)
-                    .map((plan) => (
-                      <option key={plan.id} value={plan.id}>
-                        {plan.name}
-                      </option>
-                    ))}
-                </select>
+                  <SelectTrigger className="h-9 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">No plan</SelectItem>
+                    {plans
+                      .filter((p) => p.isActive)
+                      .map((plan) => (
+                        <SelectItem key={plan.id} value={plan.id}>
+                          {plan.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </FormField>
             )}
 

@@ -1,7 +1,8 @@
 import type { Config } from "tailwindcss"
+import tailwindAnimate from "tailwindcss-animate"
 
 export default {
-  content: ["./src/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}"],
+  content: ["./src/**/*.{ts,tsx}", "./lib/**/*.{ts,tsx}", "../../packages/ui/src/**/*.{ts,tsx}"],
   theme: {
     extend: {
       fontFamily: {
@@ -22,5 +23,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindAnimate],
 } satisfies Config

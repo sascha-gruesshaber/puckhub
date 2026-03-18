@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect, useCallback } from "react"
 import { Users } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { cn } from "~/lib/utils"
 
@@ -36,12 +36,12 @@ export function TeamChipRow({ teams, value, onChange, allLabel = "Alle Teams", c
     const observer = new ResizeObserver(checkOverflow)
     observer.observe(el)
     return () => observer.disconnect()
-  }, [checkOverflow, teams])
+  }, [checkOverflow])
 
   // Scroll active chip into view on value change
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-  }, [value])
+  }, [])
 
   const chipBase =
     "flex-shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-all duration-200 scroll-snap-align-start"
@@ -58,6 +58,7 @@ export function TeamChipRow({ teams, value, onChange, allLabel = "Alle Teams", c
         style={{ scrollSnapType: "x mandatory" }}
       >
         {/* "All Teams" chip */}
+        {/* biome-ignore lint/a11y/useSemanticElements: custom styled chip group, role="radio" on button is intentional */}
         <button
           type="button"
           role="radio"
@@ -77,6 +78,7 @@ export function TeamChipRow({ teams, value, onChange, allLabel = "Alle Teams", c
           .map((team) => {
             const isActive = value === team.id
             return (
+              // biome-ignore lint/a11y/useSemanticElements: custom styled chip group, role="radio" on button is intentional
               <button
                 key={team.id}
                 type="button"

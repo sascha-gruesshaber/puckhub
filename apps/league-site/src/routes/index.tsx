@@ -1,15 +1,15 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { ArrowRight, Calendar, Loader2, Trophy } from "lucide-react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { EmptyState } from "~/components/shared/emptyState"
 import { GameCardSkeleton, Skeleton, StandingsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { ScoreBadge } from "~/components/shared/scoreBadge"
 import { TeamLogo } from "~/components/shared/teamLogo"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useOrg, useSettings, useTheme } from "~/lib/context"
-import { useT, type Translations } from "~/lib/i18n"
+import { type Translations, useT } from "~/lib/i18n"
 import { getHomeSections } from "~/lib/theme"
-import { formatDate, formatTime } from "~/lib/utils"
+import { formatDate, formatTime, slugify } from "~/lib/utils"
 import { trpc } from "../../lib/trpc"
 
 const NEWS_PAGE_SIZE = 20
@@ -20,9 +20,7 @@ const searchValidator = (s: Record<string, unknown>): { n?: number } => ({
 
 export const Route = createFileRoute("/")({
   component: HomePage,
-  head: () => ({
-    meta: [{ title: "Start" }],
-  }),
+  head: () => ({}),
   validateSearch: searchValidator,
 })
 
@@ -153,8 +151,8 @@ function FeaturedNews({ item }: { item: NewsItem }) {
   const t = useT()
   return (
     <Link
-      to="/news/$newsId"
-      params={{ newsId: item.id }}
+      to="/news/$newsId/$slug"
+      params={{ newsId: item.id, slug: slugify(item.title) }}
       className="group block rounded-xl border border-league-text/10 bg-league-surface overflow-hidden transition-all hover:shadow-lg hover:border-league-primary/30"
     >
       <div className="p-5 sm:p-6">
@@ -183,7 +181,11 @@ function FeaturedNews({ item }: { item: NewsItem }) {
 
 function NewsListItem({ item }: { item: NewsItem }) {
   return (
-    <Link to="/news/$newsId" params={{ newsId: item.id }} className="group flex gap-4 py-4 transition-colors">
+    <Link
+      to="/news/$newsId/$slug"
+      params={{ newsId: item.id, slug: slugify(item.title) }}
+      className="group flex gap-4 py-4 transition-colors"
+    >
       <div className="shrink-0 w-16 pt-0.5 text-right">
         <span className="text-xs text-league-text/40 tabular-nums">
           {item.publishedAt ? formatDate(item.publishedAt).slice(0, 6) : ""}
@@ -246,8 +248,8 @@ function SidebarStandings({ standings }: { standings: any[] }) {
               <td className="px-3 py-1.5 text-league-text/40 font-medium">{i + 1}</td>
               <td className="px-1 py-1.5">
                 <Link
-                  to="/teams/$teamId"
-                  params={{ teamId: s.team.id }}
+                  to="/teams/$teamId/$slug"
+                  params={{ teamId: s.team.id, slug: slugify(s.team.name) }}
                   search={{ from: "/" }}
                   className="flex items-center gap-1.5 hover:text-league-primary transition-colors"
                 >
@@ -396,6 +398,7 @@ function HomePage() {
                 <Skeleton className="h-4 w-2/3" />
               </div>
               {Array.from({ length: 3 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                 <div key={i} className="flex gap-3 py-3">
                   <Skeleton className="h-4 w-14 shrink-0" />
                   <div className="flex-1 border-l border-league-text/10 pl-3">
@@ -408,6 +411,7 @@ function HomePage() {
             <div className="space-y-4">
               <StandingsTableSkeleton />
               {Array.from({ length: 3 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                 <GameCardSkeleton key={i} />
               ))}
             </div>

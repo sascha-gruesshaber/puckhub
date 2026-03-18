@@ -113,7 +113,7 @@ export function usePermissionGuard(permission: NavPermission): boolean {
 
   useEffect(() => {
     if (!isLoading && !canSee(permission)) {
-      navigate({ to: "/" })
+      navigate({ to: "/", search: { redirect: undefined, switchOrg: undefined } })
     }
   }, [isLoading, canSee, permission, navigate])
 

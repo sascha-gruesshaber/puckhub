@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
 import { inviteEmail } from "../../lib/emailTemplates"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
@@ -157,7 +157,7 @@ export const usersRouter = router({
       })
 
       let userId: string
-      let isNewUser = false
+      let _isNewUser = false
 
       if (existing) {
         // User exists — check if already a member of this org
@@ -171,7 +171,7 @@ export const usersRouter = router({
       } else {
         // Create new user (no password — they'll use magic link)
         userId = crypto.randomUUID()
-        isNewUser = true
+        _isNewUser = true
         await ctx.db.user.create({
           data: {
             id: userId,
@@ -385,6 +385,10 @@ export const usersRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (input.userId === ctx.session.user.id) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.MEMBER_CANNOT_REMOVE_SELF)
+      }
+
       await ctx.db.member.deleteMany({
         where: { userId: input.userId, organizationId: input.organizationId },
       })

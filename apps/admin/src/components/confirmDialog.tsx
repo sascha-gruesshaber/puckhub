@@ -19,6 +19,8 @@ interface ConfirmDialogProps {
   onConfirm: () => void
   isPending?: boolean
   variant?: "destructive" | "default"
+  confirmTestId?: string
+  cancelTestId?: string
 }
 
 function ConfirmDialog({
@@ -31,6 +33,8 @@ function ConfirmDialog({
   onConfirm,
   isPending,
   variant = "default",
+  confirmTestId,
+  cancelTestId,
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,13 +45,14 @@ function ConfirmDialog({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} data-testid={cancelTestId}>
             {cancelLabel}
           </Button>
           <Button
             variant={variant === "destructive" ? "destructive" : "default"}
             disabled={isPending}
             onClick={onConfirm}
+            data-testid={confirmTestId}
           >
             {isPending ? `${confirmLabel}...` : confirmLabel}
           </Button>

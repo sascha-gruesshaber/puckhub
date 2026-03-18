@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { hashPublicReportEmail } from "../../lib/publicReportPrivacy"
 import { createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 /**
@@ -44,7 +45,6 @@ async function createPublicReportFixtures(opts?: {
       slug: "pro",
       sortOrder: 1,
       isActive: true,
-      priceMonthly: 2900,
       priceYearly: 29900,
       featurePublicReports: true,
     },
@@ -55,10 +55,10 @@ async function createPublicReportFixtures(opts?: {
     data: {
       organizationId: TEST_ORG_ID,
       planId: plan.id,
-      interval: "monthly",
+      interval: "yearly",
       status: "active",
       currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 86400000),
+      currentPeriodEnd: new Date(Date.now() + 365 * 86400000),
     },
   })
 
@@ -102,7 +102,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: hashPublicReportEmail("fan@example.com", TEST_ORG_ID),
+          submitterEmailMasked: "f***@example.com",
         },
       })
 
@@ -124,7 +125,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan1@example.com",
+          submitterEmailHash: "hash-alice",
+          submitterEmailMasked: "a***@example.com",
           reverted: false,
         },
       })
@@ -134,7 +136,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 1,
           awayScore: 0,
-          submitterEmail: "fan2@example.com",
+          submitterEmailHash: "hash-bob",
+          submitterEmailMasked: "b***@example.com",
           reverted: true,
           revertedAt: new Date(),
         },
@@ -144,11 +147,11 @@ describe("publicGameReport router", () => {
 
       const active = await admin.publicGameReport.list({ reverted: false, limit: 50 })
       expect(active).toHaveLength(1)
-      expect(active[0]!.submitterEmail).toBe("fan1@example.com")
+      expect(active[0]!.submitterEmailMasked).toBe("a***@example.com")
 
       const reverted = await admin.publicGameReport.list({ reverted: true, limit: 50 })
       expect(reverted).toHaveLength(1)
-      expect(reverted[0]!.submitterEmail).toBe("fan2@example.com")
+      expect(reverted[0]!.submitterEmailMasked).toBe("b***@example.com")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -182,7 +185,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan1@example.com",
+          submitterEmailHash: "hash-alice",
+          submitterEmailMasked: "a***@example.com",
           reverted: false,
         },
       })
@@ -192,7 +196,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 1,
           awayScore: 0,
-          submitterEmail: "fan2@example.com",
+          submitterEmailHash: "hash-bob",
+          submitterEmailMasked: "b***@example.com",
           reverted: true,
           revertedAt: new Date(),
         },
@@ -220,7 +225,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: hashPublicReportEmail("fan@example.com", TEST_ORG_ID),
+          submitterEmailMasked: "f***@example.com",
         },
       })
 
@@ -245,9 +251,9 @@ describe("publicGameReport router", () => {
     it("throws NOT_FOUND for non-existent report", async () => {
       await createPublicReportFixtures()
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.publicGameReport.revert({ id: "00000000-0000-0000-0000-000000000000" }),
-      ).rejects.toThrow("PUBLIC_REPORT_NOT_FOUND")
+      await expect(admin.publicGameReport.revert({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
+        "PUBLIC_REPORT_NOT_FOUND",
+      )
     })
 
     it("throws ALREADY_REVERTED for already reverted report", async () => {
@@ -259,16 +265,15 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: "hash-fan",
+          submitterEmailMasked: "f***@example.com",
           reverted: true,
           revertedAt: new Date(),
         },
       })
 
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.publicGameReport.revert({ id: report.id })).rejects.toThrow(
-        "PUBLIC_REPORT_ALREADY_REVERTED",
-      )
+      await expect(admin.publicGameReport.revert({ id: report.id })).rejects.toThrow("PUBLIC_REPORT_ALREADY_REVERTED")
     })
 
     it("rejects non-admin users", async () => {
@@ -279,7 +284,8 @@ describe("publicGameReport router", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: "hash-fan",
+          submitterEmailMasked: "f***@example.com",
         },
       })
 
@@ -314,7 +320,8 @@ describe("publicSite report procedures", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: "hash-fan",
+          submitterEmailMasked: "f***@example.com",
         },
       })
 
@@ -334,7 +341,8 @@ describe("publicSite report procedures", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: "hash-fan",
+          submitterEmailMasked: "f***@example.com",
           reverted: true,
           revertedAt: new Date(),
         },
@@ -378,7 +386,7 @@ describe("publicSite report procedures", () => {
       // Report should exist
       const report = await db.publicGameReport.findFirst({ where: { gameId: game.id } })
       expect(report).not.toBeNull()
-      expect(report!.submitterEmail).toBe("fan@example.com")
+      expect(report!.submitterEmailMasked).toBe("f***@example.com")
       expect(report!.comment).toBe("Great game!")
     })
 
@@ -406,7 +414,7 @@ describe("publicSite report procedures", () => {
     })
 
     it("rejects submission when disabled in settings", async () => {
-      const { db, game } = await createPublicReportFixtures({
+      const { game } = await createPublicReportFixtures({
         publicReportsEnabled: false,
         publicReportsRequireEmail: false,
         publicReportsBotDetection: false,
@@ -438,7 +446,8 @@ describe("publicSite report procedures", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmail: "fan@example.com",
+          submitterEmailHash: hashPublicReportEmail("fan@example.com", TEST_ORG_ID),
+          submitterEmailMasked: "f***@example.com",
         },
       })
 

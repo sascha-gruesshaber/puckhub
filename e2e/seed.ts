@@ -1,4 +1,20 @@
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
+
+function hashPublicReportValue(value: string, organizationId: string) {
+  const secret = process.env.PUBLIC_REPORT_HASH_SECRET ?? process.env.AUTH_SECRET ?? "dev-secret-change-me"
+  return createHash("sha256").update(`${organizationId}:${secret}:${value}`).digest("hex")
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase()
+}
+
+function maskEmail(email: string) {
+  const normalized = normalizeEmail(email)
+  const [local, domain] = normalized.split("@")
+  if (!local || !domain) return "***"
+  return `${local[0]}***@${domain}`
+}
 
 // ---------------------------------------------------------------------------
 // Fixed IDs for cross-referencing in tests
@@ -111,7 +127,7 @@ export async function seed(dbUrl: string) {
     await sql`
       INSERT INTO plans (
         id, name, slug, sort_order, is_active,
-        price_monthly, price_yearly, currency,
+        price_yearly, currency,
         max_teams, max_players, max_divisions_per_season, max_seasons, max_admins,
         max_news_articles, max_pages, max_sponsors, max_documents, storage_quota_mb,
         feature_custom_domain, feature_website_builder, feature_sponsor_mgmt,
@@ -121,13 +137,13 @@ export async function seed(dbUrl: string) {
         feature_public_reports
       ) VALUES (
         ${planId}, ${"E2E Pro"}, ${"e2e-pro"}, ${1}, ${true},
-        ${2900}, ${29900}, ${"EUR"},
+        ${29900}, ${"EUR"},
         ${null}, ${null}, ${null}, ${null}, ${null},
         ${null}, ${null}, ${null}, ${null}, ${null},
         ${true}, ${true}, ${true},
         ${true}, ${true},
         ${true}, ${true}, ${false},
-        ${true}
+        ${true}, ${true}, ${true}, ${true}
       ) ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         slug = EXCLUDED.slug
@@ -137,8 +153,8 @@ export async function seed(dbUrl: string) {
         id, organization_id, plan_id, "interval", status,
         current_period_start, current_period_end
       ) VALUES (
-        ${subscriptionId}, ${orgId}, ${planId}, ${"monthly"}, ${"active"},
-        ${now}, ${new Date(Date.now() + 30 * 86400000).toISOString()}
+        ${subscriptionId}, ${orgId}, ${planId}, ${"yearly"}, ${"active"},
+        ${now}, ${new Date(Date.now() + 365 * 86400000).toISOString()}
       )
     `
 
@@ -393,9 +409,20 @@ export async function seed(dbUrl: string) {
 
     // ── Public Game Reports ──
     // A public report for Game 1 (Hawks 3 - Bears 2), submitted by a fan
+    const submitterEmail = "fan@example.com"
+    const normalizedEmail = normalizeEmail(submitterEmail)
     await sql`
-      INSERT INTO public_game_reports (id, organization_id, game_id, home_score, away_score, submitter_email, comment)
-      VALUES (${randomUUID()}, ${orgId}, ${game1Id}, ${3}, ${2}, ${"fan@example.com"}, ${"Great match!"})
+      INSERT INTO public_game_reports (id, organization_id, game_id, home_score, away_score, submitter_email_hash, submitter_email_masked, comment)
+      VALUES (
+        ${randomUUID()},
+        ${orgId},
+        ${game1Id},
+        ${3},
+        ${2},
+        ${hashPublicReportValue(normalizedEmail, orgId)},
+        ${maskEmail(normalizedEmail)},
+        ${"Great match!"}
+      )
     `
   } finally {
     await sql.end()

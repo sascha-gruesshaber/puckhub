@@ -128,16 +128,17 @@ export async function recalculatePlayerStats(db: Database, seasonId: string, org
   }
 
   for (const row of goalAgg) {
-    if (row.scorerId) getOrCreate(row.scorerId, row.teamId).goals = row._count.id
+    if (row.scorerId && row.teamId) getOrCreate(row.scorerId, row.teamId).goals = row._count.id
   }
   for (const row of assist1Agg) {
-    if (row.assist1Id) getOrCreate(row.assist1Id, row.teamId).assists += row._count.id
+    if (row.assist1Id && row.teamId) getOrCreate(row.assist1Id, row.teamId).assists += row._count.id
   }
   for (const row of assist2Agg) {
-    if (row.assist2Id) getOrCreate(row.assist2Id, row.teamId).assists += row._count.id
+    if (row.assist2Id && row.teamId) getOrCreate(row.assist2Id, row.teamId).assists += row._count.id
   }
   for (const row of penaltyAgg) {
-    if (row.penaltyPlayerId) getOrCreate(row.penaltyPlayerId, row.teamId).penaltyMinutes = row._sum.penaltyMinutes ?? 0
+    if (row.penaltyPlayerId && row.teamId)
+      getOrCreate(row.penaltyPlayerId, row.teamId).penaltyMinutes = row._sum.penaltyMinutes ?? 0
   }
   for (const [key, games] of gamesPlayedMap) {
     const [playerId, teamId] = key.split(":")

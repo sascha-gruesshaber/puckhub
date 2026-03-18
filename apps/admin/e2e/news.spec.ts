@@ -1,10 +1,78 @@
+import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, E2E_ADMIN_USER_ID, E2E_ORG_ID, login, withE2EDb } from "./helpers"
+
+type NewsFixture = {
+  id: string
+  title: string
+}
+
+async function createNewsFixture(title: string): Promise<NewsFixture> {
+  const id = randomUUID()
+  const now = new Date().toISOString()
+
+  await withE2EDb(async (sql) => {
+    await sql`
+      INSERT INTO news (id, organization_id, title, short_text, content, status, author_id, published_at, created_at, updated_at)
+      VALUES (
+        ${id},
+        ${E2E_ORG_ID},
+        ${title},
+        ${`${title} short text`},
+        ${`<p>${title} content</p>`},
+        ${"published"},
+        ${E2E_ADMIN_USER_ID},
+        ${now},
+        ${now},
+        ${now}
+      )
+    `
+  })
+
+  return { id, title }
+}
+
+async function deleteNewsFixture(id: string) {
+  await withE2EDb(async (sql) => {
+    await sql`
+      DELETE FROM news
+      WHERE id = ${id}
+    `
+  })
+}
+
+async function expectNewsExists(id: string, expected = true) {
+  const exists = await withE2EDb(async (sql) => {
+    const rows = await sql<{ id: string }[]>`
+      SELECT id
+      FROM news
+      WHERE id = ${id}
+      LIMIT 1
+    `
+    return rows.length > 0
+  })
+
+  expect(exists).toBe(expected)
+}
+
+async function findNewsIdByTitle(title: string) {
+  return withE2EDb(async (sql) => {
+    const rows = await sql<{ id: string }[]>`
+      SELECT id
+      FROM news
+      WHERE organization_id = ${E2E_ORG_ID}
+        AND title = ${title}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `
+    return rows[0]?.id ?? null
+  })
+}
 
 test.describe("News Management", () => {
   test("news list shows seeded articles", async ({ page }) => {
     await login(page)
-    await page.goto("/news")
+    await page.goto(adminPath("news"))
     await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -14,69 +82,107 @@ test.describe("News Management", () => {
     await expect(page.getByText("Playoff Preview")).toBeVisible() // draft is visible in admin
   })
 
-  test("create, edit, and delete a news article", async ({ page }) => {
+  test("create a news article", async ({ page }) => {
+    const articleTitle = `E2E Created Article ${Date.now()}`
+
     await login(page)
-    await page.goto("/news")
+    await page.goto(adminPath("news"))
     await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
       timeout: 10_000,
     })
 
-    // --- CREATE ---
-    await page.getByRole("button", { name: "newsPage.actions.new" }).click()
+    try {
+      await page.getByTestId("news-new").click()
+      await expect(page).toHaveURL(/\/news\/new/)
 
-    // Should navigate to /news/new
-    await expect(page).toHaveURL(/\/news\/new/)
+      await page.getByTestId("news-form-title").fill(articleTitle)
 
-    // Fill title
-    await formField(page, "newsForm.fields.title").fill("E2E Test Article")
+      const editor = page.getByTestId("news-form-editor").locator("[contenteditable='true']").first()
+      await editor.click()
+      await editor.pressSequentially("This is E2E test content for the news article.")
 
-    // Fill content via rich text editor
-    const editor = page.locator("[contenteditable]")
-    await editor.click()
-    await editor.fill("This is E2E test content for the news article.")
+      await page.getByTestId("news-form-submit").click()
 
-    // Select "published" mode
-    await page.getByText("newsForm.publish.options.published.label").click()
+      await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
+      await expect(page.getByText(articleTitle)).toBeVisible({ timeout: 10_000 })
 
-    // Submit
-    await page.getByRole("button", { name: "save" }).click()
+      const createdId = await findNewsIdByTitle(articleTitle)
+      expect(createdId).not.toBeNull()
+      await expectNewsExists(createdId!)
+      await deleteNewsFixture(createdId!)
+    } catch (error) {
+      await withE2EDb(async (sql) => {
+        await sql`
+          DELETE FROM news
+          WHERE organization_id = ${E2E_ORG_ID}
+            AND title = ${articleTitle}
+        `
+      })
+      throw error
+    }
+  })
 
-    // Should redirect back to /news
+  test("update a news article", async ({ page }) => {
+    const originalTitle = `E2E Editable Article ${Date.now()}`
+    const updatedTitle = `${originalTitle} Updated`
+    const article = await createNewsFixture(originalTitle)
+
+    try {
+      await login(page)
+      await page.goto(adminPath("news"))
+      await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
+
+      await page.getByTestId("news-row").filter({ hasText: originalTitle }).click()
+      await expect(page).toHaveURL(/\/news\/.*\/edit/)
+
+      const titleField = page.getByTestId("news-form-title")
+      await titleField.clear()
+      await titleField.fill(updatedTitle)
+      await page.getByTestId("news-form-submit").click()
+
+      await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
+      await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 10_000 })
+
+      const storedTitle = await withE2EDb(async (sql) => {
+        const rows = await sql<{ title: string }[]>`
+          SELECT title
+          FROM news
+          WHERE id = ${article.id}
+        `
+        return rows[0]?.title ?? null
+      })
+
+      expect(storedTitle).toBe(updatedTitle)
+    } finally {
+      await deleteNewsFixture(article.id)
+    }
+  })
+
+  test("delete a news article", async ({ page }) => {
+    const article = await createNewsFixture(`E2E Deletable Article ${Date.now()}`)
+
+    await login(page)
+    await page.goto(adminPath("news"))
     await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
       timeout: 10_000,
     })
 
-    // Verify article appears in list
-    await expect(page.getByText("E2E Test Article")).toBeVisible({ timeout: 10_000 })
-
-    // --- EDIT ---
-    const articleRow = page.locator(".data-row", { hasText: "E2E Test Article" })
-    await articleRow.locator("[aria-label='newsPage.actions.edit']").click()
-
-    // Should navigate to edit page
+    await page.getByTestId("news-row").filter({ hasText: article.title }).click()
     await expect(page).toHaveURL(/\/news\/.*\/edit/)
 
-    // Change title
-    const titleField = formField(page, "newsForm.fields.title")
-    await titleField.clear()
-    await titleField.fill("E2E Updated Article")
+    await page.getByTestId("news-delete").click()
+    await page.getByTestId("news-delete-confirm").click()
 
-    await page.getByRole("button", { name: "save" }).click()
-
-    // Should redirect back to /news
     await expect(page.getByRole("heading", { name: "newsPage.title" })).toBeVisible({
       timeout: 10_000,
     })
-
-    await expect(page.getByText("E2E Updated Article")).toBeVisible({ timeout: 10_000 })
-
-    // --- DELETE ---
-    const updatedRow = page.locator(".data-row", { hasText: "E2E Updated Article" })
-    await updatedRow.locator("[aria-label='newsPage.actions.delete']").click()
-
-    // ConfirmDialog — click confirm button
-    await page.getByRole("button", { name: "newsPage.actions.delete" }).last().click()
-
-    await expect(page.getByText("E2E Updated Article")).not.toBeVisible({ timeout: 10_000 })
+    await expect(page.getByTestId("news-row").filter({ hasText: article.title })).toHaveCount(0)
+    await expectNewsExists(article.id, false)
   })
 })

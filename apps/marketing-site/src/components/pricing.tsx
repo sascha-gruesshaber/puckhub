@@ -1,6 +1,5 @@
-import { useState } from "react"
-import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
-import { Check, X, Loader2 } from "lucide-react"
+import { Check, Loader2, MessageSquare, X } from "lucide-react"
+import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 import { trpc } from "../../lib/trpc"
 
@@ -12,13 +11,20 @@ export function Pricing() {
   const t = useT()
   const header = useScrollReveal()
   const cards = useScrollReveal()
-  const [yearly, setYearly] = useState(false)
   const { data: plans, isLoading } = trpc.publicSite.listPlans.useQuery(undefined, {
     staleTime: 300_000,
   })
 
   function formatLimit(value: number | null): string {
-    return value === null ? t.pricing.unlimited : String(value)
+    if (value === null) return t.pricing.unlimited
+    if (value === 0) return "–"
+    return String(value)
+  }
+
+  function formatStorage(mb: number | null): string {
+    if (mb === null) return t.pricing.unlimited
+    if (mb >= 1024) return `${(mb / 1024).toFixed(0)} GB`
+    return `${mb} MB`
   }
 
   return (
@@ -27,25 +33,6 @@ export function Pricing() {
         <div ref={header.ref} className={`text-center mb-12 ${revealClasses(header)}`}>
           <h2 className="text-3xl sm:text-4xl font-bold">{t.pricing.heading}</h2>
           <p className="mt-4 text-lg text-brand-slate max-w-2xl mx-auto">{t.pricing.subheading}</p>
-
-          {/* Billing toggle */}
-          <div className="mt-8 inline-flex items-center gap-3 rounded-full bg-white/5 p-1 border border-white/10">
-            <button
-              type="button"
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${!yearly ? "bg-brand-gold text-brand-navy" : "text-brand-slate hover:text-white"}`}
-              onClick={() => setYearly(false)}
-            >
-              {t.pricing.monthly}
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${yearly ? "bg-brand-gold text-brand-navy" : "text-brand-slate hover:text-white"}`}
-              onClick={() => setYearly(true)}
-            >
-              {t.pricing.yearly}
-              <span className="ml-1.5 text-xs opacity-80">{t.pricing.yearlySave}</span>
-            </button>
-          </div>
         </div>
 
         {isLoading ? (
@@ -57,16 +44,16 @@ export function Pricing() {
         ) : (
           <div
             ref={cards.ref}
-            className={`grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto ${revealClasses(cards, "stagger")}`}
+            className={`grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 max-w-7xl mx-auto ${revealClasses(cards, "stagger")}`}
           >
-            {plans.map((plan, index) => {
-              const price = yearly ? plan.priceYearly : plan.priceMonthly
-              const isPopular = index === 1
+            {plans.map((plan, _index) => {
+              const price = plan.priceYearly
+              const isPopular = plan.slug === "pro"
 
               return (
                 <div
                   key={plan.id}
-                  className={`relative rounded-2xl border p-8 flex flex-col ${
+                  className={`relative rounded-2xl border p-6 flex flex-col ${
                     isPopular
                       ? "border-brand-gold/40 bg-brand-gold/[0.04] ring-1 ring-brand-gold/20"
                       : "border-white/10 bg-white/[0.02]"
@@ -87,11 +74,11 @@ export function Pricing() {
 
                   <div className="mt-6 mb-8">
                     {price === 0 ? (
-                      <span className="text-4xl font-extrabold">{t.pricing.free}</span>
+                      <span className="text-3xl font-extrabold">{t.pricing.free}</span>
                     ) : (
                       <>
-                        <span className="text-4xl font-extrabold">{formatPrice(price)} €</span>
-                        <span className="text-brand-slate ml-1">{yearly ? t.pricing.perYear : t.pricing.perMonth}</span>
+                        <span className="text-3xl font-extrabold">{formatPrice(price)} €</span>
+                        <span className="text-brand-slate ml-1">{t.pricing.perYear}</span>
                       </>
                     )}
                   </div>
@@ -108,6 +95,8 @@ export function Pricing() {
                     <PlanLimit label={t.pricing.limits.news} value={formatLimit(plan.maxNewsArticles)} />
                     <PlanLimit label={t.pricing.limits.pages} value={formatLimit(plan.maxPages)} />
                     <PlanLimit label={t.pricing.limits.sponsors} value={formatLimit(plan.maxSponsors)} />
+                    <PlanLimit label={t.pricing.limits.admins} value={formatLimit(plan.maxAdmins)} />
+                    <PlanLimit label={t.pricing.limits.storage} value={formatStorage(plan.storageQuotaMb)} />
 
                     <div className="pt-3 border-t border-white/10 space-y-2">
                       <PlanFeature label={t.pricing.planFeatures.gameReports} enabled={plan.featureGameReports} />
@@ -120,22 +109,25 @@ export function Pricing() {
                       <PlanFeature label={t.pricing.planFeatures.scheduler} enabled={plan.featureScheduler} />
                       <PlanFeature label={t.pricing.planFeatures.scheduledNews} enabled={plan.featureScheduledNews} />
                       <PlanFeature label={t.pricing.planFeatures.advancedRoles} enabled={plan.featureAdvancedRoles} />
+                      <PlanFeature label={t.pricing.planFeatures.publicReports} enabled={plan.featurePublicReports} />
+                      <PlanFeature label={t.pricing.planFeatures.aiRecaps} enabled={plan.featureAiRecaps} />
                       <PlanFeature
-                        label={t.pricing.planFeatures.publicReports}
-                        enabled={plan.featurePublicReports}
+                        label={t.pricing.planFeatures.prioritySupport}
+                        enabled={plan.slug === "pro" || plan.slug === "unlimited"}
                       />
                     </div>
                   </div>
 
                   <a
-                    href="#demo"
-                    className={`mt-8 block text-center rounded-lg py-3 text-sm font-semibold transition-colors ${
+                    href={`/contact?plan=${plan.slug}`}
+                    className={`mt-8 group flex items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold transition-all ${
                       isPopular
                         ? "bg-brand-gold text-brand-navy hover:bg-brand-gold-dark"
                         : "border border-white/20 text-white hover:bg-white/5"
                     }`}
                   >
-                    {price === 0 ? t.pricing.startFree : t.pricing.tryDemo}
+                    <MessageSquare className="h-4 w-4" />
+                    {t.pricing.getInTouch}
                   </a>
                 </div>
               )

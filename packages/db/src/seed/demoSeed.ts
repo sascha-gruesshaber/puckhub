@@ -1,5 +1,6 @@
-import type { Database } from "../index"
+import { createHash } from "node:crypto"
 import type { OrgRole } from "../generated/prisma/enums"
+import type { Database } from "../index"
 import { recalculateStandings } from "../services/standingsService"
 import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
 import { cleanOrgUploads, generateSeedImages } from "./seedImages"
@@ -10,6 +11,22 @@ import { cleanOrgUploads, generateSeedImages } from "./seedImages"
 export const DEMO_ORG_ID = "demo-league"
 const DEMO_EMAIL_SUFFIX = process.env.SUBDOMAIN_SUFFIX || ".puckhub.localhost"
 const DEMO_EMAIL_DOMAIN = `@${DEMO_ORG_ID}${DEMO_EMAIL_SUFFIX}`
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase()
+}
+
+function maskEmail(email: string) {
+  const normalized = normalizeEmail(email)
+  const [local, domain] = normalized.split("@")
+  if (!local || !domain) return "***"
+  return `${local[0]}***@${domain}`
+}
+
+function hashPublicReportValue(value: string, organizationId: string) {
+  const secret = process.env.PUBLIC_REPORT_HASH_SECRET ?? process.env.AUTH_SECRET ?? "dev-secret-change-me"
+  return createHash("sha256").update(`${organizationId}:${secret}:${value}`).digest("hex")
+}
 
 // ---------------------------------------------------------------------------
 // Team data
@@ -653,7 +670,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       create: {
         organizationId: DEMO_ORG_ID,
         planId: proPlan.id,
-        interval: "monthly",
+        interval: "yearly",
         status: "active",
         currentPeriodStart: now,
         currentPeriodEnd: farFuture,
@@ -1040,7 +1057,11 @@ export async function seedDemoOrg(db: Database): Promise<void> {
           gameId: game.id,
           homeScore: game.homeScore!,
           awayScore: game.awayScore!,
-          submitterEmail: reportEmails[i % reportEmails.length]!,
+          submitterEmailHash: hashPublicReportValue(
+            normalizeEmail(reportEmails[i % reportEmails.length]!),
+            DEMO_ORG_ID,
+          ),
+          submitterEmailMasked: maskEmail(reportEmails[i % reportEmails.length]!),
           comment: reportComments[i % reportComments.length],
           reverted: isReverted,
           revertNote: isReverted ? "Score was incorrect — verified with official scoresheet" : null,

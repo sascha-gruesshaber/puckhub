@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useT } from "~/lib/i18n"
-import { LEAGUE_CHART_COLORS, EChartsWrapper } from "./echartsWrapper"
+import { EChartsWrapper, LEAGUE_CHART_COLORS } from "./echartsWrapper"
 
 interface ChartPlayerStat {
   player: { firstName: string; lastName: string } | null
@@ -89,5 +89,5 @@ function ScorerChart({ stats, mode, title, limit = 15 }: ScorerChartProps) {
   return <EChartsWrapper option={option} height={height} />
 }
 
-export { ScorerChart }
 export type { ChartMode }
+export { ScorerChart }

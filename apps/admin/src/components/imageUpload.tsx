@@ -92,8 +92,8 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
 
   return (
     <div className={className}>
-      <div
-        role="button"
+      <button
+        type="button"
         tabIndex={0}
         onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
@@ -102,9 +102,6 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") inputRef.current?.click()
-        }}
         className={cn(
           "flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed transition-colors",
           dragOver
@@ -126,7 +123,7 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
             <span className="text-[10px] text-muted-foreground/60">Klicken oder ziehen</span>
           </div>
         )}
-      </div>
+      </button>
       <input
         ref={inputRef}
         type="file"

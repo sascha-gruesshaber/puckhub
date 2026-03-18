@@ -3,8 +3,8 @@ import type { Node } from "@xyflow/react"
 import { ChevronLeft, ChevronRight, GripVertical, Plus } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { type RoundType, roundTypeMap } from "../utils/roundTypeColors"
 import { divisionIcon, roundTypeIcons } from "../utils/roundTypeIcons"
 import { DivisionEditPanel } from "./divisionEditPanel"
@@ -53,7 +53,8 @@ function StructurePalette({
 
       <div className="flex flex-col gap-2">
         {/* Division drag item */}
-        <div
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag-and-drop source item */}
+        <li
           draggable={!atDivisionLimit}
           onDragStart={(e) => {
             if (atDivisionLimit) {
@@ -65,7 +66,7 @@ function StructurePalette({
             onDragTypeChange("division")
           }}
           onDragEnd={() => onDragTypeChange(null)}
-          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 border-dashed border-gray-300 ${atDivisionLimit ? "opacity-50 cursor-not-allowed" : "cursor-grab hover:border-[#D4A843]/50 hover:bg-[#F4D35E]/5 active:cursor-grabbing"} transition-colors`}
+          className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 border-dashed border-gray-300 list-none ${atDivisionLimit ? "opacity-50 cursor-not-allowed" : "cursor-grab hover:border-[#D4A843]/50 hover:bg-[#F4D35E]/5 active:cursor-grabbing"} transition-colors`}
           title={atDivisionLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
         >
           <GripVertical className="h-3.5 w-3.5 text-gray-300 shrink-0" />
@@ -79,7 +80,7 @@ function StructurePalette({
             <div className="text-xs font-medium text-gray-900">{t("seasonStructure.panel.division")}</div>
             <div className="text-[10px] text-gray-500">{t("seasonStructure.panel.dragToCanvas")}</div>
           </div>
-        </div>
+        </li>
 
         {/* Separator */}
         <div className="flex items-center gap-2 my-1">
@@ -95,7 +96,8 @@ function StructurePalette({
           const config = roundTypeMap[type]
           const icon = roundTypeIcons[type]
           return (
-            <div
+            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag-and-drop source item
+            <li
               key={type}
               draggable
               onDragStart={(e) => {
@@ -104,17 +106,17 @@ function StructurePalette({
                 onDragTypeChange("round")
               }}
               onDragEnd={() => onDragTypeChange(null)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-gray-200 cursor-grab hover:bg-gray-50 active:cursor-grabbing transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-gray-200 cursor-grab hover:bg-gray-50 active:cursor-grabbing transition-colors list-none"
               style={{
                 borderColor: undefined,
               }}
               onMouseEnter={(e) => {
-                ;(e.currentTarget as HTMLDivElement).style.borderColor = config.color
-                ;(e.currentTarget as HTMLDivElement).style.background = config.bg
+                ;(e.currentTarget as HTMLLIElement).style.borderColor = config.color
+                ;(e.currentTarget as HTMLLIElement).style.background = config.bg
               }}
               onMouseLeave={(e) => {
-                ;(e.currentTarget as HTMLDivElement).style.borderColor = ""
-                ;(e.currentTarget as HTMLDivElement).style.background = ""
+                ;(e.currentTarget as HTMLLIElement).style.borderColor = ""
+                ;(e.currentTarget as HTMLLIElement).style.background = ""
               }}
             >
               <GripVertical className="h-3 w-3 text-gray-300 shrink-0" />
@@ -133,7 +135,7 @@ function StructurePalette({
               >
                 {t("seasonStructure.panel.dragToDivisionShort")}
               </div>
-            </div>
+            </li>
           )
         })}
       </div>

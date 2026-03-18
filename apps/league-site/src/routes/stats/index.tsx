@@ -1,10 +1,10 @@
 import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy } from "react"
-import { StatsPageShell } from "~/components/stats/statsPageShell"
-import { StatsSummaryCards } from "~/components/shared/statsSummaryCards"
 import { StatsTableSkeleton } from "~/components/shared/loadingSkeleton"
+import { StatsSummaryCards } from "~/components/shared/statsSummaryCards"
+import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { ChartSuspense } from "~/components/stats/statsTables"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useFeatures, useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { useLocalePath } from "~/lib/localizedRoutes"
@@ -33,15 +33,10 @@ export function StatsIndex() {
   const { season: seasonParam } = useSearch({ strict: false }) as { season?: string }
   const selectedSeasonId = seasonParam ?? season.current?.id
 
-  // When advancedStats is not enabled, redirect to the first sub-page
-  if (!features.advancedStats) {
-    return <Navigate to={lp("/stats/scorers")} replace />
-  }
-
   const setSelectedSeasonId = (v: string) =>
     filterNavigate({ search: { season: v === season.current?.id ? undefined : v } })
 
-  const shouldFetch = !!selectedSeasonId
+  const shouldFetch = !!selectedSeasonId && features.advancedStats
   const { data: playerStats, isLoading: playerLoading } = trpc.publicSite.getPlayerStats.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId! },
     { enabled: shouldFetch, staleTime: 60_000 },
@@ -54,6 +49,11 @@ export function StatsIndex() {
     { organizationId: org.id, seasonId: selectedSeasonId! },
     { enabled: shouldFetch, staleTime: 60_000 },
   )
+
+  // When advancedStats is not enabled, redirect to the first sub-page
+  if (!features.advancedStats) {
+    return <Navigate to={lp("/stats/scorers")} replace />
+  }
 
   const isLoading = playerLoading || goalieLoading
   const topScorers = [...(playerStats ?? [])].sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10)

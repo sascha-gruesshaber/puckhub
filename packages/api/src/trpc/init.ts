@@ -1,4 +1,4 @@
-import { type OrgRole } from "@puckhub/db"
+import type { OrgRole } from "@puckhub/db"
 import { initTRPC, TRPCError } from "@trpc/server"
 import superjson from "superjson"
 import { createAppError, inferAppErrorCode } from "../errors/appError"

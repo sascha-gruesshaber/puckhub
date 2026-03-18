@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createTestCaller, createPlatformAdminCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
+import { createPlatformAdminCaller, createTestCaller, getTestDb } from "../testUtils"
 
 /** Create a test plan directly in the DB (plans are fixed, not created via API). */
 async function seedTestPlan(overrides: Record<string, unknown> = {}) {
@@ -83,13 +83,13 @@ describe("plan router", () => {
       const caller = createPlatformAdminCaller()
       const updated = await caller.plan.update({
         id: plan.id,
-        priceMonthly: 1999,
+        priceYearly: 19990,
         maxTeams: 25,
         featureCustomDomain: true,
         isActive: false,
       })
 
-      expect(updated.priceMonthly).toBe(1999)
+      expect(updated.priceYearly).toBe(19990)
       expect(updated.maxTeams).toBe(25)
       expect(updated.featureCustomDomain).toBe(true)
       expect(updated.isActive).toBe(false)
@@ -99,7 +99,7 @@ describe("plan router", () => {
       const caller = createPlatformAdminCaller()
 
       await expect(
-        caller.plan.update({ id: "00000000-0000-0000-0000-000000000099", priceMonthly: 100 }),
+        caller.plan.update({ id: "00000000-0000-0000-0000-000000000099", priceYearly: 100 }),
       ).rejects.toThrow("PLAN_NOT_FOUND")
     })
   })
@@ -134,7 +134,7 @@ describe("plan router", () => {
     it("rejects unauthenticated caller on update", async () => {
       const caller = createTestCaller()
       await expect(
-        caller.plan.update({ id: "00000000-0000-0000-0000-000000000099", priceMonthly: 100 }),
+        caller.plan.update({ id: "00000000-0000-0000-0000-000000000099", priceYearly: 100 }),
       ).rejects.toThrow("Not authenticated")
     })
   })

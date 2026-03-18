@@ -183,6 +183,24 @@
   }
 }
 
+/* ── Mobile Filter Bar ── */
+
+@media (max-width: 639px) {
+  .filter-bar-panel {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filter-bar-panel__label {
+    display: none;
+  }
+  .filter-bar-panel__divider {
+    display: none;
+  }
+  .filter-bar-panel__controls {
+    width: 100%;
+  }
+}
+
 /* ── Reduced Motion ── */
 
 @media (prefers-reduced-motion: reduce) {

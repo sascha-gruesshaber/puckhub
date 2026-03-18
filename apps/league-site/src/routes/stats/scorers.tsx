@@ -1,5 +1,4 @@
 import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy } from "react"
 import { FilterDropdown } from "~/components/shared/filterDropdown"
 import { FilterPill } from "~/components/shared/filterPill"
@@ -8,8 +7,9 @@ import { StatsSummaryCards } from "~/components/shared/statsSummaryCards"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { ChartSuspense, PlayerTable } from "~/components/stats/statsTables"
-import { useFeatures, useOrg, useSeason } from "~/lib/context"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useSubRouteVisible } from "~/hooks/useSubRouteVisible"
+import { useFeatures, useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { useLocalePath } from "~/lib/localizedRoutes"
 import { trpc } from "../../../lib/trpc"
@@ -112,11 +112,7 @@ export function ScorersPage() {
           </ChartSuspense>
         </div>
       )}
-      {isLoading ? (
-        <StatsTableSkeleton />
-      ) : (
-        <PlayerTable stats={playerStats ?? []} sortBy="scorers" advancedStats={features.advancedStats} />
-      )}
+      {isLoading ? <StatsTableSkeleton /> : <PlayerTable stats={playerStats ?? []} sortBy="scorers" />}
     </StatsPageShell>
   )
 }
@@ -154,6 +150,8 @@ function StatsFilterBar({
           value={teamValue ? [teamValue] : []}
           onChange={(v) => onTeamChange(v[0] || undefined)}
           singleSelect
+          testId="stats-team-filter"
+          optionTestIdPrefix="stats-team-filter-option"
         />
       )}
       {showPosition && onPositionChange && (

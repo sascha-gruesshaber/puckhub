@@ -1,9 +1,10 @@
-import { Button, Input, toast } from "@puckhub/ui"
-import { Trash2 } from "lucide-react"
+import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
+import { AlertTriangle, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
-import { resolveTranslatedError } from "~/lib/errorI18n"
+import { ConfirmDialog } from "~/components/confirmDialog"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { type RoundType, roundTypeMap } from "../utils/roundTypeColors"
 
 interface RoundEditPanelProps {
@@ -40,6 +41,7 @@ export function RoundEditPanel({
   const [editLoss, setEditLoss] = useState(String(pointsLoss))
   const [editPlayerStats, setEditPlayerStats] = useState(countsForPlayerStats)
   const [editGoalieStats, setEditGoalieStats] = useState(countsForGoalieStats)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   useEffect(() => {
     setEditName(name)
@@ -90,8 +92,11 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.name")}</label>
+        <label htmlFor="round-edit-name" className="text-[11px] font-medium text-gray-600">
+          {t("seasonStructure.fields.name")}
+        </label>
         <Input
+          id="round-edit-name"
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           className="h-8 text-xs bg-white border-gray-200 text-gray-900"
@@ -99,22 +104,23 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.roundType")}</label>
-        <select
-          value={editType}
-          onChange={(e) => setEditType(e.target.value)}
-          className="h-8 px-2.5 text-xs rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:border-[#F4D35E]/40"
-        >
-          {roundTypes.map(([value, { labelKey }]) => (
-            <option key={value} value={value}>
-              {t(labelKey)}
-            </option>
-          ))}
-        </select>
+        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.roundType")}</p>
+        <Select value={editType} onValueChange={(v) => setEditType(v)}>
+          <SelectTrigger className="h-8 text-xs bg-white border-gray-200 text-gray-900">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {roundTypes.map(([value, { labelKey }]) => (
+              <SelectItem key={value} value={value}>
+                {t(labelKey)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.points")}</label>
+        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.points")}</p>
         <div className="grid grid-cols-3 gap-2">
           <div>
             <div className="text-[10px] text-gray-500 mb-1">{t("seasonStructure.points.win")}</div>
@@ -147,7 +153,7 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.statistics")}</label>
+        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.statistics")}</p>
         <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -184,7 +190,7 @@ export function RoundEditPanel({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => deleteMutation.mutate({ id: roundId })}
+          onClick={() => setDeleteDialogOpen(true)}
           disabled={deleteMutation.isPending}
           className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
         >
@@ -192,6 +198,31 @@ export function RoundEditPanel({
           {t("seasonStructure.roundPanel.deleteRound")}
         </Button>
       </div>
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title={t("seasonStructure.confirmDelete.roundTitle")}
+        description={
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 p-3">
+              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+              <span className="text-sm text-red-800">{t("seasonStructure.confirmDelete.roundWarning")}</span>
+            </div>
+            <p className="text-sm text-gray-600">
+              {t("seasonStructure.confirmDelete.roundDescription", { name: editName })}
+            </p>
+          </div>
+        }
+        confirmLabel={t("seasonStructure.confirmDelete.confirmDelete")}
+        cancelLabel={t("cancel")}
+        onConfirm={() => {
+          deleteMutation.mutate({ id: roundId })
+          setDeleteDialogOpen(false)
+        }}
+        isPending={deleteMutation.isPending}
+        variant="destructive"
+      />
     </div>
   )
 }

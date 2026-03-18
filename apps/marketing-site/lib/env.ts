@@ -15,6 +15,9 @@ function getSubdomainUrl(subdomain: string): string {
 
 export function getApiUrl(): string {
   if (typeof window !== "undefined") {
+    // Prefer explicit VITE_API_URL (set in E2E / dev-without-Caddy mode)
+    const envUrl = import.meta.env?.VITE_API_URL
+    if (envUrl) return envUrl
     return getSubdomainUrl("api")
   }
   return process.env.VITE_API_URL ?? "http://api.puckhub.localhost"

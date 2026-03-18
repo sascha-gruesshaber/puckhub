@@ -1,16 +1,16 @@
 import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy } from "react"
 import { StatsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { ChartSuspense, PenaltyTable } from "~/components/stats/statsTables"
-import { StatsFilterBar } from "./scorers"
-import { useFeatures, useOrg, useSeason } from "~/lib/context"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useSubRouteVisible } from "~/hooks/useSubRouteVisible"
+import { useFeatures, useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { useLocalePath } from "~/lib/localizedRoutes"
 import { trpc } from "../../../lib/trpc"
+import { StatsFilterBar } from "./scorers"
 
 const PenaltyTeamChart = lazy(() =>
   import("~/components/charts/penaltyTeamChart").then((m) => ({ default: m.PenaltyTeamChart })),
@@ -86,11 +86,7 @@ export function PenaltiesPage() {
           </ChartSuspense>
         </div>
       )}
-      {isLoading ? (
-        <StatsTableSkeleton />
-      ) : (
-        <PenaltyTable stats={penaltyStats ?? []} advancedStats={features.advancedStats} />
-      )}
+      {isLoading ? <StatsTableSkeleton /> : <PenaltyTable stats={penaltyStats ?? []} />}
     </StatsPageShell>
   )
 }

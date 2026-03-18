@@ -91,6 +91,34 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = locale.split("-")[0] ?? "en"
   }, [locale])
 
+  // Append league short name to page titles, use full name for home page
+  const leagueShortName = siteData?.settings?.leagueShortName ?? siteData?.organization?.name
+  const leagueName = siteData?.settings?.leagueName ?? siteData?.organization?.name
+  useEffect(() => {
+    if (!leagueShortName || !leagueName) return
+    const suffix = ` | ${leagueShortName}`
+
+    const updateTitle = () => {
+      const current = document.title
+      if (current.endsWith(suffix) || current === leagueName) return
+      if (!current || current === "PuckHub") {
+        document.title = leagueName
+      } else {
+        document.title = current + suffix
+      }
+    }
+
+    updateTitle()
+
+    const titleEl = document.querySelector("title")
+    if (!titleEl) return
+
+    const observer = new MutationObserver(updateTitle)
+    observer.observe(titleEl, { childList: true, characterData: true, subtree: true })
+
+    return () => observer.disconnect()
+  }, [leagueShortName, leagueName])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

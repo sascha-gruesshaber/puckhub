@@ -6,6 +6,9 @@
   "create": "Create",
   "cancel": "Cancel",
   "filters": "Filters",
+  "dangerZone": {
+    "title": "Danger zone"
+  },
   "draft": "Draft",
   "published": "Published",
   "logout": "Sign out",
@@ -216,7 +219,9 @@
       "title": "SEO",
       "seoTitle": "Page title",
       "seoDescription": "Meta description"
-    }
+    },
+    "unsavedChanges": "You have unsaved changes",
+    "discard": "Discard"
   },
   "language": {
     "label": "Display language",
@@ -362,6 +367,18 @@
       "description": "Drag teams onto a division to assign them.",
       "searchPlaceholder": "Search teams...",
       "noTeams": "No teams found"
+    },
+    "confirmDelete": {
+      "divisionTitle": "Delete division?",
+      "divisionWarning": "This action is permanent and cannot be undone. All rounds, games, standings, and statistics within this division will be permanently deleted.",
+      "divisionDescription": "Are you sure you want to delete \"{{name}}\" and all its data?",
+      "roundTitle": "Delete round?",
+      "roundWarning": "This action is permanent and cannot be undone. All games, standings, and statistics within this round will be permanently deleted.",
+      "roundDescription": "Are you sure you want to delete \"{{name}}\" and all its data?",
+      "teamRemoveTitle": "Remove team from division?",
+      "teamRemoveDescription": "Are you sure you want to remove \"{{team}}\" from this division? The team's games and statistics in this division will no longer be associated.",
+      "confirmDelete": "Delete permanently",
+      "confirmRemove": "Remove"
     }
   },
   "dashboard": {
@@ -372,7 +389,8 @@
       "teams": "Teams",
       "players": "Players",
       "completed": "Completed",
-      "remaining": "Remaining"
+      "remaining": "Remaining",
+      "totalOf": "{total} total"
     },
     "sections": {
       "actionItems": "Action Items",
@@ -418,7 +436,8 @@
       "title": "Recent Results",
       "empty": "No completed games yet.",
       "viewReport": "Report"
-    }
+    },
+    "showAll": "Show all"
   },
   "newsCreate": {
     "title": "New news",
@@ -545,7 +564,8 @@
     },
     "deleteDialog": {
       "title": "Delete news",
-      "description": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone."
+      "description": "Are you sure you want to delete \"{{title}}\"? This action cannot be undone.",
+      "hint": "This article will be permanently removed. Consider setting it to draft instead."
     },
     "toast": {
       "deleted": "News deleted",
@@ -609,7 +629,8 @@
     },
     "deletePageDialog": {
       "title": "Delete page",
-      "description": "Are you sure you want to delete \"{{title}}\"? Subpages will also be deleted. This action cannot be undone."
+      "description": "Are you sure you want to delete \"{{title}}\"? Subpages will also be deleted. This action cannot be undone.",
+      "hint": "This page and all subpages will be permanently removed. Consider unpublishing instead."
     },
     "deleteAliasDialog": {
       "title": "Delete alias",
@@ -720,7 +741,78 @@
     "hoverCard": {
       "withoutTeam": "Without team",
       "nationality": "Nationality: {{value}}",
-      "ageYears": "{{age}} years"
+      "ageYears": "{{age}} years",
+      "viewDetails": "Details"
+    },
+    "playerDetail": {
+      "backToPlayers": "Players",
+      "editInfo": "Edit",
+      "deletePlayer": {
+        "button": "Delete player",
+        "hint": "This permanently removes all contracts, stats, and game data. Consider releasing the player from their team instead.",
+        "title": "Delete player?",
+        "description": "This will permanently remove this player and all their contracts, statistics, and game data. This action cannot be undone.",
+        "confirm": "Delete permanently",
+        "toast": {
+          "deleted": "Player deleted",
+          "deleteError": "Could not delete player"
+        }
+      },
+      "currentStatus": "Current status",
+      "freeAgent": "Free Agent",
+      "freeAgentDescription": "This player is not currently signed to any team.",
+      "signToTeam": "Sign to team",
+      "editContract": "Edit contract",
+      "transfer": "Transfer",
+      "release": "Release",
+      "contractHistory": "Contract history",
+      "noContracts": "No contracts yet.",
+      "notFound": "Player not found.",
+      "ongoing": "ongoing",
+      "active": "Active",
+      "ended": "Ended",
+      "events": {
+        "signed": "Signed",
+        "transferred": "Transferred",
+        "released": "Released"
+      },
+      "reopenContract": {
+        "button": "Reopen",
+        "toast": {
+          "reopened": "Contract reopened",
+          "reopenError": "Could not reopen contract"
+        }
+      },
+      "deleteContract": {
+        "title": "Delete contract",
+        "description": "This will permanently remove this contract and clean up all associated data.",
+        "warning": "The following data will be permanently deleted:",
+        "consequences": {
+          "lineups": "Game lineups for this player on this team",
+          "stats": "Player season statistics for this team",
+          "goalieStats": "Goalie season statistics for this team"
+        },
+        "endInstead": "Want to end the contract instead?",
+        "endInsteadDescription": "Ending the contract keeps all game data, lineups, and statistics intact. The player is simply released from the team.",
+        "confirm": "Delete contract",
+        "deleting": "Deleting...",
+        "toast": {
+          "deleted": "Contract deleted",
+          "deleteError": "Could not delete contract"
+        }
+      },
+      "tabs": {
+        "contracts": "Contracts",
+        "history": "History"
+      },
+      "historyTable": {
+        "season": "Season",
+        "team": "Team",
+        "position": "Position",
+        "jersey": "#",
+        "status": "Status",
+        "noHistory": "No team history yet."
+      }
     },
     "timeline": {
       "sinceSeason": "Since {{season}}",
@@ -972,7 +1064,40 @@
     "hoverCard": {
       "noContactData": "No contact details available",
       "roster": "Roster",
-      "edit": "Edit"
+      "edit": "Edit",
+      "viewDetails": "Details"
+    },
+    "teamDetail": {
+      "backToTeams": "Teams",
+      "deleteTeam": {
+        "button": "Delete team",
+        "hint": "This permanently removes all roster data, season history, and statistics. Consider removing the team from division assignments instead.",
+        "title": "Delete team?",
+        "description": "This will permanently remove this team and all their roster data, season history, and statistics. This action cannot be undone.",
+        "confirm": "Delete permanently",
+        "toast": {
+          "deleted": "Team deleted",
+          "deleteError": "Could not delete team"
+        }
+      },
+      "roster": "Roster",
+      "seasonHistory": "Season History",
+      "noHistory": "No season history available",
+      "noRoster": "No roster available",
+      "notFound": "Team not found",
+      "record": "W{{wins}} D{{draws}} L{{losses}}",
+      "rank": "#{{rank}}",
+      "goalDifference": "GD",
+      "historyTable": {
+        "season": "Season",
+        "division": "Division",
+        "gp": "GP",
+        "wins": "W",
+        "draws": "D",
+        "losses": "L",
+        "gd": "GD",
+        "rank": "Rank"
+      }
     },
     "dialogs": {
       "newTitle": "Create new team",
@@ -1172,6 +1297,7 @@
       "teamEmptyTitle": "Roster is empty",
       "noSearchResults": "No players found for \"{{query}}\".",
       "teamEmpty": "{{team}} has no players in this season yet.",
+      "allTeamsEmpty": "No players have been signed to any team in this season yet.",
       "signFirst": "Sign first player"
     },
     "fallback": {
@@ -1181,11 +1307,14 @@
       "title": "Sign player",
       "description": "Add a player to the roster.",
       "fields": {
+        "team": "Team",
+        "teamPlaceholder": "Select team...",
         "player": "Player",
         "playerSearchPlaceholder": "Search players...",
         "position": "Position",
         "jerseyNumber": "Jersey number",
-        "jerseyNumberPlaceholder": "e.g. 17"
+        "jerseyNumberPlaceholder": "e.g. 17",
+        "season": "Season"
       },
       "actions": {
         "change": "Change",
@@ -1237,6 +1366,8 @@
       "validation": {
         "teamRequired": "Please select a team"
       },
+      "effectiveSeason": "Transfer effective from",
+      "transferFromSeason": "{{player}} will be transferred starting from {{season}}.",
       "toast": {
         "transferred": "Transfer successful",
         "transferError": "Could not transfer player"
@@ -1244,8 +1375,14 @@
     },
     "releaseDialog": {
       "title": "Release player",
-      "description": "Are you sure you want to release {{player}}? The contract will end at the end of this season.",
-      "confirm": "Release"
+      "description": "End the contract for {{player}}.",
+      "since": "since {{season}}",
+      "lastActiveSeason": "Last active season",
+      "future": "Future",
+      "removeFromSeason": "{{player}} will be removed from the roster starting from {{season}}.",
+      "keepCurrentSeason": "{{player}} will remain on the {{season}} roster and be removed from future seasons.",
+      "confirm": "Release",
+      "releasing": "Releasing..."
     },
     "toast": {
       "released": "Player released",
@@ -1477,7 +1614,8 @@
     "backToGames": "Back to Games",
     "tabs": {
       "lineup": "Lineup",
-      "report": "Game Report"
+      "report": "Game Report",
+      "ai": "AI Recap"
     },
     "period": "Period",
     "overtime": "Overtime",
@@ -1502,6 +1640,15 @@
     "addGoalBtn": "+ Goal",
     "addPenaltyBtn": "+ Penalty",
     "addSuspensionBtn": "+ Suspension",
+    "addNoteBtn": "+ Note",
+    "addNote": "Add note",
+    "editNote": "Edit note",
+    "noteDescription": "Add a note to the game report.",
+    "note": "Note",
+    "gameWideNote": "Game-wide note",
+    "gameWideNoteHint": "Not attached to a specific time — shown above the timeline",
+    "notePublicLabel": "Visible on league site",
+    "notePrivateHint": "Private",
     "deleteEventTitle": "Delete event",
     "deleteEventDescription": "Are you sure you want to delete this event?",
     "deleteEventConfirm": "Delete",
@@ -1522,7 +1669,8 @@
       "addSuspension": "Add suspension",
       "suspensionType": "Suspension type",
       "suspendedGames": "Suspended games",
-      "suspensionComment": "Comment"
+      "suspensionComment": "Comment",
+      "noteText": "Note"
     },
     "suspensionTypes": {
       "matchPenalty": "Match penalty",
@@ -1550,21 +1698,29 @@
     },
     "completeSection": {
       "score": "Final score",
-      "button": "Complete game",
+      "button": "Complete game report",
       "lineupsRequired": "Both teams must have a lineup.",
       "confirmTitle": "Complete game?",
       "confirmDescription": "The game will be completed with a final score of {{homeScore}} : {{awayScore}}."
     },
     "reopenSection": {
       "finalized": "Completed on {{date}}",
-      "button": "Reopen",
+      "button": "Reopen game report",
       "confirmTitle": "Reopen game?",
       "confirmDescription": "The game will be set back to «Scheduled». Suspensions will be reversed."
     },
+    "gameNotes": {
+      "title": "Game Notes",
+      "empty": "No game notes."
+    },
+    "editGame": "Edit game",
+    "editGameDescription": "Update matchup, location and schedule.",
     "notes": {
       "label": "Game Notes",
       "placeholder": "Optional notes about the game (used for AI recap generation)...",
-      "saved": "Notes saved"
+      "saved": "Notes saved",
+      "saving": "Saving...",
+      "autoSaved": "Saved"
     },
     "recap": {
       "title": "AI Game Recap",
@@ -1584,6 +1740,8 @@
       "goalUpdated": "Goal updated",
       "penaltyAdded": "Penalty added",
       "penaltyUpdated": "Penalty updated",
+      "noteAdded": "Note added",
+      "noteUpdated": "Note updated",
       "suspensionAdded": "Suspension added",
       "suspensionUpdated": "Suspension updated",
       "suspensionDeleted": "Suspension deleted",

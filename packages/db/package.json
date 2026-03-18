@@ -37,9 +37,9 @@
     "typescript": "^5.8.0"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.4.0",
-    "@prisma/client": "^7.4.1",
+    "@prisma/adapter-pg": "^7.5.0",
+    "@prisma/client": "^7.5.0",
     "pg": "^8.16.0",
-    "prisma": "^7.4.1"
+    "prisma": "^7.5.0"
   }
 }

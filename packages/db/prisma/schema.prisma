@@ -43,6 +43,7 @@ enum GameStatus {
 enum GameEventType {
   goal
   penalty
+  note
 
   @@map("game_event_type")
 }
@@ -87,7 +88,6 @@ enum OrgRole {
 }
 
 enum PlanInterval {
-  monthly
   yearly
 
   @@map("plan_interval")
@@ -261,7 +261,7 @@ model Member {
 }
 
 model MemberRole {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String   @id @default(uuid(7)) @db.Uuid
   memberId  String   @map("member_id")
   role      OrgRole
   teamId    String?  @map("team_id") @db.Uuid
@@ -294,7 +294,7 @@ model Invitation {
 // ─── Core Domain Models ─────────────────────────────────────────────────────
 
 model Season {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   name           String
   seasonStart    DateTime @map("season_start") @db.Timestamptz
@@ -314,7 +314,7 @@ model Season {
 }
 
 model Division {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   seasonId       String   @map("season_id") @db.Uuid
   name           String
@@ -334,7 +334,7 @@ model Division {
 }
 
 model Round {
-  id                   String    @id @default(uuid()) @db.Uuid
+  id                   String    @id @default(uuid(7)) @db.Uuid
   organizationId       String    @map("organization_id")
   divisionId           String    @map("division_id") @db.Uuid
   name                 String
@@ -360,7 +360,7 @@ model Round {
 }
 
 model Team {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   name           String
   shortName      String   @map("short_name")
@@ -398,7 +398,7 @@ model Team {
 }
 
 model Player {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   firstName      String   @map("first_name")
   lastName       String   @map("last_name")
@@ -426,7 +426,7 @@ model Player {
 }
 
 model Contract {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   playerId       String   @map("player_id") @db.Uuid
   teamId         String   @map("team_id") @db.Uuid
@@ -452,7 +452,7 @@ model Contract {
 }
 
 model Game {
-  id             String     @id @default(uuid()) @db.Uuid
+  id             String     @id @default(uuid(7)) @db.Uuid
   organizationId String     @map("organization_id")
   roundId        String     @map("round_id") @db.Uuid
   homeTeamId     String     @map("home_team_id") @db.Uuid
@@ -492,14 +492,14 @@ model Game {
 }
 
 model GameEvent {
-  id                 String        @id @default(uuid()) @db.Uuid
+  id                 String        @id @default(uuid(7)) @db.Uuid
   organizationId     String        @map("organization_id")
   gameId             String        @map("game_id") @db.Uuid
   eventType          GameEventType @map("event_type")
-  teamId             String        @map("team_id") @db.Uuid
-  period             Int
-  timeMinutes        Int           @map("time_minutes")
-  timeSeconds        Int           @map("time_seconds")
+  teamId             String?       @map("team_id") @db.Uuid
+  period             Int?
+  timeMinutes        Int?          @map("time_minutes")
+  timeSeconds        Int?          @map("time_seconds")
   scorerId           String?       @map("scorer_id") @db.Uuid
   assist1Id          String?       @map("assist1_id") @db.Uuid
   assist2Id          String?       @map("assist2_id") @db.Uuid
@@ -508,11 +508,13 @@ model GameEvent {
   penaltyTypeId      String?       @map("penalty_type_id") @db.Uuid
   penaltyMinutes     Int?          @map("penalty_minutes")
   penaltyDescription String?       @map("penalty_description")
+  noteText           String?       @map("note_text")
+  notePublic         Boolean       @default(true) @map("note_public")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
 
   organization  Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   game          Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  team          Team            @relation(fields: [teamId], references: [id])
+  team          Team?           @relation(fields: [teamId], references: [id])
   scorer        Player?         @relation("eventScorer", fields: [scorerId], references: [id], onDelete: SetNull)
   assist1       Player?         @relation("eventAssist1", fields: [assist1Id], references: [id], onDelete: SetNull)
   assist2       Player?         @relation("eventAssist2", fields: [assist2Id], references: [id], onDelete: SetNull)
@@ -527,7 +529,7 @@ model GameEvent {
 }
 
 model GameLineup {
-  id              String   @id @default(uuid()) @db.Uuid
+  id              String   @id @default(uuid(7)) @db.Uuid
   organizationId  String   @map("organization_id")
   gameId          String   @map("game_id") @db.Uuid
   playerId        String   @map("player_id") @db.Uuid
@@ -549,7 +551,7 @@ model GameLineup {
 }
 
 model GameSuspension {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   gameId         String   @map("game_id") @db.Uuid
   gameEventId    String?  @unique @map("game_event_id") @db.Uuid
@@ -574,7 +576,7 @@ model GameSuspension {
 }
 
 model PenaltyType {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   code           String   @unique
   name           String
   shortName      String   @map("short_name")
@@ -587,7 +589,7 @@ model PenaltyType {
 }
 
 model Standing {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   teamId         String   @map("team_id") @db.Uuid
   roundId        String   @map("round_id") @db.Uuid
@@ -615,7 +617,7 @@ model Standing {
 }
 
 model BonusPoint {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   teamId         String   @map("team_id") @db.Uuid
   roundId        String   @map("round_id") @db.Uuid
@@ -632,7 +634,7 @@ model BonusPoint {
 }
 
 model TeamDivision {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   teamId         String   @map("team_id") @db.Uuid
   divisionId     String   @map("division_id") @db.Uuid
@@ -649,7 +651,7 @@ model TeamDivision {
 }
 
 model PlayerSeasonStat {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   playerId       String   @map("player_id") @db.Uuid
   seasonId       String   @map("season_id") @db.Uuid
@@ -671,7 +673,7 @@ model PlayerSeasonStat {
 }
 
 model GoalieSeasonStat {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   playerId       String   @map("player_id") @db.Uuid
   seasonId       String   @map("season_id") @db.Uuid
@@ -691,7 +693,7 @@ model GoalieSeasonStat {
 }
 
 model GoalieGameStat {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   gameId         String   @map("game_id") @db.Uuid
   playerId       String   @map("player_id") @db.Uuid
@@ -711,7 +713,7 @@ model GoalieGameStat {
 // ─── Content / CMS ──────────────────────────────────────────────────────────
 
 model Sponsor {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   name           String
   logoUrl        String?  @map("logo_url")
@@ -731,7 +733,7 @@ model Sponsor {
 }
 
 model News {
-  id                 String     @id @default(uuid()) @db.Uuid
+  id                 String     @id @default(uuid(7)) @db.Uuid
   organizationId     String     @map("organization_id")
   title              String
   shortText          String?    @map("short_text")
@@ -751,7 +753,7 @@ model News {
 }
 
 model Page {
-  id            String         @id @default(uuid()) @db.Uuid
+  id            String         @id @default(uuid(7)) @db.Uuid
   organizationId String        @map("organization_id")
   title         String
   slug          String
@@ -776,7 +778,7 @@ model Page {
 }
 
 model PageAlias {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   slug           String
   targetPageId   String   @map("target_page_id") @db.Uuid
@@ -790,7 +792,7 @@ model PageAlias {
 }
 
 model Document {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   title          String
   description    String?
@@ -806,7 +808,7 @@ model Document {
 }
 
 model SystemSettings {
-  id               String   @id @default(uuid()) @db.Uuid
+  id               String   @id @default(uuid(7)) @db.Uuid
   organizationId   String   @unique @map("organization_id")
   leagueName       String   @map("league_name")
   leagueShortName  String   @map("league_short_name")
@@ -829,7 +831,7 @@ model SystemSettings {
 // ─── Trikot / Jersey ────────────────────────────────────────────────────────
 
 model TrikotTemplate {
-  id           String             @id @default(uuid()) @db.Uuid
+  id           String             @id @default(uuid(7)) @db.Uuid
   name         String             @unique
   templateType TrikotTemplateType @unique @map("template_type")
   svg          String
@@ -843,7 +845,7 @@ model TrikotTemplate {
 }
 
 model Trikot {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   name           String
   templateId     String   @map("template_id") @db.Uuid
@@ -861,7 +863,7 @@ model Trikot {
 }
 
 model TeamTrikot {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   teamId         String   @map("team_id") @db.Uuid
   trikotId       String   @map("trikot_id") @db.Uuid
@@ -881,7 +883,7 @@ model TeamTrikot {
 // ─── Website Config ─────────────────────────────────────────────────────────
 
 model WebsiteConfig {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @unique @map("organization_id")
   domain         String?  @unique
   isActive       Boolean  @default(false) @map("is_active")
@@ -925,8 +927,7 @@ model Plan {
   sortOrder Int     @default(0) @map("sort_order")
   isActive    Boolean @default(true) @map("is_active")
 
-  // Pricing (in cents)
-  priceMonthly Int    @default(0) @map("price_monthly")
+  // Pricing (in cents, annual only)
   priceYearly  Int    @default(0) @map("price_yearly")
   currency     String @default("EUR")
 
@@ -968,10 +969,10 @@ model Plan {
 }
 
 model OrgSubscription {
-  id             String       @id @default(uuid()) @db.Uuid
+  id             String       @id @default(uuid(7)) @db.Uuid
   organizationId String       @unique @map("organization_id")
   planId         String       @map("plan_id") @db.Uuid
-  interval       PlanInterval @default(monthly)
+  interval       PlanInterval @default(yearly)
   status         String       @default("active")
   currentPeriodStart DateTime @map("current_period_start") @db.Timestamptz
   currentPeriodEnd   DateTime @map("current_period_end") @db.Timestamptz
@@ -997,19 +998,20 @@ model OrgSubscription {
 // ─── Public Game Reports ────────────────────────────────────────────────────
 
 model PublicGameReport {
-  id              String    @id @default(uuid()) @db.Uuid
-  organizationId  String    @map("organization_id")
-  gameId          String    @map("game_id") @db.Uuid
-  homeScore       Int       @map("home_score")
-  awayScore       Int       @map("away_score")
-  comment         String?
-  submitterEmail  String    @map("submitter_email")
-  submitterIp     String?   @map("submitter_ip")
-  reverted        Boolean   @default(false)
-  revertedBy      String?   @map("reverted_by")
-  revertedAt      DateTime? @map("reverted_at") @db.Timestamptz
-  revertNote      String?   @map("revert_note")
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  organizationId       String    @map("organization_id")
+  gameId               String    @map("game_id") @db.Uuid
+  homeScore            Int       @map("home_score")
+  awayScore            Int       @map("away_score")
+  comment              String?
+  submitterEmailHash   String?   @map("submitter_email_hash")
+  submitterEmailMasked String?   @map("submitter_email_masked")
+  submitterIpHash      String?   @map("submitter_ip_hash")
+  reverted             Boolean   @default(false)
+  revertedBy           String?   @map("reverted_by")
+  revertedAt           DateTime? @map("reverted_at") @db.Timestamptz
+  revertNote           String?   @map("revert_note")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
@@ -1017,13 +1019,15 @@ model PublicGameReport {
 
   @@index([organizationId])
   @@index([gameId])
+  @@index([organizationId, submitterEmailHash])
+  @@index([organizationId, submitterIpHash])
   @@map("public_game_reports")
 }
 
 // ─── AI Usage Tracking ───────────────────────────────────────────────────────
 
 model AiUsageLog {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String   @id @default(uuid(7)) @db.Uuid
   organizationId String   @map("organization_id")
   feature        String
   model          String

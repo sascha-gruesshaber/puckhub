@@ -1,11 +1,12 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
+import { useEffect } from "react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { HtmlContent } from "~/components/shared/htmlContent"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
 import { useOrg } from "~/lib/context"
 import { useT } from "~/lib/i18n"
-import { formatDate } from "~/lib/utils"
+import { formatDate, slugify } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
 export const Route = createFileRoute("/news/$newsId")({
@@ -22,6 +23,18 @@ export function NewsDetailPage() {
     { organizationId: org.id, newsId },
     { staleTime: 60_000 },
   )
+
+  useEffect(() => {
+    if (article) {
+      const slug = slugify(article.title)
+      const basePath = window.location.pathname.startsWith("/neuigkeiten/")
+        ? `/neuigkeiten/${newsId}/${slug}`
+        : `/news/${newsId}/${slug}`
+      if (window.location.pathname !== basePath) {
+        window.history.replaceState(null, "", basePath + window.location.search)
+      }
+    }
+  }, [article, newsId])
 
   if (isLoading) return <PageSkeleton />
 

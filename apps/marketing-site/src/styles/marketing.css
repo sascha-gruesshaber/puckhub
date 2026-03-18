@@ -261,9 +261,9 @@
 
   .scroll-reveal,
   .scroll-stagger > * {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 
   .animate-glow-drift,
@@ -278,10 +278,10 @@
   .animate-progress,
   .animate-showcase-progress,
   .animate-lightbox-in {
-    animation: none !important;
+    animation: none;
   }
 
   .screenshot-hover:hover {
-    transform: none !important;
+    transform: none;
   }
 }

@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router"
-import { cn } from "~/lib/utils"
-import { formatDate, formatTime } from "~/lib/utils"
+import { cn, formatDate, formatTime } from "~/lib/utils"
 import { ScoreBadge } from "./scoreBadge"
 import { TeamLogo } from "./teamLogo"
 

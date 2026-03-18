@@ -95,6 +95,14 @@ export const dashboardRouter = router({
       }
     }
 
+    // --- Total org-wide counts (not season-scoped) ---
+    const totalTeams = await db.team.count({
+      where: { organizationId: ctx.organizationId },
+    })
+    const totalPlayers = await db.player.count({
+      where: { organizationId: ctx.organizationId },
+    })
+
     // --- Missing Reports ---
     // Completed games with no game_lineups entries
     let missingReports: Array<{
@@ -249,7 +257,9 @@ export const dashboardRouter = router({
     return {
       counts: {
         teams: teamsCount,
+        totalTeams,
         players: playersCount,
+        totalPlayers,
         completed: completedCount,
         remaining: remainingCount,
       },

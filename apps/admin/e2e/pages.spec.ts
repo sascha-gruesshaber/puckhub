@@ -1,10 +1,97 @@
+import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
-import { formField, login } from "./helpers"
+import { adminPath, E2E_ORG_ID, login, withE2EDb } from "./helpers"
+
+type PageFixture = {
+  id: string
+  title: string
+  slug: string
+}
+
+function slugifyPageTitle(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
+async function createPageFixture(title: string): Promise<PageFixture> {
+  const id = randomUUID()
+  const now = new Date().toISOString()
+  const slug = `${slugifyPageTitle(title)}-${randomUUID().slice(0, 8)}`
+
+  await withE2EDb(async (sql) => {
+    await sql`
+      INSERT INTO pages (id, organization_id, title, slug, content, status, parent_id, menu_locations, sort_order, is_system_route, created_at, updated_at)
+      VALUES (
+        ${id},
+        ${E2E_ORG_ID},
+        ${title},
+        ${slug},
+        ${`<p>${title} content</p>`},
+        ${"published"},
+        ${null},
+        ${"{footer}"},
+        ${0},
+        ${false},
+        ${now},
+        ${now}
+      )
+    `
+  })
+
+  return { id, title, slug }
+}
+
+async function deletePageFixture(id: string) {
+  await withE2EDb(async (sql) => {
+    await sql`
+      DELETE FROM pages
+      WHERE id = ${id}
+    `
+  })
+}
+
+async function expectPageExists(id: string, expected = true) {
+  const exists = await withE2EDb(async (sql) => {
+    const rows = await sql<{ id: string }[]>`
+      SELECT id
+      FROM pages
+      WHERE id = ${id}
+      LIMIT 1
+    `
+    return rows.length > 0
+  })
+
+  expect(exists).toBe(expected)
+}
+
+async function findPageIdByTitle(title: string) {
+  return withE2EDb(async (sql) => {
+    const rows = await sql<{ id: string }[]>`
+      SELECT id
+      FROM pages
+      WHERE organization_id = ${E2E_ORG_ID}
+        AND title = ${title}
+      ORDER BY created_at DESC
+      LIMIT 1
+    `
+    return rows[0]?.id ?? null
+  })
+}
 
 test.describe("Pages Management", () => {
   test("pages list shows system routes and custom pages", async ({ page }) => {
     await login(page)
-    await page.goto("/pages")
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -14,86 +101,126 @@ test.describe("Pages Management", () => {
     await expect(page.locator("h3", { hasText: "Schedule" }).first()).toBeVisible()
 
     // Switch to footer tab to see custom pages
-    await page.getByText("pagesPage.tabs.footerNav").click()
+    await page.getByTestId("pages-tab-footer").click()
     await expect(page.locator("h3", { hasText: "About Us" })).toBeVisible({ timeout: 10_000 })
     await expect(page.locator("h3", { hasText: "Legal Notice" })).toBeVisible()
   })
 
-  test("create, edit, and delete a custom page", async ({ page }) => {
+  test("create a custom page", async ({ page }) => {
+    const pageTitle = `E2E Test Page ${Date.now()}`
+
     await login(page)
-    await page.goto("/pages")
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
 
-    // --- CREATE ---
-    await page.getByRole("button", { name: "pagesPage.actions.new" }).click()
+    try {
+      await page.getByTestId("pages-new").click()
+      await expect(page).toHaveURL(/\/pages\/new/)
 
-    // Should navigate to /pages/new
-    await expect(page).toHaveURL(/\/pages\/new/)
+      await page.getByTestId("page-form-title").fill(pageTitle)
 
-    // Fill title
-    await formField(page, "pageForm.fields.title").fill("E2E Test Page")
+      const editor = page.getByTestId("page-form-editor").locator("[contenteditable='true']").first()
+      await editor.click()
+      await editor.pressSequentially("This is E2E test content for the custom page.")
 
-    // Fill content via rich text editor
-    const editor = page.locator("[contenteditable]")
-    await editor.click()
-    await editor.fill("This is E2E test content for the custom page.")
+      await page.getByTestId("page-form-status-published").check()
+      await page.getByTestId("page-form-menu-footer").check()
+      await page.getByTestId("page-form-submit").click()
 
-    // Select "published" status
-    await page.getByText("published").click()
+      await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
+      await page.getByTestId("pages-tab-footer").click()
+      await expect(page.locator("h3", { hasText: pageTitle })).toBeVisible({ timeout: 10_000 })
 
-    // Select footer menu location
-    await page.getByText("pageForm.fields.footer").click()
+      const createdId = await findPageIdByTitle(pageTitle)
+      expect(createdId).not.toBeNull()
+      await expectPageExists(createdId!)
+      await deletePageFixture(createdId!)
+    } catch (error) {
+      await withE2EDb(async (sql) => {
+        await sql`
+          DELETE FROM pages
+          WHERE organization_id = ${E2E_ORG_ID}
+            AND title = ${pageTitle}
+        `
+      })
+      throw error
+    }
+  })
 
-    // Submit
-    await page.getByRole("button", { name: "save" }).click()
+  test("update a custom page", async ({ page }) => {
+    const originalTitle = `E2E Editable Page ${Date.now()}`
+    const updatedTitle = `${originalTitle} Updated`
+    const pageFixture = await createPageFixture(originalTitle)
 
-    // Should redirect back to /pages
+    try {
+      await login(page)
+      await page.goto(adminPath("pages"))
+      await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
+
+      await page.getByTestId("pages-tab-footer").click()
+      await page.locator("a", { hasText: originalTitle }).click()
+      await expect(page).toHaveURL(/\/pages\/.*\/edit/)
+
+      const titleField = page.getByTestId("page-form-title")
+      await titleField.clear()
+      await titleField.fill(updatedTitle)
+      await page.getByTestId("page-form-submit").click()
+
+      await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
+        timeout: 10_000,
+      })
+      await page.getByTestId("pages-tab-footer").click()
+      await expect(page.locator("h3", { hasText: updatedTitle })).toBeVisible({ timeout: 10_000 })
+
+      const storedPage = await withE2EDb(async (sql) => {
+        const rows = await sql<{ title: string; slug: string }[]>`
+          SELECT title, slug
+          FROM pages
+          WHERE id = ${pageFixture.id}
+        `
+        return rows[0] ?? null
+      })
+
+      expect(storedPage?.title).toBe(updatedTitle)
+      expect(storedPage?.slug).toContain("updated")
+    } finally {
+      await deletePageFixture(pageFixture.id)
+    }
+  })
+
+  test("delete a custom page", async ({ page }) => {
+    const pageFixture = await createPageFixture(`E2E Deletable Page ${Date.now()}`)
+
+    await login(page)
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
 
-    // Switch to footer tab to find the new page
-    await page.getByText("pagesPage.tabs.footerNav").click()
-    await expect(page.locator("h3", { hasText: "E2E Test Page" })).toBeVisible({ timeout: 10_000 })
+    await page.getByTestId("pages-tab-footer").click()
+    await page.locator("a", { hasText: pageFixture.title }).click()
 
-    // --- EDIT ---
-    const pageRow = page.locator(".data-row", { hasText: "E2E Test Page" })
-    await pageRow.locator("[aria-label='pagesPage.actions.edit']").click()
-
-    // Should navigate to edit page
     await expect(page).toHaveURL(/\/pages\/.*\/edit/)
+    await page.getByTestId("page-delete").click()
+    await page.getByTestId("page-delete-confirm").click()
 
-    // Change title
-    const titleField = formField(page, "pageForm.fields.title")
-    await titleField.clear()
-    await titleField.fill("E2E Updated Page")
-
-    await page.getByRole("button", { name: "save" }).click()
-
-    // Should redirect back to /pages
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
-
-    // Switch to footer tab to verify
-    await page.getByText("pagesPage.tabs.footerNav").click()
-    await expect(page.locator("h3", { hasText: "E2E Updated Page" })).toBeVisible({ timeout: 10_000 })
-
-    // --- DELETE ---
-    const updatedRow = page.locator(".data-row", { hasText: "E2E Updated Page" })
-    await updatedRow.locator("[aria-label='pagesPage.actions.delete']").click()
-
-    // ConfirmDialog — click confirm button
-    await page.getByRole("button", { name: "pagesPage.actions.delete" }).last().click()
-
-    await expect(page.locator("h3", { hasText: "E2E Updated Page" })).not.toBeVisible({ timeout: 10_000 })
+    await page.getByTestId("pages-tab-footer").click()
+    await expect(page.locator("a", { hasText: pageFixture.title })).toHaveCount(0)
+    await expectPageExists(pageFixture.id, false)
   })
 
   test("system routes cannot be deleted", async ({ page }) => {
     await login(page)
-    await page.goto("/pages")
+    await page.goto(adminPath("pages"))
     await expect(page.getByRole("heading", { name: "pagesPage.title" })).toBeVisible({
       timeout: 10_000,
     })
@@ -101,9 +228,9 @@ test.describe("Pages Management", () => {
     // Wait for system routes to load
     await expect(page.locator("h3", { hasText: "Standings" }).first()).toBeVisible({ timeout: 10_000 })
 
-    // Find the "Standings" system route row and assert no delete button
-    const standingsRow = page.locator(".data-row", { hasText: "Standings" }).first()
-    await expect(standingsRow).toBeVisible()
-    await expect(standingsRow.locator("[aria-label='pagesPage.actions.delete']")).toHaveCount(0)
+    // Open the system route and assert there is no delete action on the edit page
+    await page.locator("a", { hasText: "Standings" }).first().click()
+    await expect(page).toHaveURL(/\/pages\/.*\/edit/)
+    await expect(page.getByTestId("page-delete")).toHaveCount(0)
   })
 })

@@ -1,10 +1,11 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, type ReactNode, useCallback, useContext, useState } from "react"
 import { useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 
 interface Organization {
   id: string
   name: string
+  slug: string
   logo: string | null
   role: string
 }
@@ -51,12 +52,14 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     ? (allOrgs ?? []).map((o: any) => ({
         id: o.id,
         name: o.name,
+        slug: o.slug,
         logo: o.logo ?? null,
         role: "owner",
       }))
     : (myOrgs ?? []).map((o: any) => ({
         id: o.id,
         name: o.name,
+        slug: o.slug,
         logo: o.logo ?? null,
         role: o.role ?? "member",
       }))
@@ -66,24 +69,11 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
     ? {
         id: activeOrgTrpc.id,
         name: activeOrgTrpc.name,
+        slug: activeOrgTrpc.slug,
         logo: activeOrgTrpc.logo ?? null,
         role: isPlatformAdmin ? "owner" : (organizations.find((o) => o.id === activeOrgTrpc.id)?.role ?? "member"),
       }
     : null
-
-  // Auto-select if user belongs to exactly one org and none is active
-  useEffect(() => {
-    if (isPlatformAdmin) return // Platform admins pick orgs explicitly
-    if (activeOrgPending || myOrgsPending || isSwitching) return
-    if (!activeOrgTrpc && organizations.length === 1) {
-      setIsSwitching(true)
-      setActiveMutation
-        .mutateAsync({ organizationId: organizations[0]!.id })
-        .then(() => utils.organization.getActiveOrNull.invalidate())
-        .then(() => setIsSwitching(false))
-        .catch(() => setIsSwitching(false))
-    }
-  }, [activeOrgTrpc, organizations, activeOrgPending, myOrgsPending, isSwitching, isPlatformAdmin])
 
   const switchOrganization = useCallback(
     async (orgId: string) => {
@@ -94,7 +84,8 @@ export function OrganizationProvider({ children }: { children: ReactNode }) {
         } else {
           await setActiveMutation.mutateAsync({ organizationId: orgId })
         }
-        await utils.organization.getActiveOrNull.invalidate()
+        // Invalidate all queries — most are org-scoped via the session
+        await utils.invalidate()
       } finally {
         setIsSwitching(false)
       }

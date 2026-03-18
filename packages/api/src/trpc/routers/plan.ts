@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
 import { platformAdminProcedure, router } from "../init"
 
 const planUpdateSchema = z.object({
@@ -9,7 +9,6 @@ const planUpdateSchema = z.object({
   sortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
 
-  priceMonthly: z.number().int().min(0).optional(),
   priceYearly: z.number().int().min(0).optional(),
   currency: z.string().optional(),
 

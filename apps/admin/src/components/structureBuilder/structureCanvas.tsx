@@ -17,8 +17,8 @@ import "./structureFlow.css"
 import { toast } from "@puckhub/ui"
 import { trpc } from "@/trpc"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { DivisionNode } from "./nodes/divisionNode"
 import { RoundNode } from "./nodes/roundNode"
 import { SeasonNode } from "./nodes/seasonNode"
@@ -165,7 +165,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
 
     setNodes(layoutedNodes)
     setEdges(layoutedEdges)
-  }, [structure])
+  }, [structure, setEdges, setNodes])
 
   // Track selection via click instead of onSelectionChange (avoids render loops)
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {

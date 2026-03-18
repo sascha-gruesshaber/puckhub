@@ -1,12 +1,6 @@
 import { TRPCError } from "@trpc/server"
 import { beforeEach, describe, expect, it } from "vitest"
-import {
-  createTestCaller,
-  createPlatformAdminCaller,
-  createOtherOrgAdminCaller,
-  createCrossOrgCaller,
-  seedSecondOrg,
-} from "../testUtils"
+import { createCrossOrgCaller, createTestCaller, seedSecondOrg } from "../testUtils"
 
 const FAKE_ID = "00000000-0000-0000-0000-000000000000"
 

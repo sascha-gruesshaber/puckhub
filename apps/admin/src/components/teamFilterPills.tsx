@@ -44,7 +44,7 @@ function TeamFilterPills({
   showAll = true,
   customFilters = [],
   translationPrefix = "filters",
-  seasonId,
+  seasonId: _seasonId,
 }: TeamFilterPillsProps) {
   const { t } = useTranslation("common")
 
@@ -103,5 +103,5 @@ function TeamFilterPills({
   )
 }
 
-export { TeamFilterPills, FILTER_ALL }
 export type { Team, TeamFilterPillsProps }
+export { FILTER_ALL, TeamFilterPills }

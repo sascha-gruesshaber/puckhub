@@ -43,6 +43,7 @@ export function StandingsTableSkeleton() {
   return (
     <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
       {Array.from({ length: 8 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
         <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-league-text/5 last:border-0">
           <Skeleton className="h-4 w-6" />
           <Skeleton className="h-8 w-8 rounded-full" />
@@ -62,6 +63,7 @@ export function StatsTableSkeleton() {
   return (
     <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden">
       {Array.from({ length: 10 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
         <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-league-text/5 last:border-0">
           <Skeleton className="h-4 w-6" />
           <Skeleton className="h-4 w-32" />

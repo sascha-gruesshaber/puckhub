@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test"
 test.describe("Landing Page", () => {
   test("hero section renders with PuckHub branding", async ({ page }) => {
     await page.goto("/")
-    await expect(page.getByText("PuckHub")).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByRole("link", { name: "PuckHub" })).toBeVisible({ timeout: 15_000 })
   })
 
   test("features section is visible", async ({ page }) => {

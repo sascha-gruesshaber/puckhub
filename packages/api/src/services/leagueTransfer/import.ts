@@ -4,8 +4,8 @@ import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } 
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { ensureSystemPages } from "../ensureSystemPages"
-import { IMAGE_FIELDS, rewriteNewsContent, rewriteUrls, writeAttachments } from "./attachments"
-import { EXPORT_REGISTRY, getSortedRegistryEntries, pluralize } from "./registry"
+import { IMAGE_FIELDS, rewriteNewsContent, writeAttachments } from "./attachments"
+import { getSortedRegistryEntries, pluralize } from "./registry"
 import type { PuckHubExport } from "./schema"
 
 export interface ImportResult {
@@ -94,7 +94,7 @@ export async function importLeagueData(
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")
       if (!orgSlug) orgSlug = newOrgId.slice(0, 8)
-      let baseSlug = orgSlug
+      const baseSlug = orgSlug
       let counter = 1
       while (await tx.organization.findFirst({ where: { slug: orgSlug } })) {
         orgSlug = `${baseSlug}-${counter++}`
@@ -294,11 +294,11 @@ export async function importLeagueData(
 async function insertSelfRefRecords(
   delegate: any,
   records: any[],
-  modelName: string,
+  _modelName: string,
   config: any,
   newOrgId: string,
   idMap: Map<string, string>,
-  globalRefResolvers: Record<string, Map<string, string>>,
+  _globalRefResolvers: Record<string, Map<string, string>>,
 ): Promise<void> {
   // Build parent-child graph
   const childrenMap = new Map<string | null, any[]>()
@@ -321,7 +321,7 @@ async function insertSelfRefRecords(
       mapped.organizationId = newOrgId
 
       // Remap FK fields
-      for (const [fkField, fkTarget] of Object.entries(config.fkFields as Record<string, string>)) {
+      for (const [fkField, _fkTarget] of Object.entries(config.fkFields as Record<string, string>)) {
         if (fkField === "parentId") {
           mapped[fkField] = record[fkField] ? (idMap.get(record[fkField]) ?? null) : null
         } else {

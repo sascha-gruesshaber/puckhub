@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { Calendar, LayoutGrid, MapPin } from "lucide-react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { FilterDropdown } from "~/components/shared/filterDropdown"
@@ -7,9 +6,10 @@ import { FilterPill } from "~/components/shared/filterPill"
 import { Skeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useOrg, useSeason } from "~/lib/context"
-import { useT, type Translations } from "~/lib/i18n"
-import { cn, formatDate, formatTime } from "~/lib/utils"
+import { type Translations, useT } from "~/lib/i18n"
+import { cn, formatTime } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
 export const scheduleSearchValidator = (
@@ -273,10 +273,12 @@ function GridSkeleton() {
   return (
     <div className="space-y-8">
       {Array.from({ length: 2 }).map((_, g) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
         <div key={g}>
           <Skeleton className="h-6 w-40 mb-4" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
               <CardSkeleton key={i} />
             ))}
           </div>

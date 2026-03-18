@@ -1,6 +1,6 @@
 import { Button, toast } from "@puckhub/ui"
-import { Save, Users } from "lucide-react"
-import { useCallback, useState } from "react"
+import { Check, Loader2, Save, Users } from "lucide-react"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { useTranslation } from "~/i18n/use-translation"
 import type { ActiveSuspension } from "./suspensionWarnings"
@@ -24,22 +24,38 @@ interface LineupEditorProps {
   }>
   activeSuspensions: ActiveSuspension[]
   readOnly?: boolean
+  /** When true, save button is not rendered inline (caller renders it externally) */
+  externalActions?: boolean
+  /** When true, lineup is auto-saved on every change (debounced) */
+  autoSave?: boolean
 }
 
-function LineupEditor({
-  gameId,
-  homeTeamId,
-  awayTeamId,
-  homeTeamName,
-  awayTeamName,
-  homeRoster,
-  awayRoster,
-  existingLineup,
-  activeSuspensions,
-  readOnly,
-}: LineupEditorProps) {
+export interface LineupEditorHandle {
+  save: () => void
+  isSaving: boolean
+}
+
+const LineupEditor = forwardRef<LineupEditorHandle, LineupEditorProps>(function LineupEditor(
+  {
+    gameId,
+    homeTeamId,
+    awayTeamId,
+    homeTeamName,
+    awayTeamName,
+    homeRoster,
+    awayRoster,
+    existingLineup,
+    activeSuspensions,
+    readOnly,
+    externalActions,
+    autoSave,
+  },
+  ref,
+) {
   const { t } = useTranslation("common")
   const utils = trpc.useUtils()
+  const [changeCounter, setChangeCounter] = useState(0)
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle")
 
   const [selected, setSelected] = useState<SelectedPlayer[]>(() =>
     existingLineup.map((l) => ({
@@ -60,16 +76,23 @@ function LineupEditor({
 
   const setLineup = trpc.gameReport.setLineup.useMutation({
     onSuccess: () => {
-      toast.success(t("gameReport.toast.lineupSaved"))
+      if (autoSave) {
+        setAutoSaveStatus("saved")
+        setTimeout(() => setAutoSaveStatus("idle"), 3000)
+      } else {
+        toast.success(t("gameReport.toast.lineupSaved"))
+      }
       utils.gameReport.getReport.invalidate({ gameId })
     },
     onError: () => {
       toast.error(t("gameReport.toast.lineupError"))
+      setAutoSaveStatus("idle")
     },
   })
 
   const handleToggle = useCallback(
     (player: RosterPlayer, checked: boolean) => {
+      if (autoSave) setChangeCounter((c) => c + 1)
       setSelected((prev) => {
         if (checked) {
           return [
@@ -104,11 +127,12 @@ function LineupEditor({
         }
       }
     },
-    [homeTeamId, awayTeamId, startingGoalieHome, startingGoalieAway],
+    [homeTeamId, awayTeamId, startingGoalieHome, startingGoalieAway, autoSave],
   )
 
   const handleSelectAll = useCallback(
     (roster: RosterPlayer[]) => {
+      if (autoSave) setChangeCounter((c) => c + 1)
       setSelected((prev) => {
         const existingIds = new Set(prev.map((s) => s.playerId))
         const newPlayers = roster
@@ -133,7 +157,24 @@ function LineupEditor({
         }
       }
     },
-    [homeTeamId, awayTeamId, startingGoalieHome, startingGoalieAway],
+    [homeTeamId, awayTeamId, startingGoalieHome, startingGoalieAway, autoSave],
+  )
+
+  // Wrap starting goalie setters to trigger auto-save
+  const handleSetStartingGoalieHome = useCallback(
+    (playerId: string | null) => {
+      if (autoSave) setChangeCounter((c) => c + 1)
+      setStartingGoalieHome(playerId)
+    },
+    [autoSave],
+  )
+
+  const handleSetStartingGoalieAway = useCallback(
+    (playerId: string | null) => {
+      if (autoSave) setChangeCounter((c) => c + 1)
+      setStartingGoalieAway(playerId)
+    },
+    [autoSave],
   )
 
   const handleSave = () => {
@@ -145,6 +186,37 @@ function LineupEditor({
 
     setLineup.mutate({ gameId, players })
   }
+
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+    isSaving: setLineup.isPending,
+  }))
+
+  // Auto-save: debounce mutations when the user changes anything
+  const selectedRef = useRef(selected)
+  selectedRef.current = selected
+  const startingGoalieHomeRef = useRef(startingGoalieHome)
+  startingGoalieHomeRef.current = startingGoalieHome
+  const startingGoalieAwayRef = useRef(startingGoalieAway)
+  startingGoalieAwayRef.current = startingGoalieAway
+
+  useEffect(() => {
+    if (!autoSave || changeCounter === 0) return
+
+    setAutoSaveStatus("saving")
+    const timer = setTimeout(() => {
+      const players = selectedRef.current.map((s) => ({
+        ...s,
+        isStartingGoalie:
+          s.position === "goalie" &&
+          (s.playerId === startingGoalieHomeRef.current || s.playerId === startingGoalieAwayRef.current),
+      }))
+      setLineup.mutate({ gameId, players })
+    }, 800)
+
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeCounter, autoSave, gameId, setLineup.mutate])
 
   const homeSelected = selected.filter((s) => s.teamId === homeTeamId)
   const awaySelected = selected.filter((s) => s.teamId === awayTeamId)
@@ -160,7 +232,7 @@ function LineupEditor({
             selected={homeSelected}
             activeSuspensions={activeSuspensions}
             onToggle={handleToggle}
-            onSetStartingGoalie={setStartingGoalieHome}
+            onSetStartingGoalie={handleSetStartingGoalieHome}
             startingGoalieId={startingGoalieHome}
             readOnly={readOnly}
           />
@@ -180,7 +252,7 @@ function LineupEditor({
             selected={awaySelected}
             activeSuspensions={activeSuspensions}
             onToggle={handleToggle}
-            onSetStartingGoalie={setStartingGoalieAway}
+            onSetStartingGoalie={handleSetStartingGoalieAway}
             startingGoalieId={startingGoalieAway}
             readOnly={readOnly}
           />
@@ -193,7 +265,7 @@ function LineupEditor({
         </div>
       </div>
 
-      {!readOnly && (
+      {!readOnly && !externalActions && !autoSave && (
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={setLineup.isPending}>
             <Save className="w-4 h-4 mr-2" />
@@ -201,8 +273,25 @@ function LineupEditor({
           </Button>
         </div>
       )}
+
+      {autoSave && !readOnly && (
+        <div className="flex items-center justify-end gap-1.5 h-5">
+          {autoSaveStatus === "saving" && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              {t("gameReport.savingLineup")}
+            </span>
+          )}
+          {autoSaveStatus === "saved" && (
+            <span className="text-xs text-emerald-600 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              {t("gameReport.toast.lineupSaved")}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
-}
+})
 
 export { LineupEditor }

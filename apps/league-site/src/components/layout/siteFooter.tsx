@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
-import { getAdminUrl, getMarketingUrl } from "../../../lib/env"
 import { useOrg, useSettings } from "~/lib/context"
 import { useT } from "~/lib/i18n"
+import { getAdminUrl, getMarketingUrl } from "../../../lib/env"
 import { trpc } from "../../../lib/trpc"
 
 function getPageLink(page: {
@@ -12,10 +12,10 @@ function getPageLink(page: {
   parent: { slug: string } | null
 }) {
   if (page.isSystemRoute && page.routePath) {
-    return { to: page.routePath as any, params: undefined }
+    return { to: page.routePath as string, params: undefined as any }
   }
   const slug = page.parentId && page.parent ? `${page.parent.slug}/${page.slug}` : page.slug
-  return { to: "/$slug" as const, params: { slug } }
+  return { to: "/$slug" as const, params: { slug } as any }
 }
 
 export function SiteFooter() {

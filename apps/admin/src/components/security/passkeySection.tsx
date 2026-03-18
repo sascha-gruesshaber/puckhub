@@ -24,6 +24,7 @@ function PasskeySection() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // Load passkeys on mount
+  // biome-ignore lint/correctness/useExhaustiveDependencies: loadPasskeys is a stable function reference defined in component scope; including it would cause infinite re-renders
   useEffect(() => {
     loadPasskeys()
   }, [])
@@ -112,7 +113,7 @@ function PasskeySection() {
                 <div className="flex items-center gap-3">
                   <Fingerprint size={18} className="text-muted-foreground shrink-0" />
                   <div>
-                    <p className="text-sm font-medium">{pk.name || pk.credentialID.slice(0, 16) + "..."}</p>
+                    <p className="text-sm font-medium">{pk.name || `${pk.credentialID.slice(0, 16)}...`}</p>
                     <p className="text-xs text-muted-foreground">
                       {pk.deviceType === "singleDevice"
                         ? t("security.passkeys.platform")

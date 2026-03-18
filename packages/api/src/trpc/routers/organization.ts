@@ -1,11 +1,11 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
 import { inviteEmail } from "../../lib/emailTemplates"
-import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
 import { ensureSystemPages } from "../../services/ensureSystemPages"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
+import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
 
 const ORG_ROLE_VALUES = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"] as const
 
@@ -31,6 +31,7 @@ export const organizationRouter = router({
     return memberships.map((m: any) => ({
       id: m.organization.id,
       name: m.organization.name,
+      slug: m.organization.slug,
       logo: m.organization.logo,
       role: m.role,
     }))
@@ -141,7 +142,7 @@ export const organizationRouter = router({
       if (!orgSlug) orgSlug = orgId.slice(0, 8)
 
       // Ensure uniqueness
-      let baseSlug = orgSlug
+      const baseSlug = orgSlug
       let counter = 1
       while (await ctx.db.organization.findFirst({ where: { slug: orgSlug } })) {
         orgSlug = `${baseSlug}-${counter++}`
@@ -330,7 +331,7 @@ export const organizationRouter = router({
             data: {
               organizationId: orgId,
               planId,
-              interval: "monthly",
+              interval: "yearly",
               status: "active",
               currentPeriodStart: now,
               currentPeriodEnd: periodEnd,

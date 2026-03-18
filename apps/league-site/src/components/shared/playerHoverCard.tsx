@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { ArrowRight } from "lucide-react"
 import type { ReactNode } from "react"
 import { useT } from "~/lib/i18n"
-import { useBackPath } from "~/lib/utils"
+import { slugify, useBackPath } from "~/lib/utils"
 import { HoverCard } from "./hoverCard"
 
 interface PlayerHoverCardProps {
@@ -160,8 +160,8 @@ function PlayerHoverCardContent({
         {playerId && (
           <div className="mt-3 pt-3 border-t border-league-text/[0.08]">
             <Link
-              to="/stats/players/$playerId"
-              params={{ playerId }}
+              to="/players/$playerId/$slug"
+              params={{ playerId, slug: slugify(`${firstName} ${lastName}`) }}
               search={{ from: backPath }}
               className="flex items-center justify-between w-full text-xs font-medium text-league-primary hover:text-league-primary/80 transition-colors"
             >
@@ -175,5 +175,5 @@ function PlayerHoverCardContent({
   )
 }
 
-export { PlayerHoverCard }
 export type { PlayerHoverCardProps }
+export { PlayerHoverCard }

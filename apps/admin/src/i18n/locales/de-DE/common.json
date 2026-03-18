@@ -6,6 +6,9 @@
   "create": "Erstellen",
   "cancel": "Abbrechen",
   "filters": "Filter",
+  "dangerZone": {
+    "title": "Gefahrenzone"
+  },
   "draft": "Entwurf",
   "published": "Veröffentlicht",
   "logout": "Abmelden",
@@ -216,7 +219,9 @@
       "title": "SEO",
       "seoTitle": "Seitentitel",
       "seoDescription": "Meta-Beschreibung"
-    }
+    },
+    "unsavedChanges": "Ungespeicherte Änderungen",
+    "discard": "Verwerfen"
   },
   "language": {
     "label": "Anzeigesprache",
@@ -362,6 +367,18 @@
       "description": "Ziehe Teams auf eine Spielgruppe, um sie zuzuweisen.",
       "searchPlaceholder": "Teams suchen...",
       "noTeams": "Keine Teams gefunden"
+    },
+    "confirmDelete": {
+      "divisionTitle": "Spielgruppe löschen?",
+      "divisionWarning": "Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden. Alle Runden, Spiele, Tabellen und Statistiken in dieser Spielgruppe werden unwiderruflich gelöscht.",
+      "divisionDescription": "Bist du sicher, dass du \"{{name}}\" und alle zugehörigen Daten löschen möchtest?",
+      "roundTitle": "Runde löschen?",
+      "roundWarning": "Diese Aktion ist endgültig und kann nicht rückgängig gemacht werden. Alle Spiele, Tabellen und Statistiken in dieser Runde werden unwiderruflich gelöscht.",
+      "roundDescription": "Bist du sicher, dass du \"{{name}}\" und alle zugehörigen Daten löschen möchtest?",
+      "teamRemoveTitle": "Team aus Spielgruppe entfernen?",
+      "teamRemoveDescription": "Bist du sicher, dass du \"{{team}}\" aus dieser Spielgruppe entfernen möchtest? Die Spiele und Statistiken des Teams in dieser Spielgruppe werden nicht mehr zugeordnet.",
+      "confirmDelete": "Endgültig löschen",
+      "confirmRemove": "Entfernen"
     }
   },
   "dashboard": {
@@ -372,7 +389,8 @@
       "teams": "Teams",
       "players": "Spieler",
       "completed": "Abgeschlossen",
-      "remaining": "Ausstehend"
+      "remaining": "Ausstehend",
+      "totalOf": "{total} insgesamt"
     },
     "sections": {
       "actionItems": "Handlungsbedarf",
@@ -418,7 +436,8 @@
       "title": "Letzte Ergebnisse",
       "empty": "Noch keine abgeschlossenen Spiele.",
       "viewReport": "Bericht"
-    }
+    },
+    "showAll": "Alle anzeigen"
   },
   "newsCreate": {
     "title": "Neue News",
@@ -545,7 +564,8 @@
     },
     "deleteDialog": {
       "title": "News löschen",
-      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden."
+      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
+      "hint": "Dieser Artikel wird unwiderruflich entfernt. Überlege, ihn stattdessen als Entwurf zu speichern."
     },
     "toast": {
       "deleted": "News gelöscht",
@@ -609,7 +629,8 @@
     },
     "deletePageDialog": {
       "title": "Seite löschen",
-      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Unterseiten werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden."
+      "description": "Bist du sicher, dass du \"{{title}}\" löschen möchtest? Unterseiten werden ebenfalls gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+      "hint": "Diese Seite und alle Unterseiten werden unwiderruflich entfernt. Überlege, sie stattdessen zu deaktivieren."
     },
     "deleteAliasDialog": {
       "title": "Alias löschen",
@@ -720,7 +741,78 @@
     "hoverCard": {
       "withoutTeam": "Ohne Team",
       "nationality": "Nationalität: {{value}}",
-      "ageYears": "{{age}} Jahre"
+      "ageYears": "{{age}} Jahre",
+      "viewDetails": "Details"
+    },
+    "playerDetail": {
+      "backToPlayers": "Spieler",
+      "editInfo": "Bearbeiten",
+      "deletePlayer": {
+        "button": "Spieler löschen",
+        "hint": "Alle Verträge, Statistiken und Spieldaten werden unwiderruflich entfernt. Überlege, den Spieler stattdessen von seinem Team freizugeben.",
+        "title": "Spieler löschen?",
+        "description": "Der Spieler und alle zugehörigen Verträge, Statistiken und Spieldaten werden unwiderruflich gelöscht.",
+        "confirm": "Endgültig löschen",
+        "toast": {
+          "deleted": "Spieler gelöscht",
+          "deleteError": "Spieler konnte nicht gelöscht werden"
+        }
+      },
+      "currentStatus": "Aktueller Status",
+      "freeAgent": "Vereinslos",
+      "freeAgentDescription": "Dieser Spieler ist derzeit keinem Team zugeordnet.",
+      "signToTeam": "Bei Team verpflichten",
+      "editContract": "Vertrag bearbeiten",
+      "transfer": "Transfer",
+      "release": "Freigeben",
+      "contractHistory": "Vertragshistorie",
+      "noContracts": "Noch keine Verträge.",
+      "notFound": "Spieler nicht gefunden.",
+      "ongoing": "laufend",
+      "active": "Aktiv",
+      "ended": "Beendet",
+      "events": {
+        "signed": "Verpflichtet",
+        "transferred": "Transferiert",
+        "released": "Freigegeben"
+      },
+      "reopenContract": {
+        "button": "Wiedereröffnen",
+        "toast": {
+          "reopened": "Vertrag wiedereröffnet",
+          "reopenError": "Vertrag konnte nicht wiedereröffnet werden"
+        }
+      },
+      "deleteContract": {
+        "title": "Vertrag löschen",
+        "description": "Dieser Vertrag wird dauerhaft entfernt und alle zugehörigen Daten bereinigt.",
+        "warning": "Folgende Daten werden dauerhaft gelöscht:",
+        "consequences": {
+          "lineups": "Spielaufstellungen für diesen Spieler bei diesem Team",
+          "stats": "Spieler-Saisonstatistiken für dieses Team",
+          "goalieStats": "Torwart-Saisonstatistiken für dieses Team"
+        },
+        "endInstead": "Vertrag stattdessen beenden?",
+        "endInsteadDescription": "Beim Beenden des Vertrags bleiben alle Spieldaten, Aufstellungen und Statistiken erhalten. Der Spieler wird lediglich vom Team freigegeben.",
+        "confirm": "Vertrag löschen",
+        "deleting": "Löschen...",
+        "toast": {
+          "deleted": "Vertrag gelöscht",
+          "deleteError": "Vertrag konnte nicht gelöscht werden"
+        }
+      },
+      "tabs": {
+        "contracts": "Verträge",
+        "history": "Historie"
+      },
+      "historyTable": {
+        "season": "Saison",
+        "team": "Team",
+        "position": "Position",
+        "jersey": "#",
+        "status": "Status",
+        "noHistory": "Noch keine Teamhistorie."
+      }
     },
     "timeline": {
       "sinceSeason": "Seit {{season}}",
@@ -972,7 +1064,40 @@
     "hoverCard": {
       "noContactData": "Keine Kontaktdaten hinterlegt",
       "roster": "Kader",
-      "edit": "Bearbeiten"
+      "edit": "Bearbeiten",
+      "viewDetails": "Details"
+    },
+    "teamDetail": {
+      "backToTeams": "Teams",
+      "deleteTeam": {
+        "button": "Team löschen",
+        "hint": "Alle Kaderdaten, Saisonhistorie und Statistiken werden unwiderruflich entfernt. Überlege, das Team stattdessen aus den Divisionen zu entfernen.",
+        "title": "Team löschen?",
+        "description": "Das Team und alle zugehörigen Kaderdaten, Saisonhistorie und Statistiken werden unwiderruflich gelöscht.",
+        "confirm": "Endgültig löschen",
+        "toast": {
+          "deleted": "Team gelöscht",
+          "deleteError": "Team konnte nicht gelöscht werden"
+        }
+      },
+      "roster": "Kader",
+      "seasonHistory": "Saisonhistorie",
+      "noHistory": "Keine Saisonhistorie vorhanden",
+      "noRoster": "Kein Kader vorhanden",
+      "notFound": "Team nicht gefunden",
+      "record": "S{{wins}} U{{draws}} N{{losses}}",
+      "rank": "#{{rank}}",
+      "goalDifference": "TD",
+      "historyTable": {
+        "season": "Saison",
+        "division": "Division",
+        "gp": "Sp",
+        "wins": "S",
+        "draws": "U",
+        "losses": "N",
+        "gd": "TD",
+        "rank": "Platz"
+      }
     },
     "dialogs": {
       "newTitle": "Neues Team erstellen",
@@ -1172,6 +1297,7 @@
       "teamEmptyTitle": "Kader ist leer",
       "noSearchResults": "Keine Spieler gefunden für \"{{query}}\".",
       "teamEmpty": "{{team}} hat noch keine Spieler in dieser Saison.",
+      "allTeamsEmpty": "Es wurden noch keine Spieler für ein Team in dieser Saison verpflichtet.",
       "signFirst": "Ersten Spieler verpflichten"
     },
     "fallback": {
@@ -1181,11 +1307,14 @@
       "title": "Spieler verpflichten",
       "description": "Füge einen Spieler zum Kader hinzu.",
       "fields": {
+        "team": "Team",
+        "teamPlaceholder": "Team auswählen...",
         "player": "Spieler",
         "playerSearchPlaceholder": "Spieler suchen...",
         "position": "Position",
         "jerseyNumber": "Trikotnummer",
-        "jerseyNumberPlaceholder": "z.B. 17"
+        "jerseyNumberPlaceholder": "z.B. 17",
+        "season": "Saison"
       },
       "actions": {
         "change": "Ändern",
@@ -1237,6 +1366,8 @@
       "validation": {
         "teamRequired": "Bitte ein Team auswählen"
       },
+      "effectiveSeason": "Transfer gültig ab",
+      "transferFromSeason": "{{player}} wird ab {{season}} transferiert.",
       "toast": {
         "transferred": "Transfer erfolgreich",
         "transferError": "Fehler beim Transfer"
@@ -1244,8 +1375,14 @@
     },
     "releaseDialog": {
       "title": "Spieler freigeben",
-      "description": "Bist du sicher, dass du {{player}} freigeben möchtest? Der Vertrag wird zum Ende dieser Saison beendet.",
-      "confirm": "Freigeben"
+      "description": "Beende den Vertrag von {{player}}.",
+      "since": "seit {{season}}",
+      "lastActiveSeason": "Letzte aktive Saison",
+      "future": "Zukunft",
+      "removeFromSeason": "{{player}} wird ab der Saison {{season}} aus dem Kader entfernt.",
+      "keepCurrentSeason": "{{player}} bleibt im Kader der Saison {{season}} und wird ab der nächsten Saison entfernt.",
+      "confirm": "Freigeben",
+      "releasing": "Wird freigegeben..."
     },
     "toast": {
       "released": "Spieler freigegeben",
@@ -1477,7 +1614,8 @@
     "backToGames": "Zurück zu Spiele",
     "tabs": {
       "lineup": "Aufstellung",
-      "report": "Spielbericht"
+      "report": "Spielbericht",
+      "ai": "KI-Bericht"
     },
     "period": "Drittel",
     "overtime": "Verlängerung",
@@ -1502,6 +1640,15 @@
     "addGoalBtn": "+ Tor",
     "addPenaltyBtn": "+ Strafe",
     "addSuspensionBtn": "+ Spielsperre",
+    "addNoteBtn": "+ Notiz",
+    "addNote": "Notiz hinzufügen",
+    "editNote": "Notiz bearbeiten",
+    "noteDescription": "Eine Notiz zum Spielbericht hinzufügen.",
+    "note": "Notiz",
+    "gameWideNote": "Spielweite Notiz",
+    "gameWideNoteHint": "Nicht an eine bestimmte Zeit gebunden — wird über der Timeline angezeigt",
+    "notePublicLabel": "Auf Ligaseite sichtbar",
+    "notePrivateHint": "Privat",
     "deleteEventTitle": "Ereignis löschen",
     "deleteEventDescription": "Bist du sicher, dass du dieses Ereignis löschen möchtest?",
     "deleteEventConfirm": "Löschen",
@@ -1522,7 +1669,8 @@
       "addSuspension": "Spielsperre hinzufügen",
       "suspensionType": "Sperrentyp",
       "suspendedGames": "Gesperrte Spiele",
-      "suspensionComment": "Kommentar"
+      "suspensionComment": "Kommentar",
+      "noteText": "Notiz"
     },
     "suspensionTypes": {
       "matchPenalty": "Matchstrafe",
@@ -1550,21 +1698,29 @@
     },
     "completeSection": {
       "score": "Endstand",
-      "button": "Spiel abschliessen",
+      "button": "Spielbericht abschliessen",
       "lineupsRequired": "Beide Teams müssen eine Aufstellung haben.",
       "confirmTitle": "Spiel abschliessen?",
       "confirmDescription": "Das Spiel wird mit dem Endstand {{homeScore}} : {{awayScore}} abgeschlossen."
     },
     "reopenSection": {
       "finalized": "Abgeschlossen am {{date}}",
-      "button": "Wieder öffnen",
+      "button": "Spielbericht wieder öffnen",
       "confirmTitle": "Spiel wieder öffnen?",
       "confirmDescription": "Das Spiel wird zurück auf «Geplant» gesetzt. Allfällige Spielsperren werden zurückgesetzt."
     },
+    "gameNotes": {
+      "title": "Spielnotizen",
+      "empty": "Keine Spielnotizen."
+    },
+    "editGame": "Spiel bearbeiten",
+    "editGameDescription": "Paarung, Spielort und Ansetzung bearbeiten.",
     "notes": {
       "label": "Spielnotizen",
       "placeholder": "Optionale Notizen zum Spiel (werden für KI-Spielbericht verwendet)...",
-      "saved": "Notizen gespeichert"
+      "saved": "Notizen gespeichert",
+      "saving": "Speichern...",
+      "autoSaved": "Gespeichert"
     },
     "recap": {
       "title": "KI-Spielbericht",
@@ -1584,6 +1740,8 @@
       "goalUpdated": "Tor aktualisiert",
       "penaltyAdded": "Strafe hinzugefügt",
       "penaltyUpdated": "Strafe aktualisiert",
+      "noteAdded": "Notiz hinzugefügt",
+      "noteUpdated": "Notiz aktualisiert",
       "suspensionAdded": "Spielsperre hinzugefügt",
       "suspensionUpdated": "Spielsperre aktualisiert",
       "suspensionDeleted": "Spielsperre gelöscht",

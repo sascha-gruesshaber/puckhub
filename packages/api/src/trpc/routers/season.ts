@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
-import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 
 const dateInputRegex = /^\d{4}-\d{2}-\d{2}$/
 const seasonDateSchema = z.string().regex(dateInputRegex)

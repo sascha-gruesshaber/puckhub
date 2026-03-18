@@ -5,6 +5,7 @@ import { Skeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
+import { slugify } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
 
 export const Route = createFileRoute("/teams/")({
@@ -28,6 +29,7 @@ function TeamsPage() {
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
               <div key={i} className="rounded-lg border border-league-text/10 bg-league-surface p-6">
                 <Skeleton className="h-16 w-16 rounded-full mx-auto mb-3" />
                 <Skeleton className="h-5 w-32 mx-auto mb-1" />
@@ -42,8 +44,8 @@ function TeamsPage() {
               .map((team) => (
                 <Link
                   key={team.id}
-                  to="/teams/$teamId"
-                  params={{ teamId: team.id }}
+                  to="/teams/$teamId/$slug"
+                  params={{ teamId: team.id, slug: slugify(team.name) }}
                   className="group block rounded-lg border border-league-text/10 bg-league-surface p-6 text-center transition-all hover:shadow-md hover:border-league-primary/30"
                 >
                   <TeamLogo name={team.name} logoUrl={team.logoUrl} size="lg" className="mx-auto mb-3" />

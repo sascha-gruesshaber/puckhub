@@ -149,7 +149,7 @@ function RoundPills({
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
-  }, [activeRoundId])
+  }, [])
 
   return (
     <div ref={scrollRef} className="flex items-center gap-1 overflow-x-auto scrollbar-hidden">

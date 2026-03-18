@@ -11,7 +11,7 @@ function SearchInput({ value, onChange, placeholder = "Suchen..." }: SearchInput
   const hasValue = value.length > 0
 
   return (
-    <div className="relative flex-1 max-w-sm">
+    <div className="relative flex-1 max-w-none sm:max-w-sm min-w-0">
       <Search
         className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors ${hasValue ? "text-foreground" : "text-muted-foreground"}`}
         aria-hidden="true"
