@@ -29,12 +29,12 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 
 ```bash
 pnpm db:generate        # prisma generate
-pnpm db:migrate         # prisma db push (dev)
-pnpm db:migrate:create  # prisma migrate dev (create + apply local migration)
+pnpm db:migrate         # prisma migrate dev (create + apply migration locally)
 pnpm db:migrate:prod    # prisma migrate deploy (production/CI)
 pnpm db:seed            # run reference seed
 pnpm db:reset           # interactive reset/truncate helper
 pnpm db:studio          # Prisma Studio
+# pnpm db:push          # BLOCKED — always use db:migrate instead
 ```
 
 ## Runtime Behavior

@@ -45,8 +45,8 @@ pnpm dev:services       # Start all dev servers via Turborepo (alias for dev:ser
 ```
 
 **Per-package** (run from package dir or with `pnpm --filter`):
-- `db:migrate` — push schema (dev) · `db:migrate:prod` — run migrations (prod)
-- `db:migrate:create` — create/apply a migration locally
+- `db:migrate` — create + apply a migration locally (uses `prisma migrate dev`)
+- `db:migrate:prod` — run migrations (prod, uses `prisma migrate deploy`)
 - `db:studio` — Prisma Studio visual editor
 - `db:seed` — seed reference data only (penalty types, trikot templates, static pages)
 
