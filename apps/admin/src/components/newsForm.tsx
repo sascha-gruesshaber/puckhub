@@ -182,10 +182,21 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel, sideba
             )}
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit" variant="accent" disabled={isPending} className="w-full" data-testid="news-form-submit">
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={isPending}
+                className="w-full"
+                data-testid="news-form-submit"
+              >
                 {isPending ? t("saving") : resolvedSubmitLabel}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/$orgSlug/news", params: { orgSlug } })}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate({ to: "/$orgSlug/news", params: { orgSlug } })}
+              >
                 {t("cancel")}
               </Button>
             </div>

@@ -1,8 +1,19 @@
+import {
+  ArrowRight,
+  ClipboardList,
+  ExternalLink,
+  Globe,
+  Loader2,
+  LogIn,
+  MessageSquare,
+  Pencil,
+  Shield,
+  X,
+} from "lucide-react"
 import { useState } from "react"
-import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
-import { ExternalLink, Loader2, X, LogIn, Shield, Pencil, ClipboardList, Globe, MessageSquare, ArrowRight } from "lucide-react"
-import { useT } from "~/i18n"
 import { getAdminUrl, getApiUrl } from "@/env"
+import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
+import { useT } from "~/i18n"
 
 const DEMO_ORG = "demo-league"
 
@@ -23,10 +34,7 @@ export function BottomCtas({ onOpenDemo }: { onOpenDemo: () => void }) {
   return (
     <section id="demo" className="py-20 sm:py-28 scroll-mt-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div
-          ref={reveal.ref}
-          className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${revealClasses(reveal)}`}
-        >
+        <div ref={reveal.ref} className={`grid grid-cols-1 lg:grid-cols-2 gap-6 ${revealClasses(reveal)}`}>
           {/* Demo CTA */}
           <div className="relative rounded-2xl border border-brand-gold/20 bg-gradient-to-br from-brand-gold/[0.06] to-brand-blue/[0.04] p-10 sm:p-12 text-center overflow-hidden flex flex-col justify-center">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-1/2 bg-gradient-to-r from-transparent via-brand-gold/40 to-transparent" />
@@ -103,9 +111,25 @@ export function DemoDialog({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: backdrop click closes dialog; keyboard is handled via onKeyDown
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Demo portal"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault()
+          onClose()
+        }
+      }}
+    >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-dialog-backdrop" />
 
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation to prevent backdrop close */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation on a layout container to prevent event bubbling */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled by the outer dialog's onKeyDown */}
       <div
         className="relative w-full max-w-md rounded-2xl border border-white/10 bg-brand-navy-light shadow-2xl animate-dialog-content"
         onClick={(e) => e.stopPropagation()}

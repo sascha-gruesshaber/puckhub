@@ -1,5 +1,5 @@
 import { Badge, Button, Card, CardContent, toast } from "@puckhub/ui"
-import { createFileRoute, useParams } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { AlertTriangle, FileText, RotateCcw } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
@@ -17,7 +17,6 @@ export const Route = createFileRoute("/_authed/$orgSlug/games/public-reports")({
 
 function PublicReportsPage() {
   usePermissionGuard("games")
-  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
@@ -97,7 +96,11 @@ function PublicReportsPage() {
                 </thead>
                 <tbody>
                   {reports.map((report: any) => (
-                    <tr key={report.id} className={`border-b last:border-0 ${report.reverted ? `opacity-50` : ``}`}>
+                    <tr
+                      key={report.id}
+                      data-testid="public-report-row"
+                      className={`border-b last:border-0 ${report.reverted ? `opacity-50` : ``}`}
+                    >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">
@@ -133,6 +136,7 @@ function PublicReportsPage() {
                           <Button
                             size="sm"
                             variant="outline"
+                            data-testid="public-report-revert"
                             onClick={() => {
                               setRevertId(report.id)
                               setRevertNote("")
@@ -168,11 +172,16 @@ function PublicReportsPage() {
               {t("publicReports.revertDescription")}
             </div>
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
+              <label
+                htmlFor="public-report-revert-note-input"
+                className="block text-xs font-medium text-muted-foreground mb-1"
+              >
                 {t("publicReports.revertNote")}
               </label>
               <input
+                id="public-report-revert-note-input"
                 type="text"
+                data-testid="public-report-revert-note"
                 value={revertNote}
                 onChange={(e) => setRevertNote(e.target.value)}
                 placeholder={t("publicReports.revertNotePlaceholder")}
@@ -182,6 +191,7 @@ function PublicReportsPage() {
           </div>
         }
         confirmLabel={t("publicReports.revert")}
+        confirmTestId="public-report-revert-confirm"
         onConfirm={handleRevert}
         isPending={revertMutation.isPending}
         variant="destructive"

@@ -25,7 +25,7 @@ function PasskeyButton({ onError }: PasskeyButtonProps) {
       if (result?.error) {
         onError(result.error.message ?? tErrors("PASSKEY_FAILED"))
       } else {
-        navigate({ to: "/" })
+        navigate({ to: "/", search: { redirect: undefined, switchOrg: undefined } })
       }
     } catch (err) {
       onError(resolveTranslatedError(err, tErrors))

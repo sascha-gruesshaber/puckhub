@@ -211,7 +211,9 @@ export function contactOtpEmail(code: string) {
   return layout(
     [
       heading("Your verification code"),
-      paragraph("Enter this code to verify your email address and submit your contact request. It expires in 10 minutes."),
+      paragraph(
+        "Enter this code to verify your email address and submit your contact request. It expires in 10 minutes.",
+      ),
       codeBlock(code),
       muted(
         "If you didn't request this code, someone may have entered your email address by mistake. You can safely ignore this email.",
@@ -222,18 +224,11 @@ export function contactOtpEmail(code: string) {
 }
 
 /** Admin notification: new contact form submission */
-export function contactNotificationEmail(opts: {
-  name: string
-  email: string
-  type: string
-  message: string
-}) {
+export function contactNotificationEmail(opts: { name: string; email: string; type: string; message: string }) {
   return layout(
     [
       heading("New Contact Request"),
-      paragraph(
-        "Someone has submitted a contact request through the PuckHub website.",
-      ),
+      paragraph("Someone has submitted a contact request through the PuckHub website."),
       detailsTable([
         { label: "Name", value: opts.name },
         { label: "Email", value: opts.email },

@@ -3,8 +3,8 @@ import { AlertTriangle, Plus, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 interface DivisionEditPanelProps {
   divisionId: string
@@ -89,8 +89,11 @@ export function DivisionEditPanel({
       </div>
 
       <div className="flex flex-col gap-3">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.name")}</label>
+        <label htmlFor="division-edit-name" className="text-[11px] font-medium text-gray-600">
+          {t("seasonStructure.fields.name")}
+        </label>
         <Input
+          id="division-edit-name"
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           className="h-8 text-xs bg-white border-gray-200 text-gray-900"
@@ -98,8 +101,11 @@ export function DivisionEditPanel({
       </div>
 
       <div className="flex flex-col gap-3">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.sortOrder")}</label>
+        <label htmlFor="division-edit-order" className="text-[11px] font-medium text-gray-600">
+          {t("seasonStructure.fields.sortOrder")}
+        </label>
         <Input
+          id="division-edit-order"
           type="number"
           value={editOrder}
           onChange={(e) => setEditOrder(e.target.value)}
@@ -108,8 +114,11 @@ export function DivisionEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.goalieMinGames")}</label>
+        <label htmlFor="division-edit-goalie-min-games" className="text-[11px] font-medium text-gray-600">
+          {t("seasonStructure.fields.goalieMinGames")}
+        </label>
         <Input
+          id="division-edit-goalie-min-games"
           type="number"
           min={0}
           value={editGoalieMinGames}
@@ -163,7 +172,9 @@ export function DivisionEditPanel({
               <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
               <span className="text-sm text-red-800">{t("seasonStructure.confirmDelete.divisionWarning")}</span>
             </div>
-            <p className="text-sm text-gray-600">{t("seasonStructure.confirmDelete.divisionDescription", { name: editName })}</p>
+            <p className="text-sm text-gray-600">
+              {t("seasonStructure.confirmDelete.divisionDescription", { name: editName })}
+            </p>
           </div>
         }
         confirmLabel={t("seasonStructure.confirmDelete.confirmDelete")}

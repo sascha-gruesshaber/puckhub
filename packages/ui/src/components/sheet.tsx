@@ -75,9 +75,7 @@ const sheetContentVariants = cva(
   },
 )
 
-interface SheetContentProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof sheetContentVariants> {}
+interface SheetContentProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof sheetContentVariants> {}
 
 const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
   ({ className, size, children, ...props }, ref) => (
@@ -101,11 +99,7 @@ SheetContent.displayName = "SheetContent"
 // ---------------------------------------------------------------------------
 const SheetHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("flex flex-col space-y-1.5 border-b px-6 py-5 pr-14", className)}
-      {...props}
-    />
+    <div ref={ref} className={cn("flex flex-col space-y-1.5 border-b px-6 py-5 pr-14", className)} {...props} />
   ),
 )
 SheetHeader.displayName = "SheetHeader"
@@ -116,11 +110,7 @@ SheetHeader.displayName = "SheetHeader"
 const SheetTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...props }, ref) => (
     <DialogPrimitive.Title asChild>
-      <h2
-        ref={ref}
-        className={cn("text-lg font-semibold leading-none tracking-tight", className)}
-        {...props}
-      />
+      <h2 ref={ref} className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props} />
     </DialogPrimitive.Title>
   ),
 )
@@ -129,14 +119,13 @@ SheetTitle.displayName = "SheetTitle"
 // ---------------------------------------------------------------------------
 // SheetDescription
 // ---------------------------------------------------------------------------
-const SheetDescription = React.forwardRef<
-  HTMLParagraphElement,
-  React.HTMLAttributes<HTMLParagraphElement>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Description asChild>
-    <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
-  </DialogPrimitive.Description>
-))
+const SheetDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => (
+    <DialogPrimitive.Description asChild>
+      <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+    </DialogPrimitive.Description>
+  ),
+)
 SheetDescription.displayName = "SheetDescription"
 
 // ---------------------------------------------------------------------------
@@ -154,11 +143,7 @@ SheetBody.displayName = "SheetBody"
 // ---------------------------------------------------------------------------
 const SheetFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn("flex items-center gap-2 border-t px-6 py-4", className)}
-      {...props}
-    />
+    <div ref={ref} className={cn("flex items-center gap-2 border-t px-6 py-4", className)} {...props} />
   ),
 )
 SheetFooter.displayName = "SheetFooter"
@@ -167,37 +152,27 @@ SheetFooter.displayName = "SheetFooter"
 // SheetClose — X button, uses context so it respects dirty state
 // No onClick prop needed — it automatically goes through Sheet's requestClose
 // ---------------------------------------------------------------------------
-const SheetClose = React.forwardRef<
-  HTMLButtonElement,
-  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick">
->(({ className, ...props }, ref) => {
-  const { requestClose } = React.useContext(SheetContext)
+const SheetClose = React.forwardRef<HTMLButtonElement, Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick">>(
+  ({ className, ...props }, ref) => {
+    const { requestClose } = React.useContext(SheetContext)
 
-  return (
-    <button
-      ref={ref}
-      type="button"
-      className={cn(
-        "absolute right-4 top-4 z-10 rounded-md p-1.5 opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        className,
-      )}
-      onClick={requestClose}
-      {...props}
-    >
-      <X size={16} />
-      <span className="sr-only">Close</span>
-    </button>
-  )
-})
+    return (
+      <button
+        ref={ref}
+        type="button"
+        className={cn(
+          "absolute right-4 top-4 z-10 rounded-md p-1.5 opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          className,
+        )}
+        onClick={requestClose}
+        {...props}
+      >
+        <X size={16} />
+        <span className="sr-only">Close</span>
+      </button>
+    )
+  },
+)
 SheetClose.displayName = "SheetClose"
 
-export {
-  Sheet,
-  SheetBody,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-}
+export { Sheet, SheetBody, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle }

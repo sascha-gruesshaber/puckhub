@@ -1,5 +1,5 @@
-import { createRoute, redirect } from "@tanstack/react-router"
 import type { AnyRoute } from "@tanstack/react-router"
+import { createRoute, redirect } from "@tanstack/react-router"
 import { lazy } from "react"
 
 /** Pass-through search validator – keeps any string-valued query params. */

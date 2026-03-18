@@ -20,10 +20,9 @@ import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
-import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
+import { FilterBar } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
-import type { FilterDropdownOption } from "~/components/filterDropdown"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
@@ -31,6 +30,7 @@ import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
+import { useStructureOptions } from "~/hooks/useStructureOptions"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -99,7 +99,7 @@ function TeamsPage() {
   )
 
   // Sheet state driven by URL
-  const isNew = editId === "new"
+  const _isNew = editId === "new"
   const sheetOpen = !!editId
 
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
@@ -114,9 +114,10 @@ function TeamsPage() {
   // Division filter data from working season
   const { season } = useWorkingSeason()
   const { data: structure } = trpc.season.getFullStructure.useQuery({ id: season?.id ?? "" }, { enabled: !!season?.id })
+  const { divisionOptions: baseDivisionOptions } = useStructureOptions(structure)
 
   // Extract divisions and team-to-division mapping (a team can be in multiple divisions)
-  const { divisions, teamDivisionMap, seasonTeamIds } = useMemo(() => {
+  const { teamDivisionMap, seasonTeamIds } = useMemo(() => {
     if (!structure?.divisions)
       return { divisions: [], teamDivisionMap: new Map<string, Set<string>>(), seasonTeamIds: new Set<string>() }
     const divs = structure.divisions.map((d) => ({ id: d.id, name: d.name }))
@@ -160,13 +161,13 @@ function TeamsPage() {
     navigate({ search: (prev) => ({ ...prev, edit: id }) })
   }
 
-  const divisionOptions: FilterDropdownOption[] = useMemo(() => {
-    const opts: FilterDropdownOption[] = divisions.map((d) => ({ value: d.id, label: d.name }))
+  const divisionOptions = useMemo(() => {
+    const opts = [...baseDivisionOptions]
     if (unassignedCount > 0) {
       opts.push({ value: FILTER_UNASSIGNED, label: t("teamsPage.filters.unassigned") })
     }
     return opts
-  }, [divisions, unassignedCount, t])
+  }, [baseDivisionOptions, unassignedCount, t])
 
   const filtered = useMemo(() => {
     if (!allTeams) return []
@@ -316,22 +317,15 @@ function TeamsPage() {
               const firstTrikot = team.teamTrikots[0]?.trikot ?? null
 
               return (
-                <div
+                <button
                   key={team.id}
+                  type="button"
                   data-testid="team-row"
-                  onClick={() => navigate({ to: '/$orgSlug/teams/$teamId', params: { orgSlug, teamId: team.id } })}
-                  className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
+                  onClick={() => navigate({ to: "/$orgSlug/teams/$teamId", params: { orgSlug, teamId: team.id } })}
+                  className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer w-full text-left ${
                     i < filtered.length - 1 ? "border-b border-border/40" : ""
                   }`}
                   style={{ "--row-index": i } as React.CSSProperties}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      navigate({ to: '/$orgSlug/teams/$teamId', params: { orgSlug, teamId: team.id } })
-                    }
-                  }}
                 >
                   {/* Logo + Info */}
                   <div className="flex items-center gap-4">
@@ -378,7 +372,7 @@ function TeamsPage() {
                       <span className="text-sm text-muted-foreground">–</span>
                     )}
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -386,7 +380,14 @@ function TeamsPage() {
       </DataPageLayout>
 
       {/* Create Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSheet()
+        }}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
         <SheetContent size="wide">
           <SheetClose />
           <SheetHeader>
@@ -498,7 +499,14 @@ function TeamsPage() {
 
             <SheetFooter>
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) setConfirmCloseOpen(true)
+                  else closeSheet()
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button type="submit" variant="accent" disabled={isSaving} data-testid="teams-form-submit">
@@ -514,7 +522,9 @@ function TeamsPage() {
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {

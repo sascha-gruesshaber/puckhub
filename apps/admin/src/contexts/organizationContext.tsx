@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useState } from "react"
+import { createContext, type ReactNode, useCallback, useContext, useState } from "react"
 import { useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 

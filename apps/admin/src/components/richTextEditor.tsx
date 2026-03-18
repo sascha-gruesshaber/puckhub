@@ -308,6 +308,8 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       {isInTable && <TableContextToolbar editor={editor} />}
 
       {/* Editor Content Area */}
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: drag-and-drop drop target on editor content area */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop drop target on editor content area */}
       <div
         className="relative"
         onDragEnter={handleDragEnter}
@@ -800,6 +802,7 @@ function TableInsertButton({ editor }: { editor: Editor }) {
             {Array.from({ length: 6 }, (_, row) =>
               Array.from({ length: 6 }, (_, col) => (
                 <button
+                  // biome-ignore lint/suspicious/noArrayIndexKey: row/col indices form a unique composite key for a fixed-size grid
                   key={`${row}-${col}`}
                   type="button"
                   className={cn(

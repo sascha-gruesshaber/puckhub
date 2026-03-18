@@ -107,4 +107,4 @@ export function checkFeature(plan: Plan | null, key: FeatureKey): void {
   }
 }
 
-export type { LimitKey, FeatureKey, Plan as PlanLimits }
+export type { FeatureKey, LimitKey, Plan as PlanLimits }

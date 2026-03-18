@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createTestCaller, createPlatformAdminCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
+import { createPlatformAdminCaller, createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 async function createTestPlan(overrides: Record<string, unknown> = {}) {
   const db = getTestDb()
@@ -103,7 +103,6 @@ describe("subscription router", () => {
       const result = await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-
       })
 
       expect(result.plan).toBeDefined()
@@ -117,7 +116,6 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
           planId: "00000000-0000-0000-0000-000000000099",
-  
         }),
       ).rejects.toThrow("PLAN_NOT_FOUND")
     })
@@ -130,7 +128,6 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: "non-existent-org-id",
           planId: plan.id,
-  
         }),
       ).rejects.toThrow("ORG_NOT_FOUND")
     })
@@ -141,7 +138,6 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
           planId: "00000000-0000-0000-0000-000000000099",
-  
         }),
       ).rejects.toThrow("Keine Plattform-Administratorrechte")
     })
@@ -152,7 +148,6 @@ describe("subscription router", () => {
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
           planId: "00000000-0000-0000-0000-000000000099",
-  
         }),
       ).rejects.toThrow("Not authenticated")
     })
@@ -174,7 +169,6 @@ describe("subscription router", () => {
       await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-
       })
 
       const result = await caller.subscription.getByOrg({ organizationId: TEST_ORG_ID })
@@ -214,7 +208,6 @@ describe("subscription router", () => {
       await caller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-
       })
 
       const result = await caller.subscription.listAll()
@@ -271,7 +264,6 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-
       })
 
       const caller = createTestCaller({ asUser: true })
@@ -295,7 +287,6 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-
       })
 
       const caller = createTestCaller({ asAdmin: true })
@@ -323,7 +314,6 @@ describe("subscription router", () => {
       await platformCaller.subscription.assignPlan({
         organizationId: TEST_ORG_ID,
         planId: plan.id,
-
       })
 
       const caller = createTestCaller({ asAdmin: true })

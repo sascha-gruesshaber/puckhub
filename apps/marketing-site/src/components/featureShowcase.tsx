@@ -1,23 +1,23 @@
-import { useState, useEffect, useCallback } from "react"
 import {
-  Shirt,
-  FileText,
-  Shield,
-  CalendarClock,
-  Sparkles,
   BarChart3,
-  History,
-  Check,
-  Send,
-  Layers,
-  Languages,
   Blocks,
-  ZoomIn,
-  X,
+  CalendarClock,
+  Check,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  History,
+  Languages,
+  Layers,
+  Send,
+  Shield,
+  Shirt,
+  Sparkles,
+  X,
+  ZoomIn,
 } from "lucide-react"
-import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
+import { useCallback, useEffect, useState } from "react"
+import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 
 // Icons and screenshots ordered to match the new section layout:
@@ -25,17 +25,17 @@ import { useT } from "~/i18n"
 // Section 1 – Operations:     AI Recaps, Live Stats, Player Stats, Jersey Designer
 // Section 2 – Community:      Public Reports, Structure Overview, Bilingual
 const itemIcons = [
-  Blocks,         // Season Structure Builder
-  CalendarClock,  // Schedule Generator
-  FileText,       // Content Management
-  Shield,         // RBAC
-  Sparkles,       // AI Recaps
-  BarChart3,      // Live Stats & Standings
-  History,        // Season Progression & Player Stats
-  Shirt,          // Jersey Designer
-  Send,           // Public Game Reporting
-  Layers,         // Season Structure Overview
-  Languages,      // Bilingual
+  Blocks, // Season Structure Builder
+  CalendarClock, // Schedule Generator
+  FileText, // Content Management
+  Shield, // RBAC
+  Sparkles, // AI Recaps
+  BarChart3, // Live Stats & Standings
+  History, // Season Progression & Player Stats
+  Shirt, // Jersey Designer
+  Send, // Public Game Reporting
+  Layers, // Season Structure Overview
+  Languages, // Bilingual
 ]
 
 const itemScreenshots: string[][] = [
@@ -85,7 +85,13 @@ export function FeatureShowcase() {
 
             return (
               <div key={item.title}>
-                {section && <SectionHeader id={`features-${section.id}`} title={section.title} description={section.description} />}
+                {section && (
+                  <SectionHeader
+                    id={`features-${section.id}`}
+                    title={section.title}
+                    description={section.description}
+                  />
+                )}
                 <FeatureSpotlight
                   badge={item.badge}
                   title={item.title}
@@ -175,18 +181,19 @@ function FeatureSpotlight({
         {/* Visual */}
         <div className={reversed ? "lg:order-1" : ""}>
           {hasScreenshots ? (
-            <div
-              className="relative"
-              onMouseEnter={() => setPaused(true)}
-              onMouseLeave={() => setPaused(false)}
-            >
+            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: mouse events pause autoplay on a visual container
+            // biome-ignore lint/a11y/noStaticElementInteractions: mouse enter/leave are used to pause autoplay, not for primary interaction
+            <div className="relative" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
               <div className="absolute inset-0 bg-brand-gold/5 rounded-2xl blur-2xl -z-10" />
-              <div
-                className="rounded-xl border border-white/10 bg-brand-navy-light shadow-2xl overflow-hidden group cursor-zoom-in"
+              <button
+                type="button"
+                className="w-full rounded-xl border border-white/10 bg-brand-navy-light shadow-2xl overflow-hidden group cursor-zoom-in text-left"
                 onClick={() => setLightboxOpen(true)}
+                aria-label={`Open ${title} screenshot in lightbox`}
               >
                 <div className="relative aspect-video bg-gradient-to-br from-brand-navy-light to-brand-navy">
                   {screenshots.map((src, i) => (
+                    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError hides broken screenshot images
                     <img
                       key={src}
                       src={src}
@@ -208,13 +215,14 @@ function FeatureSpotlight({
                     </div>
                   </div>
                 </div>
-              </div>
+              </button>
 
               {/* Dot navigation with progress indicator */}
               {hasMultiple && (
                 <div className="flex gap-2 justify-center mt-3">
-                  {screenshots.map((_, i) => (
+                  {screenshots.map((_src, i) => (
                     <button
+                      // biome-ignore lint/suspicious/noArrayIndexKey: screenshot dots are positional, no stable key
                       key={i}
                       type="button"
                       onClick={() => setActiveImg(i)}
@@ -285,10 +293,7 @@ function ScreenshotLightbox({
     () => onNavigate((active - 1 + images.length) % images.length),
     [active, images.length, onNavigate],
   )
-  const next = useCallback(
-    () => onNavigate((active + 1) % images.length),
-    [active, images.length, onNavigate],
-  )
+  const next = useCallback(() => onNavigate((active + 1) % images.length), [active, images.length, onNavigate])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -305,7 +310,12 @@ function ScreenshotLightbox({
   }, [onClose, prev, next])
 
   return (
+    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: role="dialog" backdrop click closes lightbox; keyboard handled via document keydown listener
+    // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled via document keydown listener above
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Screenshot lightbox"
       className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-lightbox-in"
       onClick={onClose}
     >
@@ -320,9 +330,16 @@ function ScreenshotLightbox({
       </button>
 
       {/* Image */}
-      <div className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center" onClick={(e) => e.stopPropagation()}>
+      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: stopPropagation prevents backdrop click from closing when interacting with content */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation on a layout container to prevent event bubbling */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: keyboard is handled by the outer dialog's document keydown listener */}
+      <div
+        className="relative max-w-[90vw] max-h-[90vh] flex flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="relative">
           {images.map((src, i) => (
+            // biome-ignore lint/a11y/noNoninteractiveElementInteractions: onError hides broken lightbox images
             <img
               key={src}
               src={src}
@@ -359,8 +376,9 @@ function ScreenshotLightbox({
 
             {/* Dots */}
             <div className="flex gap-2 justify-center mt-4">
-              {images.map((_, i) => (
+              {images.map((_src, i) => (
                 <button
+                  // biome-ignore lint/suspicious/noArrayIndexKey: lightbox dots are positional, no stable key
                   key={i}
                   type="button"
                   onClick={() => onNavigate(i)}

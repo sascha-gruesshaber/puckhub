@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createTestCaller, createPlatformAdminCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
+import { createPlatformAdminCaller, createTestCaller, getTestDb } from "../testUtils"
 
 /** Create a test plan directly in the DB (plans are fixed, not created via API). */
 async function seedTestPlan(overrides: Record<string, unknown> = {}) {

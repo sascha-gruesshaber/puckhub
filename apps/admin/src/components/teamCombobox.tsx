@@ -1,11 +1,11 @@
 import {
-  cn,
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -104,7 +104,9 @@ export function TeamCombobox({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-sm text-foreground truncate">{selectedTeam.name}</div>
-                  {selectedTeam.city && <div className="text-xs text-muted-foreground truncate">{selectedTeam.city}</div>}
+                  {selectedTeam.city && (
+                    <div className="text-xs text-muted-foreground truncate">{selectedTeam.city}</div>
+                  )}
                 </div>
                 {selectedTeam.primaryColor && (
                   <div
@@ -122,16 +124,15 @@ export function TeamCombobox({
 
           <div className="flex items-center gap-1 shrink-0">
             {selectedTeam && (
-              <span
-                role="button"
+              <button
+                type="button"
                 tabIndex={-1}
                 onClick={handleClear}
-                onKeyDown={(e) => e.key === "Enter" && handleClear(e as unknown as React.MouseEvent)}
                 className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                 aria-label="Clear selection"
               >
                 <X className="h-3.5 w-3.5" />
-              </span>
+              </button>
             )}
             <ChevronDown
               className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")}
@@ -205,9 +206,7 @@ export function TeamCombobox({
                           {team.shortName}
                         </div>
                       </div>
-                      {team.city && (
-                        <div className="text-xs text-muted-foreground mt-0.5 truncate">{team.city}</div>
-                      )}
+                      {team.city && <div className="text-xs text-muted-foreground mt-0.5 truncate">{team.city}</div>}
                     </div>
 
                     {isSelected && <Check className="h-5 w-5 shrink-0" style={{ color: teamColor }} />}

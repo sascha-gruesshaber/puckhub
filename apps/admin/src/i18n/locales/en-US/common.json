@@ -219,7 +219,9 @@
       "title": "SEO",
       "seoTitle": "Page title",
       "seoDescription": "Meta description"
-    }
+    },
+    "unsavedChanges": "You have unsaved changes",
+    "discard": "Discard"
   },
   "language": {
     "label": "Display language",
@@ -387,7 +389,8 @@
       "teams": "Teams",
       "players": "Players",
       "completed": "Completed",
-      "remaining": "Remaining"
+      "remaining": "Remaining",
+      "totalOf": "{total} total"
     },
     "sections": {
       "actionItems": "Action Items",
@@ -433,7 +436,8 @@
       "title": "Recent Results",
       "empty": "No completed games yet.",
       "viewReport": "Report"
-    }
+    },
+    "showAll": "Show all"
   },
   "newsCreate": {
     "title": "New news",
@@ -1293,6 +1297,7 @@
       "teamEmptyTitle": "Roster is empty",
       "noSearchResults": "No players found for \"{{query}}\".",
       "teamEmpty": "{{team}} has no players in this season yet.",
+      "allTeamsEmpty": "No players have been signed to any team in this season yet.",
       "signFirst": "Sign first player"
     },
     "fallback": {
@@ -1302,6 +1307,8 @@
       "title": "Sign player",
       "description": "Add a player to the roster.",
       "fields": {
+        "team": "Team",
+        "teamPlaceholder": "Select team...",
         "player": "Player",
         "playerSearchPlaceholder": "Search players...",
         "position": "Position",
@@ -1633,6 +1640,15 @@
     "addGoalBtn": "+ Goal",
     "addPenaltyBtn": "+ Penalty",
     "addSuspensionBtn": "+ Suspension",
+    "addNoteBtn": "+ Note",
+    "addNote": "Add note",
+    "editNote": "Edit note",
+    "noteDescription": "Add a note to the game report.",
+    "note": "Note",
+    "gameWideNote": "Game-wide note",
+    "gameWideNoteHint": "Not attached to a specific time — shown above the timeline",
+    "notePublicLabel": "Visible on league site",
+    "notePrivateHint": "Private",
     "deleteEventTitle": "Delete event",
     "deleteEventDescription": "Are you sure you want to delete this event?",
     "deleteEventConfirm": "Delete",
@@ -1653,7 +1669,8 @@
       "addSuspension": "Add suspension",
       "suspensionType": "Suspension type",
       "suspendedGames": "Suspended games",
-      "suspensionComment": "Comment"
+      "suspensionComment": "Comment",
+      "noteText": "Note"
     },
     "suspensionTypes": {
       "matchPenalty": "Match penalty",
@@ -1681,21 +1698,29 @@
     },
     "completeSection": {
       "score": "Final score",
-      "button": "Complete game",
+      "button": "Complete game report",
       "lineupsRequired": "Both teams must have a lineup.",
       "confirmTitle": "Complete game?",
       "confirmDescription": "The game will be completed with a final score of {{homeScore}} : {{awayScore}}."
     },
     "reopenSection": {
       "finalized": "Completed on {{date}}",
-      "button": "Reopen",
+      "button": "Reopen game report",
       "confirmTitle": "Reopen game?",
       "confirmDescription": "The game will be set back to «Scheduled». Suspensions will be reversed."
     },
+    "gameNotes": {
+      "title": "Game Notes",
+      "empty": "No game notes."
+    },
+    "editGame": "Edit game",
+    "editGameDescription": "Update matchup, location and schedule.",
     "notes": {
       "label": "Game Notes",
       "placeholder": "Optional notes about the game (used for AI recap generation)...",
-      "saved": "Notes saved"
+      "saved": "Notes saved",
+      "saving": "Saving...",
+      "autoSaved": "Saved"
     },
     "recap": {
       "title": "AI Game Recap",
@@ -1715,6 +1740,8 @@
       "goalUpdated": "Goal updated",
       "penaltyAdded": "Penalty added",
       "penaltyUpdated": "Penalty updated",
+      "noteAdded": "Note added",
+      "noteUpdated": "Note updated",
       "suspensionAdded": "Suspension added",
       "suspensionUpdated": "Suspension updated",
       "suspensionDeleted": "Suspension deleted",

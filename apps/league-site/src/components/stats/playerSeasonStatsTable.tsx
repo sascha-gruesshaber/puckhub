@@ -78,8 +78,11 @@ function SkaterSeasonStatsTable({ stats }: { stats: PlayerSeasonStatRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {stats.map((s, i) => (
-            <tr key={i} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
+          {stats.map((s) => (
+            <tr
+              key={`${s.season.id}-${s.team.id}`}
+              className="border-t border-league-text/5 hover:bg-league-text/[0.02]"
+            >
               <td className="px-4 py-3 whitespace-nowrap">{s.season.name}</td>
               <td className="px-4 py-3">
                 <TeamCell team={s.team} />
@@ -137,8 +140,11 @@ function GoalieSeasonStatsTable({ stats }: { stats: GoalieSeasonStatRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {stats.map((s, i) => (
-            <tr key={i} className="border-t border-league-text/5 hover:bg-league-text/[0.02]">
+          {stats.map((s) => (
+            <tr
+              key={`${s.season.id}-${s.team.id}`}
+              className="border-t border-league-text/5 hover:bg-league-text/[0.02]"
+            >
               <td className="px-4 py-3 whitespace-nowrap">{s.season.name}</td>
               <td className="px-4 py-3">
                 <TeamCell team={s.team} />

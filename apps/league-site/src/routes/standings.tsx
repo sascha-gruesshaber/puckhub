@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { EmptyState } from "~/components/shared/emptyState"
 import { StandingsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { RoundNavigator } from "~/components/shared/roundNavigator"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { Th } from "~/components/stats/statsTables"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { cn, slugify, useBackPath } from "~/lib/utils"
@@ -154,22 +154,25 @@ export function StandingsPage() {
                     <td className="px-4 py-3 text-center font-bold tabular-nums">{s.totalPoints}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-1">
-                        {form.map((f, fi) => (
-                          <span
-                            key={fi}
-                            title={
-                              f.result === "W" ? t.tooltip.win : f.result === "D" ? t.tooltip.draw : t.tooltip.loss
-                            }
-                            className={cn(
-                              "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white",
-                              f.result === "W" && "bg-green-500",
-                              f.result === "D" && "bg-yellow-500",
-                              f.result === "L" && "bg-red-500",
-                            )}
-                          >
-                            {f.result === "W" ? t.abbr.w : f.result === "D" ? t.abbr.d : t.abbr.l}
-                          </span>
-                        ))}
+                        {form.map((f) => {
+                          const formPos = form.indexOf(f)
+                          return (
+                            <span
+                              key={`${s.teamId}-form-${formPos}`}
+                              title={
+                                f.result === "W" ? t.tooltip.win : f.result === "D" ? t.tooltip.draw : t.tooltip.loss
+                              }
+                              className={cn(
+                                "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white",
+                                f.result === "W" && "bg-green-500",
+                                f.result === "D" && "bg-yellow-500",
+                                f.result === "L" && "bg-red-500",
+                              )}
+                            >
+                              {f.result === "W" ? t.abbr.w : f.result === "D" ? t.abbr.d : t.abbr.l}
+                            </span>
+                          )
+                        })}
                       </div>
                     </td>
                   </tr>

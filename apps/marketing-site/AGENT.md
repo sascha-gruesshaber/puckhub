@@ -8,6 +8,7 @@ Public marketing landing page for PuckHub, served on the bare domain (`puckhub.e
 - Displays pricing plans dynamically from the database via `publicSite.listPlans`
 - Links visitors to the demo admin portal
 - Hosts legal pages (Impressum, Datenschutz) required by German law
+- Provides a `/contact` route with OTP-verified contact form
 
 ## Tech Stack
 
@@ -30,8 +31,10 @@ Public marketing landing page for PuckHub, served on the bare domain (`puckhub.e
 | `lib/env.ts` | API URL derivation (bare domain → `api.` prefix) |
 | `lib/trpc.ts` | tRPC client setup |
 | `src/routes/index.tsx` | Landing page (assembles all sections) |
+| `src/routes/contact.tsx` | Contact form with OTP email verification |
 | `src/routes/impressum.tsx` | Legal: Impressum |
 | `src/routes/datenschutz.tsx` | Legal: Datenschutz (GDPR privacy policy) |
+| `src/components/contactForm.tsx` | Contact form component (OTP verification + math captcha bot detection + honeypot) |
 | `src/components/features.tsx` | Feature carousel with screenshots (dashboard, season builder, game reports, etc.) |
 | `src/components/featureShowcase.tsx` | Detailed feature spotlights (AI recaps, trikot designer, CMS, roles, scheduling, stats) |
 | `src/components/pricing.tsx` | Dynamic pricing from DB |

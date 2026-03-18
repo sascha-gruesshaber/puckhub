@@ -563,7 +563,7 @@ function UsersPage() {
             ) : (
               <>
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">League</label>
+                  <p className="text-sm font-medium text-foreground mb-1.5">League</p>
                   <Select value={assignOrgId || undefined} onValueChange={(v) => setAssignOrgId(v)}>
                     <SelectTrigger className="w-full h-9">
                       <SelectValue placeholder="Select a league..." />
@@ -578,7 +578,7 @@ function UsersPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-1.5 block">Role</label>
+                  <p className="text-sm font-medium text-foreground mb-1.5">Role</p>
                   <div className="space-y-1.5">
                     {ORG_ROLES.map((r) => {
                       const meta = ROLE_META[r]
@@ -725,7 +725,7 @@ function UsersPage() {
 
           <div className="space-y-4 p-6 pt-2">
             <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Role</label>
+              <p className="text-sm font-medium text-foreground mb-1.5">Role</p>
               <div className="space-y-1.5">
                 {ORG_ROLES.map((r) => {
                   const meta = ROLE_META[r]

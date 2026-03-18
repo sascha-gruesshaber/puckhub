@@ -1,5 +1,5 @@
 import { Skeleton } from "@puckhub/ui"
-import { createFileRoute, useParams } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { lazy, Suspense } from "react"
 import { PageHeader } from "~/components/pageHeader"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -17,7 +17,6 @@ export const Route = createFileRoute("/_authed/$orgSlug/seasons/$seasonId/struct
 })
 
 function StructurePage() {
-  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   usePermissionGuard("seasonStructure")
   const { t } = useTranslation("common")
   const { seasonId } = Route.useParams()

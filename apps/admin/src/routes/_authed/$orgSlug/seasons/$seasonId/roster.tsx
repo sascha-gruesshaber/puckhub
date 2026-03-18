@@ -6,14 +6,14 @@ import { trpc } from "@/trpc"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
-import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
-import { EditContractDialog } from "~/components/roster/editContractDialog"
-import { ReleasePlayerDialog } from "~/components/roster/releasePlayerDialog"
+import { FilterDropdown } from "~/components/filterDropdown"
+import { EditContractSheet } from "~/components/roster/editContractSheet"
+import { ReleasePlayerSheet } from "~/components/roster/releasePlayerSheet"
 import type { ContractRow } from "~/components/roster/rosterTable"
 import { RosterTable } from "~/components/roster/rosterTable"
-import { SignPlayerDialog } from "~/components/roster/signPlayerDialog"
-import { TransferDialog } from "~/components/roster/transferDialog"
+import { SignPlayerSheet } from "~/components/roster/signPlayerSheet"
+import { TransferSheet } from "~/components/roster/transferSheet"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 
@@ -92,6 +92,7 @@ function RosterPage() {
       teams.map((team) => ({
         value: team.id,
         label: team.shortName,
+        description: team.name,
         icon: team.logoUrl ? (
           <img src={team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
         ) : (
@@ -103,32 +104,57 @@ function RosterPage() {
     [teams],
   )
 
-  // Auto-select first team if none selected
-  const activeTeamId = selectedTeamId ?? teams[0]?.id ?? null
-
-  const { data: roster, isLoading: rosterLoading } = trpc.contract.rosterForSeason.useQuery(
-    { teamId: activeTeamId!, seasonId },
-    { enabled: !!activeTeamId },
+  // Fetch all rosters for the season
+  const { data: allRoster, isLoading: rosterLoading } = trpc.contract.rosterForSeasonAllTeams.useQuery(
+    { seasonId },
+    { enabled: teams.length > 0 },
   )
 
-  const existingPlayerIds = useMemo(() => {
-    return (roster ?? []).map((c) => c.playerId)
-  }, [roster])
-
-  const activeTeam = teams.find((t) => t.id === activeTeamId)
-
-  // Filter roster by search
+  // Filter roster: by team (if filter active) and by search
   const filteredRoster = useMemo(() => {
-    if (!roster) return []
-    if (!search.trim()) return roster
-    const q = search.toLowerCase()
-    return roster.filter(
-      (c) =>
-        c.player.firstName.toLowerCase().includes(q) ||
-        c.player.lastName.toLowerCase().includes(q) ||
-        `${c.player.firstName} ${c.player.lastName}`.toLowerCase().includes(q),
-    )
-  }, [roster, search])
+    if (!allRoster) return []
+    let result = allRoster
+
+    // Only include contracts for teams in the season structure
+    const teamIds = new Set(teams.map((t) => t.id))
+    result = result.filter((c) => teamIds.has(c.teamId))
+
+    // Apply team filter
+    if (selectedTeamId) {
+      result = result.filter((c) => c.teamId === selectedTeamId)
+    }
+
+    // Apply search filter
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (c) =>
+          c.player.firstName.toLowerCase().includes(q) ||
+          c.player.lastName.toLowerCase().includes(q) ||
+          `${c.player.firstName} ${c.player.lastName}`.toLowerCase().includes(q),
+      )
+    }
+
+    return result
+  }, [allRoster, selectedTeamId, search, teams])
+
+  // Teams to display (filtered or all), mapped for RosterTable
+  const displayTeams = useMemo(() => {
+    const source = selectedTeamId ? teams.filter((t) => t.id === selectedTeamId) : teams
+    return source.map((t) => ({
+      id: t.id,
+      name: t.name,
+      shortName: t.shortName,
+      logoUrl: t.logoUrl,
+      primaryColor: t.primaryColor ?? null,
+    }))
+  }, [teams, selectedTeamId])
+
+  // Existing player IDs for the selected team (for sign dialog)
+  const _existingPlayerIdsForTeam = useMemo(() => {
+    if (!allRoster || !selectedTeamId) return []
+    return allRoster.filter((c) => c.teamId === selectedTeamId).map((c) => c.playerId)
+  }, [allRoster, selectedTeamId])
 
   return (
     <>
@@ -173,7 +199,7 @@ function RosterPage() {
               <FilterDropdown
                 label={t("gamesPage.filters.allTeams")}
                 options={teamFilterOptions}
-                value={activeTeamId ? [activeTeamId] : []}
+                value={selectedTeamId ? [selectedTeamId] : []}
                 onChange={(selected) => setSelectedTeamId(selected[0] ?? null)}
                 singleSelect
                 testId="roster-team-filter"
@@ -186,6 +212,7 @@ function RosterPage() {
           {rosterLoading ? (
             <div className="space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
                 <div key={i} className="space-y-2">
                   <Skeleton className="h-5 w-24 rounded" />
                   <Skeleton className="h-12 w-full rounded-lg" />
@@ -200,9 +227,11 @@ function RosterPage() {
               description={
                 search
                   ? t("rosterPage.empty.noSearchResults", { query: search })
-                  : t("rosterPage.empty.teamEmpty", {
-                      team: activeTeam?.name ?? t("rosterPage.fallback.team"),
-                    })
+                  : selectedTeamId
+                    ? t("rosterPage.empty.teamEmpty", {
+                        team: teams.find((t) => t.id === selectedTeamId)?.name ?? t("rosterPage.fallback.team"),
+                      })
+                    : t("rosterPage.empty.allTeamsEmpty")
               }
               action={
                 !search ? (
@@ -216,6 +245,7 @@ function RosterPage() {
           ) : (
             <RosterTable
               contracts={filteredRoster}
+              teams={displayTeams}
               onEdit={(c) => setEditContract(c)}
               onRelease={(c) => setReleaseContract(c)}
               onTransfer={(c) => setTransferContract(c)}
@@ -225,38 +255,42 @@ function RosterPage() {
       )}
 
       {/* Dialogs */}
-      {activeTeamId && (
+      {teams.length > 0 && (
         <>
-          <SignPlayerDialog
+          <SignPlayerSheet
             open={signDialogOpen}
             onOpenChange={setSignDialogOpen}
-            teamId={activeTeamId}
+            teams={teams.map((t) => ({
+              id: t.id,
+              name: t.name,
+              shortName: t.shortName,
+              city: t.city,
+              logoUrl: t.logoUrl,
+              primaryColor: t.primaryColor,
+            }))}
+            defaultTeamId={selectedTeamId ?? null}
             seasonId={seasonId}
-            existingPlayerIds={existingPlayerIds}
           />
 
-          <EditContractDialog
+          <EditContractSheet
             open={!!editContract}
             onOpenChange={(open) => !open && setEditContract(null)}
             contract={editContract}
-            teamId={activeTeamId}
             seasonId={seasonId}
           />
 
-          <TransferDialog
+          <TransferSheet
             open={!!transferContract}
             onOpenChange={(open) => !open && setTransferContract(null)}
             contract={transferContract}
-            currentTeamId={activeTeamId}
             seasonId={seasonId}
             teams={teams}
           />
 
-          <ReleasePlayerDialog
+          <ReleasePlayerSheet
             open={!!releaseContract}
             onOpenChange={(open) => !open && setReleaseContract(null)}
             contract={releaseContract}
-            teamId={activeTeamId}
             seasonId={seasonId}
           />
         </>

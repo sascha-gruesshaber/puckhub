@@ -89,9 +89,7 @@ function UserMenu() {
       <DropdownMenuContent align="end" className="min-w-[220px]">
         <DropdownMenuLabel className="font-normal">
           <div className="text-sm font-semibold">{userName}</div>
-          {session.user.name && (
-            <div className="text-xs text-muted-foreground mt-0.5">{session.user.email}</div>
-          )}
+          {session.user.name && <div className="text-xs text-muted-foreground mt-0.5">{session.user.email}</div>}
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />

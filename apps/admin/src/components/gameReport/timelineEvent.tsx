@@ -1,14 +1,14 @@
-import { CircleDot, Clock, Pencil, ShieldBan, Trash2 } from "lucide-react"
+import { CircleDot, Clock, EyeOff, Pencil, ShieldBan, StickyNote, Trash2 } from "lucide-react"
 import { useTranslation } from "~/i18n/use-translation"
 
 interface TimelineEventProps {
   event: {
     id: string
-    eventType: "goal" | "penalty"
-    teamId: string
-    period: number
-    timeMinutes: number
-    timeSeconds: number
+    eventType: "goal" | "penalty" | "note"
+    teamId: string | null
+    period: number | null
+    timeMinutes: number | null
+    timeSeconds: number | null
     scorer?: { firstName: string; lastName: string } | null
     assist1?: { firstName: string; lastName: string } | null
     assist2?: { firstName: string; lastName: string } | null
@@ -18,7 +18,9 @@ interface TimelineEventProps {
     penaltyMinutes: number | null
     penaltyDescription: string | null
     suspension?: { id: string; suspensionType: string; suspendedGames: number } | null
-    team: { shortName: string }
+    noteText?: string | null
+    notePublic?: boolean
+    team: { shortName: string } | null
   }
   runningScore: string
   isHome: boolean
@@ -31,15 +33,21 @@ interface TimelineEventProps {
 function TimelineEvent({ event, runningScore, isHome, index, readOnly, onEdit, onDelete }: TimelineEventProps) {
   const { t } = useTranslation("common")
 
-  const time = `${String(event.timeMinutes).padStart(2, "0")}:${String(event.timeSeconds).padStart(2, "0")}`
+  const time =
+    event.timeMinutes != null && event.timeSeconds != null
+      ? `${String(event.timeMinutes).padStart(2, "0")}:${String(event.timeSeconds).padStart(2, "0")}`
+      : ""
   const isGoal = event.eventType === "goal"
+  const isNote = event.eventType === "note"
   const hasSuspension = !!event.suspension
 
-  const nodeClass = isGoal
-    ? "game-timeline-node--goal"
-    : hasSuspension
-      ? "game-timeline-node--suspension"
-      : "game-timeline-node--penalty"
+  const nodeClass = isNote
+    ? "game-timeline-node--note"
+    : isGoal
+      ? "game-timeline-node--goal"
+      : hasSuspension
+        ? "game-timeline-node--suspension"
+        : "game-timeline-node--penalty"
 
   const assists = [event.assist1, event.assist2].filter(Boolean)
   const sideClass = isHome ? "game-timeline-entry--home" : "game-timeline-entry--away"
@@ -52,7 +60,9 @@ function TimelineEvent({ event, runningScore, isHome, index, readOnly, onEdit, o
       {/* Spine + icon node */}
       <div className="game-timeline-spine">
         <div className={`game-timeline-node ${nodeClass}`}>
-          {isGoal ? (
+          {isNote ? (
+            <StickyNote strokeWidth={2.5} />
+          ) : isGoal ? (
             <CircleDot strokeWidth={2.5} />
           ) : hasSuspension ? (
             <ShieldBan strokeWidth={2.5} />
@@ -64,7 +74,50 @@ function TimelineEvent({ event, runningScore, isHome, index, readOnly, onEdit, o
 
       {/* Card */}
       <div className="game-timeline-card">
-        {isGoal ? (
+        {isNote ? (
+          /* ── Note card ── */
+          <div className="rounded-lg border bg-card overflow-hidden">
+            <div className="h-0.5 bg-gradient-to-r from-blue-500 to-blue-400" />
+            <div className="p-3">
+              <div className={`flex items-start gap-3 ${isHome ? "flex-row-reverse text-right" : ""}`}>
+                <div className="flex-1 min-w-0">
+                  <div className={`flex items-center gap-2 mb-1 ${isHome ? "justify-end" : ""}`}>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400">
+                      {t("gameReport.note")}
+                    </span>
+                    {!event.notePublic && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        <EyeOff className="w-2.5 h-2.5" />
+                        {t("gameReport.notePrivateHint")}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{event.noteText}</p>
+                  {event.team && <p className="text-[11px] text-muted-foreground/70 mt-0.5">{event.team.shortName}</p>}
+                </div>
+              </div>
+
+              {!readOnly && (
+                <div className={`flex gap-1 mt-2 ${isHome ? "justify-start" : "justify-end"}`}>
+                  <button
+                    type="button"
+                    onClick={onEdit}
+                    className="p-1 rounded-md hover:bg-muted text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onDelete}
+                    className="p-1 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-muted-foreground/50 hover:text-red-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : isGoal ? (
           /* ── Goal card ── */
           <div className="rounded-lg border bg-card overflow-hidden">
             <div className="h-0.5 bg-gradient-to-r from-emerald-500 to-emerald-400" />

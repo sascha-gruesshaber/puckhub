@@ -1,19 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from "react"
 import { Link } from "@tanstack/react-router"
 import {
-  Send,
-  Mail,
-  User,
-  MessageSquare,
-  ChevronRight,
   ArrowLeft,
   CheckCircle2,
-  Loader2,
-  Sparkles,
-  HelpCircle,
+  ChevronRight,
   Headphones,
+  HelpCircle,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Send,
+  Sparkles,
+  User,
 } from "lucide-react"
-import { useScrollReveal, revealClasses } from "~/hooks/useScrollEffects"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 import { trpc } from "../../lib/trpc"
 
@@ -75,21 +75,18 @@ export function ContactForm({ plan }: { plan?: string }) {
 
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
 
-  const handleOtpChange = useCallback(
-    (index: number, value: string) => {
-      if (!/^\d*$/.test(value)) return
-      const digit = value.slice(-1)
-      setOtpDigits((prev) => {
-        const next = [...prev]
-        next[index] = digit
-        return next
-      })
-      if (digit && index < 5) {
-        otpRefs.current[index + 1]?.focus()
-      }
-    },
-    [],
-  )
+  const handleOtpChange = useCallback((index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return
+    const digit = value.slice(-1)
+    setOtpDigits((prev) => {
+      const next = [...prev]
+      next[index] = digit
+      return next
+    })
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus()
+    }
+  }, [])
 
   function handleOtpKeyDown(index: number, e: React.KeyboardEvent) {
     if (e.key === "Backspace" && !otpDigits[index] && index > 0) {
@@ -158,10 +155,7 @@ export function ContactForm({ plan }: { plan?: string }) {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div
-          ref={reveal.ref}
-          className={`mx-auto max-w-2xl ${revealClasses(reveal)}`}
-        >
+        <div ref={reveal.ref} className={`mx-auto max-w-2xl ${revealClasses(reveal)}`}>
           {/* Header */}
           <div className="mb-12 text-center">
             {plan ? (
@@ -178,9 +172,7 @@ export function ContactForm({ plan }: { plan?: string }) {
             <h1 className="mb-4 text-4xl font-bold sm:text-5xl">
               <span className="gradient-text">{t.contact.heading}</span>
             </h1>
-            <p className="mx-auto max-w-lg text-lg text-brand-slate leading-relaxed">
-              {t.contact.subheading}
-            </p>
+            <p className="mx-auto max-w-lg text-lg text-brand-slate leading-relaxed">{t.contact.subheading}</p>
           </div>
 
           {/* Form card */}
@@ -260,10 +252,8 @@ function FormPhase({
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {/* Inquiry type selector */}
-      <div>
-        <label className="mb-2.5 block text-sm font-medium text-brand-slate">
-          {ct.type}
-        </label>
+      <fieldset className="border-0 p-0 m-0">
+        <legend className="mb-2.5 block text-sm font-medium text-brand-slate">{ct.type}</legend>
         <div className="grid grid-cols-3 gap-3">
           {types.map((typeKey) => {
             const Icon = TYPE_ICONS[typeKey]
@@ -289,20 +279,16 @@ function FormPhase({
                   <Icon className="h-4 w-4" />
                 </div>
                 <span
-                  className={`text-xs font-medium transition-colors ${
-                    active ? "text-brand-gold" : "text-brand-slate"
-                  }`}
+                  className={`text-xs font-medium transition-colors ${active ? "text-brand-gold" : "text-brand-slate"}`}
                 >
                   {ct.types[typeKey]}
                 </span>
-                {active && (
-                  <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-brand-gold/60" />
-                )}
+                {active && <div className="absolute -bottom-px left-1/4 right-1/4 h-px bg-brand-gold/60" />}
               </button>
             )
           })}
         </div>
-      </div>
+      </fieldset>
 
       {/* Name + Email row */}
       <div className="grid gap-5 sm:grid-cols-2">
@@ -377,9 +363,7 @@ function FormPhase({
       </div>
 
       {error && (
-        <p className="rounded-lg border border-red-500/20 bg-red-500/[0.06] px-4 py-3 text-sm text-red-400">
-          {error}
-        </p>
+        <p className="rounded-lg border border-red-500/20 bg-red-500/[0.06] px-4 py-3 text-sm text-red-400">{error}</p>
       )}
 
       <button
@@ -444,17 +428,18 @@ function OtpPhase({
           <Mail className="h-6 w-6 text-brand-blue" />
         </div>
         <h2 className="mb-2 text-xl font-bold">{ct.heading}</h2>
-        <p className="text-sm text-brand-slate">
-          {ct.description.replace("{email}", email)}
-        </p>
+        <p className="text-sm text-brand-slate">{ct.description.replace("{email}", email)}</p>
       </div>
 
       {/* OTP inputs */}
       <div className="flex justify-center gap-2.5 sm:gap-3" onPaste={onOtpPaste}>
         {otpDigits.map((digit, i) => (
           <input
+            // biome-ignore lint/suspicious/noArrayIndexKey: OTP digit positions are inherently index-based
             key={i}
-            ref={(el) => { otpRefs.current[i] = el }}
+            ref={(el) => {
+              otpRefs.current[i] = el
+            }}
             type="text"
             inputMode="numeric"
             maxLength={1}
@@ -528,9 +513,7 @@ function SuccessPhase({ t }: { t: ReturnType<typeof useT> }) {
         <CheckCircle2 className="h-8 w-8 text-emerald-400" />
       </div>
       <h2 className="mb-2 text-2xl font-bold">{ct.heading}</h2>
-      <p className="mx-auto mb-8 max-w-sm text-brand-slate leading-relaxed">
-        {ct.description}
-      </p>
+      <p className="mx-auto mb-8 max-w-sm text-brand-slate leading-relaxed">{ct.description}</p>
       <Link
         to="/"
         className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-medium text-white hover:bg-white/[0.08] transition-colors"

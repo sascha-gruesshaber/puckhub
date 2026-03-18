@@ -1,5 +1,5 @@
-import { Building2, LogOut } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
+import { Building2, LogOut } from "lucide-react"
 import { signOut } from "@/auth-client"
 import { useOrganization } from "~/contexts/organizationContext"
 import { useTranslation } from "~/i18n/use-translation"

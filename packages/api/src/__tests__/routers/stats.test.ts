@@ -144,7 +144,7 @@ describe("stats router", () => {
 
   describe("seasonRoundInfo", () => {
     it("returns divisions with rounds for a season", async () => {
-      const { season, division, round } = await setupSeasonWithGame()
+      const { season, division } = await setupSeasonWithGame()
 
       const caller = createTestCaller({ asAdmin: true })
       const result = await caller.stats.seasonRoundInfo({ seasonId: season.id })

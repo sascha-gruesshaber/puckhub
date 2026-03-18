@@ -25,7 +25,7 @@ function LoginForm({ onError, redirect }: LoginFormProps) {
     try {
       const result = await authClient.signIn.magicLink({
         email,
-        callbackURL: redirect || window.location.origin + "/",
+        callbackURL: redirect || `${window.location.origin}/`,
       })
       if (result.error) {
         const msg = result.error.message ?? ""

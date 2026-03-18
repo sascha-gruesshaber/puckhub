@@ -29,14 +29,14 @@ function TwoFactorForm({ onError }: TwoFactorFormProps) {
         if (result.error) {
           onError(result.error.message ?? tErrors("BACKUP_CODE_INVALID"))
         } else {
-          navigate({ to: "/" })
+          navigate({ to: "/", search: { redirect: undefined, switchOrg: undefined } })
         }
       } else {
         const result = await authClient.twoFactor.verifyTotp({ code, trustDevice })
         if (result.error) {
           onError(result.error.message ?? tErrors("TWO_FACTOR_INVALID"))
         } else {
-          navigate({ to: "/" })
+          navigate({ to: "/", search: { redirect: undefined, switchOrg: undefined } })
         }
       }
     } catch (err) {

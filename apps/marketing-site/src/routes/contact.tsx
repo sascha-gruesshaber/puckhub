@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { Header } from "~/components/header"
-import { Footer } from "~/components/footer"
 import { ContactForm } from "~/components/contactForm"
+import { Footer } from "~/components/footer"
+import { Header } from "~/components/header"
 
 export const Route = createFileRoute("/contact")({
   validateSearch: (search: Record<string, unknown>) => ({

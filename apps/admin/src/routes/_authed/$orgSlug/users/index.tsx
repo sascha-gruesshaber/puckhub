@@ -26,10 +26,10 @@ import { useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
-import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
-import { FilterDropdown } from "~/components/filterDropdown"
+import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { FilterDropdown } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
@@ -186,7 +186,7 @@ function UsersPage() {
       setAddRoleValue("game_manager")
       setAddRoleTeamId(null)
     }
-  }, [editId, isNew, editingUser])
+  }, [isNew, editingUser])
 
   function closeSheet() {
     navigate({ search: (prev) => ({ ...prev, edit: undefined }), replace: true })
@@ -285,6 +285,7 @@ function UsersPage() {
           </span>
         ),
       })),
+    // biome-ignore lint/correctness/useExhaustiveDependencies: getRoleLabel depends only on t which is already stable
     [roleCounts, getRoleLabel],
   )
 
@@ -463,6 +464,8 @@ function UsersPage() {
                 : user.email.substring(0, 2).toUpperCase()
 
               return (
+                // biome-ignore lint/a11y/noNoninteractiveElementInteractions: role is conditionally set to "button"; onClick is guarded by isDemoOrg check
+                // biome-ignore lint/a11y/noStaticElementInteractions: role is conditionally set to "button"; onClick is guarded by isDemoOrg check
                 <div
                   key={user.id}
                   data-testid="user-row"
@@ -544,7 +547,14 @@ function UsersPage() {
       </DataPageLayout>
 
       {/* Create/Edit User Sheet with Roles */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSheet()
+        }}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
         <SheetContent size="lg">
           <SheetClose />
           <SheetHeader>
@@ -714,7 +724,10 @@ function UsersPage() {
                           <Label className="text-xs text-muted-foreground mb-1 block">
                             {t("usersPage.roles.teamScope")}
                           </Label>
-                          <Select value={addRoleTeamId ?? "__all__"} onValueChange={(v) => setAddRoleTeamId(v === "__all__" ? null : v)}>
+                          <Select
+                            value={addRoleTeamId ?? "__all__"}
+                            onValueChange={(v) => setAddRoleTeamId(v === "__all__" ? null : v)}
+                          >
                             <SelectTrigger className="w-full h-9">
                               <SelectValue />
                             </SelectTrigger>
@@ -760,7 +773,14 @@ function UsersPage() {
                 </Button>
               )}
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) setConfirmCloseOpen(true)
+                  else closeSheet()
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button type="submit" variant="accent" disabled={isSaving} data-testid="users-form-submit">
@@ -776,7 +796,9 @@ function UsersPage() {
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {

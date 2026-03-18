@@ -21,7 +21,14 @@ function TeamNodeComponent({ data, selected }: NodeProps) {
             <img src={d.logoUrl} alt={d.shortName} className="team-logo-img" />
           ) : (
             <div className="team-logo-placeholder">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="team-shield-icon">
+              <svg
+                aria-hidden="true"
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                className="team-shield-icon"
+              >
                 <path
                   d="M7 1L2.5 3v4c0 3.1 1.9 5.3 4.5 6 2.6-.7 4.5-2.9 4.5-6V3L7 1z"
                   stroke="currentColor"

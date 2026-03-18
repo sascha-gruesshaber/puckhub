@@ -22,8 +22,8 @@ import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
-import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { FilterDropdown } from "~/components/filterDropdown"
 import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
@@ -128,6 +128,7 @@ function PlayersPage() {
       .map((t) => ({
         value: t.id,
         label: t.shortName,
+        description: t.name,
         icon: t.logoUrl ? (
           <img src={t.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
         ) : (
@@ -148,7 +149,7 @@ function PlayersPage() {
       setForm(emptyForm)
       setErrors({})
     }
-  }, [editId, isNew])
+  }, [isNew])
 
   function closeSheet() {
     navigate({ search: (prev) => ({ ...prev, edit: undefined }), replace: true })
@@ -207,7 +208,16 @@ function PlayersPage() {
 
     const map = new Map<
       string,
-      { team: { id: string; name: string; shortName: string } | null; players: typeof filtered }
+      {
+        team: {
+          id: string
+          name: string
+          shortName: string
+          logoUrl: string | null
+          primaryColor: string | null
+        } | null
+        players: typeof filtered
+      }
     >()
 
     for (const p of filtered) {
@@ -215,7 +225,13 @@ function PlayersPage() {
       if (!map.has(key)) {
         map.set(key, {
           team: p.currentTeam
-            ? { id: p.currentTeam.id, name: p.currentTeam.name, shortName: p.currentTeam.shortName }
+            ? {
+                id: p.currentTeam.id,
+                name: p.currentTeam.name,
+                shortName: p.currentTeam.shortName,
+                logoUrl: p.currentTeam.logoUrl ?? null,
+                primaryColor: p.currentTeam.primaryColor ?? null,
+              }
             : null,
           players: [],
         })
@@ -286,22 +302,15 @@ function PlayersPage() {
     const age = calcAge(player.dateOfBirth)
 
     return (
-      <div
+      <button
         key={player.id}
+        type="button"
         data-testid="player-row"
         onClick={() => navigateToPlayer(player.id)}
-        className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
+        className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer w-full text-left ${
           !isLast ? "border-b border-border/40" : ""
         }`}
         style={{ "--row-index": rowIndex } as React.CSSProperties}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            navigateToPlayer(player.id)
-          }
-        }}
       >
         {/* Photo + Name */}
         <div className="flex items-center gap-4">
@@ -379,7 +388,7 @@ function PlayersPage() {
         <div className="w-12 shrink-0 hidden lg:block text-sm text-muted-foreground text-right">
           {age !== null ? `${age}` : `–`}
         </div>
-      </div>
+      </button>
     )
   }
 
@@ -442,7 +451,7 @@ function PlayersPage() {
           <NoResults query={search || t("playersPage.filters.fallback")} />
         ) : grouped ? (
           // Grouped by team
-          (<div>
+          <div>
             {(() => {
               let globalIndex = 0
               let sectionIndex = 0
@@ -454,8 +463,26 @@ function PlayersPage() {
                     className={`data-section ${currentSectionIndex > 0 ? `mt-10` : ``}`}
                     style={{ "--section-index": currentSectionIndex } as React.CSSProperties}
                   >
-                    <div className="flex items-center gap-3 mb-3 pl-3 border-l-3 border-l-primary/40">
-                      <h3 className="text-base font-bold tracking-wide uppercase text-foreground">
+                    <div className="flex items-center gap-3 mb-3">
+                      {team ? (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted overflow-hidden">
+                          {team.logoUrl ? (
+                            <img src={team.logoUrl} alt="" className="h-full w-full object-contain" />
+                          ) : (
+                            <span
+                              className="flex h-full w-full items-center justify-center text-[10px] font-bold text-white"
+                              style={{ backgroundColor: team.primaryColor ?? undefined }}
+                            >
+                              {team.shortName.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <h3 className="text-base font-bold tracking-wide text-foreground">
                         {team?.name ?? t("playersPage.labels.withoutTeam")}
                       </h3>
                       <div className="flex-1" />
@@ -473,17 +500,24 @@ function PlayersPage() {
                 )
               })
             })()}
-          </div>)
+          </div>
         ) : (
           // Flat list (specific team or unassigned)
-          (<div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((player, i) => renderPlayerRow(player, i, i === filtered.length - 1))}
-          </div>)
+          </div>
         )}
       </DataPageLayout>
 
       {/* Create Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSheet()
+        }}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
         <SheetContent>
           <SheetClose />
           <SheetHeader>
@@ -527,7 +561,11 @@ function PlayersPage() {
               {/* Date of birth + Nationality */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField label={t("playersPage.fields.dateOfBirth")} error={errors.dateOfBirth}>
-                  <Input type="date" value={form.dateOfBirth} onChange={(e) => setField("dateOfBirth", e.target.value)} />
+                  <Input
+                    type="date"
+                    value={form.dateOfBirth}
+                    onChange={(e) => setField("dateOfBirth", e.target.value)}
+                  />
                 </FormField>
                 <FormField label={t("playersPage.fields.nationality")}>
                   <Input
@@ -541,7 +579,14 @@ function PlayersPage() {
 
             <SheetFooter>
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) setConfirmCloseOpen(true)
+                  else closeSheet()
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button type="submit" variant="accent" disabled={isSaving} data-testid="players-form-submit">
@@ -557,7 +602,9 @@ function PlayersPage() {
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {

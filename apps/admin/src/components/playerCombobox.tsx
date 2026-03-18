@@ -1,11 +1,11 @@
 import {
-  cn,
   Command,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  cn,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -108,7 +108,9 @@ export function PlayerCombobox({
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-sm text-foreground truncate">
                     {selectedPlayer.jerseyNumber != null && (
-                      <span className="font-mono text-xs text-muted-foreground mr-1">#{selectedPlayer.jerseyNumber}</span>
+                      <span className="font-mono text-xs text-muted-foreground mr-1">
+                        #{selectedPlayer.jerseyNumber}
+                      </span>
                     )}
                     {selectedPlayer.firstName} {selectedPlayer.lastName}
                   </div>
@@ -131,16 +133,15 @@ export function PlayerCombobox({
 
           <div className="flex items-center gap-1 shrink-0">
             {selectedPlayer && (
-              <span
-                role="button"
+              <button
+                type="button"
                 tabIndex={-1}
                 onClick={handleClear}
-                onKeyDown={(e) => e.key === "Enter" && handleClear(e as unknown as React.MouseEvent)}
                 className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                 aria-label="Clear selection"
               >
                 <X className="h-3.5 w-3.5" />
-              </span>
+              </button>
             )}
             <ChevronDown
               className={cn("h-4 w-4 text-muted-foreground transition-transform duration-200", open && "rotate-180")}
@@ -192,9 +193,7 @@ export function PlayerCombobox({
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[15px] text-foreground truncate">
                         {player.jerseyNumber != null && (
-                          <span className="font-mono text-xs text-muted-foreground mr-1.5">
-                            #{player.jerseyNumber}
-                          </span>
+                          <span className="font-mono text-xs text-muted-foreground mr-1.5">#{player.jerseyNumber}</span>
                         )}
                         {player.firstName} {player.lastName}
                       </div>

@@ -31,7 +31,7 @@ export function PublicReportButton({ onClick }: { onClick: () => void }) {
           <div className="text-xs text-league-text/50 mt-0.5">{t.publicReport.buttonDesc}</div>
         </div>
         <div className="text-league-primary/60 transition-transform group-hover:translate-x-0.5">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
             <path
               d="M7.5 5L12.5 10L7.5 15"
               stroke="currentColor"
@@ -265,7 +265,9 @@ export function PublicReportPanel({
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
-      <div
+      <button
+        type="button"
+        aria-label="Close"
         className={`absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${isVisible ? "opacity-100" : "opacity-0"}`}
         onClick={handleClose}
       />
@@ -339,10 +341,14 @@ export function PublicReportPanel({
 
                 {/* Comment */}
                 <div>
-                  <label className="block text-xs font-semibold text-league-text/50 uppercase tracking-wide mb-2">
+                  <label
+                    htmlFor="public-report-comment"
+                    className="block text-xs font-semibold text-league-text/50 uppercase tracking-wide mb-2"
+                  >
                     {t.publicReport.commentLabel}
                   </label>
                   <input
+                    id="public-report-comment"
                     type="text"
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
@@ -388,12 +394,16 @@ export function PublicReportPanel({
 
                 {/* Email */}
                 <div>
-                  <label className="block text-xs font-semibold text-league-text/50 uppercase tracking-wide mb-2">
+                  <label
+                    htmlFor="public-report-email"
+                    className="block text-xs font-semibold text-league-text/50 uppercase tracking-wide mb-2"
+                  >
                     {t.publicReport.emailLabel}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-league-text/30" />
                     <input
+                      id="public-report-email"
                       type="email"
                       required
                       value={email}
@@ -471,7 +481,7 @@ export function PublicReportPanel({
                 className="flex gap-2 sm:gap-2.5 mb-6 animate-[fadeSlideUp_0.5s_ease-out_0.4s_both]"
                 onPaste={handleOtpPaste}
               >
-                {otpDigits.map((digit, i) => (
+                {([0, 1, 2, 3, 4, 5] as const).map((i) => (
                   <input
                     key={i}
                     ref={(el) => {
@@ -480,12 +490,12 @@ export function PublicReportPanel({
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
-                    value={digit}
+                    value={otpDigits[i]}
                     onChange={(e) => handleOtpChange(i, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(i, e)}
                     disabled={submitReport.isPending}
                     className={`h-13 w-10 sm:h-14 sm:w-11 rounded-xl border-2 bg-league-surface text-center text-lg sm:text-xl font-bold text-league-text transition-all focus:outline-none focus:border-league-primary focus:ring-4 focus:ring-league-primary/10 disabled:opacity-50 ${
-                      digit ? "border-league-primary/40 scale-105" : "border-league-text/12"
+                      otpDigits[i] ? "border-league-primary/40 scale-105" : "border-league-text/12"
                     } ${submitReport.isPending ? "animate-pulse" : ""}`}
                   />
                 ))}

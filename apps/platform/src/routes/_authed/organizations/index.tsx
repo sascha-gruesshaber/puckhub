@@ -744,7 +744,10 @@ function OrganizationsPage() {
 
             {plans && plans.length > 0 && (
               <FormField label="Plan">
-                <Select value={editForm.planId || "__none__"} onValueChange={(v) => setEditForm((p) => ({ ...p, planId: v === "__none__" ? "" : v }))}>
+                <Select
+                  value={editForm.planId || "__none__"}
+                  onValueChange={(v) => setEditForm((p) => ({ ...p, planId: v === "__none__" ? "" : v }))}
+                >
                   <SelectTrigger className="h-9 w-full">
                     <SelectValue />
                   </SelectTrigger>

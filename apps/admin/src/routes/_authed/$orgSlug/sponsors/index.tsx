@@ -20,16 +20,16 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
-import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
-import { ImageUpload } from "~/components/imageUpload"
-import { FilterDropdown } from "~/components/filterDropdown"
+import { FeatureGate } from "~/components/featureGate"
+import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { FilterDropdown } from "~/components/filterDropdown"
+import { ImageUpload } from "~/components/imageUpload"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
-import { FeatureGate } from "~/components/featureGate"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
@@ -136,7 +136,7 @@ function SponsorsPage() {
       })
       setErrors({})
     }
-  }, [editId, isNew, editingSponsor])
+  }, [isNew, editingSponsor])
 
   // Build team filter options from season teams that have sponsors assigned
   const teamOptions: FilterDropdownOption[] = useMemo(() => {
@@ -297,21 +297,14 @@ function SponsorsPage() {
     const initials = sponsor.name.substring(0, 2).toUpperCase()
 
     return (
-      <div
+      <button
         key={sponsor.id}
+        type="button"
         onClick={() => openSheet(sponsor.id)}
-        className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
+        className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer w-full text-left ${
           !isLast ? "border-b border-border/40" : ""
         }`}
         style={{ "--row-index": globalIndex } as React.CSSProperties}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            openSheet(sponsor.id)
-          }
-        }}
       >
         {/* Position / Sort order */}
         <div className="w-8 shrink-0 text-center">
@@ -361,7 +354,7 @@ function SponsorsPage() {
             <span className="text-sm text-muted-foreground">–</span>
           )}
         </div>
-      </div>
+      </button>
     )
   }
 
@@ -425,7 +418,7 @@ function SponsorsPage() {
           <NoResults query={search || t("sponsorsPage.filters.fallback")} />
         ) : showGroupHeaders ? (
           // Grouped view: Active + Inactive sections
-          (<div>
+          <div>
             {/* Active group */}
             {hasActive && (
               <div className="data-section" style={{ "--section-index": 0 } as React.CSSProperties}>
@@ -465,23 +458,28 @@ function SponsorsPage() {
                 </div>
               </div>
             )}
-          </div>)
+          </div>
         ) : (
           // Flat list (only one status present, or specific filter)
-          (<div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((sponsor, i) => renderSponsorRow(sponsor, i, i === filtered.length - 1))}
-          </div>)
+          </div>
         )}
       </DataPageLayout>
 
       {/* Create/Edit Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSheet()
+        }}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
         <SheetContent>
           <SheetClose />
           <SheetHeader>
-            <SheetTitle>
-              {isNew ? t("sponsorsPage.dialogs.newTitle") : t("sponsorsPage.dialogs.editTitle")}
-            </SheetTitle>
+            <SheetTitle>{isNew ? t("sponsorsPage.dialogs.newTitle") : t("sponsorsPage.dialogs.editTitle")}</SheetTitle>
             <SheetDescription>
               {isNew ? t("sponsorsPage.dialogs.newDescription") : t("sponsorsPage.dialogs.editDescription")}
             </SheetDescription>
@@ -571,18 +569,20 @@ function SponsorsPage() {
             <SheetFooter>
               {/* Delete button — left side, only in edit mode */}
               {editingSponsor && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
+                <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   {t("sponsorsPage.actions.delete")}
                 </Button>
               )}
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) setConfirmCloseOpen(true)
+                  else closeSheet()
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button type="submit" variant="accent" disabled={isSaving}>
@@ -598,7 +598,9 @@ function SponsorsPage() {
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {

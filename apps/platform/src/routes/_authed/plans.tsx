@@ -79,7 +79,7 @@ const emptyForm: PlanForm = {
 }
 
 function formatPrice(cents: number): string {
-  return (cents / 100).toFixed(2).replace(".", ",") + " EUR"
+  return `${(cents / 100).toFixed(2).replace(".", ",")} EUR`
 }
 
 function LimitInput({
@@ -92,11 +92,18 @@ function LimitInput({
   onChange: (v: number | null) => void
 }) {
   const isUnlimited = value === null
+  const inputId = `limit-${label
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")}`
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1">
-        <label className="text-xs text-muted-foreground">{label}</label>
+        <label htmlFor={inputId} className="text-xs text-muted-foreground">
+          {label}
+        </label>
         <Input
+          id={inputId}
           type="number"
           min={0}
           value={isUnlimited ? "" : value}
@@ -218,7 +225,7 @@ function PlansPage() {
 
       {isLoading ? (
         <div className="space-y-3 animate-pulse">
-          {[1, 2, 3].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="h-16 rounded-xl bg-muted" />
           ))}
         </div>
@@ -229,7 +236,7 @@ function PlansPage() {
           <p className="mt-1 text-sm text-muted-foreground">Run the seed to create the default plans.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {plans.map((plan) => (
             <div
               key={plan.id}
@@ -289,14 +296,14 @@ function PlansPage() {
                   type="number"
                   min={0}
                   value={form.priceYearly}
-                  onChange={(e) => setForm((p) => ({ ...p, priceYearly: Number.parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => setForm((p) => ({ ...p, priceYearly: Number.parseInt(e.target.value, 10) || 0 }))}
                 />
               </FormField>
               <FormField label="Sort Order">
                 <Input
                   type="number"
                   value={form.sortOrder}
-                  onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number.parseInt(e.target.value) || 0 }))}
+                  onChange={(e) => setForm((p) => ({ ...p, sortOrder: Number.parseInt(e.target.value, 10) || 0 }))}
                 />
               </FormField>
             </div>

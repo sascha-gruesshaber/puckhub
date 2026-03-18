@@ -35,10 +35,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
   ({ className, children, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn(
-        "relative mx-auto w-full max-w-2xl rounded-lg border bg-background shadow-lg",
-        className,
-      )}
+      className={cn("relative mx-auto w-full max-w-2xl rounded-lg border bg-background shadow-lg", className)}
       {...props}
     >
       {children}
@@ -113,4 +110,4 @@ const DialogClose = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttribut
 )
 DialogClose.displayName = "DialogClose"
 
-export { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose }
+export { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle }

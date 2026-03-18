@@ -10,48 +10,46 @@ function normalizeEmail(email: string): string {
 
 export const contactFormRouter = router({
   /** Send an OTP code to verify the sender's email address */
-  requestOtp: publicProcedure
-    .input(z.object({ email: z.string().email() }))
-    .mutation(async ({ ctx, input }) => {
-      const email = normalizeEmail(input.email)
-      const identifier = `contact-form:${email}`
+  requestOtp: publicProcedure.input(z.object({ email: z.string().email() })).mutation(async ({ ctx, input }) => {
+    const email = normalizeEmail(input.email)
+    const identifier = `contact-form:${email}`
 
-      // Rate limit: max 3 OTP requests per email per hour
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-      const recentCount = await ctx.db.verification.count({
-        where: { identifier, createdAt: { gte: oneHourAgo } },
-      })
-      if (recentCount >= 3) {
-        throw createAppError(
-          "TOO_MANY_REQUESTS",
-          APP_ERROR_CODES.CONTACT_RATE_LIMITED,
-          "Too many OTP requests. Please try again later.",
-        )
-      }
+    // Rate limit: max 3 OTP requests per email per hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+    const recentCount = await ctx.db.verification.count({
+      where: { identifier, createdAt: { gte: oneHourAgo } },
+    })
+    if (recentCount >= 3) {
+      throw createAppError(
+        "TOO_MANY_REQUESTS",
+        APP_ERROR_CODES.CONTACT_RATE_LIMITED,
+        "Too many OTP requests. Please try again later.",
+      )
+    }
 
-      // Generate 6-digit code
-      const code = String(Math.floor(100000 + Math.random() * 900000))
+    // Generate 6-digit code
+    const code = String(Math.floor(100000 + Math.random() * 900000))
 
-      // Store in verification table (10 min TTL)
-      await ctx.db.verification.create({
-        data: {
-          id: crypto.randomUUID(),
-          identifier,
-          value: code,
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        },
-      })
+    // Store in verification table (10 min TTL)
+    await ctx.db.verification.create({
+      data: {
+        id: crypto.randomUUID(),
+        identifier,
+        value: code,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    })
 
-      // Send email with code
-      const { contactOtpEmail } = await import("../../lib/emailTemplates")
-      await sendEmail({
-        to: email,
-        subject: "Your verification code – PuckHub",
-        html: contactOtpEmail(code),
-      })
+    // Send email with code
+    const { contactOtpEmail } = await import("../../lib/emailTemplates")
+    await sendEmail({
+      to: email,
+      subject: "Your verification code – PuckHub",
+      html: contactOtpEmail(code),
+    })
 
-      return { success: true }
-    }),
+    return { success: true }
+  }),
 
   /** Submit the contact form after OTP verification */
   submit: publicProcedure

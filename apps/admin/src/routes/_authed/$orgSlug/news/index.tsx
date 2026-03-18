@@ -4,10 +4,10 @@ import { Clock, Newspaper, Plus } from "lucide-react"
 import { useCallback, useMemo } from "react"
 import { trpc } from "@/trpc"
 import { DataPageLayout } from "~/components/dataPageLayout"
-import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
-import { FilterDropdown } from "~/components/filterDropdown"
+import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { FilterDropdown } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
@@ -172,31 +172,18 @@ function NewsPage() {
                 : t("newsPage.status.published")
 
             return (
-              <div
+              <button
                 key={article.id}
+                type="button"
                 data-testid="news-row"
-                role="button"
-                tabIndex={0}
-                onClick={() =>
-                  navigate({ to: "/$orgSlug/news/$newsId/edit", params: { orgSlug, newsId: article.id } })
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    navigate({ to: "/$orgSlug/news/$newsId/edit", params: { orgSlug, newsId: article.id } })
-                  }
-                }}
-                className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
+                onClick={() => navigate({ to: "/$orgSlug/news/$newsId/edit", params: { orgSlug, newsId: article.id } })}
+                className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer w-full text-left ${
                   i < filtered.length - 1 ? "border-b border-border/40" : ""
                 }`}
                 style={{ "--row-index": i } as React.CSSProperties}
               >
                 {/* Status dot */}
-                <div
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ background: dotColor }}
-                  title={dotTitle}
-                />
+                <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: dotColor }} title={dotTitle} />
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
@@ -238,7 +225,7 @@ function NewsPage() {
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             )
           })}
         </div>

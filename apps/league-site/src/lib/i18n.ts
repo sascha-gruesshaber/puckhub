@@ -132,6 +132,7 @@ const en = {
     goals: "Goals",
     penalties: "Penalties",
     noDetailedReports: "No detailed game reports available for this game.",
+    notes: "Notes",
     lineups: "Lineups",
     noLineup: "No lineup available",
   },
@@ -214,8 +215,7 @@ const en = {
     searchTeams: "Search teams...",
     allSelected: "All teams selected",
     noMatch: "No teams found",
-    hintOneMore:
-      "Select at least one more team to compare wins, losses, goals, goals against and penalty minutes.",
+    hintOneMore: "Select at least one more team to compare wins, losses, goals, goals against and penalty minutes.",
     hintSelectTwo: "Select at least two teams to compare their all-time statistics across all seasons.",
     notEnoughTeams: "Not enough teams",
     notEnoughTeamsDesc: "At least two teams are required for a comparison.",
@@ -512,6 +512,7 @@ const de: Translations = {
     goals: "Tore",
     penalties: "Strafen",
     noDetailedReports: "Für dieses Spiel sind keine detaillierten Spielberichte verfügbar.",
+    notes: "Notizen",
     lineups: "Aufstellungen",
     noLineup: "Keine Aufstellung verfügbar",
   },
@@ -596,8 +597,7 @@ const de: Translations = {
     noMatch: "Keine Teams gefunden",
     hintOneMore:
       "Wähle mindestens ein weiteres Team, um Siege, Niederlagen, Tore, Gegentore und Strafminuten zu vergleichen.",
-    hintSelectTwo:
-      "Wähle mindestens zwei Teams aus, um ihre Gesamtstatistiken über alle Saisons zu vergleichen.",
+    hintSelectTwo: "Wähle mindestens zwei Teams aus, um ihre Gesamtstatistiken über alle Saisons zu vergleichen.",
     notEnoughTeams: "Nicht genügend Teams",
     notEnoughTeamsDesc: "Für einen Vergleich werden mindestens zwei Teams benötigt.",
   },

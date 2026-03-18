@@ -93,12 +93,7 @@ function getTimelineDotClasses(rank: number | null) {
 // ---------------------------------------------------------------------------
 function RankBadge({ rank }: { rank: number | null }) {
   if (rank === null) return null
-  const icon =
-    rank === 1 ? (
-      <Trophy className="h-3.5 w-3.5" />
-    ) : rank <= 3 ? (
-      <Medal className="h-3.5 w-3.5" />
-    ) : null
+  const icon = rank === 1 ? <Trophy className="h-3.5 w-3.5" /> : rank <= 3 ? <Medal className="h-3.5 w-3.5" /> : null
 
   return (
     <div
@@ -193,15 +188,7 @@ function PlayerCard({ player, accent }: { player: RosterPlayer; accent: "green" 
   )
 }
 
-function RosterChanges({
-  joined,
-  departed,
-  t,
-}: {
-  joined: RosterPlayer[]
-  departed: RosterPlayer[]
-  t: Translations
-}) {
+function RosterChanges({ joined, departed, t }: { joined: RosterPlayer[]; departed: RosterPlayer[]; t: Translations }) {
   if (joined.length === 0 && departed.length === 0) return null
 
   return (
@@ -486,5 +473,5 @@ function SeasonTimeline({
   )
 }
 
+export type { GoalieInfo, ScorerInfo, SeasonEntry }
 export { SeasonTimeline }
-export type { SeasonEntry, ScorerInfo, GoalieInfo }

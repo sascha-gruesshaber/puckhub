@@ -3,9 +3,9 @@ import { lazy, useMemo, useState } from "react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { ChartSuspense } from "~/components/stats/statsTables"
+import { useSubRouteVisible } from "~/hooks/useSubRouteVisible"
 import { useFeatures, useOrg } from "~/lib/context"
 import { useT } from "~/lib/i18n"
-import { useSubRouteVisible } from "~/hooks/useSubRouteVisible"
 import { trpc } from "../../../lib/trpc"
 
 const TeamComparisonRadar = lazy(() =>

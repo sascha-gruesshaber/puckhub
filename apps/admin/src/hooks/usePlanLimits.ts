@@ -122,4 +122,4 @@ export function usePlanLimits() {
   }
 }
 
-export type { LimitKey, FeatureKey }
+export type { FeatureKey, LimitKey }

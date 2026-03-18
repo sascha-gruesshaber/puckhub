@@ -3,7 +3,6 @@ import { Plus, X } from "lucide-react"
 import { useCallback, useMemo, useRef, useState } from "react"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { useT } from "~/lib/i18n"
-import { cn } from "~/lib/utils"
 
 interface Team {
   id: string
@@ -67,7 +66,12 @@ function TeamComparisonSelector({ teams, selectedIds, onToggle }: TeamComparison
             data-testid={`compare-teams-chip-${testIdSuffix(team.shortName)}`}
             className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-league-primary text-white text-sm font-medium shadow-sm animate-fade-in"
           >
-            <TeamLogo name={team.name} logoUrl={team.logoUrl} size="sm" className="h-5 w-5 !text-[9px] rounded-full ring-1 ring-white/20" />
+            <TeamLogo
+              name={team.name}
+              logoUrl={team.logoUrl}
+              size="sm"
+              className="h-5 w-5 !text-[9px] rounded-full ring-1 ring-white/20"
+            />
             <span>{team.shortName}</span>
             <button
               type="button"

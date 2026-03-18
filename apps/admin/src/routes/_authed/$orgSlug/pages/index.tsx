@@ -1,18 +1,15 @@
-import { Badge, Button, FormField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
-import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
-import { ChevronRight, FileText, GripVertical, Link2, PanelTop, Plus, Trash2, X } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
 import {
-  DndContext,
-  DragOverlay,
   closestCenter,
+  DndContext,
+  type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core"
+import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
 import {
   arrayMove,
   SortableContext,
@@ -21,10 +18,24 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers"
+import {
+  Badge,
+  Button,
+  FormField,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@puckhub/ui"
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
+import { ChevronRight, FileText, GripVertical, Link2, PanelTop, Plus, X } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { TabNavigation, type TabGroup } from "~/components/tabNavigation"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
@@ -32,6 +43,7 @@ import { FilterDropdown } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
+import { type TabGroup, TabNavigation } from "~/components/tabNavigation"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
@@ -71,7 +83,7 @@ function SortablePageRow({
   parentSlug,
   rowIndex,
   onToggleStatus,
-  onDelete,
+  onDelete: _onDelete,
   t,
   isFiltered,
 }: {

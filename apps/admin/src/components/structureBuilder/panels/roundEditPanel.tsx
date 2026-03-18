@@ -3,8 +3,8 @@ import { AlertTriangle, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import { type RoundType, roundTypeMap } from "../utils/roundTypeColors"
 
 interface RoundEditPanelProps {
@@ -92,8 +92,11 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.name")}</label>
+        <label htmlFor="round-edit-name" className="text-[11px] font-medium text-gray-600">
+          {t("seasonStructure.fields.name")}
+        </label>
         <Input
+          id="round-edit-name"
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
           className="h-8 text-xs bg-white border-gray-200 text-gray-900"
@@ -101,7 +104,7 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.roundType")}</label>
+        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.roundType")}</p>
         <Select value={editType} onValueChange={(v) => setEditType(v)}>
           <SelectTrigger className="h-8 text-xs bg-white border-gray-200 text-gray-900">
             <SelectValue />
@@ -117,7 +120,7 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.points")}</label>
+        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.points")}</p>
         <div className="grid grid-cols-3 gap-2">
           <div>
             <div className="text-[10px] text-gray-500 mb-1">{t("seasonStructure.points.win")}</div>
@@ -150,7 +153,7 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.statistics")}</label>
+        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.statistics")}</p>
         <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -206,7 +209,9 @@ export function RoundEditPanel({
               <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
               <span className="text-sm text-red-800">{t("seasonStructure.confirmDelete.roundWarning")}</span>
             </div>
-            <p className="text-sm text-gray-600">{t("seasonStructure.confirmDelete.roundDescription", { name: editName })}</p>
+            <p className="text-sm text-gray-600">
+              {t("seasonStructure.confirmDelete.roundDescription", { name: editName })}
+            </p>
           </div>
         }
         confirmLabel={t("seasonStructure.confirmDelete.confirmDelete")}

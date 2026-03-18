@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
 import { ChevronDown, Menu, X } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useT } from "~/i18n"
 
 export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
@@ -29,6 +29,8 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8">
             {/* Features dropdown */}
+            {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: mouse events open/close dropdown on a nav wrapper */}
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: mouse enter/leave are used for hover dropdown, not a click action */}
             <div
               className="relative"
               onMouseEnter={() => setFeaturesOpen(true)}
@@ -45,6 +47,7 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
               {featuresOpen && (
                 <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2">
                   <div className="rounded-lg border border-white/10 bg-brand-navy-light/95 backdrop-blur-xl shadow-xl p-1.5 min-w-[200px]">
+                    {/* biome-ignore lint/a11y/useValidAnchor: valid navigation link; onClick only closes the dropdown as a side effect */}
                     <a
                       href="/#features"
                       className="block rounded-md px-3 py-2 text-sm text-brand-slate hover:text-white hover:bg-white/5 transition-colors"
@@ -68,17 +71,11 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
               )}
             </div>
 
-            <a
-              href="/#pricing"
-              className="text-sm font-medium text-brand-slate hover:text-white transition-colors"
-            >
+            <a href="/#pricing" className="text-sm font-medium text-brand-slate hover:text-white transition-colors">
               {t.header.pricing}
             </a>
 
-            <a
-              href="/contact"
-              className="text-sm font-medium text-brand-slate hover:text-white transition-colors"
-            >
+            <a href="/contact" className="text-sm font-medium text-brand-slate hover:text-white transition-colors">
               {t.contact.navLabel}
             </a>
 
@@ -106,6 +103,7 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
         {/* Mobile nav */}
         {mobileOpen && (
           <div className="md:hidden pb-4 border-t border-white/10 mt-2 pt-4">
+            {/* biome-ignore lint/a11y/useValidAnchor: valid navigation link; onClick only closes the mobile menu as a side effect */}
             <a
               href="/#features"
               className="block py-2 text-sm font-medium text-brand-slate hover:text-white"
@@ -123,6 +121,7 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
                 {section.label}
               </a>
             ))}
+            {/* biome-ignore lint/a11y/useValidAnchor: valid navigation link; onClick only closes the mobile menu as a side effect */}
             <a
               href="/#pricing"
               className="block py-2 text-sm font-medium text-brand-slate hover:text-white"

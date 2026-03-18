@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { Scheduler, setSchedulerInstance, getSchedulerInstance } from "../../lib/scheduler"
-import { createTestCaller, createPlatformAdminCaller } from "../testUtils"
+import { getSchedulerInstance, Scheduler, setSchedulerInstance } from "../../lib/scheduler"
+import { createPlatformAdminCaller, createTestCaller } from "../testUtils"
 
 describe("scheduler router", () => {
   let originalInstance: ReturnType<typeof getSchedulerInstance>

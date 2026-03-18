@@ -196,9 +196,7 @@ export function TeamDetailPage() {
                         search={{ from: backPath }}
                         className="block"
                       >
-                        <div
-                          className="flex items-center gap-3 rounded-lg border border-league-text/10 bg-league-surface px-4 py-3 transition-colors w-full sm:w-72 hover:border-league-primary/30"
-                        >
+                        <div className="flex items-center gap-3 rounded-lg border border-league-text/10 bg-league-surface px-4 py-3 transition-colors w-full sm:w-72 hover:border-league-primary/30">
                           {p.photoUrl ? (
                             <img
                               src={p.photoUrl}

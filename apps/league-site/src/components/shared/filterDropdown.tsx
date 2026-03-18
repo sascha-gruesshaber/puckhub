@@ -78,33 +78,23 @@ function FilterDropdown({
         >
           {triggerLabel}
           {hasSelection ? (
-            <span
-              role="button"
+            <button
+              type="button"
               tabIndex={-1}
               onClick={clearSelection}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") clearSelection(e as unknown as React.MouseEvent)
-              }}
               className="ml-0.5 -mr-1 rounded-full p-0.5 hover:bg-white/20 transition-colors"
               aria-label={t.layout.resetFilters}
             >
               <X className="h-3 w-3" />
-            </span>
+            </button>
           ) : (
             <ChevronDown className="h-3.5 w-3.5" />
           )}
         </button>
       </PopoverTrigger>
 
-      <PopoverContent
-        align="start"
-        className="min-w-[200px] w-auto p-0 border-league-text/10 bg-league-surface"
-      >
-        <div
-          role="listbox"
-          aria-multiselectable={!singleSelect}
-          className="max-h-[280px] overflow-y-auto py-1"
-        >
+      <PopoverContent align="start" className="min-w-[200px] w-auto p-0 border-league-text/10 bg-league-surface">
+        <div role="listbox" aria-multiselectable={!singleSelect} className="max-h-[280px] overflow-y-auto py-1">
           {options.map((option) => {
             const isSelected = value.includes(option.value)
             return (
@@ -146,5 +136,5 @@ function FilterDropdown({
   )
 }
 
-export { FilterDropdown }
 export type { FilterDropdownOption, FilterDropdownProps }
+export { FilterDropdown }

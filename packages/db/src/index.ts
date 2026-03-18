@@ -21,8 +21,8 @@ export function createPrismaClientWithUrl(connectionString: string): PrismaClien
 }
 
 export type Database = PrismaClient
-export { PrismaClient }
 export type { Prisma } from "./generated/prisma/client"
 export * from "./generated/prisma/enums"
 export { runMigrations } from "./migrate"
 export { runSeed } from "./seed/index"
+export { PrismaClient }

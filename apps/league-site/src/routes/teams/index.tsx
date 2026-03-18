@@ -29,6 +29,7 @@ function TeamsPage() {
         {isLoading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
               <div key={i} className="rounded-lg border border-league-text/10 bg-league-surface p-6">
                 <Skeleton className="h-16 w-16 rounded-full mx-auto mb-3" />
                 <Skeleton className="h-5 w-32 mx-auto mb-1" />

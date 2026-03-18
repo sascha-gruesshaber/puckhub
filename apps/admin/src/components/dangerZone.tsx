@@ -17,9 +17,7 @@ function DangerZone({ hint, children }: DangerZoneProps) {
         <AlertTriangle className="h-3 w-3" />
         {t("dangerZone.title")}
       </div>
-      {hint && (
-        <p className="text-xs text-muted-foreground leading-relaxed">{hint}</p>
-      )}
+      {hint && <p className="text-xs text-muted-foreground leading-relaxed">{hint}</p>}
       {children}
     </div>
   )

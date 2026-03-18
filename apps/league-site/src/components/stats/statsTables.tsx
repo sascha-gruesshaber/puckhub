@@ -33,13 +33,7 @@ export function ChartSuspense({ children }: { children: React.ReactNode }) {
 
 type SortColumn = "scorers" | "goals" | "assists"
 
-export function PlayerTable({
-  stats,
-  sortBy,
-}: {
-  stats: any[]
-  sortBy: SortColumn
-}) {
+export function PlayerTable({ stats, sortBy }: { stats: any[]; sortBy: SortColumn }) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -125,15 +119,7 @@ export function PlayerTable({
 // Goalie stats table
 // ---------------------------------------------------------------------------
 
-function GoalieSection({
-  title,
-  stats,
-  startRank,
-}: {
-  title?: string
-  stats: any[]
-  startRank: number
-}) {
+function GoalieSection({ title, stats, startRank }: { title?: string; stats: any[]; startRank: number }) {
   const backPath = useBackPath()
   const t = useT()
 
@@ -203,11 +189,7 @@ function GoalieSection({
   )
 }
 
-export function GoalieTable({
-  data,
-}: {
-  data: { qualified: any[]; belowThreshold: any[]; minGames: number }
-}) {
+export function GoalieTable({ data }: { data: { qualified: any[]; belowThreshold: any[]; minGames: number } }) {
   const t = useT()
 
   if (data.qualified.length === 0 && data.belowThreshold.length === 0) {
@@ -216,9 +198,7 @@ export function GoalieTable({
 
   return (
     <div>
-      {data.qualified.length > 0 && (
-        <GoalieSection stats={data.qualified} startRank={1} />
-      )}
+      {data.qualified.length > 0 && <GoalieSection stats={data.qualified} startRank={1} />}
       {data.belowThreshold.length > 0 && (
         <GoalieSection
           title={`${t.statsTables.belowMinGames} (${data.minGames} ${t.tooltip.gamesPlayed})`}

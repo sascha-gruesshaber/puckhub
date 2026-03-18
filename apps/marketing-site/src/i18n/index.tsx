@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo } from "react"
-import { translations, type Locale, type Translations } from "./translations"
+import { type Locale, type Translations, translations } from "./translations"
 
 const LocaleContext = createContext<Locale>("de")
 

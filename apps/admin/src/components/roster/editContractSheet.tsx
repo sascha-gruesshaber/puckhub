@@ -17,23 +17,22 @@ import {
   SheetTitle,
   toast,
 } from "@puckhub/ui"
-import { useMemo, useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { PlayerInfoCard } from "~/components/player/playerInfoCard"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import type { ContractRow } from "./rosterTable"
 
-interface EditContractDialogProps {
+interface EditContractSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   contract: ContractRow | null
-  teamId: string
   seasonId: string
 }
 
-function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: EditContractDialogProps) {
+function EditContractSheet({ open, onOpenChange, contract, seasonId }: EditContractSheetProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const [position, setPosition] = useState<"forward" | "defense" | "goalie">("forward")
@@ -56,7 +55,10 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
 
   const updateMutation = trpc.contract.updateContract.useMutation({
     onSuccess: () => {
-      utils.contract.rosterForSeason.invalidate({ teamId, seasonId })
+      if (contract?.teamId) {
+        utils.contract.rosterForSeason.invalidate({ teamId: contract.teamId, seasonId })
+      }
+      utils.contract.rosterForSeasonAllTeams.invalidate({ seasonId })
       onOpenChange(false)
       toast.success(t("rosterPage.editDialog.toast.updated"))
     },
@@ -87,12 +89,7 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
 
   return (
     <>
-      <Sheet
-        open={open}
-        onOpenChange={onOpenChange}
-        dirty={isDirty}
-        onDirtyClose={() => setConfirmCloseOpen(true)}
-      >
+      <Sheet open={open} onOpenChange={onOpenChange} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
         <SheetContent>
           <SheetClose />
           <SheetHeader>
@@ -138,9 +135,17 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
 
             <SheetFooter>
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => {
-                if (isDirty) { setConfirmCloseOpen(true) } else { onOpenChange(false) }
-              }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) {
+                    setConfirmCloseOpen(true)
+                  } else {
+                    onOpenChange(false)
+                  }
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button type="submit" variant="accent" disabled={updateMutation.isPending}>
@@ -157,7 +162,9 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {
@@ -169,4 +176,4 @@ function EditContractDialog({ open, onOpenChange, contract, teamId, seasonId }: 
   )
 }
 
-export { EditContractDialog }
+export { EditContractSheet }

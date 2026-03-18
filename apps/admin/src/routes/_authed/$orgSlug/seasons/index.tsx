@@ -13,7 +13,7 @@ import {
   SheetTitle,
   toast,
 } from "@puckhub/ui"
-import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { AlertTriangle, Calendar, Plus, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
@@ -74,7 +74,6 @@ function createEmptyForm(): SeasonForm {
 // Main page
 // ---------------------------------------------------------------------------
 function SeasonsPage() {
-  const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   usePermissionGuard("seasonStructure")
   const { t, i18n } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
@@ -121,7 +120,7 @@ function SeasonsPage() {
       })
       setErrors({})
     }
-  }, [editId, isNew, editingSeason])
+  }, [isNew, editingSeason])
 
   function closeSheet() {
     navigate({ search: (prev) => ({ ...prev, edit: undefined }), replace: true })
@@ -291,21 +290,14 @@ function SeasonsPage() {
               })
 
               return (
-                <div
+                <button
                   key={season.id}
+                  type="button"
                   onClick={() => openSheet(season.id)}
-                  className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
+                  className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer w-full text-left ${
                     i < filtered.length - 1 ? "border-b border-border/40" : ""
                   }`}
                   style={{ "--row-index": i } as React.CSSProperties}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      openSheet(season.id)
-                    }
-                  }}
                 >
                   {/* Season badge */}
                   <div
@@ -345,7 +337,7 @@ function SeasonsPage() {
                       {t("seasonsPage.meta.createdAt", { date: formattedDate })}
                     </p>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -353,13 +345,18 @@ function SeasonsPage() {
       </DataPageLayout>
 
       {/* Create/Edit Sheet */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSheet()
+        }}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
         <SheetContent>
           <SheetClose />
           <SheetHeader>
-            <SheetTitle>
-              {isNew ? t("seasonsPage.dialogs.newTitle") : t("seasonsPage.dialogs.editTitle")}
-            </SheetTitle>
+            <SheetTitle>{isNew ? t("seasonsPage.dialogs.newTitle") : t("seasonsPage.dialogs.editTitle")}</SheetTitle>
             <SheetDescription>
               {isNew ? t("seasonsPage.dialogs.newDescription") : t("seasonsPage.dialogs.editDescription")}
             </SheetDescription>
@@ -379,7 +376,11 @@ function SeasonsPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <FormField label={t("seasonsPage.fields.seasonStart")} error={errors.seasonStart} required>
-                  <Input type="date" value={form.seasonStart} onChange={(e) => setField("seasonStart", e.target.value)} />
+                  <Input
+                    type="date"
+                    value={form.seasonStart}
+                    onChange={(e) => setField("seasonStart", e.target.value)}
+                  />
                 </FormField>
 
                 <FormField label={t("seasonsPage.fields.seasonEnd")} error={errors.seasonEnd} required>
@@ -390,18 +391,20 @@ function SeasonsPage() {
 
             <SheetFooter>
               {editingSeason && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
+                <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
                   {t("seasonsPage.actions.delete")}
                 </Button>
               )}
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) setConfirmCloseOpen(true)
+                  else closeSheet()
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button type="submit" variant="accent" disabled={isSaving}>
@@ -417,7 +420,9 @@ function SeasonsPage() {
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {

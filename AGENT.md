@@ -14,7 +14,7 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 | `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (`platform.` subdomain, port 3002) |
 | `apps/league-site` | `@puckhub/league-site` | Public league website (`*.` wildcard subdomain, port 3003) — standings, schedules, stats, news, localized DE/EN routes |
 | `apps/marketing-site` | `@puckhub/marketing-site` | Marketing landing page (bare domain, port 3004) — features, pricing, demo CTA |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (31 routers) + Better Auth + AI recap service (`api.` subdomain, port 3001) |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (32 routers) + Better Auth + AI recap service (`api.` subdomain, port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
@@ -85,6 +85,8 @@ Copy `.env.example` to `.env`. Key variables:
 | `SMTP_FROM` | `noreply@puckhub.eu` | Sender email address |
 | `OPENROUTER_API_KEY` | — | OpenRouter API key for AI game recaps |
 | `OPENROUTER_MODEL` | `google/gemini-3.1-flash-lite-preview` | AI model for recap generation |
+| `CONTACT_EMAIL` | — | Recipient for contact form submissions (console fallback if unset) |
+| `PUBLIC_REPORT_HASH_SECRET` | — | Secret for hashing public report email/IP (falls back to AUTH_SECRET) |
 
 ## Docker
 

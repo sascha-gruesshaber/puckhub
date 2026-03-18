@@ -58,7 +58,13 @@ const adminTargets: ScreenshotTarget[] = [
 
 // Admin portal screenshots (require auth)
 const adminExtraTargets: ScreenshotTarget[] = [
-  { name: "public-report-admin", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/games/public-reports`, waitFor: "main", delay: 3000 },
+  {
+    name: "public-report-admin",
+    baseUrl: "admin",
+    path: `/${DEMO_ORG_SLUG}/games/public-reports`,
+    waitFor: "main",
+    delay: 3000,
+  },
 ]
 
 // Public league site screenshots
@@ -383,10 +389,7 @@ async function main() {
     await page.waitForTimeout(3000)
     // Wait until the pulse skeleton disappears (chart has rendered)
     try {
-      await page.waitForFunction(
-        () => !document.querySelector(".animate-pulse"),
-        { timeout: 8000 },
-      )
+      await page.waitForFunction(() => !document.querySelector(".animate-pulse"), { timeout: 8000 })
     } catch {
       console.log("  Warning: chart skeleton still visible, taking screenshot anyway")
     }
@@ -482,10 +485,7 @@ async function main() {
       // Wait for lazy-loaded charts to render
       await page.waitForTimeout(4000)
       try {
-        await page.waitForFunction(
-          () => !document.querySelector(".animate-pulse"),
-          { timeout: 8000 },
-        )
+        await page.waitForFunction(() => !document.querySelector(".animate-pulse"), { timeout: 8000 })
       } catch {
         console.log("  Warning: chart skeleton still visible")
       }

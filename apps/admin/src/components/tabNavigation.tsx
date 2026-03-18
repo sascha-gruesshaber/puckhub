@@ -73,5 +73,5 @@ function TabNavigation<T extends string>({ groups, activeTab, onTabChange }: Tab
   )
 }
 
-export { TabNavigation }
 export type { TabDef, TabGroup, TabNavigationProps }
+export { TabNavigation }

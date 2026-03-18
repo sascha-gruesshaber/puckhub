@@ -3,8 +3,8 @@ import { Trash2 } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 interface TeamAssignmentPanelProps {
   assignmentId: string

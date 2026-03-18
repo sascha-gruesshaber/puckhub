@@ -251,9 +251,9 @@ describe("publicGameReport router", () => {
     it("throws NOT_FOUND for non-existent report", async () => {
       await createPublicReportFixtures()
       const admin = createTestCaller({ asAdmin: true })
-      await expect(
-        admin.publicGameReport.revert({ id: "00000000-0000-0000-0000-000000000000" }),
-      ).rejects.toThrow("PUBLIC_REPORT_NOT_FOUND")
+      await expect(admin.publicGameReport.revert({ id: "00000000-0000-0000-0000-000000000000" })).rejects.toThrow(
+        "PUBLIC_REPORT_NOT_FOUND",
+      )
     })
 
     it("throws ALREADY_REVERTED for already reverted report", async () => {
@@ -273,9 +273,7 @@ describe("publicGameReport router", () => {
       })
 
       const admin = createTestCaller({ asAdmin: true })
-      await expect(admin.publicGameReport.revert({ id: report.id })).rejects.toThrow(
-        "PUBLIC_REPORT_ALREADY_REVERTED",
-      )
+      await expect(admin.publicGameReport.revert({ id: report.id })).rejects.toThrow("PUBLIC_REPORT_ALREADY_REVERTED")
     })
 
     it("rejects non-admin users", async () => {
@@ -416,7 +414,7 @@ describe("publicSite report procedures", () => {
     })
 
     it("rejects submission when disabled in settings", async () => {
-      const { db, game } = await createPublicReportFixtures({
+      const { game } = await createPublicReportFixtures({
         publicReportsEnabled: false,
         publicReportsRequireEmail: false,
         publicReportsBotDetection: false,
@@ -448,7 +446,7 @@ describe("publicSite report procedures", () => {
           gameId: game.id,
           homeScore: 3,
           awayScore: 2,
-          submitterEmailHash: "hash-fan",
+          submitterEmailHash: hashPublicReportEmail("fan@example.com", TEST_ORG_ID),
           submitterEmailMasked: "f***@example.com",
         },
       })
@@ -682,4 +680,3 @@ describe("publicSite report procedures", () => {
     })
   })
 })
-

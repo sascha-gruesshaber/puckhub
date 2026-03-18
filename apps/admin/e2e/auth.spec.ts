@@ -1,7 +1,7 @@
-import { expect, test } from "@playwright/test"
+import { writeFileSync } from "node:fs"
 import { resolve } from "node:path"
-import { readFileSync, writeFileSync } from "node:fs"
-import { login, clearApiLog, waitForMagicLink } from "./helpers"
+import { expect, test } from "@playwright/test"
+import { login, waitForMagicLink } from "./helpers"
 
 const apiLogFile = resolve(import.meta.dirname, "../../../e2e/.e2e-api.log")
 

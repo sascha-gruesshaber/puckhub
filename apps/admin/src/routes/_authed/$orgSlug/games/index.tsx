@@ -3,11 +3,6 @@ import {
   FormField,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Sheet,
   SheetBody,
   SheetClose,
@@ -26,16 +21,18 @@ import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar, FilterBarDivider } from "~/components/filterBar"
-import { FilterDropdown } from "~/components/filterDropdown"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
-import { GameStatusBadge, deriveDisplayStatus } from "~/components/gameStatusBadge"
+import { FilterDropdown } from "~/components/filterDropdown"
 import type { DisplayStatus } from "~/components/gameStatusBadge"
+import { deriveDisplayStatus, GameStatusBadge } from "~/components/gameStatusBadge"
+import { RoundGroupSelect } from "~/components/roundGroupSelect"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 
 import { TeamCombobox } from "~/components/teamCombobox"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
+import { useStructureOptions } from "~/hooks/useStructureOptions"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
@@ -64,6 +61,16 @@ const emptyGameForm: GameForm = {
   location: "",
   scheduledAt: "",
 }
+
+const ALL_DISPLAY_STATUSES: DisplayStatus[] = [
+  "scheduled",
+  "in_progress",
+  "completed",
+  "postponed",
+  "cancelled",
+  "incomplete",
+  "report_pending",
+]
 
 function toLocalInputValue(value: Date | string | null | undefined): string {
   if (!value) return ""
@@ -126,7 +133,6 @@ function GamesPage() {
 
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
   const [confirmGenerateCloseOpen, setConfirmGenerateCloseOpen] = useState(false)
-  const [generateDivisionId, setGenerateDivisionId] = useState("")
   const [generateRoundId, setGenerateRoundId] = useState("")
   const [generateStartAt, setGenerateStartAt] = useState("")
   const [generateCadenceDays, setGenerateCadenceDays] = useState("7")
@@ -174,77 +180,19 @@ function GamesPage() {
     onError: (e) => toast.error(t("gamesPage.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
-  const divisions = structure?.divisions ?? []
-  const rounds = structure?.rounds ?? []
-  const teams = useMemo(() => {
-    const m = new Map<
-      string,
-      {
-        id: string
-        name: string
-        shortName: string
-        logoUrl: string | null
-        homeVenue?: string | null
-      }
-    >()
-    for (const ta of structure?.teamAssignments ?? []) {
-      m.set(ta.team.id, {
-        id: ta.team.id,
-        name: ta.team.name,
-        shortName: ta.team.shortName,
-        logoUrl: ta.team.logoUrl ?? null,
-        homeVenue: ta.team.homeVenue,
-      })
-    }
-    return Array.from(m.values())
-  }, [structure])
+  const {
+    teams,
+    divisions,
+    rounds,
+    roundFilterGroups,
+    roundFilterOptions,
+    teamFilterOptions: teamOptions,
+  } = useStructureOptions(structure)
 
-  const teamOptions: FilterDropdownOption[] = useMemo(
-    () =>
-      [...teams]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((team) => ({
-          value: team.id,
-          label: team.shortName,
-          icon: team.logoUrl ? (
-            <img src={team.logoUrl} alt="" className="h-5 w-5 rounded-sm object-contain" />
-          ) : (
-            <div className="h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold bg-muted text-muted-foreground">
-              {team.shortName.slice(0, 2).toUpperCase()}
-            </div>
-          ),
-        })),
-    [teams],
-  )
-
-  const allDisplayStatuses: DisplayStatus[] = [
-    "scheduled",
-    "in_progress",
-    "completed",
-    "postponed",
-    "cancelled",
-    "incomplete",
-    "report_pending",
-  ]
   const statusOptions: FilterDropdownOption[] = useMemo(
-    () => allDisplayStatuses.map((s) => ({ value: s, label: t(`gamesPage.status.${s}`) })),
+    () => ALL_DISPLAY_STATUSES.map((s) => ({ value: s, label: t(`gamesPage.status.${s}`) })),
     [t],
   )
-
-  // Build round filter options for FilterDropdown
-  const roundFilterOptions: FilterDropdownOption[] = useMemo(() => {
-    if (divisions.length === 0 || rounds.length === 0) return []
-    if (rounds.length <= 1) return []
-
-    const showLabels = divisions.length > 1
-    return rounds.map((r) => {
-      const div = divisions.find((d) => d.id === r.divisionId)
-      return {
-        value: `${r.divisionId}::${r.id}`,
-        label: showLabels && div ? `${div.name} – ${r.name}` : r.name,
-      }
-    })
-  }, [divisions, rounds])
 
   const filteredGames = useMemo(() => {
     let result = games ?? []
@@ -327,7 +275,7 @@ function GamesPage() {
   }
 
   const isGameDirty = gameForm.homeTeamId !== "" || gameForm.awayTeamId !== ""
-  const isGenerateDirty = generateDivisionId !== "" || generateRoundId !== ""
+  const isGenerateDirty = generateRoundId !== ""
 
   function closeGameDialog() {
     setGameDialogOpen(false)
@@ -343,7 +291,6 @@ function GamesPage() {
     setGameForm({ ...emptyGameForm, roundId: rounds[0]?.id ?? "" })
     setGameDialogOpen(true)
   }
-
 
   function submitGame(e: React.FormEvent) {
     e.preventDefault()
@@ -429,43 +376,41 @@ function GamesPage() {
           </div>
         }
         filters={
-          <>
-            {isStructureLoading ? (
-              <FilterPillsSkeleton />
-            ) : (
-              <FilterBar
-                label={t("filters")}
-                search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}
-              >
-                {roundFilterOptions.length > 0 && (
-                  <FilterDropdown
-                    label={t("gamesPage.tabs.all")}
-                    options={roundFilterOptions}
-                    value={activeTab === "all" ? [] : [activeTab]}
-                    onChange={(selected) => setTab(selected[0] ?? "all")}
-                    singleSelect
-                  />
-                )}
+          isStructureLoading ? (
+            <FilterPillsSkeleton />
+          ) : (
+            <FilterBar
+              label={t("filters")}
+              search={{ value: search, onChange: setSearch, placeholder: t("gamesPage.searchPlaceholder") }}
+            >
+              {roundFilterOptions.length > 0 && (
                 <FilterDropdown
-                  label={t("gamesPage.filters.allTeams")}
-                  options={teamOptions}
-                  value={teamFilter}
-                  onChange={setTeamFilter}
-                  testId="games-team-filter"
-                  optionTestIdPrefix="games-team-filter-option"
+                  label={t("gamesPage.tabs.all")}
+                  {...(roundFilterGroups.length > 0 ? { groups: roundFilterGroups } : { options: roundFilterOptions })}
+                  value={activeTab === "all" ? [] : [activeTab]}
+                  onChange={(selected) => setTab(selected[0] ?? "all")}
+                  singleSelect
                 />
-                <FilterBarDivider />
-                <FilterDropdown
-                  label={t("gamesPage.filters.allStatus")}
-                  options={statusOptions}
-                  value={statusFilter}
-                  onChange={setStatusFilter}
-                  testId="games-status-filter"
-                  optionTestIdPrefix="games-status-filter-option"
-                />
-              </FilterBar>
-            )}
-          </>
+              )}
+              <FilterDropdown
+                label={t("gamesPage.filters.allTeams")}
+                options={teamOptions}
+                value={teamFilter}
+                onChange={setTeamFilter}
+                testId="games-team-filter"
+                optionTestIdPrefix="games-team-filter-option"
+              />
+              <FilterBarDivider />
+              <FilterDropdown
+                label={t("gamesPage.filters.allStatus")}
+                options={statusOptions}
+                value={statusFilter}
+                onChange={setStatusFilter}
+                testId="games-status-filter"
+                optionTestIdPrefix="games-status-filter-option"
+              />
+            </FilterBar>
+          )
         }
       >
         <div>
@@ -498,11 +443,14 @@ function GamesPage() {
                   </div>
                   <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden lg:grid lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:gap-x-4">
                     {group.games.map((g, i) => (
+                      // biome-ignore lint/a11y/useSemanticElements: grid subgrid layout requires div; role=button and keyboard handling provided
                       <div
                         key={g.id}
                         data-testid="game-row"
                         data-game-status={g.status}
-                        onClick={() => navigate({ to: '/$orgSlug/games/$gameId/report', params: { orgSlug, gameId: g.id } })}
+                        onClick={() =>
+                          navigate({ to: "/$orgSlug/games/$gameId/report", params: { orgSlug, gameId: g.id } })
+                        }
                         className={`data-row group px-4 py-4 hover:bg-accent/5 transition-colors cursor-pointer lg:col-span-full lg:grid lg:grid-cols-[subgrid] lg:items-center ${i < group.games.length - 1 ? `border-b border-border/40` : ``}`}
                         style={{ "--row-index": rowIndex++ } as React.CSSProperties}
                         role="button"
@@ -510,7 +458,7 @@ function GamesPage() {
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") {
                             e.preventDefault()
-                            navigate({ to: '/$orgSlug/games/$gameId/report', params: { orgSlug, gameId: g.id } })
+                            navigate({ to: "/$orgSlug/games/$gameId/report", params: { orgSlug, gameId: g.id } })
                           }
                         }}
                       >
@@ -534,11 +482,7 @@ function GamesPage() {
                                     </span>
                                     <div className="h-9 w-9 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
                                       {g.homeTeam.logoUrl ? (
-                                        <img
-                                          src={g.homeTeam.logoUrl}
-                                          alt=""
-                                          className="h-full w-full object-contain"
-                                        />
+                                        <img src={g.homeTeam.logoUrl} alt="" className="h-full w-full object-contain" />
                                       ) : (
                                         <span className="text-[11px] font-bold text-muted-foreground/60">
                                           {g.homeTeam.shortName.slice(0, 2)}
@@ -573,11 +517,7 @@ function GamesPage() {
                                   <div className="flex items-center gap-2.5 flex-1 min-w-0">
                                     <div className="h-9 w-9 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
                                       {g.awayTeam.logoUrl ? (
-                                        <img
-                                          src={g.awayTeam.logoUrl}
-                                          alt=""
-                                          className="h-full w-full object-contain"
-                                        />
+                                        <img src={g.awayTeam.logoUrl} alt="" className="h-full w-full object-contain" />
                                       ) : (
                                         <span className="text-[11px] font-bold text-muted-foreground/60">
                                           {g.awayTeam.shortName.slice(0, 2)}
@@ -653,18 +593,14 @@ function GamesPage() {
                 </Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                   <FormField label={t("gamesPage.form.fields.round", { defaultValue: "Round" })} required>
-                    <Select value={gameForm.roundId || undefined} onValueChange={(v) => setGameForm((p) => ({ ...p, roundId: v }))}>
-                      <SelectTrigger className="h-10 w-full" data-testid="games-form-round">
-                        <SelectValue placeholder={t("gamesPage.placeholders.round")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rounds.map((r) => (
-                          <SelectItem key={r.id} value={r.id} data-testid={`games-form-round-option-${r.id}`}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <RoundGroupSelect
+                      divisions={divisions}
+                      rounds={rounds}
+                      value={gameForm.roundId}
+                      onValueChange={(v) => setGameForm((p) => ({ ...p, roundId: v }))}
+                      placeholder={t("gamesPage.placeholders.round")}
+                      testId="games-form-round"
+                    />
                   </FormField>
                   <FormField label={t("gamesPage.form.fields.location", { defaultValue: "Location" })}>
                     <Input
@@ -727,7 +663,14 @@ function GamesPage() {
             </SheetBody>
             <SheetFooter>
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isGameDirty) setConfirmGameCloseOpen(true); else closeGameDialog() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isGameDirty) setConfirmGameCloseOpen(true)
+                  else closeGameDialog()
+                }}
+              >
                 {t("cancel")}
               </Button>
               <Button
@@ -743,7 +686,12 @@ function GamesPage() {
         </SheetContent>
       </Sheet>
 
-      <Sheet open={generateDialogOpen} onOpenChange={setGenerateDialogOpen} dirty={isGenerateDirty} onDirtyClose={() => setConfirmGenerateCloseOpen(true)}>
+      <Sheet
+        open={generateDialogOpen}
+        onOpenChange={setGenerateDialogOpen}
+        dirty={isGenerateDirty}
+        onDirtyClose={() => setConfirmGenerateCloseOpen(true)}
+      >
         <SheetContent>
           <SheetClose />
           <SheetHeader>
@@ -753,6 +701,7 @@ function GamesPage() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
+              const generateDivisionId = rounds.find((r) => r.id === generateRoundId)?.divisionId
               if (!season?.id || !generateDivisionId || !generateRoundId) return
               generate.mutate({
                 seasonId: season.id,
@@ -773,36 +722,15 @@ function GamesPage() {
                 <Label className="text-xs uppercase tracking-wide text-muted-foreground">
                   {t("gamesPage.generate.sections.target")}
                 </Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                  <FormField label={t("gamesPage.generate.fields.division")} required>
-                    <Select value={generateDivisionId || undefined} onValueChange={(v) => { setGenerateDivisionId(v); setGenerateRoundId("") }}>
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder={t("gamesPage.placeholders.division")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {divisions.map((d) => (
-                          <SelectItem key={d.id} value={d.id}>
-                            {d.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormField>
+                <div className="mt-2">
                   <FormField label={t("gamesPage.form.fields.round")} required>
-                    <Select value={generateRoundId || undefined} onValueChange={(v) => setGenerateRoundId(v)}>
-                      <SelectTrigger className="h-10 w-full">
-                        <SelectValue placeholder={t("gamesPage.placeholders.round")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {rounds
-                          .filter((r) => !generateDivisionId || r.divisionId === generateDivisionId)
-                          .map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
+                    <RoundGroupSelect
+                      divisions={divisions}
+                      rounds={rounds}
+                      value={generateRoundId}
+                      onValueChange={(v) => setGenerateRoundId(v)}
+                      placeholder={t("gamesPage.placeholders.round")}
+                    />
                   </FormField>
                 </div>
               </div>
@@ -839,14 +767,17 @@ function GamesPage() {
             </SheetBody>
             <SheetFooter>
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isGenerateDirty) setConfirmGenerateCloseOpen(true); else closeGenerateDialog() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isGenerateDirty) setConfirmGenerateCloseOpen(true)
+                  else closeGenerateDialog()
+                }}
+              >
                 {t("cancel")}
               </Button>
-              <Button
-                type="submit"
-                variant="accent"
-                disabled={generate.isPending || !generateDivisionId || !generateRoundId}
-              >
+              <Button type="submit" variant="accent" disabled={generate.isPending || !generateRoundId}>
                 {t("gamesPage.actions.generate")}
               </Button>
             </SheetFooter>
@@ -859,7 +790,9 @@ function GamesPage() {
         open={confirmGameCloseOpen}
         onOpenChange={setConfirmGameCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {
@@ -873,7 +806,9 @@ function GamesPage() {
         open={confirmGenerateCloseOpen}
         onOpenChange={setConfirmGenerateCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {

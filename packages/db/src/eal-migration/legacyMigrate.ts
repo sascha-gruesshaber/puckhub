@@ -5,17 +5,14 @@
 // Two phases: analysis (read-only report) and migration (write).
 // ---------------------------------------------------------------------------
 
+import { randomUUID } from "node:crypto"
 import { copyFile, mkdir, stat } from "node:fs/promises"
 import { basename, dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { randomUUID } from "node:crypto"
 import * as mysql from "mysql2/promise"
 import type { Database } from "../index"
 import { recalculateStandings } from "../services/standingsService"
 import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
-import { PENALTY_ID_TO_CODE, PENALTY_ID_TO_NAME } from "./penaltyMapping"
-import { getDivisionsForSeason, resolveGameRound } from "./roundMapping"
-import type { DivisionDef } from "./roundMapping"
 import type {
   LegacyBonusPoint,
   LegacyGame,
@@ -31,6 +28,9 @@ import type {
   LegacyTeamLineUp,
   LegacyTrikot,
 } from "./legacyTypes"
+import { PENALTY_ID_TO_CODE, PENALTY_ID_TO_NAME } from "./penaltyMapping"
+import type { DivisionDef } from "./roundMapping"
+import { getDivisionsForSeason, resolveGameRound } from "./roundMapping"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -310,7 +310,12 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
   const phantomInGames = data.games.filter((g) => !seasonIds.has(g.saisonID))
   const phantomInGroups = data.groups.filter((g) => !seasonIds.has(g.saisonID))
   const phantomInLineups = data.lineups.filter((lu) => !seasonIds.has(lu.saisonID))
-  if (phantomInPT.length > 0 || phantomInGames.length > 0 || phantomInGroups.length > 0 || phantomInLineups.length > 0) {
+  if (
+    phantomInPT.length > 0 ||
+    phantomInGames.length > 0 ||
+    phantomInGroups.length > 0 ||
+    phantomInLineups.length > 0
+  ) {
     const allPhantomIds = new Set([
       ...phantomInPT.map((pt) => pt.saisonID),
       ...phantomInGames.map((g) => g.saisonID),
@@ -357,7 +362,7 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
     }
   }
   const playerMap = new Map(data.players.map((p) => [p.id, p]))
-  const teamNameMap = new Map(data.teams.map((t) => [t.id, t.name]))
+  const _teamNameMap = new Map(data.teams.map((t) => [t.id, t.name]))
   for (const [playerId, entry] of playerTeamsByPlayer) {
     if (entry.valid.length === 0 && entry.phantom.length > 0) {
       playersWithOnlyPhantom.add(playerId)
@@ -521,12 +526,12 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       contactName: t.kontakt1 || undefined,
       contactEmail: t.email1 || undefined,
       contactPhone: t.telefon1 || undefined,
-      website: t.homepage
-        ? t.homepage.match(/^https?:\/\//) ? t.homepage : `http://${t.homepage}`
-        : undefined,
+      website: t.homepage ? (t.homepage.match(/^https?:\/\//) ? t.homepage : `http://${t.homepage}`) : undefined,
     })),
   })
-  data.teams.forEach((t, i) => teamUuidMap.set(t.id, insertedTeams[i]!.id))
+  data.teams.forEach((t, i) => {
+    teamUuidMap.set(t.id, insertedTeams[i]!.id)
+  })
 
   // ── Step 3a: Team images (logos + photos) ─────────────────────────────
   console.log("[step 3a] Migrating team logos and photos...")
@@ -575,9 +580,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       const photoSources = [
         join(LEGACY_IMAGES_DIR, `teambild_${team.id}.jpg`),
         join(LEGACY_IMAGES_DIR, `teamlogo_${team.id}.jpg`),
-        ...(TEAM_ID_TO_PHOTO_FILE[team.id]
-          ? [join(LEGACY_IMAGES_DIR, TEAM_ID_TO_PHOTO_FILE[team.id]!)]
-          : []),
+        ...(TEAM_ID_TO_PHOTO_FILE[team.id] ? [join(LEGACY_IMAGES_DIR, TEAM_ID_TO_PHOTO_FILE[team.id]!)] : []),
       ]
       for (const photoPath of photoSources) {
         const photoExists = await stat(photoPath)
@@ -632,7 +635,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
           secondaryColor: t.template_id === 2 && t.color_schulter ? t.color_schulter : null,
         })),
       })
-      validTrikots.forEach((t, i) => trikotUuidMap.set(t.id, insertedTrikots[i]!.id))
+      validTrikots.forEach((t, i) => {
+        trikotUuidMap.set(t.id, insertedTrikots[i]!.id)
+      })
     }
     console.log(`[step 3b]   → ${trikotUuidMap.size} trikots created`)
 
@@ -677,7 +682,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       }
     }),
   })
-  data.seasons.forEach((s, i) => seasonUuidMap.set(s.id, insertedSeasons[i]!.id))
+  data.seasons.forEach((s, i) => {
+    seasonUuidMap.set(s.id, insertedSeasons[i]!.id)
+  })
 
   // ── Step 5: Divisions + Rounds ───────────────────────────────────────
   console.log("[step 5] Creating divisions and rounds...")
@@ -772,7 +779,9 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       dateOfBirth: parseLegacyDate(p.birthday),
     })),
   })
-  data.players.forEach((p, i) => playerUuidMap.set(p.id, insertedPlayers[i]!.id))
+  data.players.forEach((p, i) => {
+    playerUuidMap.set(p.id, insertedPlayers[i]!.id)
+  })
 
   // ── Step 8: Contracts (consolidated) ─────────────────────────────────
   console.log("[step 8] Creating contracts (consolidated)...")
@@ -790,9 +799,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     console.log(
       `[step 8]   ⚠ WARNING: ${phantomSeasonPT.length} active playerTeam entries reference non-existent seasons: ${phantomSeasons.join(", ")}`,
     )
-    console.log(
-      `[step 8]   ⚠ ${affectedPlayers.size} players affected — these phantom season entries will be skipped`,
-    )
+    console.log(`[step 8]   ⚠ ${affectedPlayers.size} players affected — these phantom season entries will be skipped`)
     // Print details for the first few affected players
     const playerMap = new Map(data.players.map((p) => [p.id, p]))
     const teamNameMap = new Map(data.teams.map((t) => [t.id, t.name]))
@@ -1446,7 +1453,7 @@ function parseLegacyDate(dateStr: string | null): Date | undefined {
   if (!match) return undefined
   const [, day, month, year] = match
   const d = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
-  if (isNaN(d.getTime())) return undefined
+  if (Number.isNaN(d.getTime())) return undefined
   return d
 }
 

@@ -1,6 +1,6 @@
 import { useMemo } from "react"
 import { useT } from "~/lib/i18n"
-import { LEAGUE_CHART_COLORS, EChartsWrapper } from "./echartsWrapper"
+import { EChartsWrapper, LEAGUE_CHART_COLORS } from "./echartsWrapper"
 
 interface TeamRadarData {
   teamName: string
@@ -63,5 +63,5 @@ function TeamComparisonRadar({ teams, title }: TeamComparisonRadarProps) {
   return <EChartsWrapper option={option} height={500} />
 }
 
-export { TeamComparisonRadar }
 export type { TeamRadarData }
+export { TeamComparisonRadar }

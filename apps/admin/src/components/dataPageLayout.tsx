@@ -19,5 +19,5 @@ function DataPageLayout({ title, description, action, filters, children }: DataP
   )
 }
 
-export { DataPageLayout }
 export type { DataPageLayoutProps }
+export { DataPageLayout }

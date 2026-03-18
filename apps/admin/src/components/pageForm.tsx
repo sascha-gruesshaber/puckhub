@@ -1,4 +1,16 @@
-import { Button, Card, CardContent, FormField, Input, Label, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@puckhub/ui"
+import {
+  Button,
+  Card,
+  CardContent,
+  FormField,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@puckhub/ui"
 import { useNavigate, useParams } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
@@ -43,7 +55,15 @@ const emptyForm: FormState = {
   sortOrder: 0,
 }
 
-export function PageForm({ initialData, currentSlug, onSubmit, isPending, submitLabel, isSystemRoute, sidebarFooter }: PageFormProps) {
+export function PageForm({
+  initialData,
+  currentSlug,
+  onSubmit,
+  isPending,
+  submitLabel,
+  isSystemRoute,
+  sidebarFooter,
+}: PageFormProps) {
   const { t } = useTranslation("common")
   const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
@@ -66,7 +86,7 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
   const { data: allPages } = trpc.page.list.useQuery()
   const topLevelPages = useMemo(() => (allPages ?? []).filter((p) => !p.parentId && !p.isSystemRoute), [allPages])
 
-  const isSubPage = !!form.parentId
+  const _isSubPage = !!form.parentId
   const isChildSystemRoute = isSystemRoute && !!form.parentId
 
   // Compute slug preview
@@ -190,7 +210,10 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
             {!hasChildren && !isSystemRoute && (
               <div>
                 <Label className="text-sm font-medium mb-2 block">{t("pageForm.fields.parentPage")}</Label>
-                <Select value={form.parentId ?? "__root__"} onValueChange={(v) => setField("parentId", v === "__root__" ? null : v)}>
+                <Select
+                  value={form.parentId ?? "__root__"}
+                  onValueChange={(v) => setField("parentId", v === "__root__" ? null : v)}
+                >
                   <SelectTrigger className="w-full h-9">
                     <SelectValue />
                   </SelectTrigger>
@@ -249,10 +272,21 @@ export function PageForm({ initialData, currentSlug, onSubmit, isPending, submit
             )}
 
             <div className="flex flex-col gap-2 pt-2">
-              <Button type="submit" variant="accent" disabled={isPending} className="w-full" data-testid="page-form-submit">
+              <Button
+                type="submit"
+                variant="accent"
+                disabled={isPending}
+                className="w-full"
+                data-testid="page-form-submit"
+              >
                 {isPending ? t("saving") : resolvedSubmitLabel}
               </Button>
-              <Button type="button" variant="outline" className="w-full" onClick={() => navigate({ to: "/$orgSlug/pages", params: { orgSlug } })}>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => navigate({ to: "/$orgSlug/pages", params: { orgSlug } })}
+              >
                 {t("cancel")}
               </Button>
             </div>

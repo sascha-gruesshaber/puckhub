@@ -220,5 +220,5 @@ app.get("/api/version", (c) => {
   })
 })
 
-export { app }
 export type { AppRouter } from "./trpc"
+export { app }

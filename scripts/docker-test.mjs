@@ -7,7 +7,7 @@
 //   node scripts/docker-test.mjs --down   # tear down (remove volumes too)
 //   node scripts/docker-test.mjs --logs   # show logs from running stack
 
-import { execSync, execFileSync } from "node:child_process"
+import { execSync } from "node:child_process"
 
 const COMPOSE = "docker compose -f docker-compose.local.yml"
 const run = (cmd, opts) => execSync(cmd, { stdio: "inherit", ...opts })

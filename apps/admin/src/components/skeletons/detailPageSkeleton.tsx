@@ -43,6 +43,7 @@ export function DetailPageSkeleton({ wide }: DetailPageSkeletonProps) {
           <div className="space-y-4">
             <Skeleton className="h-6 w-40 rounded" />
             {Array.from({ length: 3 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
               <Skeleton key={i} className="h-20 w-full rounded-xl" />
             ))}
           </div>

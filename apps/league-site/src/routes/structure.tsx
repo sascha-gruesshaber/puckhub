@@ -1,13 +1,13 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { ArrowRight, ChevronRight, Users } from "lucide-react"
 import { Fragment } from "react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { Skeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useOrg, useSeason } from "~/lib/context"
-import { useT, type Translations } from "~/lib/i18n"
+import { type Translations, useT } from "~/lib/i18n"
 import { cn, slugify } from "~/lib/utils"
 import { trpc } from "../../lib/trpc"
 
@@ -208,9 +208,7 @@ function DivisionCard({
         )}
 
         {/* Divider */}
-        {division.rounds.length > 0 && teams.length > 0 && (
-          <div className="mx-6 my-2 h-px bg-league-text/5" />
-        )}
+        {division.rounds.length > 0 && teams.length > 0 && <div className="mx-6 my-2 h-px bg-league-text/5" />}
 
         {/* Teams grid */}
         {teams.length > 0 && (
@@ -240,6 +238,7 @@ function StructureSkeleton() {
   return (
     <div className="space-y-8">
       {Array.from({ length: 2 }).map((_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
         <div key={i} className="rounded-2xl overflow-hidden">
           {/* Header skeleton */}
           <div className="bg-league-primary/20 px-6 py-5">
@@ -254,6 +253,7 @@ function StructureSkeleton() {
               <Skeleton className="h-3 w-20 mb-4 mx-auto" />
               <div className="flex justify-center gap-6">
                 {Array.from({ length: 3 }).map((_, j) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                   <div key={j} className="flex flex-col items-center gap-2">
                     <Skeleton className="h-9 w-9 rounded-full" />
                     <Skeleton className="h-4 w-20" />
@@ -266,6 +266,7 @@ function StructureSkeleton() {
               <Skeleton className="h-3 w-20 mb-4 mx-auto" />
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
                 {Array.from({ length: 6 }).map((_, j) => (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items
                   <Skeleton key={j} className="h-[56px] rounded-xl" />
                 ))}
               </div>
@@ -301,11 +302,7 @@ export function StructurePage() {
   )
 
   return (
-    <StatsPageShell
-      title={t.structure.title}
-      selectedSeasonId={selectedSeasonId}
-      onSeasonChange={setSelectedSeasonId}
-    >
+    <StatsPageShell title={t.structure.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSelectedSeasonId}>
       {isLoading ? (
         <StructureSkeleton />
       ) : structure && structure.length > 0 ? (

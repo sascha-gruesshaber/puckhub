@@ -1,9 +1,27 @@
-import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
+import {
+  Button,
+  FormField,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  toast,
+} from "@puckhub/ui"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { PlayerCombobox } from "~/components/playerCombobox"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 import type { TeamInfo } from "./gameTimeline"
 
 interface LineupPlayer {
@@ -14,7 +32,7 @@ interface LineupPlayer {
   player: { firstName: string; lastName: string; photoUrl?: string | null }
 }
 
-interface GoalDialogProps {
+interface GoalSheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   gameId: string
@@ -58,7 +76,7 @@ function TeamToggleButton({ team, isSelected, onClick }: { team: TeamInfo; isSel
   )
 }
 
-function GoalDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, editingEvent }: GoalDialogProps) {
+function GoalSheet({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, editingEvent }: GoalSheetProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const utils = trpc.useUtils()
@@ -188,23 +206,23 @@ function GoalDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, e
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogClose onClick={() => onOpenChange(false)} />
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetClose />
 
         {/* Header with green accent */}
-        <div className="px-6 pt-6 pb-4">
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-            <h2 className="text-lg font-semibold leading-none tracking-tight">
+        <SheetHeader>
+          <SheetTitle>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
               {isEdit ? t("gameReport.editGoal") : t("gameReport.addGoal")}
-            </h2>
-          </div>
-          <p className="text-sm text-muted-foreground ml-5">{t("gameReport.goalDescription")}</p>
-        </div>
+            </div>
+          </SheetTitle>
+          <SheetDescription>{t("gameReport.goalDescription")}</SheetDescription>
+        </SheetHeader>
 
         <form onSubmit={handleSubmit}>
-          <div className="px-6 space-y-5">
+          <SheetBody className="space-y-5">
             {/* Period + Time row */}
             <div className="grid grid-cols-3 gap-3">
               <FormField label={t("gameReport.fields.period")}>
@@ -282,20 +300,20 @@ function GoalDialog({ open, onOpenChange, gameId, homeTeam, awayTeam, lineups, e
             <FormField label={t("gameReport.fields.goalie")}>
               <PlayerCombobox players={goalieOptions} value={goalieId} onChange={setGoalieId} placeholder="—" />
             </FormField>
-          </div>
+          </SheetBody>
 
-          <DialogFooter className="mt-6">
+          <SheetFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={isPending || !scorerId}>
               {isPending ? t("saving") : t("save")}
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }
 
-export { GoalDialog }
+export { GoalSheet }

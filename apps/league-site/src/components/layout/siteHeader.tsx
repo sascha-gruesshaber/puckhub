@@ -33,10 +33,10 @@ const ADVANCED_TEAMS_ROUTES = allPathVariants("/stats/compare-teams")
 
 function getPageLink(page: Pick<MenuPage, "isSystemRoute" | "routePath" | "slug" | "parentId" | "parent">) {
   if (page.isSystemRoute && page.routePath) {
-    return { to: page.routePath as any, params: undefined }
+    return { to: page.routePath as string, params: undefined as any }
   }
   const slug = page.parentId && page.parent ? `${page.parent.slug}/${page.slug}` : page.slug
-  return { to: "/$slug" as const, params: { slug } }
+  return { to: "/$slug" as const, params: { slug } as any }
 }
 
 function DesktopNavItem({ page }: { page: MenuPage }) {

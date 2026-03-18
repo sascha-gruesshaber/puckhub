@@ -34,20 +34,20 @@ import {
   User,
   Users,
 } from "lucide-react"
-import { type ReactNode, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DangerZone } from "~/components/dangerZone"
 import { DetailPageLayout } from "~/components/detailPageLayout"
-import { TabNavigation } from "~/components/tabNavigation"
 import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
-import { EditContractDialog } from "~/components/roster/editContractDialog"
-import { ReleasePlayerDialog } from "~/components/roster/releasePlayerDialog"
+import { EditContractSheet } from "~/components/roster/editContractSheet"
+import { ReleasePlayerSheet } from "~/components/roster/releasePlayerSheet"
 import type { ContractRow } from "~/components/roster/rosterTable"
 import { RosterTable } from "~/components/roster/rosterTable"
-import { SignPlayerDialog } from "~/components/roster/signPlayerDialog"
-import { TransferDialog } from "~/components/roster/transferDialog"
+import { SignPlayerSheet } from "~/components/roster/signPlayerSheet"
+import { TransferSheet } from "~/components/roster/transferSheet"
+import { TabNavigation } from "~/components/tabNavigation"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
@@ -102,8 +102,9 @@ function TeamDetailPage() {
   const { data: fullTeam } = trpc.team.getById.useQuery({ id: teamId })
 
   const activeSeasonId = workingSeason?.id ?? null
+  const team = historyData?.team ?? null
 
-  const { data: roster, isLoading: rosterLoading } = trpc.contract.rosterForSeason.useQuery(
+  const { data: rawRoster, isLoading: rosterLoading } = trpc.contract.rosterForSeason.useQuery(
     { teamId, seasonId: activeSeasonId! },
     { enabled: !!activeSeasonId },
   )
@@ -123,8 +124,38 @@ function TeamDetailPage() {
     }))
   }, [seasonTeams])
 
+  // Map roster data to include team info (needed by ContractRow type)
+  const roster: ContractRow[] | undefined = useMemo(() => {
+    if (!rawRoster || !team) return undefined
+    return rawRoster.map((c) => ({
+      ...c,
+      teamId,
+      team: {
+        id: teamId,
+        name: team.name,
+        shortName: team.shortName,
+        logoUrl: team.logoUrl,
+        primaryColor: team.primaryColor ?? null,
+      },
+    }))
+  }, [rawRoster, team, teamId])
+
+  // Single team for RosterTable teams prop
+  const rosterTableTeams = useMemo(() => {
+    if (!team) return []
+    return [
+      {
+        id: teamId,
+        name: team.name,
+        shortName: team.shortName,
+        logoUrl: team.logoUrl,
+        primaryColor: team.primaryColor ?? null,
+      },
+    ]
+  }, [team, teamId])
+
   const existingPlayerIds = useMemo(() => {
-    return (roster ?? []).map((c) => c.playerId)
+    return (roster ?? []).map((c) => c.player.id)
   }, [roster])
 
   const navigate = useNavigate()
@@ -169,8 +200,6 @@ function TeamDetailPage() {
       })
     },
   })
-
-  const team = historyData?.team ?? null
 
   // --- Edit dialog helpers ---
   function openEditDialog() {
@@ -252,6 +281,7 @@ function TeamDetailPage() {
       <div className="space-y-4">
         <Skeleton className="h-6 w-24 rounded" />
         {Array.from({ length: 3 }).map((_, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
           <Skeleton key={i} className="h-12 w-full rounded-lg" />
         ))}
       </div>
@@ -275,329 +305,351 @@ function TeamDetailPage() {
       }
     >
       {team && (
-      <>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
-        {/* ── Main content ── */}
-        <div className="space-y-8">
-          {/* Team Info Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6">
-            <TeamInfoSection team={team} fullTeam={fullTeam ?? null} initials={initials} />
-          </div>
-
-        {/* ─── Tabs: Roster / Season History ─── */}
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <TabNavigation
-              groups={[{
-                key: "team-tabs",
-                tabs: [
-                  { id: "roster" as const, label: t("teamsPage.teamDetail.roster"), icon: Users },
-                  { id: "history" as const, label: t("teamsPage.teamDetail.seasonHistory"), icon: Trophy },
-                ],
-              }]}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-            {activeTab === "roster" && activeSeasonId && (
-              <Button variant="accent" size="sm" onClick={() => setSignDialogOpen(true)}>
-                <Plus className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-                {t("rosterPage.actions.signPlayer")}
-              </Button>
-            )}
-          </div>
-
-          {/* Roster tab */}
-          {activeTab === "roster" && (
-            !activeSeasonId ? (
-              <EmptyState
-                icon={<Calendar className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-                title={t("teamsPage.teamDetail.noRoster")}
-                description=""
-              />
-            ) : rosterLoading ? (
-              <div className="space-y-4">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-5 w-24 rounded" />
-                    <Skeleton className="h-12 w-full rounded-lg" />
-                    <Skeleton className="h-12 w-full rounded-lg" />
-                  </div>
-                ))}
-              </div>
-            ) : !roster || roster.length === 0 ? (
-              <EmptyState
-                icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-                title={t("teamsPage.teamDetail.noRoster")}
-                description=""
-                action={
-                  <Button variant="accent" size="sm" onClick={() => setSignDialogOpen(true)}>
-                    <Plus className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-                    {t("rosterPage.actions.signPlayer")}
-                  </Button>
-                }
-              />
-            ) : (
-              <RosterTable
-                contracts={roster}
-                onEdit={(c) => setEditContract(c)}
-                onRelease={(c) => setReleaseContract(c)}
-                onTransfer={(c) => setTransferContract(c)}
-              />
-            )
-          )}
-
-          {/* Season History tab */}
-          {activeTab === "history" && (
-            historyData!.seasons.length === 0 ? (
-              <EmptyState
-                icon={<Trophy className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-                title={t("teamsPage.teamDetail.noHistory")}
-                description=""
-              />
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/40 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      <th className="px-4 py-3">{t("teamsPage.teamDetail.historyTable.season")}</th>
-                      <th className="px-4 py-3">{t("teamsPage.teamDetail.historyTable.division")}</th>
-                      <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.gp")}</th>
-                      <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.wins")}</th>
-                      <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.draws")}</th>
-                      <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.losses")}</th>
-                      <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.gd")}</th>
-                      <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.rank")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyData!.seasons.map((entry) => {
-                      const { season, totals, bestRank } = entry
-                      const gdSign = totals.goalDifference > 0 ? "+" : ""
-
-                      return (
-                        <tr key={season.id} className="border-b border-border/40 last:border-0 hover:bg-accent/5 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground">{season.name}</td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {entry.divisions.length > 0 ? entry.divisions.map((d) => d.name).join(", ") : "–"}
-                          </td>
-                          <td className="px-4 py-3 text-center tabular-nums">{totals.gamesPlayed || "–"}</td>
-                          <td className="px-4 py-3 text-center tabular-nums">{totals.gamesPlayed > 0 ? totals.wins : "–"}</td>
-                          <td className="px-4 py-3 text-center tabular-nums">{totals.gamesPlayed > 0 ? totals.draws : "–"}</td>
-                          <td className="px-4 py-3 text-center tabular-nums">{totals.gamesPlayed > 0 ? totals.losses : "–"}</td>
-                          <td className="px-4 py-3 text-center tabular-nums">
-                            {totals.gamesPlayed > 0 ? `${gdSign}${totals.goalDifference}` : "–"}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {bestRank !== null ? (
-                              <Badge variant="secondary" className="text-xs">{bestRank}</Badge>
-                            ) : "–"}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )
-          )}
-        </div>
-        </div>
-
-        {/* ── Action sidebar ── */}
-        <Card className="lg:sticky lg:top-20">
-          <CardContent className="p-5 space-y-3">
-            <Button variant="outline" size="sm" className="w-full" onClick={openEditDialog} data-testid="team-edit">
-              <Pencil className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-              {t("teamsPage.actions.edit")}
-            </Button>
-
-            <DangerZone hint={t("teamsPage.teamDetail.deleteTeam.hint")}>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full"
-                onClick={() => setDeleteDialogOpen(true)}
-                data-testid="team-delete"
-              >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                {t("teamsPage.teamDetail.deleteTeam.button")}
-              </Button>
-            </DangerZone>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ─── Delete Team Confirmation ─── */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title={t("teamsPage.teamDetail.deleteTeam.title")}
-        description={t("teamsPage.teamDetail.deleteTeam.description")}
-        confirmLabel={t("teamsPage.teamDetail.deleteTeam.confirm")}
-        variant="destructive"
-        isPending={deleteTeamMutation.isPending}
-        confirmTestId="team-delete-confirm"
-        onConfirm={() => deleteTeamMutation.mutate({ id: teamId })}
-      />
-
-      {/* ─── Edit Team Sheet ─── */}
-      <Sheet open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <SheetContent size="wide">
-          <SheetClose />
-          <SheetHeader>
-            <SheetTitle>{t("teamsPage.dialogs.editTitle")}</SheetTitle>
-            <SheetDescription>{t("teamsPage.dialogs.editDescription")}</SheetDescription>
-          </SheetHeader>
-
-          <form onSubmit={handleEditSubmit} className="flex flex-1 flex-col overflow-hidden">
-            <SheetBody className="space-y-6">
-              {/* Images */}
-              <div className="flex gap-6 items-start">
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-2 block">{t("teamsPage.fields.logo")}</Label>
-                  <ImageUpload
-                    value={form.logoUrl || null}
-                    onChange={(url) => setField("logoUrl", url || "")}
-                    type="logo"
-                    label={t("teamsPage.fields.uploadLogo")}
-                  />
-                </div>
-                <div className="flex-1">
-                  <Label className="text-xs text-muted-foreground mb-2 block">{t("teamsPage.fields.teamPhoto")}</Label>
-                  <ImageUpload
-                    value={form.teamPhotoUrl || null}
-                    onChange={(url) => setField("teamPhotoUrl", url || "")}
-                    type="photo"
-                    label={t("teamsPage.fields.uploadPhoto")}
-                  />
-                </div>
-              </div>
-
-              {/* Name row */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label={t("teamsPage.fields.name")} error={errors.name} required>
-                  <Input
-                    data-testid="team-edit-name"
-                    value={form.name}
-                    onChange={(e) => setField("name", e.target.value)}
-                    placeholder={t("teamsPage.fields.namePlaceholder")}
-                  />
-                </FormField>
-                <FormField label={t("teamsPage.fields.shortName")} error={errors.shortName} required>
-                  <Input
-                    value={form.shortName}
-                    onChange={(e) => setField("shortName", e.target.value)}
-                    placeholder={t("teamsPage.fields.shortNamePlaceholder")}
-                  />
-                </FormField>
-              </div>
-
-              {/* City + Home Venue */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label={t("teamsPage.fields.city")}>
-                  <Input
-                    value={form.city}
-                    onChange={(e) => setField("city", e.target.value)}
-                    placeholder={t("teamsPage.fields.cityPlaceholder")}
-                  />
-                </FormField>
-                <FormField label={t("teamsPage.fields.homeVenue")}>
-                  <Input
-                    value={form.homeVenue}
-                    onChange={(e) => setField("homeVenue", e.target.value)}
-                    placeholder={t("teamsPage.fields.homeVenuePlaceholder")}
-                  />
-                </FormField>
-              </div>
-
-              {/* Contact section */}
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-3 text-muted-foreground">{t("teamsPage.fields.contactSection")}</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField label={t("teamsPage.fields.contactName")}>
-                    <Input
-                      value={form.contactName}
-                      onChange={(e) => setField("contactName", e.target.value)}
-                      placeholder={t("teamsPage.fields.contactNamePlaceholder")}
-                    />
-                  </FormField>
-                  <FormField label={t("teamsPage.fields.contactEmail")} error={errors.contactEmail}>
-                    <Input
-                      type="email"
-                      value={form.contactEmail}
-                      onChange={(e) => setField("contactEmail", e.target.value)}
-                      placeholder={t("teamsPage.fields.contactEmailPlaceholder")}
-                    />
-                  </FormField>
-                  <FormField label={t("teamsPage.fields.contactPhone")}>
-                    <Input
-                      value={form.contactPhone}
-                      onChange={(e) => setField("contactPhone", e.target.value)}
-                      placeholder={t("teamsPage.fields.contactPhonePlaceholder")}
-                    />
-                  </FormField>
-                  <FormField label={t("teamsPage.fields.website")} error={errors.website}>
-                    <Input
-                      value={form.website}
-                      onChange={(e) => setField("website", e.target.value)}
-                      placeholder={t("teamsPage.fields.websitePlaceholder")}
-                    />
-                  </FormField>
-                </div>
-              </div>
-            </SheetBody>
-
-            <SheetFooter>
-              <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={closeEditDialog}>
-                {t("cancel")}
-              </Button>
-              <Button type="submit" variant="accent" disabled={updateMutation.isPending} data-testid="team-edit-submit">
-                {updateMutation.isPending ? t("teamsPage.actions.saving") : t("save")}
-              </Button>
-            </SheetFooter>
-          </form>
-        </SheetContent>
-      </Sheet>
-
-      {/* ─── Roster Dialogs ─── */}
-      {activeSeasonId && (
         <>
-          <SignPlayerDialog
-            open={signDialogOpen}
-            onOpenChange={setSignDialogOpen}
-            teamId={teamId}
-            seasonId={activeSeasonId}
-            existingPlayerIds={existingPlayerIds}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+            {/* ── Main content ── */}
+            <div className="space-y-8">
+              {/* Team Info Card */}
+              <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6">
+                <TeamInfoSection team={team} fullTeam={fullTeam ?? null} initials={initials} />
+              </div>
+
+              {/* ─── Tabs: Roster / Season History ─── */}
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <TabNavigation
+                    groups={[
+                      {
+                        key: "team-tabs",
+                        tabs: [
+                          { id: "roster" as const, label: t("teamsPage.teamDetail.roster"), icon: Users },
+                          { id: "history" as const, label: t("teamsPage.teamDetail.seasonHistory"), icon: Trophy },
+                        ],
+                      },
+                    ]}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                  />
+                  {activeTab === "roster" && activeSeasonId && (
+                    <Button variant="accent" size="sm" onClick={() => setSignDialogOpen(true)}>
+                      <Plus className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+                      {t("rosterPage.actions.signPlayer")}
+                    </Button>
+                  )}
+                </div>
+
+                {/* Roster tab */}
+                {activeTab === "roster" &&
+                  (!activeSeasonId ? (
+                    <EmptyState
+                      icon={<Calendar className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+                      title={t("teamsPage.teamDetail.noRoster")}
+                      description=""
+                    />
+                  ) : rosterLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
+                        <div key={i} className="space-y-2">
+                          <Skeleton className="h-5 w-24 rounded" />
+                          <Skeleton className="h-12 w-full rounded-lg" />
+                          <Skeleton className="h-12 w-full rounded-lg" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : !roster || roster.length === 0 ? (
+                    <EmptyState
+                      icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+                      title={t("teamsPage.teamDetail.noRoster")}
+                      description=""
+                      action={
+                        <Button variant="accent" size="sm" onClick={() => setSignDialogOpen(true)}>
+                          <Plus className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+                          {t("rosterPage.actions.signPlayer")}
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    <RosterTable
+                      contracts={roster}
+                      teams={rosterTableTeams}
+                      hideTeamHeaders
+                      onEdit={(c) => setEditContract(c)}
+                      onRelease={(c) => setReleaseContract(c)}
+                      onTransfer={(c) => setTransferContract(c)}
+                    />
+                  ))}
+
+                {/* Season History tab */}
+                {activeTab === "history" &&
+                  (historyData!.seasons.length === 0 ? (
+                    <EmptyState
+                      icon={<Trophy className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+                      title={t("teamsPage.teamDetail.noHistory")}
+                      description=""
+                    />
+                  ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/40 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <th className="px-4 py-3">{t("teamsPage.teamDetail.historyTable.season")}</th>
+                            <th className="px-4 py-3">{t("teamsPage.teamDetail.historyTable.division")}</th>
+                            <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.gp")}</th>
+                            <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.wins")}</th>
+                            <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.draws")}</th>
+                            <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.losses")}</th>
+                            <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.gd")}</th>
+                            <th className="px-4 py-3 text-center">{t("teamsPage.teamDetail.historyTable.rank")}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {historyData!.seasons.map((entry) => {
+                            const { season, totals, bestRank } = entry
+                            const gdSign = totals.goalDifference > 0 ? "+" : ""
+
+                            return (
+                              <tr
+                                key={season.id}
+                                className="border-b border-border/40 last:border-0 hover:bg-accent/5 transition-colors"
+                              >
+                                <td className="px-4 py-3 font-medium text-foreground">{season.name}</td>
+                                <td className="px-4 py-3 text-muted-foreground">
+                                  {entry.divisions.length > 0 ? entry.divisions.map((d) => d.name).join(", ") : "–"}
+                                </td>
+                                <td className="px-4 py-3 text-center tabular-nums">{totals.gamesPlayed || "–"}</td>
+                                <td className="px-4 py-3 text-center tabular-nums">
+                                  {totals.gamesPlayed > 0 ? totals.wins : "–"}
+                                </td>
+                                <td className="px-4 py-3 text-center tabular-nums">
+                                  {totals.gamesPlayed > 0 ? totals.draws : "–"}
+                                </td>
+                                <td className="px-4 py-3 text-center tabular-nums">
+                                  {totals.gamesPlayed > 0 ? totals.losses : "–"}
+                                </td>
+                                <td className="px-4 py-3 text-center tabular-nums">
+                                  {totals.gamesPlayed > 0 ? `${gdSign}${totals.goalDifference}` : "–"}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {bestRank !== null ? (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {bestRank}
+                                    </Badge>
+                                  ) : (
+                                    "–"
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* ── Action sidebar ── */}
+            <Card className="lg:sticky lg:top-20">
+              <CardContent className="p-5 space-y-3">
+                <Button variant="outline" size="sm" className="w-full" onClick={openEditDialog} data-testid="team-edit">
+                  <Pencil className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+                  {t("teamsPage.actions.edit")}
+                </Button>
+
+                <DangerZone hint={t("teamsPage.teamDetail.deleteTeam.hint")}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    data-testid="team-delete"
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                    {t("teamsPage.teamDetail.deleteTeam.button")}
+                  </Button>
+                </DangerZone>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ─── Delete Team Confirmation ─── */}
+          <ConfirmDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            title={t("teamsPage.teamDetail.deleteTeam.title")}
+            description={t("teamsPage.teamDetail.deleteTeam.description")}
+            confirmLabel={t("teamsPage.teamDetail.deleteTeam.confirm")}
+            variant="destructive"
+            isPending={deleteTeamMutation.isPending}
+            confirmTestId="team-delete-confirm"
+            onConfirm={() => deleteTeamMutation.mutate({ id: teamId })}
           />
 
-          <EditContractDialog
-            open={!!editContract}
-            onOpenChange={(open) => !open && setEditContract(null)}
-            contract={editContract}
-            teamId={teamId}
-            seasonId={activeSeasonId}
-          />
+          {/* ─── Edit Team Sheet ─── */}
+          <Sheet open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <SheetContent size="wide">
+              <SheetClose />
+              <SheetHeader>
+                <SheetTitle>{t("teamsPage.dialogs.editTitle")}</SheetTitle>
+                <SheetDescription>{t("teamsPage.dialogs.editDescription")}</SheetDescription>
+              </SheetHeader>
 
-          <TransferDialog
-            open={!!transferContract}
-            onOpenChange={(open) => !open && setTransferContract(null)}
-            contract={transferContract}
-            currentTeamId={teamId}
-            seasonId={activeSeasonId}
-            teams={transferTeams}
-          />
+              <form onSubmit={handleEditSubmit} className="flex flex-1 flex-col overflow-hidden">
+                <SheetBody className="space-y-6">
+                  {/* Images */}
+                  <div className="flex gap-6 items-start">
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-2 block">{t("teamsPage.fields.logo")}</Label>
+                      <ImageUpload
+                        value={form.logoUrl || null}
+                        onChange={(url) => setField("logoUrl", url || "")}
+                        type="logo"
+                        label={t("teamsPage.fields.uploadLogo")}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground mb-2 block">
+                        {t("teamsPage.fields.teamPhoto")}
+                      </Label>
+                      <ImageUpload
+                        value={form.teamPhotoUrl || null}
+                        onChange={(url) => setField("teamPhotoUrl", url || "")}
+                        type="photo"
+                        label={t("teamsPage.fields.uploadPhoto")}
+                      />
+                    </div>
+                  </div>
 
-          <ReleasePlayerDialog
-            open={!!releaseContract}
-            onOpenChange={(open) => !open && setReleaseContract(null)}
-            contract={releaseContract}
-            teamId={teamId}
-            seasonId={activeSeasonId}
-          />
+                  {/* Name row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label={t("teamsPage.fields.name")} error={errors.name} required>
+                      <Input
+                        data-testid="team-edit-name"
+                        value={form.name}
+                        onChange={(e) => setField("name", e.target.value)}
+                        placeholder={t("teamsPage.fields.namePlaceholder")}
+                      />
+                    </FormField>
+                    <FormField label={t("teamsPage.fields.shortName")} error={errors.shortName} required>
+                      <Input
+                        value={form.shortName}
+                        onChange={(e) => setField("shortName", e.target.value)}
+                        placeholder={t("teamsPage.fields.shortNamePlaceholder")}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* City + Home Venue */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label={t("teamsPage.fields.city")}>
+                      <Input
+                        value={form.city}
+                        onChange={(e) => setField("city", e.target.value)}
+                        placeholder={t("teamsPage.fields.cityPlaceholder")}
+                      />
+                    </FormField>
+                    <FormField label={t("teamsPage.fields.homeVenue")}>
+                      <Input
+                        value={form.homeVenue}
+                        onChange={(e) => setField("homeVenue", e.target.value)}
+                        placeholder={t("teamsPage.fields.homeVenuePlaceholder")}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* Contact section */}
+                  <div className="border-t pt-4">
+                    <p className="text-sm font-medium mb-3 text-muted-foreground">
+                      {t("teamsPage.fields.contactSection")}
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField label={t("teamsPage.fields.contactName")}>
+                        <Input
+                          value={form.contactName}
+                          onChange={(e) => setField("contactName", e.target.value)}
+                          placeholder={t("teamsPage.fields.contactNamePlaceholder")}
+                        />
+                      </FormField>
+                      <FormField label={t("teamsPage.fields.contactEmail")} error={errors.contactEmail}>
+                        <Input
+                          type="email"
+                          value={form.contactEmail}
+                          onChange={(e) => setField("contactEmail", e.target.value)}
+                          placeholder={t("teamsPage.fields.contactEmailPlaceholder")}
+                        />
+                      </FormField>
+                      <FormField label={t("teamsPage.fields.contactPhone")}>
+                        <Input
+                          value={form.contactPhone}
+                          onChange={(e) => setField("contactPhone", e.target.value)}
+                          placeholder={t("teamsPage.fields.contactPhonePlaceholder")}
+                        />
+                      </FormField>
+                      <FormField label={t("teamsPage.fields.website")} error={errors.website}>
+                        <Input
+                          value={form.website}
+                          onChange={(e) => setField("website", e.target.value)}
+                          placeholder={t("teamsPage.fields.websitePlaceholder")}
+                        />
+                      </FormField>
+                    </div>
+                  </div>
+                </SheetBody>
+
+                <SheetFooter>
+                  <div className="flex-1" />
+                  <Button type="button" variant="outline" onClick={closeEditDialog}>
+                    {t("cancel")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="accent"
+                    disabled={updateMutation.isPending}
+                    data-testid="team-edit-submit"
+                  >
+                    {updateMutation.isPending ? t("teamsPage.actions.saving") : t("save")}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </SheetContent>
+          </Sheet>
+
+          {/* ─── Roster Dialogs ─── */}
+          {activeSeasonId && (
+            <>
+              <SignPlayerSheet
+                open={signDialogOpen}
+                onOpenChange={setSignDialogOpen}
+                teamId={teamId}
+                seasonId={activeSeasonId}
+                existingPlayerIds={existingPlayerIds}
+              />
+
+              <EditContractSheet
+                open={!!editContract}
+                onOpenChange={(open) => !open && setEditContract(null)}
+                contract={editContract}
+                seasonId={activeSeasonId}
+              />
+
+              <TransferSheet
+                open={!!transferContract}
+                onOpenChange={(open) => !open && setTransferContract(null)}
+                contract={transferContract}
+                seasonId={activeSeasonId}
+                teams={transferTeams}
+              />
+
+              <ReleasePlayerSheet
+                open={!!releaseContract}
+                onOpenChange={(open) => !open && setReleaseContract(null)}
+                contract={releaseContract}
+                seasonId={activeSeasonId}
+              />
+            </>
+          )}
         </>
-      )}
-      </>
       )}
     </DetailPageLayout>
   )
@@ -637,7 +689,7 @@ function TeamInfoSection({
       <div
         className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl"
         style={{
-          background: team.logoUrl ? "transparent" : "${accentColor}18",
+          background: team.logoUrl ? "transparent" : `${accentColor}18`,
         }}
       >
         {team.logoUrl ? (

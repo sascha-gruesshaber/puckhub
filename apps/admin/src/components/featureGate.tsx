@@ -1,6 +1,6 @@
-import type { ReactNode } from "react"
 import { Lock } from "lucide-react"
-import { usePlanLimits, type FeatureKey } from "~/hooks/usePlanLimits"
+import type { ReactNode } from "react"
+import { type FeatureKey, usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
 
 const FEATURE_LABELS: Record<FeatureKey, string> = {
@@ -39,7 +39,7 @@ export function FeatureGate({ feature, children, fallback }: FeatureGateProps) {
   if (isLoading) return null
 
   if (!canUseFeature(feature)) {
-    return fallback ? <>{fallback}</> : <FeatureLockedState feature={feature} />
+    return fallback ? fallback : <FeatureLockedState feature={feature} />
   }
 
   return <>{children}</>

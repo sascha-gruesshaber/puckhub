@@ -89,6 +89,7 @@ function SuspendedBadgeHoverContent({ suspension }: { suspension: ActiveSuspensi
           <span className="inline-flex gap-1 items-center">
             {Array.from({ length: suspension.suspendedGames }, (_, i) => (
               <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: static dot indicators have no unique id
                 key={i}
                 className={`inline-block w-2 h-2 rounded-full ${
                   i < suspension.servedGames ? "bg-amber-500 dark:bg-amber-400" : "bg-gray-300 dark:bg-gray-600"
@@ -219,5 +220,5 @@ function TeamRosterChecklist({
   )
 }
 
-export { TeamRosterChecklist }
 export type { RosterPlayer, SelectedPlayer }
+export { TeamRosterChecklist }

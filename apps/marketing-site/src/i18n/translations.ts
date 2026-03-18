@@ -62,7 +62,8 @@ export const translations = {
     },
     featureShowcase: {
       heading: "Leistungsstarke Tools für jeden Aspekt",
-      subheading: "Vom Saisonaufbau über den Spielbetrieb bis zur Fan-Community – PuckHub liefert die richtigen Werkzeuge.",
+      subheading:
+        "Vom Saisonaufbau über den Spielbetrieb bis zur Fan-Community – PuckHub liefert die richtigen Werkzeuge.",
       sections: [
         { id: "admin", title: "Administration", description: "Liga aufbauen und verwalten" },
         { id: "operations", title: "Betrieb & Statistiken", description: "Spielbetrieb, Daten und Analysen" },
@@ -225,11 +226,14 @@ export const translations = {
         news: "News",
         pages: "Seiten",
         sponsors: "Sponsoren",
+        admins: "Admin-Benutzer",
+        storage: "Speicher",
       },
       planDescriptions: {
         free: "Für kleine Hobbyturniere und zum Ausprobieren",
         starter: "Für regionale Ligen mit Website und Sponsoren",
-        pro: "Alle Features ohne Limits – ideal für große Ligen und Verbände",
+        pro: "Alle Premium-Features mit großzügigen Limits",
+        unlimited: "Keine Limits – ideal für große Ligen und Verbände",
       },
       planFeatures: {
         gameReports: "Spielberichte",
@@ -243,6 +247,8 @@ export const translations = {
         scheduledNews: "Geplante News",
         advancedRoles: "Erweiterte Rollen",
         publicReports: "Öffentliche Spielmeldungen",
+        prioritySupport: "Prioritäts-Support",
+        aiRecaps: "KI-Spielberichte",
       },
     },
     demoCta: {
@@ -542,11 +548,14 @@ export const translations = {
         news: "News",
         pages: "Pages",
         sponsors: "Sponsors",
+        admins: "Admin Users",
+        storage: "Storage",
       },
       planDescriptions: {
         free: "For small hobby tournaments and trying things out",
         starter: "For regional leagues with websites and sponsors",
-        pro: "All features with no limits – ideal for large leagues and associations",
+        pro: "All premium features with generous limits",
+        unlimited: "No limits – ideal for large leagues and associations",
       },
       planFeatures: {
         gameReports: "Game Reports",
@@ -560,6 +569,8 @@ export const translations = {
         scheduledNews: "Scheduled News",
         advancedRoles: "Advanced Roles",
         publicReports: "Public Game Reports",
+        prioritySupport: "Priority Support",
+        aiRecaps: "AI Game Recaps",
       },
     },
     demoCta: {
@@ -569,8 +580,7 @@ export const translations = {
     },
     contactCta: {
       heading: "Still have questions?",
-      subheading:
-        "Whether it's custom requirements, a personal demo, or just a quick chat – we're here to help.",
+      subheading: "Whether it's custom requirements, a personal demo, or just a quick chat – we're here to help.",
       button: "Get in touch",
     },
     demoDialog: {

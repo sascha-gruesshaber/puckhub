@@ -2,9 +2,7 @@ import { createHash, randomUUID } from "node:crypto"
 
 function hashPublicReportValue(value: string, organizationId: string) {
   const secret = process.env.PUBLIC_REPORT_HASH_SECRET ?? process.env.AUTH_SECRET ?? "dev-secret-change-me"
-  return createHash("sha256")
-    .update(`${organizationId}:${secret}:${value}`)
-    .digest("hex")
+  return createHash("sha256").update(`${organizationId}:${secret}:${value}`).digest("hex")
 }
 
 function normalizeEmail(email: string) {

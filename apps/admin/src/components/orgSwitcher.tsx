@@ -33,7 +33,13 @@ export function OrgSwitcher() {
       {open && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: presentational backdrop overlay that dismisses dropdown */}
+          <div
+            role="presentation"
+            className="fixed inset-0 z-40"
+            onClick={() => setOpen(false)}
+            onKeyDown={() => setOpen(false)}
+          />
 
           {/* Dropdown */}
           <div

@@ -18,7 +18,7 @@ export function maskPublicReportEmail(email: string) {
 
 function anonymizeIp(ip: string) {
   if (ip.includes(":")) {
-    const [address] = ip.split("%")
+    const address = ip.split("%")[0]!
     const parts = address.split(":").filter(Boolean)
     const prefix = parts.slice(0, 4).join(":")
     return `${prefix || "::"}::`
@@ -33,9 +33,7 @@ function anonymizeIp(ip: string) {
 }
 
 export function hashPublicReportValue(value: string, organizationId: string) {
-  return createHash("sha256")
-    .update(`${organizationId}:${getHashSecret()}:${value}`)
-    .digest("hex")
+  return createHash("sha256").update(`${organizationId}:${getHashSecret()}:${value}`).digest("hex")
 }
 
 export function hashPublicReportEmail(email: string, organizationId: string) {

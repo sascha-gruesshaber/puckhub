@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useParams, useSearch } from "@tanstack/react-router"
-import { ArrowLeft, Calendar, MapPin, User, Users } from "lucide-react"
+import { ArrowLeft, Calendar, User, Users } from "lucide-react"
 import { lazy, Suspense, useEffect, useMemo } from "react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { EmptyState } from "~/components/shared/emptyState"
@@ -75,34 +75,27 @@ export function PlayerHistoryPage() {
   const org = useOrg()
   const features = useFeatures()
 
-  if (!features.advancedStats) {
-    return (
-      <div className="animate-fade-in">
-        <SectionWrapper>
-          <BackLink from={from} />
-          <EmptyState title={t.playerDetail.notAvailable} description={t.playerDetail.notAvailableDesc} />
-        </SectionWrapper>
-      </div>
-    )
-  }
-
-  const { data: player, isLoading: playerLoading } = trpc.publicSite.getPlayerById.useQuery({
-    organizationId: org.id,
-    playerId,
-  })
-  const { data: rawContracts, isLoading: contractsLoading } = trpc.publicSite.getPlayerContracts.useQuery({
-    organizationId: org.id,
-    playerId,
-  })
-  const { data: playerCareerStats, isLoading: playerStatsLoading } = trpc.publicSite.getPlayerCareerStats.useQuery({
-    organizationId: org.id,
-    playerId,
-  })
-  const { data: goalieCareerStats, isLoading: goalieStatsLoading } = trpc.publicSite.getGoalieCareerStats.useQuery({
-    organizationId: org.id,
-    playerId,
-  })
-  const { data: rawSuspensions } = trpc.publicSite.getPlayerSuspensions.useQuery({ organizationId: org.id, playerId })
+  const enabled = features.advancedStats
+  const { data: player, isLoading: playerLoading } = trpc.publicSite.getPlayerById.useQuery(
+    { organizationId: org.id, playerId },
+    { enabled },
+  )
+  const { data: rawContracts, isLoading: contractsLoading } = trpc.publicSite.getPlayerContracts.useQuery(
+    { organizationId: org.id, playerId },
+    { enabled },
+  )
+  const { data: playerCareerStats, isLoading: playerStatsLoading } = trpc.publicSite.getPlayerCareerStats.useQuery(
+    { organizationId: org.id, playerId },
+    { enabled },
+  )
+  const { data: goalieCareerStats, isLoading: goalieStatsLoading } = trpc.publicSite.getGoalieCareerStats.useQuery(
+    { organizationId: org.id, playerId },
+    { enabled },
+  )
+  const { data: rawSuspensions } = trpc.publicSite.getPlayerSuspensions.useQuery(
+    { organizationId: org.id, playerId },
+    { enabled },
+  )
 
   useEffect(() => {
     if (player) {
@@ -120,7 +113,7 @@ export function PlayerHistoryPage() {
   const statsLoading = playerStatsLoading || goalieStatsLoading
 
   const contracts = rawContracts as Contract[] | undefined
-  const suspensions = rawSuspensions as Suspension[] | undefined
+  const _suspensions = rawSuspensions as Suspension[] | undefined
 
   const isGoalie = useMemo(() => {
     if (!contracts || contracts.length === 0) return false
@@ -139,6 +132,17 @@ export function PlayerHistoryPage() {
       (a, b) => new Date(b.startSeason.seasonStart).getTime() - new Date(a.startSeason.seasonStart).getTime(),
     )[0]!
   }, [contracts])
+
+  if (!features.advancedStats) {
+    return (
+      <div className="animate-fade-in">
+        <SectionWrapper>
+          <BackLink from={from} />
+          <EmptyState title={t.playerDetail.notAvailable} description={t.playerDetail.notAvailableDesc} />
+        </SectionWrapper>
+      </div>
+    )
+  }
 
   if (headerLoading) return <PageSkeleton />
 
@@ -161,7 +165,7 @@ export function PlayerHistoryPage() {
   const hasGoalieStats = (goalieCareerStats?.length ?? 0) > 0
   const hasAnyStats = hasPlayerStats || hasGoalieStats
   const age = calcAge(player.dateOfBirth)
-  const initials = `${player.firstName[0] || ""}${player.lastName[0] || ""}`.toUpperCase()
+  const _initials = `${player.firstName[0] || ""}${player.lastName[0] || ""}`.toUpperCase()
 
   return (
     <div className="animate-fade-in">
@@ -210,7 +214,9 @@ export function PlayerHistoryPage() {
               {/* Meta: age, nationality, DOB */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-sm text-league-text/50">
                 {age !== null && (
-                  <span>{age} {t.playerDetail.years}</span>
+                  <span>
+                    {age} {t.playerDetail.years}
+                  </span>
                 )}
                 {player.dateOfBirth && (
                   <span className="flex items-center gap-1">
@@ -235,9 +241,7 @@ export function PlayerHistoryPage() {
           )}
 
           {/* Career bar */}
-          {contracts && contracts.length > 0 && (
-            <PlayerCareerBar contracts={contracts} />
-          )}
+          {contracts && contracts.length > 0 && <PlayerCareerBar contracts={contracts} />}
 
           {/* Season stats table */}
           {!statsLoading && hasAnyStats && (

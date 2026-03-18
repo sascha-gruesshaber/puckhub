@@ -42,7 +42,14 @@ import { trpc } from '@/trpc'
 
 ```
 src/components/
-└── topBar.tsx             # Header bar with platform branding and user menu
+└── topBar.tsx             # Header bar with platform branding and user menu (uses DropdownMenu from @puckhub/ui)
+```
+
+## Contexts
+
+```
+src/contexts/
+└── mobileSidebarContext.tsx  # Mobile sidebar open/close state
 ```
 
 ## Lib

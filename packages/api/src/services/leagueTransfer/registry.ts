@@ -71,9 +71,9 @@ export const EXCLUDED_FROM_EXPORT: Record<string, string> = {
 
 // Pluralize model name for JSON keys
 export function pluralize(modelName: string): string {
-  if (modelName.endsWith("s")) return modelName + "es"
-  if (modelName.endsWith("y") && !modelName.endsWith("ey")) return modelName.slice(0, -1) + "ies"
-  return modelName + "s"
+  if (modelName.endsWith("s")) return `${modelName}es`
+  if (modelName.endsWith("y") && !modelName.endsWith("ey")) return `${modelName.slice(0, -1)}ies`
+  return `${modelName}s`
 }
 
 // Get the sorted registry entries by order
@@ -86,15 +86,16 @@ export function getSortedRegistryEntries(): Array<[string, ModelConfig]> {
 export function parseOrgScopedModelsFromSchema(schemaContent: string): string[] {
   const models: string[] = []
   const modelRegex = /^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm
-  let match: RegExpExecArray | null
+  let match: RegExpExecArray | null = modelRegex.exec(schemaContent)
 
-  while ((match = modelRegex.exec(schemaContent)) !== null) {
+  while (match !== null) {
     const modelName = match[1]!
     const body = match[2]!
     if (body.includes("organizationId")) {
       // Convert PascalCase to camelCase
       models.push(modelName.charAt(0).toLowerCase() + modelName.slice(1))
     }
+    match = modelRegex.exec(schemaContent)
   }
   return models
 }

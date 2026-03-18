@@ -13,17 +13,16 @@ import {
   Users,
 } from "lucide-react"
 import { Suspense, useEffect, useState } from "react"
-
+import { trpc } from "@/trpc"
 import { PageSkeleton } from "~/components/pageSkeleton"
 import { SeasonPickerModal } from "~/components/seasonPickerModal"
 import { TopBar } from "~/components/topBar"
-import { useOrganization } from "~/contexts/organizationContext"
 import { MobileSidebarProvider, useMobileSidebar } from "~/contexts/mobileSidebarContext"
+import { useOrganization } from "~/contexts/organizationContext"
 import { type NavPermission, PermissionsProvider, usePermissions } from "~/contexts/permissionsContext"
 import { SeasonProvider, useWorkingSeason } from "~/contexts/seasonContext"
-import { useTranslation } from "~/i18n/use-translation"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
-import { trpc } from "@/trpc"
+import { useTranslation } from "~/i18n/use-translation"
 import "~/styles/dataList.css"
 import "~/styles/navigation.css"
 
@@ -37,6 +36,7 @@ export const Route = createFileRoute("/_authed/$orgSlug")({
 function IconPuck() {
   return (
     <svg
+      aria-hidden="true"
       width={18}
       height={18}
       viewBox="0 0 20 20"
@@ -116,7 +116,7 @@ function isSeasonScoped(item: NavItem): item is SeasonScopedItem {
 // ---------------------------------------------------------------------------
 function OrgSlugLayout() {
   const { orgSlug } = Route.useParams()
-  const { organizations, organization, switchOrganization, isLoading, isPlatformAdmin } = useOrganization()
+  const { organizations, organization, switchOrganization, isLoading } = useOrganization()
   const navigate = useNavigate()
   const [syncing, setSyncing] = useState(false)
 
@@ -127,7 +127,7 @@ function OrgSlugLayout() {
   useEffect(() => {
     if (isLoading || syncing) return
     if (!matchedOrg) {
-      navigate({ to: "/" })
+      navigate({ to: "/", search: { redirect: undefined, switchOrg: undefined } })
     }
   }, [matchedOrg, isLoading, syncing, navigate])
 
@@ -191,16 +191,21 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
     route: "",
   })
   const { open: sidebarOpen, setOpen: setSidebarOpen } = useMobileSidebar()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const _pathname = useRouterState({ select: (s) => s.location.pathname })
 
   // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false)
-  }, [pathname, setSidebarOpen])
+  }, [setSidebarOpen])
 
   // Build trikots item — locked if featureTrikotDesigner is off
   const trikotsItem: NavItem = canUseFeature("featureTrikotDesigner")
-    ? { to: "/$orgSlug/trikots", label: t("sidebar.items.trikots"), icon: <Shirt {...iconProps} />, permission: "trikots" }
+    ? {
+        to: "/$orgSlug/trikots",
+        label: t("sidebar.items.trikots"),
+        icon: <Shirt {...iconProps} />,
+        permission: "trikots",
+      }
     : {
         label: t("sidebar.items.trikots"),
         icon: <Shirt {...iconProps} />,
@@ -227,7 +232,12 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
 
   // Build website item — locked if featureWebsiteBuilder is off
   const websiteItem: NavItem = canUseFeature("featureWebsiteBuilder")
-    ? { to: "/$orgSlug/website", label: t("sidebar.items.website"), icon: <Globe {...iconProps} />, permission: "settings" }
+    ? {
+        to: "/$orgSlug/website",
+        label: t("sidebar.items.website"),
+        icon: <Globe {...iconProps} />,
+        permission: "settings",
+      }
     : {
         label: t("sidebar.items.website"),
         icon: <Globe {...iconProps} />,
@@ -253,23 +263,48 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
           seasonRoute: "/$orgSlug/seasons/$seasonId/roster",
           permission: "roster",
         },
-        { to: "/$orgSlug/teams", label: t("sidebar.items.teams"), icon: <Shield {...iconProps} />, permission: "teams" },
-        { to: "/$orgSlug/players", label: t("sidebar.items.players"), icon: <Users {...iconProps} />, permission: "players" },
+        {
+          to: "/$orgSlug/teams",
+          label: t("sidebar.items.teams"),
+          icon: <Shield {...iconProps} />,
+          permission: "teams",
+        },
+        {
+          to: "/$orgSlug/players",
+          label: t("sidebar.items.players"),
+          icon: <Users {...iconProps} />,
+          permission: "players",
+        },
         trikotsItem,
       ],
     },
     {
       label: t("sidebar.groups.content"),
       items: [
-        { to: "/$orgSlug/news", label: t("sidebar.items.news"), icon: <Newspaper {...iconProps} />, permission: "news" },
-        { to: "/$orgSlug/pages", label: t("sidebar.items.pages"), icon: <FileText {...iconProps} />, permission: "pages" },
+        {
+          to: "/$orgSlug/news",
+          label: t("sidebar.items.news"),
+          icon: <Newspaper {...iconProps} />,
+          permission: "news",
+        },
+        {
+          to: "/$orgSlug/pages",
+          label: t("sidebar.items.pages"),
+          icon: <FileText {...iconProps} />,
+          permission: "pages",
+        },
         sponsorsItem,
       ],
     },
     {
       label: t("sidebar.groups.system"),
       items: [
-        { to: "/$orgSlug/users", label: t("sidebar.items.users"), icon: <UserCog {...iconProps} />, permission: "users" },
+        {
+          to: "/$orgSlug/users",
+          label: t("sidebar.items.users"),
+          icon: <UserCog {...iconProps} />,
+          permission: "users",
+        },
         websiteItem,
         {
           to: "/$orgSlug/settings",
@@ -314,11 +349,12 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
     <div className="flex min-h-screen">
       {/* --- Mobile Backdrop --- */}
       {sidebarOpen && (
-        // biome-ignore lint/a11y/useKeyWithClickEvents: backdrop overlay
-        // biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay
+        // biome-ignore lint/a11y/noStaticElementInteractions: presentational backdrop overlay that dismisses sidebar
         <div
+          role="presentation"
           className="fixed inset-0 z-40 bg-black/50 lg:hidden"
           onClick={() => setSidebarOpen(false)}
+          onKeyDown={() => setSidebarOpen(false)}
         />
       )}
 
@@ -352,7 +388,9 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
               fontSize: 12,
             }}
           >
-            {(settings?.leagueShortName || settings?.leagueName || organization?.name || "PH").slice(0, 3).toUpperCase()}
+            {(settings?.leagueShortName || settings?.leagueName || organization?.name || "PH")
+              .slice(0, 3)
+              .toUpperCase()}
           </div>
           <div>
             <div
@@ -380,8 +418,13 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
         </div>
 
         {/* Navigation */}
-        {/* biome-ignore lint/a11y/useKeyWithClickEvents: nav click closes mobile sidebar */}
-        <nav className="sidebar-nav flex-1 overflow-y-auto" style={{ padding: "16px 12px" }} onClick={() => setSidebarOpen(false)}>
+        {/* biome-ignore lint/a11y/useKeyWithClickEvents: nav click closes mobile sidebar on tap */}
+        {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: nav click closes mobile sidebar on touch/click anywhere in nav */}
+        <nav
+          className="sidebar-nav flex-1 overflow-y-auto"
+          style={{ padding: "16px 12px" }}
+          onClick={() => setSidebarOpen(false)}
+        >
           <Link
             to="/$orgSlug"
             params={{ orgSlug }}
@@ -483,10 +526,7 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
       </aside>
 
       {/* --- Main content --- */}
-      <main
-        className="flex-1 min-h-screen flex flex-col lg:ml-[260px]"
-        style={{ background: "var(--content-bg)" }}
-      >
+      <main className="flex-1 min-h-screen flex flex-col lg:ml-[260px]" style={{ background: "var(--content-bg)" }}>
         <TopBar />
         <div className="content-enter flex-1 px-4 py-4 sm:px-6 lg:px-11 lg:py-6">
           <Suspense fallback={<PageSkeleton />}>

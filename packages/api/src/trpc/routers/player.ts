@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
-import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { APP_ERROR_CODES } from "../../errors/codes"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
+import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 async function resolveCurrentSeason(db: any, organizationId: string) {
   const now = new Date()
@@ -87,6 +87,7 @@ export const playerRouter = router({
                 name: active.team.name,
                 shortName: active.team.shortName,
                 logoUrl: active.team.logoUrl,
+                primaryColor: active.team.primaryColor,
                 position: active.position,
                 jerseyNumber: active.jerseyNumber,
               }

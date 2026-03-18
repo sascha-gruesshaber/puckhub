@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { LEAGUE_CHART_COLORS, EChartsWrapper } from "./echartsWrapper"
+import { EChartsWrapper, LEAGUE_CHART_COLORS } from "./echartsWrapper"
 
 interface GoalieChartStat {
   player: { firstName: string; lastName: string } | null

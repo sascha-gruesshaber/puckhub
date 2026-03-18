@@ -43,6 +43,7 @@ enum GameStatus {
 enum GameEventType {
   goal
   penalty
+  note
 
   @@map("game_event_type")
 }
@@ -495,10 +496,10 @@ model GameEvent {
   organizationId     String        @map("organization_id")
   gameId             String        @map("game_id") @db.Uuid
   eventType          GameEventType @map("event_type")
-  teamId             String        @map("team_id") @db.Uuid
-  period             Int
-  timeMinutes        Int           @map("time_minutes")
-  timeSeconds        Int           @map("time_seconds")
+  teamId             String?       @map("team_id") @db.Uuid
+  period             Int?
+  timeMinutes        Int?          @map("time_minutes")
+  timeSeconds        Int?          @map("time_seconds")
   scorerId           String?       @map("scorer_id") @db.Uuid
   assist1Id          String?       @map("assist1_id") @db.Uuid
   assist2Id          String?       @map("assist2_id") @db.Uuid
@@ -507,11 +508,13 @@ model GameEvent {
   penaltyTypeId      String?       @map("penalty_type_id") @db.Uuid
   penaltyMinutes     Int?          @map("penalty_minutes")
   penaltyDescription String?       @map("penalty_description")
+  noteText           String?       @map("note_text")
+  notePublic         Boolean       @default(true) @map("note_public")
   createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz
 
   organization  Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   game          Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  team          Team            @relation(fields: [teamId], references: [id])
+  team          Team?           @relation(fields: [teamId], references: [id])
   scorer        Player?         @relation("eventScorer", fields: [scorerId], references: [id], onDelete: SetNull)
   assist1       Player?         @relation("eventAssist1", fields: [assist1Id], references: [id], onDelete: SetNull)
   assist2       Player?         @relation("eventAssist2", fields: [assist2Id], references: [id], onDelete: SetNull)

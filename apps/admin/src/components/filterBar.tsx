@@ -38,5 +38,5 @@ function FilterBarDivider() {
   return <div className="filter-bar-panel__divider" />
 }
 
-export { FilterBar, FilterBarDivider }
 export type { FilterBarProps }
+export { FilterBar, FilterBarDivider }

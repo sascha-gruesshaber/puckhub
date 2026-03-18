@@ -1,7 +1,7 @@
 import { router } from "./init"
 import { aiRecapRouter } from "./routers/aiRecap"
-import { contactFormRouter } from "./routers/contactForm"
 import { bonusPointsRouter } from "./routers/bonusPoints"
+import { contactFormRouter } from "./routers/contactForm"
 import { contractRouter } from "./routers/contract"
 import { dashboardRouter } from "./routers/dashboard"
 import { divisionRouter } from "./routers/division"

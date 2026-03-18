@@ -1,7 +1,7 @@
-import type { Page } from "@playwright/test"
-import { expect } from "@playwright/test"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
+import type { Page } from "@playwright/test"
+import { expect } from "@playwright/test"
 
 const apiLogFile = resolve(import.meta.dirname, ".e2e-api.log")
 const stateFile = resolve(import.meta.dirname, ".e2e-state.json")
@@ -48,9 +48,7 @@ function getE2EDatabaseUrl() {
   return cachedE2EDatabaseUrl
 }
 
-export async function withE2EDb<T>(
-  fn: (sql: ReturnType<typeof import("postgres").default>) => Promise<T>,
-): Promise<T> {
+export async function withE2EDb<T>(fn: (sql: ReturnType<typeof import("postgres").default>) => Promise<T>): Promise<T> {
   const postgres = (await import("postgres")).default
   const sql = postgres(getE2EDatabaseUrl(), { max: 1 })
 

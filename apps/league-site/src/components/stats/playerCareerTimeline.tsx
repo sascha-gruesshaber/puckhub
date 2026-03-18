@@ -115,5 +115,5 @@ function PlayerCareerBar({ contracts }: { contracts: Contract[] }) {
   )
 }
 
-export { PlayerCareerBar }
 export type { Contract, Suspension }
+export { PlayerCareerBar }

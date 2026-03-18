@@ -1,13 +1,13 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
 import { useMemo, useState } from "react"
+import { authClient, useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 import { PageHeader } from "~/components/pageHeader"
 import { PasskeySection } from "~/components/security/passkeySection"
 import { TwoFactorSection } from "~/components/security/twoFactorSection"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
-import { authClient, useSession } from "@/auth-client"
 
 export const Route = createFileRoute("/_authed/$orgSlug/profile")({
   component: ProfilePage,
@@ -15,7 +15,6 @@ export const Route = createFileRoute("/_authed/$orgSlug/profile")({
 
 function ProfilePage() {
   const { t } = useTranslation("common")
-  const { t: tErrors } = useTranslation("errors")
   const { data: session } = useSession()
   const { data: me } = trpc.users.me.useQuery()
 

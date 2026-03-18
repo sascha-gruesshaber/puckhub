@@ -9,7 +9,7 @@ export function hslStringToHex(hsl: string): string {
   const s = parseFloat(parts[1]!) / 100
   const l = parseFloat(parts[2]!) / 100
 
-  if (isNaN(h) || isNaN(s) || isNaN(l)) return "#000000"
+  if (Number.isNaN(h) || Number.isNaN(s) || Number.isNaN(l)) return "#000000"
 
   let r: number, g: number, b: number
 
@@ -35,7 +35,7 @@ export function hexToHslString(hex: string): string {
   const g = parseInt(cleaned.substring(2, 4), 16) / 255
   const b = parseInt(cleaned.substring(4, 6), 16) / 255
 
-  if (isNaN(r) || isNaN(g) || isNaN(b)) return "0 0% 0%"
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return "0 0% 0%"
 
   const max = Math.max(r, g, b)
   const min = Math.min(r, g, b)

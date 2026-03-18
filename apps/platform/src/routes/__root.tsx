@@ -1,10 +1,10 @@
 import { Toaster } from "@puckhub/ui"
 import appCss from "@puckhub/ui/globals.css?url"
-import dataListCss from "../styles/dataList.css?url"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts, useRouter } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { createTRPCClient, trpc } from "../../lib/trpc"
+import dataListCss from "../styles/dataList.css?url"
 
 export interface RouterContext {
   queryClient: QueryClient

@@ -219,5 +219,5 @@ function RemoveDialog({
   )
 }
 
-export { RemoveDialog }
 export type { RemoveDialogProps }
+export { RemoveDialog }

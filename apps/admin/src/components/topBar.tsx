@@ -86,11 +86,7 @@ function SeasonSection() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="topbar-season-trigger"
-          style={{ height: TOPBAR_CONTROL_HEIGHT }}
-        >
+        <button type="button" className="topbar-season-trigger" style={{ height: TOPBAR_CONTROL_HEIGHT }}>
           {/* Year badge */}
           <div
             className="flex items-center justify-center shrink-0 rounded-md"
@@ -245,11 +241,7 @@ function UserSection() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          className="topbar-user-trigger"
-          style={{ height: TOPBAR_CONTROL_HEIGHT }}
-        >
+        <button type="button" className="topbar-user-trigger" style={{ height: TOPBAR_CONTROL_HEIGHT }}>
           {/* Avatar */}
           <div
             className="flex items-center justify-center shrink-0"
@@ -278,9 +270,7 @@ function UserSection() {
       <DropdownMenuContent align="end" className="min-w-[220px]">
         <DropdownMenuLabel className="font-normal">
           <div className="text-sm font-semibold">{session.user.name || session.user.email}</div>
-          {session.user.name && (
-            <div className="text-xs text-muted-foreground mt-0.5">{session.user.email}</div>
-          )}
+          {session.user.name && <div className="text-xs text-muted-foreground mt-0.5">{session.user.email}</div>}
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />

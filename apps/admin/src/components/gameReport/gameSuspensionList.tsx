@@ -1,10 +1,24 @@
-import { Button, Dialog, DialogClose, DialogContent, DialogFooter, FormField, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
+import {
+  Button,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  FormField,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@puckhub/ui"
 import { Link2, Pencil, ShieldBan, Trash2, Unlink } from "lucide-react"
 import { useEffect, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { resolveTranslatedError } from "~/lib/errorI18n"
 import { useTranslation } from "~/i18n/use-translation"
+import { resolveTranslatedError } from "~/lib/errorI18n"
 
 interface GameSuspension {
   id: string
@@ -31,7 +45,7 @@ const suspensionTypeLabels: Record<string, { de: string; en: string }> = {
   game_misconduct: { de: "Spieldauer-Disziplinarstrafe", en: "Game misconduct" },
 }
 
-function EditSuspensionDialog({
+function EditSuspensionSheet({
   open,
   onOpenChange,
   gameId,
@@ -101,7 +115,10 @@ function EditSuspensionDialog({
         <form onSubmit={handleSubmit}>
           <div className="px-6 space-y-5">
             <FormField label={t("gameReport.fields.suspensionType")}>
-              <Select value={suspensionType} onValueChange={(v) => setSuspensionType(v as "match_penalty" | "game_misconduct")}>
+              <Select
+                value={suspensionType}
+                onValueChange={(v) => setSuspensionType(v as "match_penalty" | "game_misconduct")}
+              >
                 <SelectTrigger className="h-10">
                   <SelectValue />
                 </SelectTrigger>
@@ -251,7 +268,7 @@ function GameSuspensionList({ gameId, suspensions, homeTeamId, readOnly }: GameS
       </div>
 
       {/* Edit dialog */}
-      <EditSuspensionDialog
+      <EditSuspensionSheet
         open={!!editingSuspension}
         onOpenChange={(o) => !o && setEditingSuspension(null)}
         gameId={gameId}

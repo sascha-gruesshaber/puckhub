@@ -1,5 +1,5 @@
-import OpenAI from "openai"
 import type { PrismaClient } from "@puckhub/db"
+import OpenAI from "openai"
 import { getOrgPlan } from "./planLimits"
 
 // ─── OpenRouter Client ──────────────────────────────────────────────────────
@@ -128,6 +128,7 @@ interface GameDataForPrompt {
   scheduledAt: string | null
   location: string | null
   notes: string | null
+  eventNotes: string[]
   goals: Array<{
     period: number
     time: string
@@ -187,6 +188,13 @@ function buildUserPrompt(data: GameDataForPrompt): string {
 
   if (data.notes) {
     lines.push("", `Reporter Notes: ${data.notes}`)
+  }
+
+  if (data.eventNotes.length > 0) {
+    lines.push("", "Game Notes:")
+    for (const note of data.eventNotes) {
+      lines.push(`  - ${note}`)
+    }
   }
 
   if (data.homeLineup.length > 0) {
@@ -254,27 +262,31 @@ export async function generateAndPersistRecap(db: PrismaClient, gameId: string, 
     })
     const locale = settings?.locale ?? "de-DE"
 
-    // Build prompt data
+    // Build prompt data — only goal/penalty events have period & team guaranteed non-null
     const goals = game.events
-      .filter((e) => e.eventType === "goal")
+      .filter((e) => e.eventType === "goal" && e.period != null && e.team != null)
       .map((e) => ({
-        period: e.period,
+        period: e.period!,
         time: `${String(e.timeMinutes).padStart(2, "0")}:${String(e.timeSeconds).padStart(2, "0")}`,
-        team: e.team.shortName,
+        team: e.team!.shortName,
         scorer: e.scorer ? `${e.scorer.firstName} ${e.scorer.lastName}` : "Unknown",
         assists: [e.assist1, e.assist2].filter(Boolean).map((a) => `${a!.firstName} ${a!.lastName}`),
       }))
 
     const penalties = game.events
-      .filter((e) => e.eventType === "penalty")
+      .filter((e) => e.eventType === "penalty" && e.period != null && e.team != null)
       .map((e) => ({
-        period: e.period,
+        period: e.period!,
         time: `${String(e.timeMinutes).padStart(2, "0")}:${String(e.timeSeconds).padStart(2, "0")}`,
-        team: e.team.shortName,
+        team: e.team!.shortName,
         player: e.penaltyPlayer ? `${e.penaltyPlayer.firstName} ${e.penaltyPlayer.lastName}` : "Unknown",
         minutes: e.penaltyMinutes,
         type: e.penaltyType?.name ?? null,
       }))
+
+    const eventNotes = game.events
+      .filter((e) => e.eventType === "note" && e.notePublic && e.noteText)
+      .map((e) => e.noteText!)
 
     const gameData: GameDataForPrompt = {
       homeTeam: game.homeTeam,
@@ -284,6 +296,7 @@ export async function generateAndPersistRecap(db: PrismaClient, gameId: string, 
       scheduledAt: game.scheduledAt?.toISOString() ?? null,
       location: game.location,
       notes: game.notes,
+      eventNotes,
       goals,
       penalties,
       homeLineup: game.lineups

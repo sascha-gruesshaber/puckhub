@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { expect, test } from "@playwright/test"
-import { E2E_ADMIN_USER_ID, E2E_ORG_ID, adminPath, login, withE2EDb } from "./helpers"
+import { adminPath, E2E_ADMIN_USER_ID, E2E_ORG_ID, login, withE2EDb } from "./helpers"
 
 type NewsFixture = {
   id: string

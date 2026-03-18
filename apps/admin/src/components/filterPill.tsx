@@ -26,5 +26,5 @@ function FilterPill({ label, active, onClick, tooltip, icon }: FilterPillProps) 
   )
 }
 
-export { FilterPill }
 export type { FilterPillProps }
+export { FilterPill }

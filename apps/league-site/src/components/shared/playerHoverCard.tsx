@@ -175,5 +175,5 @@ function PlayerHoverCardContent({
   )
 }
 
-export { PlayerHoverCard }
 export type { PlayerHoverCardProps }
+export { PlayerHoverCard }

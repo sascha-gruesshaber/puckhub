@@ -260,7 +260,6 @@
   border-radius: 999px;
 }
 
-
 /* Content enter animation */
 @keyframes content-enter {
   from {
@@ -293,7 +292,6 @@
 .pulse-brand {
   animation: pulse-brand 1.8s ease-in-out infinite;
 }
-
 
 /* Skeleton pulse */
 @keyframes skeleton-pulse {

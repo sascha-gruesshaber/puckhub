@@ -43,6 +43,10 @@ export const publicSiteRouter = router({
         featureAdvancedRoles: true,
         featureAdvancedStats: true,
         featurePublicReports: true,
+        maxAdmins: true,
+        maxDocuments: true,
+        storageQuotaMb: true,
+        featureAiRecaps: true,
       },
     })
   }),
@@ -401,7 +405,12 @@ export const publicSiteRouter = router({
           awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } },
           round: { select: { name: true, roundType: true, division: { select: { name: true } } } },
           events: {
-            orderBy: [{ period: "asc" }, { timeMinutes: "asc" }, { timeSeconds: "asc" }],
+            where: { OR: [{ eventType: { not: "note" } }, { notePublic: true }] },
+            orderBy: [
+              { period: { sort: "asc", nulls: "first" } },
+              { timeMinutes: { sort: "asc", nulls: "first" } },
+              { timeSeconds: { sort: "asc", nulls: "first" } },
+            ],
             include: {
               team: { select: { id: true, shortName: true } },
               scorer: { select: { id: true, firstName: true, lastName: true } },
@@ -850,7 +859,7 @@ export const publicSiteRouter = router({
       const playerMap = new Map<string, PlayerPenalty>()
 
       for (const row of penaltyAgg) {
-        if (!row.penaltyPlayerId) continue
+        if (!row.penaltyPlayerId || !row.teamId) continue
         const key = `${row.penaltyPlayerId}:${row.teamId}`
         let entry = playerMap.get(key)
         if (!entry) {
@@ -914,6 +923,7 @@ export const publicSiteRouter = router({
 
       const teamMap = new Map<string, TeamPenalty>()
       for (const row of penaltyAgg) {
+        if (!row.teamId) continue
         let entry = teamMap.get(row.teamId)
         if (!entry) {
           entry = { teamId: row.teamId, totalMinutes: 0, totalCount: 0, byType: new Map() }
@@ -1524,112 +1534,110 @@ export const publicSiteRouter = router({
       return { success: true }
     }),
 
-  getAllTeamsHistory: publicProcedure
-    .input(z.object({ organizationId: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const orgId = input.organizationId
+  getAllTeamsHistory: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+    const orgId = input.organizationId
 
-      const [allTeams, teamDivisions, pimAgg] = await Promise.all([
-        ctx.db.team.findMany({
-          where: { organizationId: orgId },
-          select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true },
-          orderBy: { name: "asc" },
-        }),
-        ctx.db.teamDivision.findMany({
-          where: { organizationId: orgId },
-          include: {
-            division: {
-              include: {
-                season: { select: { id: true, name: true, seasonStart: true } },
-                rounds: {
-                  include: { standings: true },
-                  orderBy: { sortOrder: "asc" },
-                },
+    const [allTeams, teamDivisions, pimAgg] = await Promise.all([
+      ctx.db.team.findMany({
+        where: { organizationId: orgId },
+        select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true },
+        orderBy: { name: "asc" },
+      }),
+      ctx.db.teamDivision.findMany({
+        where: { organizationId: orgId },
+        include: {
+          division: {
+            include: {
+              season: { select: { id: true, name: true, seasonStart: true } },
+              rounds: {
+                include: { standings: true },
+                orderBy: { sortOrder: "asc" },
               },
             },
           },
-        }),
-        ctx.db.playerSeasonStat.groupBy({
-          by: ["teamId", "seasonId"],
-          where: { organizationId: orgId },
-          _sum: { penaltyMinutes: true },
-        }),
-      ])
+        },
+      }),
+      ctx.db.playerSeasonStat.groupBy({
+        by: ["teamId", "seasonId"],
+        where: { organizationId: orgId },
+        _sum: { penaltyMinutes: true },
+      }),
+    ])
 
-      // Build PIM lookup
-      const pimMap = new Map<string, number>()
-      for (const row of pimAgg) {
-        pimMap.set(`${row.teamId}:${row.seasonId}`, row._sum.penaltyMinutes ?? 0)
+    // Build PIM lookup
+    const pimMap = new Map<string, number>()
+    for (const row of pimAgg) {
+      pimMap.set(`${row.teamId}:${row.seasonId}`, row._sum.penaltyMinutes ?? 0)
+    }
+
+    // Collect unique seasons
+    const seasonMap = new Map<string, { id: string; name: string; seasonStart: Date }>()
+    // Build teamSeasons from standings
+    const teamSeasons: Array<{
+      teamId: string
+      seasonId: string
+      gamesPlayed: number
+      wins: number
+      draws: number
+      losses: number
+      goalsFor: number
+      goalsAgainst: number
+      goalDifference: number
+      bestRank: number | null
+      pim: number
+    }> = []
+
+    // Aggregate per team per season across all divisions/rounds
+    const tsMap = new Map<string, (typeof teamSeasons)[0]>()
+
+    for (const td of teamDivisions) {
+      const s = td.division.season
+      if (!seasonMap.has(s.id)) {
+        seasonMap.set(s.id, { id: s.id, name: s.name, seasonStart: s.seasonStart })
       }
 
-      // Collect unique seasons
-      const seasonMap = new Map<string, { id: string; name: string; seasonStart: Date }>()
-      // Build teamSeasons from standings
-      const teamSeasons: Array<{
-        teamId: string
-        seasonId: string
-        gamesPlayed: number
-        wins: number
-        draws: number
-        losses: number
-        goalsFor: number
-        goalsAgainst: number
-        goalDifference: number
-        bestRank: number | null
-        pim: number
-      }> = []
-
-      // Aggregate per team per season across all divisions/rounds
-      const tsMap = new Map<string, (typeof teamSeasons)[0]>()
-
-      for (const td of teamDivisions) {
-        const s = td.division.season
-        if (!seasonMap.has(s.id)) {
-          seasonMap.set(s.id, { id: s.id, name: s.name, seasonStart: s.seasonStart })
-        }
-
-        for (const round of td.division.rounds) {
-          for (const st of round.standings) {
-            const key = `${st.teamId}:${s.id}`
-            let entry = tsMap.get(key)
-            if (!entry) {
-              entry = {
-                teamId: st.teamId,
-                seasonId: s.id,
-                gamesPlayed: 0,
-                wins: 0,
-                draws: 0,
-                losses: 0,
-                goalsFor: 0,
-                goalsAgainst: 0,
-                goalDifference: 0,
-                bestRank: null,
-                pim: pimMap.get(key) ?? 0,
-              }
-              tsMap.set(key, entry)
+      for (const round of td.division.rounds) {
+        for (const st of round.standings) {
+          const key = `${st.teamId}:${s.id}`
+          let entry = tsMap.get(key)
+          if (!entry) {
+            entry = {
+              teamId: st.teamId,
+              seasonId: s.id,
+              gamesPlayed: 0,
+              wins: 0,
+              draws: 0,
+              losses: 0,
+              goalsFor: 0,
+              goalsAgainst: 0,
+              goalDifference: 0,
+              bestRank: null,
+              pim: pimMap.get(key) ?? 0,
             }
-            entry.gamesPlayed += st.gamesPlayed
-            entry.wins += st.wins
-            entry.draws += st.draws
-            entry.losses += st.losses
-            entry.goalsFor += st.goalsFor
-            entry.goalsAgainst += st.goalsAgainst
-            entry.goalDifference += st.goalsFor - st.goalsAgainst
-            if (st.rank != null && (entry.bestRank === null || st.rank < entry.bestRank)) {
-              entry.bestRank = st.rank
-            }
+            tsMap.set(key, entry)
+          }
+          entry.gamesPlayed += st.gamesPlayed
+          entry.wins += st.wins
+          entry.draws += st.draws
+          entry.losses += st.losses
+          entry.goalsFor += st.goalsFor
+          entry.goalsAgainst += st.goalsAgainst
+          entry.goalDifference += st.goalsFor - st.goalsAgainst
+          if (st.rank != null && (entry.bestRank === null || st.rank < entry.bestRank)) {
+            entry.bestRank = st.rank
           }
         }
       }
+    }
 
-      teamSeasons.push(...tsMap.values())
+    teamSeasons.push(...tsMap.values())
 
-      const seasons = Array.from(seasonMap.values()).sort(
-        (a, b) => new Date(a.seasonStart).getTime() - new Date(b.seasonStart).getTime(),
-      )
+    const seasons = Array.from(seasonMap.values()).sort(
+      (a, b) => new Date(a.seasonStart).getTime() - new Date(b.seasonStart).getTime(),
+    )
 
-      return { teams: allTeams, seasons, teamSeasons }
-    }),
+    return { teams: allTeams, seasons, teamSeasons }
+  }),
 
   reportHasReport: publicProcedure
     .input(z.object({ organizationId: z.string(), gameId: z.string().uuid() }))

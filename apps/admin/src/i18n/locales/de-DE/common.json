@@ -219,7 +219,9 @@
       "title": "SEO",
       "seoTitle": "Seitentitel",
       "seoDescription": "Meta-Beschreibung"
-    }
+    },
+    "unsavedChanges": "Ungespeicherte Änderungen",
+    "discard": "Verwerfen"
   },
   "language": {
     "label": "Anzeigesprache",
@@ -387,7 +389,8 @@
       "teams": "Teams",
       "players": "Spieler",
       "completed": "Abgeschlossen",
-      "remaining": "Ausstehend"
+      "remaining": "Ausstehend",
+      "totalOf": "{total} insgesamt"
     },
     "sections": {
       "actionItems": "Handlungsbedarf",
@@ -433,7 +436,8 @@
       "title": "Letzte Ergebnisse",
       "empty": "Noch keine abgeschlossenen Spiele.",
       "viewReport": "Bericht"
-    }
+    },
+    "showAll": "Alle anzeigen"
   },
   "newsCreate": {
     "title": "Neue News",
@@ -1293,6 +1297,7 @@
       "teamEmptyTitle": "Kader ist leer",
       "noSearchResults": "Keine Spieler gefunden für \"{{query}}\".",
       "teamEmpty": "{{team}} hat noch keine Spieler in dieser Saison.",
+      "allTeamsEmpty": "Es wurden noch keine Spieler für ein Team in dieser Saison verpflichtet.",
       "signFirst": "Ersten Spieler verpflichten"
     },
     "fallback": {
@@ -1302,6 +1307,8 @@
       "title": "Spieler verpflichten",
       "description": "Füge einen Spieler zum Kader hinzu.",
       "fields": {
+        "team": "Team",
+        "teamPlaceholder": "Team auswählen...",
         "player": "Spieler",
         "playerSearchPlaceholder": "Spieler suchen...",
         "position": "Position",
@@ -1633,6 +1640,15 @@
     "addGoalBtn": "+ Tor",
     "addPenaltyBtn": "+ Strafe",
     "addSuspensionBtn": "+ Spielsperre",
+    "addNoteBtn": "+ Notiz",
+    "addNote": "Notiz hinzufügen",
+    "editNote": "Notiz bearbeiten",
+    "noteDescription": "Eine Notiz zum Spielbericht hinzufügen.",
+    "note": "Notiz",
+    "gameWideNote": "Spielweite Notiz",
+    "gameWideNoteHint": "Nicht an eine bestimmte Zeit gebunden — wird über der Timeline angezeigt",
+    "notePublicLabel": "Auf Ligaseite sichtbar",
+    "notePrivateHint": "Privat",
     "deleteEventTitle": "Ereignis löschen",
     "deleteEventDescription": "Bist du sicher, dass du dieses Ereignis löschen möchtest?",
     "deleteEventConfirm": "Löschen",
@@ -1653,7 +1669,8 @@
       "addSuspension": "Spielsperre hinzufügen",
       "suspensionType": "Sperrentyp",
       "suspendedGames": "Gesperrte Spiele",
-      "suspensionComment": "Kommentar"
+      "suspensionComment": "Kommentar",
+      "noteText": "Notiz"
     },
     "suspensionTypes": {
       "matchPenalty": "Matchstrafe",
@@ -1681,21 +1698,29 @@
     },
     "completeSection": {
       "score": "Endstand",
-      "button": "Spiel abschliessen",
+      "button": "Spielbericht abschliessen",
       "lineupsRequired": "Beide Teams müssen eine Aufstellung haben.",
       "confirmTitle": "Spiel abschliessen?",
       "confirmDescription": "Das Spiel wird mit dem Endstand {{homeScore}} : {{awayScore}} abgeschlossen."
     },
     "reopenSection": {
       "finalized": "Abgeschlossen am {{date}}",
-      "button": "Wieder öffnen",
+      "button": "Spielbericht wieder öffnen",
       "confirmTitle": "Spiel wieder öffnen?",
       "confirmDescription": "Das Spiel wird zurück auf «Geplant» gesetzt. Allfällige Spielsperren werden zurückgesetzt."
     },
+    "gameNotes": {
+      "title": "Spielnotizen",
+      "empty": "Keine Spielnotizen."
+    },
+    "editGame": "Spiel bearbeiten",
+    "editGameDescription": "Paarung, Spielort und Ansetzung bearbeiten.",
     "notes": {
       "label": "Spielnotizen",
       "placeholder": "Optionale Notizen zum Spiel (werden für KI-Spielbericht verwendet)...",
-      "saved": "Notizen gespeichert"
+      "saved": "Notizen gespeichert",
+      "saving": "Speichern...",
+      "autoSaved": "Gespeichert"
     },
     "recap": {
       "title": "KI-Spielbericht",
@@ -1715,6 +1740,8 @@
       "goalUpdated": "Tor aktualisiert",
       "penaltyAdded": "Strafe hinzugefügt",
       "penaltyUpdated": "Strafe aktualisiert",
+      "noteAdded": "Notiz hinzugefügt",
+      "noteUpdated": "Notiz aktualisiert",
       "suspensionAdded": "Spielsperre hinzugefügt",
       "suspensionUpdated": "Spielsperre aktualisiert",
       "suspensionDeleted": "Spielsperre gelöscht",

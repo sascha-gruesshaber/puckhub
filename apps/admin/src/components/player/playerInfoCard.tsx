@@ -29,11 +29,7 @@ function PlayerInfoCard({ player, position, jerseyNumber, sinceSeasonName }: Pla
     >
       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 overflow-hidden">
         {player.photoUrl ? (
-          <img
-            src={player.photoUrl}
-            alt={playerName}
-            className="h-full w-full rounded-full object-cover"
-          />
+          <img src={player.photoUrl} alt={playerName} className="h-full w-full rounded-full object-cover" />
         ) : (
           <span className="text-sm font-bold text-primary">
             {player.firstName[0]}
@@ -44,9 +40,7 @@ function PlayerInfoCard({ player, position, jerseyNumber, sinceSeasonName }: Pla
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-foreground truncate">{playerName}</div>
         <div className="flex items-center gap-2 mt-0.5 text-sm text-muted-foreground">
-          {jerseyNumber != null && (
-            <span className="font-mono text-xs">#{jerseyNumber}</span>
-          )}
+          {jerseyNumber != null && <span className="font-mono text-xs">#{jerseyNumber}</span>}
           {position && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
               {t(`rosterPage.positions.${position}`)}

@@ -1,4 +1,15 @@
-import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, toast } from "@puckhub/ui"
+import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  toast,
+} from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
 import { Save, Send, Settings, Sparkles } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -134,10 +145,14 @@ function SettingsPage() {
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  <label
+                    htmlFor="settings-league-name"
+                    className="block text-xs font-medium text-muted-foreground mb-1.5"
+                  >
                     {t("settings.leagueName")}
                   </label>
                   <Input
+                    id="settings-league-name"
                     data-testid="settings-league-name"
                     value={form.leagueName}
                     onChange={(e) => setForm({ ...form, leagueName: e.target.value })}
@@ -145,10 +160,14 @@ function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                  <label
+                    htmlFor="settings-league-short-name"
+                    className="block text-xs font-medium text-muted-foreground mb-1.5"
+                  >
                     {t("settings.leagueShortName")}
                   </label>
                   <Input
+                    id="settings-league-short-name"
                     value={form.leagueShortName}
                     onChange={(e) => setForm({ ...form, leagueShortName: e.target.value })}
                     className="h-10"
@@ -161,9 +180,7 @@ function SettingsPage() {
               <h3 className="text-sm font-semibold mb-4">{t("settings.region")}</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    {t("settings.language")}
-                  </label>
+                  <p className="block text-xs font-medium text-muted-foreground mb-1.5">{t("settings.language")}</p>
                   <Select value={normalizedLocale} onValueChange={(v) => setForm({ ...form, locale: v })}>
                     <SelectTrigger className="w-full h-10">
                       <SelectValue />
@@ -178,9 +195,7 @@ function SettingsPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
-                    {t("settings.timezone")}
-                  </label>
+                  <p className="block text-xs font-medium text-muted-foreground mb-1.5">{t("settings.timezone")}</p>
                   <Select value={form.timezone} onValueChange={(v) => setForm({ ...form, timezone: v })}>
                     <SelectTrigger className="w-full h-10">
                       <SelectValue />
@@ -201,8 +216,14 @@ function SettingsPage() {
               <h3 className="text-sm font-semibold mb-4">{t("settings.points")}</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t("settings.win")}</label>
+                  <label
+                    htmlFor="settings-points-win"
+                    className="block text-xs font-medium text-muted-foreground mb-1.5"
+                  >
+                    {t("settings.win")}
+                  </label>
                   <Input
+                    id="settings-points-win"
                     type="number"
                     value={form.pointsWin}
                     onChange={(e) => setForm({ ...form, pointsWin: Number(e.target.value) })}
@@ -211,8 +232,14 @@ function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t("settings.draw")}</label>
+                  <label
+                    htmlFor="settings-points-draw"
+                    className="block text-xs font-medium text-muted-foreground mb-1.5"
+                  >
+                    {t("settings.draw")}
+                  </label>
                   <Input
+                    id="settings-points-draw"
                     type="number"
                     value={form.pointsDraw}
                     onChange={(e) => setForm({ ...form, pointsDraw: Number(e.target.value) })}
@@ -221,8 +248,14 @@ function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">{t("settings.loss")}</label>
+                  <label
+                    htmlFor="settings-points-loss"
+                    className="block text-xs font-medium text-muted-foreground mb-1.5"
+                  >
+                    {t("settings.loss")}
+                  </label>
                   <Input
+                    id="settings-points-loss"
                     type="number"
                     value={form.pointsLoss}
                     onChange={(e) => setForm({ ...form, pointsLoss: Number(e.target.value) })}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createTestCaller, createPlatformAdminCaller, getTestDb, seedTestOrg, TEST_ORG_ID } from "../testUtils"
+import { createPlatformAdminCaller, createTestCaller, getTestDb, TEST_ORG_ID } from "../testUtils"
 
 describe("leagueTransfer router", () => {
   // ─── exportLeague ─────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ describe("leagueTransfer router", () => {
 
       // Create some data
       const admin = createTestCaller({ asAdmin: true })
-      const season = await admin.season.create({
+      const _season = await admin.season.create({
         name: "Export Season",
         seasonStart: "2025-09-01",
         seasonEnd: "2026-04-30",

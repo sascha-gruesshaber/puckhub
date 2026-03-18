@@ -129,6 +129,11 @@
   color: white;
 }
 
+.game-timeline-node--note {
+  background: #3b82f6;
+  color: white;
+}
+
 .game-timeline-node--suspension {
   background: #ef4444;
   color: white;

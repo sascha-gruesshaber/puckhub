@@ -1,4 +1,25 @@
-import { Button, Card, CardContent, toast } from "@puckhub/ui"
+import {
+  Button,
+  Card,
+  CardContent,
+  FormField,
+  Input,
+  Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetBody,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  toast,
+} from "@puckhub/ui"
 import { createFileRoute, Link, useParams } from "@tanstack/react-router"
 import {
   AlertTriangle,
@@ -8,9 +29,9 @@ import {
   ClipboardList,
   Clock,
   Loader2,
+  Pencil,
   RefreshCw,
   RotateCcw,
-  Save,
   ShieldBan,
   Sparkles,
   StickyNote,
@@ -19,12 +40,13 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
-import { TabNavigation } from "~/components/tabNavigation"
 import { GameReportHeader } from "~/components/gameReport/gameReportHeader"
 import { GameSuspensionList } from "~/components/gameReport/gameSuspensionList"
 import { GameTimeline, type GameTimelineHandle } from "~/components/gameReport/gameTimeline"
-import { LineupEditor, type LineupEditorHandle } from "~/components/gameReport/lineupEditor"
+import { LineupEditor } from "~/components/gameReport/lineupEditor"
 import { SuspensionWarnings } from "~/components/gameReport/suspensionWarnings"
+import { TabNavigation } from "~/components/tabNavigation"
+import { TeamCombobox } from "~/components/teamCombobox"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
@@ -36,6 +58,28 @@ export const Route = createFileRoute("/_authed/$orgSlug/games/$gameId/report")({
   },
   component: GameReportPage,
 })
+
+function toLocalInputValue(value: Date | string | null | undefined): string {
+  if (!value) return ""
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ""
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, "0")
+  const dd = String(d.getDate()).padStart(2, "0")
+  const hh = String(d.getHours()).padStart(2, "0")
+  const min = String(d.getMinutes()).padStart(2, "0")
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`
+}
+
+interface EditForm {
+  roundId: string
+  homeTeamId: string
+  awayTeamId: string
+  location: string
+  scheduledAt: string
+}
+
+const emptyEditForm: EditForm = { roundId: "", homeTeamId: "", awayTeamId: "", location: "", scheduledAt: "" }
 
 type Tab = "lineup" | "report" | "ai"
 
@@ -49,13 +93,15 @@ function GameReportPage() {
   const [activeTab, setActiveTab] = useState<Tab>("report")
   const initialTabSet = useRef(false)
   const timelineRef = useRef<GameTimelineHandle>(null)
-  const lineupRef = useRef<LineupEditorHandle>(null)
   const { canUseFeature } = usePlanLimits()
 
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false)
   const [showReopenConfirm, setShowReopenConfirm] = useState(false)
-  const [notes, setNotes] = useState("")
-  const notesInitialized = useRef(false)
+
+  // Edit sheet state
+  const [editSheetOpen, setEditSheetOpen] = useState(false)
+  const [editForm, setEditForm] = useState<EditForm>(emptyEditForm)
+  const [confirmEditClose, setConfirmEditClose] = useState(false)
 
   const reportQuery = trpc.gameReport.getReport.useQuery({ gameId })
   const penaltyTypesQuery = trpc.gameReport.getPenaltyTypes.useQuery()
@@ -72,14 +118,6 @@ function GameReportPage() {
     return () => clearInterval(interval)
   }, [isRecapGenerating, gameId, utils])
   const gameSeasonId = game?.round?.division?.seasonId
-
-  // Initialize notes from game data
-  useEffect(() => {
-    if (game && !notesInitialized.current) {
-      notesInitialized.current = true
-      setNotes(game.notes ?? "")
-    }
-  }, [game])
 
   const completeGame = trpc.game.complete.useMutation({
     onSuccess: () => {
@@ -101,10 +139,12 @@ function GameReportPage() {
     onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
 
-  const updateNotes = trpc.game.update.useMutation({
+  const updateGameDetails = trpc.game.update.useMutation({
     onSuccess: () => {
       utils.gameReport.getReport.invalidate({ gameId })
-      toast.success(t("gameReport.notes.saved"))
+      utils.game.listForSeason.invalidate()
+      setEditSheetOpen(false)
+      toast.success(t("gamesPage.toast.gameUpdated"))
     },
     onError: (e) => toast.error(t("gameReport.toast.error"), { description: resolveTranslatedError(e, tErrors) }),
   })
@@ -125,6 +165,28 @@ function GameReportPage() {
     },
     { enabled: !!game && !!gameSeasonId },
   )
+
+  // Structure & teams for edit sheet
+  const structureQuery = trpc.season.getFullStructure.useQuery({ id: gameSeasonId ?? "" }, { enabled: !!gameSeasonId })
+  const { data: locationSuggestions } = trpc.game.locationSuggestions.useQuery()
+
+  const rounds = structureQuery.data?.rounds ?? []
+  const editTeams = useMemo(() => {
+    const m = new Map<
+      string,
+      { id: string; name: string; shortName: string; logoUrl: string | null; homeVenue?: string | null }
+    >()
+    for (const ta of structureQuery.data?.teamAssignments ?? []) {
+      m.set(ta.team.id, {
+        id: ta.team.id,
+        name: ta.team.name,
+        shortName: ta.team.shortName,
+        logoUrl: ta.team.logoUrl ?? null,
+        homeVenue: ta.team.homeVenue,
+      })
+    }
+    return Array.from(m.values())
+  }, [structureQuery.data])
 
   const homeRoster = useMemo(
     () =>
@@ -180,7 +242,6 @@ function GameReportPage() {
   }, [game, lineupPlayers.length])
 
   // Check if this game has a public report (hooks must be before early returns)
-  const { data: publicReportCount } = trpc.publicGameReport.count.useQuery()
   const { data: publicReports } = trpc.publicGameReport.list.useQuery(
     { limit: 1 },
     { enabled: !!(game && game.status === "completed") },
@@ -212,24 +273,114 @@ function GameReportPage() {
   const readOnly = isCompleted || isCancelled
   const canComplete = !isCompleted && !isCancelled
 
-  const gamePublicReport = isCompleted
-    ? publicReports?.find((r: any) => r.gameId === gameId && !r.reverted)
-    : undefined
+  const gamePublicReport = isCompleted ? publicReports?.find((r: any) => r.gameId === gameId && !r.reverted) : undefined
+
+  const isEditDirty =
+    editSheetOpen &&
+    (editForm.roundId !== ((game as any)?.roundId ?? "") ||
+      editForm.homeTeamId !== (game?.homeTeamId ?? "") ||
+      editForm.awayTeamId !== (game?.awayTeamId ?? "") ||
+      editForm.location !== (game?.location ?? "") ||
+      editForm.scheduledAt !== toLocalInputValue(game?.scheduledAt))
+
+  // ── Helpers ──
+
+  function openEditSheet() {
+    if (!game) return
+    setEditForm({
+      roundId: (game as any).roundId ?? "",
+      homeTeamId: game.homeTeamId,
+      awayTeamId: game.awayTeamId,
+      location: game.location ?? "",
+      scheduledAt: toLocalInputValue(game.scheduledAt),
+    })
+    setEditSheetOpen(true)
+  }
+
+  function submitEditForm(e: React.FormEvent) {
+    e.preventDefault()
+    updateGameDetails.mutate({
+      id: gameId,
+      roundId: editForm.roundId || undefined,
+      homeTeamId: editForm.homeTeamId || undefined,
+      awayTeamId: editForm.awayTeamId || undefined,
+      location: editForm.location || null,
+      scheduledAt: editForm.scheduledAt ? new Date(editForm.scheduledAt).toISOString() : null,
+    })
+  }
+
+  function handleEditHomeTeamChange(teamId: string) {
+    setEditForm((prev) => {
+      const team = editTeams.find((t) => t.id === teamId)
+      return { ...prev, homeTeamId: teamId, location: prev.location || team?.homeVenue || "" }
+    })
+  }
 
   return (
     <div className="space-y-6">
-      {/* Back link */}
-      <Link
-        to="/$orgSlug/games"
-        params={{ orgSlug }}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        {t("gameReport.backToGames")}
-      </Link>
+      {/* Back link + page-level actions (like DetailPageLayout) */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <Link
+          to="/$orgSlug/games"
+          params={{ orgSlug }}
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          {t("gameReport.backToGames")}
+        </Link>
+        <div className="flex items-center gap-2">
+          {!readOnly && (
+            <Button variant="outline" size="sm" onClick={openEditSheet}>
+              <Pencil className="w-3.5 h-3.5 mr-1.5" />
+              {t("gameReport.editGame")}
+            </Button>
+          )}
+          {canComplete && (
+            <Button
+              variant="default"
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              disabled={!hasBothLineups || completeGame.isPending}
+              onClick={() => setShowCompleteConfirm(true)}
+              title={!hasBothLineups ? t("gameReport.completeSection.lineupsRequired") : undefined}
+            >
+              <CheckCircle2 className="w-4 h-4 mr-1.5" />
+              {t("gameReport.completeSection.button")}
+            </Button>
+          )}
+          {(isCompleted || isCancelled) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowReopenConfirm(true)}
+              disabled={reopenGame.isPending}
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+              {t("gameReport.reopenSection.button")}
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Header */}
       <GameReportHeader game={game as any} />
+
+      {/* Finalized / Cancelled status note */}
+      {isCompleted && (
+        <p className="text-xs text-muted-foreground">
+          {t("gameReport.reopenSection.finalized", {
+            date: game.finalizedAt
+              ? new Date(game.finalizedAt).toLocaleDateString(i18n.language, {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—",
+          })}
+        </p>
+      )}
 
       {/* Public report notice */}
       {gamePublicReport && (
@@ -261,68 +412,126 @@ function GameReportPage() {
         readOnly={readOnly}
       />
 
-      {/* Tab bar */}
-      <TabNavigation
-        groups={[{
-          key: "report-tabs",
-          tabs: [
-            { id: "lineup" as const, label: t("gameReport.tabs.lineup"), icon: Users },
-            { id: "report" as const, label: t("gameReport.tabs.report"), icon: ClipboardList },
-            ...(isCompleted && canUseFeature("featureAiRecaps")
-              ? [{ id: "ai" as const, label: t("gameReport.tabs.ai"), icon: Sparkles }]
-              : []),
-          ],
-        }]}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      {/* Tab bar + inline tab actions */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <TabNavigation
+          groups={[
+            {
+              key: "report-tabs",
+              tabs: [
+                { id: "lineup" as const, label: t("gameReport.tabs.lineup"), icon: Users },
+                { id: "report" as const, label: t("gameReport.tabs.report"), icon: ClipboardList },
+                ...(isCompleted && canUseFeature("featureAiRecaps")
+                  ? [{ id: "ai" as const, label: t("gameReport.tabs.ai"), icon: Sparkles }]
+                  : []),
+              ],
+            },
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-      {/* Grid: Tab content + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
-        {/* ── Tab content ── */}
-        <div>
-          {activeTab === "lineup" && (
-            <LineupEditor
-              ref={lineupRef}
-              gameId={gameId}
-              homeTeamId={game.homeTeamId}
-              awayTeamId={game.awayTeamId}
-              homeTeamName={game.homeTeam.name}
-              awayTeamName={game.awayTeam.name}
-              homeRoster={homeRoster}
-              awayRoster={awayRoster}
-              existingLineup={lineupPlayers}
-              activeSuspensions={game.activeSuspensions}
-              readOnly={readOnly}
-              externalActions
-            />
-          )}
+        {/* Tab-specific actions — inline next to tabs */}
+        {activeTab === "report" && !readOnly && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+              onClick={() => timelineRef.current?.openGoalSheet()}
+            >
+              <CircleDot className="w-3.5 h-3.5" />
+              {t("gameReport.addGoalBtn")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
+              onClick={() => timelineRef.current?.openPenaltySheet()}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              {t("gameReport.addPenaltyBtn")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/30"
+              onClick={() => timelineRef.current?.openNoteSheet()}
+            >
+              <StickyNote className="w-3.5 h-3.5" />
+              {t("gameReport.addNoteBtn")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+              onClick={() => timelineRef.current?.openSuspensionSheet()}
+            >
+              <ShieldBan className="w-3.5 h-3.5" />
+              {t("gameReport.addSuspensionBtn")}
+            </Button>
+          </div>
+        )}
 
-          {activeTab === "report" && (
-            <GameTimeline
-              ref={timelineRef}
-              gameId={gameId}
-              homeTeam={{
-                id: game.homeTeamId,
-                name: game.homeTeam.name,
-                shortName: game.homeTeam.shortName,
-                logoUrl: game.homeTeam.logoUrl,
-                primaryColor: game.homeTeam.primaryColor,
-              }}
-              awayTeam={{
-                id: game.awayTeamId,
-                name: game.awayTeam.name,
-                shortName: game.awayTeam.shortName,
-                logoUrl: game.awayTeam.logoUrl,
-                primaryColor: game.awayTeam.primaryColor,
-              }}
-              events={game.events}
-              lineups={lineupPlayers}
-              penaltyTypes={penaltyTypesQuery.data ?? []}
-              readOnly={readOnly}
-              externalActions
-            />
-          )}
+        {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => regenerateRecap.mutate({ gameId })}
+            disabled={regenerateRecap.isPending || (game as any).recapGenerating}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${regenerateRecap.isPending ? "animate-spin" : ""}`} />
+            {regenerateRecap.isPending
+              ? t("gameReport.recap.regenerating")
+              : (game as any).recapTitle
+                ? t("gameReport.recap.regenerate")
+                : t("gameReport.recap.generate")}
+          </Button>
+        )}
+      </div>
+
+      {/* ── Full-width tab content ── */}
+      {activeTab === "lineup" && (
+        <LineupEditor
+          gameId={gameId}
+          homeTeamId={game.homeTeamId}
+          awayTeamId={game.awayTeamId}
+          homeTeamName={game.homeTeam.name}
+          awayTeamName={game.awayTeam.name}
+          homeRoster={homeRoster}
+          awayRoster={awayRoster}
+          existingLineup={lineupPlayers}
+          activeSuspensions={game.activeSuspensions}
+          readOnly={readOnly}
+          autoSave={!readOnly}
+        />
+      )}
+
+      {activeTab === "report" && (
+        <GameTimeline
+          ref={timelineRef}
+          gameId={gameId}
+          homeTeam={{
+            id: game.homeTeamId,
+            name: game.homeTeam.name,
+            shortName: game.homeTeam.shortName,
+            logoUrl: game.homeTeam.logoUrl,
+            primaryColor: game.homeTeam.primaryColor,
+          }}
+          awayTeam={{
+            id: game.awayTeamId,
+            name: game.awayTeam.name,
+            shortName: game.awayTeam.shortName,
+            logoUrl: game.awayTeam.logoUrl,
+            primaryColor: game.awayTeam.primaryColor,
+          }}
+          events={game.events}
+          lineups={lineupPlayers}
+          penaltyTypes={penaltyTypesQuery.data ?? []}
+          readOnly={readOnly}
+          externalActions
+        />
+      )}
 
       {/* AI Recap tab */}
       {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
@@ -375,162 +584,6 @@ function GameReportPage() {
           </CardContent>
         </Card>
       )}
-        </div>
-
-        {/* ── Sidebar ── */}
-        <Card className="lg:sticky lg:top-20">
-          <CardContent className="p-5 space-y-4">
-            {/* Score + Complete/Reopen */}
-            {canComplete && (
-              <div className="space-y-3">
-                <div className="text-center">
-                  <div className="text-xs uppercase tracking-wide text-muted-foreground font-medium mb-1">
-                    {t("gameReport.completeSection.score")}
-                  </div>
-                  <div className="text-3xl font-black tabular-nums">
-                    {game.homeScore ?? 0} : {game.awayScore ?? 0}
-                  </div>
-                </div>
-                {!hasBothLineups && (
-                  <p className="text-xs text-amber-600 text-center">{t("gameReport.completeSection.lineupsRequired")}</p>
-                )}
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
-                  disabled={!hasBothLineups || completeGame.isPending}
-                  onClick={() => setShowCompleteConfirm(true)}
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2" />
-                  {t("gameReport.completeSection.button")}
-                </Button>
-              </div>
-            )}
-
-            {(isCompleted || isCancelled) && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground text-center">
-                  {isCompleted
-                    ? t("gameReport.reopenSection.finalized", {
-                        date: game.finalizedAt
-                          ? new Date(game.finalizedAt).toLocaleDateString(i18n.language, {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "—",
-                      })
-                    : t("gamesPage.status.cancelled")}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => setShowReopenConfirm(true)}
-                  disabled={reopenGame.isPending}
-                >
-                  <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-                  {t("gameReport.reopenSection.button")}
-                </Button>
-              </div>
-            )}
-
-            {/* Notes */}
-            <div className="border-t border-border/40 pt-4">
-              <h3 className="text-xs font-semibold flex items-center gap-1.5 mb-2 text-muted-foreground">
-                <StickyNote className="w-3.5 h-3.5" />
-                {t("gameReport.notes.label")}
-              </h3>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t("gameReport.notes.placeholder")}
-                className="w-full min-h-[60px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"
-                rows={2}
-              />
-              {notes !== (game.notes ?? "") && (
-                <div className="flex justify-end mt-2">
-                  <Button
-                    size="sm"
-                    onClick={() => updateNotes.mutate({ id: gameId, notes: notes || null })}
-                    disabled={updateNotes.isPending}
-                  >
-                    {updateNotes.isPending ? t("saving") : t("save")}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Tab-specific actions */}
-            {activeTab === "report" && !readOnly && (
-              <div className="border-t border-border/40 pt-4 space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-1.5 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
-                  onClick={() => timelineRef.current?.openGoalDialog()}
-                >
-                  <CircleDot className="w-3.5 h-3.5" />
-                  {t("gameReport.addGoalBtn")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-1.5 border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/30"
-                  onClick={() => timelineRef.current?.openPenaltyDialog()}
-                >
-                  <Clock className="w-3.5 h-3.5" />
-                  {t("gameReport.addPenaltyBtn")}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full gap-1.5 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
-                  onClick={() => timelineRef.current?.openSuspensionDialog()}
-                >
-                  <ShieldBan className="w-3.5 h-3.5" />
-                  {t("gameReport.addSuspensionBtn")}
-                </Button>
-              </div>
-            )}
-
-            {activeTab === "lineup" && !readOnly && (
-              <div className="border-t border-border/40 pt-4">
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() => lineupRef.current?.save()}
-                  disabled={lineupRef.current?.isSaving}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  {t("gameReport.saveLineup")}
-                </Button>
-              </div>
-            )}
-
-            {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
-              <div className="border-t border-border/40 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => regenerateRecap.mutate({ gameId })}
-                  disabled={regenerateRecap.isPending || (game as any).recapGenerating}
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${regenerateRecap.isPending ? "animate-spin" : ""}`} />
-                  {regenerateRecap.isPending
-                    ? t("gameReport.recap.regenerating")
-                    : (game as any).recapTitle
-                      ? t("gameReport.recap.regenerate")
-                      : t("gameReport.recap.generate")}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Complete confirmation */}
       <ConfirmDialog
@@ -555,6 +608,136 @@ function GameReportPage() {
         confirmLabel={t("gameReport.reopenSection.button")}
         isPending={reopenGame.isPending}
         onConfirm={() => reopenGame.mutate({ id: gameId })}
+      />
+
+      {/* Edit game details sheet */}
+      <Sheet
+        open={editSheetOpen}
+        onOpenChange={(open) => {
+          if (!open && isEditDirty) {
+            setConfirmEditClose(true)
+          } else {
+            setEditSheetOpen(open)
+          }
+        }}
+        dirty={isEditDirty}
+        onDirtyClose={() => setConfirmEditClose(true)}
+      >
+        <SheetContent size="lg">
+          <SheetClose />
+          <SheetHeader>
+            <SheetTitle>{t("gameReport.editGame")}</SheetTitle>
+            <SheetDescription>{t("gameReport.editGameDescription")}</SheetDescription>
+          </SheetHeader>
+          <form onSubmit={submitEditForm} className="flex flex-1 flex-col overflow-hidden">
+            <SheetBody className="space-y-6">
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t("gamesPage.form.sections.matchup")}
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                  <FormField label={t("gamesPage.form.fields.round")} required>
+                    <Select
+                      value={editForm.roundId || undefined}
+                      onValueChange={(v) => setEditForm((p) => ({ ...p, roundId: v }))}
+                    >
+                      <SelectTrigger className="h-10 w-full">
+                        <SelectValue placeholder={t("gamesPage.placeholders.round")} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {rounds.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormField>
+                  <FormField label={t("gamesPage.form.fields.location")}>
+                    <Input
+                      list="edit-location-suggestions"
+                      value={editForm.location}
+                      onChange={(e) => setEditForm((p) => ({ ...p, location: e.target.value }))}
+                      placeholder={t("gamesPage.placeholders.noVenue")}
+                    />
+                    <datalist id="edit-location-suggestions">
+                      {(locationSuggestions ?? []).map((s) => (
+                        <option key={s} value={s} />
+                      ))}
+                    </datalist>
+                  </FormField>
+                </div>
+                <div className="grid grid-cols-1 gap-4 mt-4">
+                  <FormField label={t("gamesPage.form.fields.homeTeam")} required>
+                    <TeamCombobox
+                      teams={editTeams}
+                      value={editForm.homeTeamId}
+                      onChange={handleEditHomeTeamChange}
+                      placeholder={t("gamesPage.placeholders.homeTeam")}
+                    />
+                  </FormField>
+                  <FormField label={t("gamesPage.form.fields.awayTeam")} required>
+                    <TeamCombobox
+                      teams={editTeams}
+                      value={editForm.awayTeamId}
+                      onChange={(teamId) => setEditForm((p) => ({ ...p, awayTeamId: teamId }))}
+                      placeholder={t("gamesPage.placeholders.awayTeam")}
+                    />
+                  </FormField>
+                </div>
+              </div>
+
+              <hr className="border-border/60" />
+
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {t("gamesPage.form.sections.schedule")}
+                </Label>
+                <div className="mt-2">
+                  <FormField label={t("gamesPage.form.fields.scheduledAt")}>
+                    <Input
+                      type="datetime-local"
+                      value={editForm.scheduledAt}
+                      onChange={(e) => setEditForm((p) => ({ ...p, scheduledAt: e.target.value }))}
+                    />
+                  </FormField>
+                </div>
+              </div>
+            </SheetBody>
+            <SheetFooter>
+              <div className="flex-1" />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isEditDirty) setConfirmEditClose(true)
+                  else setEditSheetOpen(false)
+                }}
+              >
+                {t("cancel")}
+              </Button>
+              <Button type="submit" variant="accent" disabled={updateGameDetails.isPending}>
+                {updateGameDetails.isPending ? t("saving") : t("save")}
+              </Button>
+            </SheetFooter>
+          </form>
+        </SheetContent>
+      </Sheet>
+
+      {/* Unsaved edit changes confirmation */}
+      <ConfirmDialog
+        open={confirmEditClose}
+        onOpenChange={setConfirmEditClose}
+        title={t("unsavedChanges.title", { defaultValue: "Unsaved changes" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "You have unsaved changes. Do you really want to close?",
+        })}
+        confirmLabel={t("unsavedChanges.discard", { defaultValue: "Discard" })}
+        variant="destructive"
+        onConfirm={() => {
+          setConfirmEditClose(false)
+          setEditSheetOpen(false)
+        }}
       />
     </div>
   )

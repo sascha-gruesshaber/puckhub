@@ -1,10 +1,10 @@
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@puckhub/ui"
+import { Badge, Card, CardContent, CardHeader, CardTitle, Skeleton } from "@puckhub/ui"
 import { createFileRoute, Link, useParams } from "@tanstack/react-router"
 import {
   AlertTriangle,
+  ArrowRight,
   Calendar,
   CheckCircle2,
-  ChevronDown,
   ChevronUp,
   Clock,
   FileText,
@@ -48,17 +48,128 @@ function TeamLogo({ url, size = 16 }: { url: string | null; size?: number }) {
 }
 
 // ---------------------------------------------------------------------------
+// Shared Game Row — consistent matchup display across all game cards
+// ---------------------------------------------------------------------------
+const GAME_ROW_HEIGHT = "h-11"
+
+function GameRow({
+  homeTeam,
+  awayTeam,
+  date,
+  meta,
+}: {
+  homeTeam: { shortName: string; logoUrl: string | null }
+  awayTeam: { shortName: string; logoUrl: string | null }
+  date: Date | string | null
+  meta?: React.ReactNode
+}) {
+  const formatted = date ? new Date(date).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "\u2013"
+
+  return (
+    <div className={`flex items-center gap-2.5 rounded-lg px-2.5 text-sm ${GAME_ROW_HEIGHT}`}>
+      <span className="text-[11px] text-muted-foreground w-12 shrink-0 tabular-nums">{formatted}</span>
+      <TeamLogo url={homeTeam.logoUrl} />
+      <span className="font-medium truncate max-w-[5rem]">{homeTeam.shortName}</span>
+      <span className="text-muted-foreground text-[11px]">vs</span>
+      <TeamLogo url={awayTeam.logoUrl} />
+      <span className="font-medium truncate max-w-[5rem]">{awayTeam.shortName}</span>
+      {meta && <span className="ml-auto shrink-0">{meta}</span>}
+    </div>
+  )
+}
+
+function GameRowSkeleton() {
+  return (
+    <div className={`flex items-center gap-2.5 px-2.5 ${GAME_ROW_HEIGHT}`}>
+      <Skeleton className="h-3 w-12" />
+      <Skeleton className="h-4 w-4 rounded-full" />
+      <Skeleton className="h-3.5 w-16" />
+      <Skeleton className="h-2 w-4" />
+      <Skeleton className="h-4 w-4 rounded-full" />
+      <Skeleton className="h-3.5 w-16" />
+    </div>
+  )
+}
+
+/** Fixed 3-slot container — always renders exactly 3 rows worth of height for alignment */
+function ThreeSlotList<T>({
+  items,
+  isLoading,
+  emptyIcon,
+  emptyText,
+  renderItem,
+}: {
+  items: T[]
+  isLoading: boolean
+  emptyIcon: React.ReactNode
+  emptyText: string
+  renderItem: (item: T, i: number) => React.ReactNode
+}) {
+  if (isLoading) {
+    return (
+      <div>
+        <GameRowSkeleton />
+        <GameRowSkeleton />
+        <GameRowSkeleton />
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center" style={{ height: `calc(3 * 2.75rem)` }}>
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 mb-2">
+          {emptyIcon}
+        </div>
+        <p className="text-xs font-medium text-muted-foreground">{emptyText}</p>
+      </div>
+    )
+  }
+
+  return <div>{items.slice(0, 3).map(renderItem)}</div>
+}
+
+/** "Show all" footer link for action item cards */
+function ShowAllFooter({
+  to,
+  params,
+  search,
+  label,
+}: {
+  to: string
+  params: Record<string, string>
+  search?: Record<string, string>
+  label: string
+}) {
+  return (
+    <div className="px-6 pb-4 pt-0">
+      <Link
+        to={to}
+        params={params}
+        search={search}
+        className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1.5 rounded-md hover:bg-accent/50"
+      >
+        {label}
+        <ArrowRight size={12} />
+      </Link>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Stat Card
 // ---------------------------------------------------------------------------
 function StatCard({
   label,
   value,
+  total,
   icon,
   color,
   isLoading,
 }: {
   label: string
   value: number
+  total?: number
   icon: React.ReactNode
   color: string
   isLoading: boolean
@@ -78,7 +189,10 @@ function StatCard({
             {isLoading ? (
               <Skeleton className="h-7 w-14 mt-0.5" />
             ) : (
-              <p className="text-2xl font-bold leading-tight tabular-nums">{value}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-2xl font-bold leading-tight tabular-nums">{value}</p>
+                {total != null && <span className="text-xs text-muted-foreground tabular-nums">/ {total}</span>}
+              </div>
             )}
           </div>
         </div>
@@ -107,7 +221,7 @@ function MissingReportsCard({
   orgSlug: string
 }) {
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -121,44 +235,32 @@ function MissingReportsCard({
           )}
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-3/4" />
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3">
-              <CheckCircle2 size={24} className="text-emerald-500" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">{t("dashboard.missingReports.empty")}</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {reports.map((game) => (
-              <Link
-                key={game.id}
-                to="/$orgSlug/games/$gameId/report"
-                params={{ orgSlug, gameId: game.id }}
-                className="flex items-center justify-between rounded-lg px-2.5 py-2 text-sm hover:bg-accent/50 transition-colors"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <TeamLogo url={game.homeTeam.logoUrl} />
-                  <span className="font-medium truncate">{game.homeTeam.shortName}</span>
-                  <span className="text-muted-foreground text-xs">vs</span>
-                  <TeamLogo url={game.awayTeam.logoUrl} />
-                  <span className="font-medium truncate">{game.awayTeam.shortName}</span>
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                  {game.scheduledAt ? new Date(game.scheduledAt).toLocaleDateString() : "\u2013"}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
+      <CardContent className="flex-1">
+        <ThreeSlotList
+          items={reports}
+          isLoading={isLoading}
+          emptyIcon={<CheckCircle2 size={20} className="text-emerald-500" />}
+          emptyText={t("dashboard.missingReports.empty")}
+          renderItem={(game) => (
+            <Link
+              key={game.id}
+              to="/$orgSlug/games/$gameId/report"
+              params={{ orgSlug, gameId: game.id }}
+              className="block rounded-lg hover:bg-accent/50 transition-colors"
+            >
+              <GameRow homeTeam={game.homeTeam} awayTeam={game.awayTeam} date={game.scheduledAt} />
+            </Link>
+          )}
+        />
       </CardContent>
+      {!isLoading && reports.length > 0 && (
+        <ShowAllFooter
+          to="/$orgSlug/games"
+          params={{ orgSlug }}
+          search={{ status: "report_pending" }}
+          label={t("dashboard.showAll")}
+        />
+      )}
     </Card>
   )
 }
@@ -170,6 +272,7 @@ function UpcomingGamesCard({
   games,
   isLoading,
   t,
+  orgSlug,
 }: {
   games: Array<{
     id: string
@@ -180,61 +283,45 @@ function UpcomingGamesCard({
   }>
   isLoading: boolean
   t: (key: string) => string
+  orgSlug: string
 }) {
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Calendar size={16} className="text-blue-500" />
           <CardTitle className="text-sm font-medium">{t("dashboard.upcomingGames.title")}</CardTitle>
         </div>
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-3/4" />
-          </div>
-        ) : games.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mb-3">
-              <Calendar size={24} className="text-blue-500" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground">{t("dashboard.upcomingGames.empty")}</p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {games.map((game) => (
-              <div key={game.id} className="rounded-lg border border-border/50 px-3 py-2.5">
-                <div className="flex items-center gap-2 text-sm">
-                  <TeamLogo url={game.homeTeam.logoUrl} />
-                  <span className="font-medium">{game.homeTeam.shortName}</span>
-                  <span className="text-muted-foreground text-xs">vs</span>
-                  <TeamLogo url={game.awayTeam.logoUrl} />
-                  <span className="font-medium">{game.awayTeam.shortName}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                  {game.scheduledAt && (
-                    <span>
-                      {new Date(game.scheduledAt).toLocaleDateString(undefined, {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </span>
-                  )}
-                  {game.location && (
-                    <span>
-                      {t("dashboard.upcomingGames.at")} {game.location}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <CardContent className="flex-1">
+        <ThreeSlotList
+          items={games}
+          isLoading={isLoading}
+          emptyIcon={<Calendar size={20} className="text-blue-500" />}
+          emptyText={t("dashboard.upcomingGames.empty")}
+          renderItem={(game) => (
+            <GameRow
+              key={game.id}
+              homeTeam={game.homeTeam}
+              awayTeam={game.awayTeam}
+              date={game.scheduledAt}
+              meta={
+                game.location ? (
+                  <span className="text-[10px] text-muted-foreground truncate max-w-[6rem]">{game.location}</span>
+                ) : undefined
+              }
+            />
+          )}
+        />
       </CardContent>
+      {!isLoading && games.length > 0 && (
+        <ShowAllFooter
+          to="/$orgSlug/games"
+          params={{ orgSlug }}
+          search={{ status: "scheduled" }}
+          label={t("dashboard.showAll")}
+        />
+      )}
     </Card>
   )
 }
@@ -242,8 +329,6 @@ function UpcomingGamesCard({
 // ---------------------------------------------------------------------------
 // Active Suspensions Card
 // ---------------------------------------------------------------------------
-const SUSPENSIONS_COLLAPSED_COUNT = 3
-
 function ActiveSuspensionsCard({
   suspensions,
   isLoading,
@@ -262,69 +347,55 @@ function ActiveSuspensionsCard({
   orgSlug: string
 }) {
   const [expanded, setExpanded] = useState(false)
-  const hasMore = suspensions.length > SUSPENSIONS_COLLAPSED_COUNT
-  const visible = expanded ? suspensions : suspensions.slice(0, SUSPENSIONS_COLLAPSED_COUNT)
+  const visible = expanded ? suspensions : suspensions.slice(0, 3)
+  const hasMore = suspensions.length > 3
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldAlert size={16} className="text-red-500" />
             <CardTitle className="text-sm font-medium">{t("dashboard.activeSuspensions.title")}</CardTitle>
           </div>
-          <div className="flex items-center gap-1.5">
-            {!isLoading && hasMore && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs text-muted-foreground"
-                onClick={() => setExpanded((prev) => !prev)}
-              >
-                {expanded ? (
-                  <>
-                    {t("dashboard.activeSuspensions.collapse")}
-                    <ChevronUp size={14} className="ml-1" />
-                  </>
-                ) : (
-                  <>
-                    {t("dashboard.activeSuspensions.showAll").replace("{count}", String(suspensions.length))}
-                    <ChevronDown size={14} className="ml-1" />
-                  </>
-                )}
-              </Button>
-            )}
-            {!isLoading && suspensions.length > 0 && (
-              <Badge variant="secondary" className="text-red-600 bg-red-500/10">
-                {t("dashboard.activeSuspensions.count").replace("{count}", String(suspensions.length))}
-              </Badge>
-            )}
-          </div>
+          {!isLoading && suspensions.length > 0 && (
+            <Badge variant="secondary" className="text-red-600 bg-red-500/10">
+              {t("dashboard.activeSuspensions.count").replace("{count}", String(suspensions.length))}
+            </Badge>
+          )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1">
         {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-full" />
+          <div>
+            <GameRowSkeleton />
+            <GameRowSkeleton />
+            <GameRowSkeleton />
           </div>
         ) : suspensions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10 mb-3">
-              <ShieldAlert size={24} className="text-emerald-500" />
+          <div
+            className="flex flex-col items-center justify-center text-center"
+            style={{ height: `calc(3 * 2.75rem)` }}
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 mb-2">
+              <ShieldAlert size={20} className="text-emerald-500" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">{t("dashboard.activeSuspensions.empty")}</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("dashboard.activeSuspensions.empty")}</p>
           </div>
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-1.5">
             {visible.map((s) => {
               const progress = s.suspendedGames > 0 ? (s.servedGames / s.suspendedGames) * 100 : 0
               return (
-                <div key={s.id} className="rounded-lg border border-border/50 px-3 py-2.5">
-                  <div className="flex items-center justify-between mb-1.5">
+                <div key={s.id} className="rounded-lg border border-border/50 px-3 py-2">
+                  <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <TeamLogo url={s.team.logoUrl} />
-                      <Link to="/$orgSlug/players/$playerId" params={{ orgSlug, playerId: s.player.id }} className="font-medium text-sm hover:underline truncate">
+                      <Link
+                        to="/$orgSlug/players/$playerId"
+                        params={{ orgSlug, playerId: s.player.id }}
+                        className="font-medium text-sm hover:underline truncate"
+                      >
                         {s.player.firstName} {s.player.lastName}
                       </Link>
                       <span className="text-xs text-muted-foreground">{s.team.shortName}</span>
@@ -347,6 +418,79 @@ function ActiveSuspensionsCard({
           </div>
         )}
       </CardContent>
+      {!isLoading && hasMore && (
+        <div className="px-6 pb-4 pt-0">
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-1.5 rounded-md hover:bg-accent/50 w-full"
+          >
+            {expanded ? t("dashboard.activeSuspensions.collapse") : t("dashboard.showAll")}
+            {expanded ? <ChevronUp size={12} /> : <ArrowRight size={12} />}
+          </button>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Public Reports Card
+// ---------------------------------------------------------------------------
+function PublicReportsCard({
+  orgSlug,
+  seasonId,
+  isSeasonReady,
+  t,
+}: {
+  orgSlug: string
+  seasonId: string | undefined
+  isSeasonReady: boolean
+  t: (key: string) => string
+}) {
+  const { data, isLoading } = trpc.publicGameReport.list.useQuery(
+    { reverted: false, limit: 3, seasonId },
+    { enabled: isSeasonReady },
+  )
+  const reports = data ?? []
+  const loading = isLoading || !isSeasonReady
+
+  return (
+    <Card className="flex flex-col">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FileText size={16} className="text-blue-500" />
+            <CardTitle className="text-sm font-medium">{t("publicReports.title")}</CardTitle>
+          </div>
+          {!loading && reports.length > 0 && (
+            <Badge variant="secondary" className="text-blue-600 bg-blue-500/10">
+              {reports.length}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <ThreeSlotList
+          items={reports}
+          isLoading={loading}
+          emptyIcon={<FileText size={20} className="text-blue-500" />}
+          emptyText={t("publicReports.empty")}
+          renderItem={(report) => (
+            <Link
+              key={report.id}
+              to="/$orgSlug/games/$gameId/report"
+              params={{ orgSlug, gameId: report.game.id }}
+              className="block rounded-lg hover:bg-accent/50 transition-colors"
+            >
+              <GameRow homeTeam={report.game.homeTeam} awayTeam={report.game.awayTeam} date={report.createdAt} />
+            </Link>
+          )}
+        />
+      </CardContent>
+      {!loading && reports.length > 0 && (
+        <ShowAllFooter to="/$orgSlug/games/public-reports" params={{ orgSlug }} label={t("dashboard.showAll")} />
+      )}
     </Card>
   )
 }
@@ -383,6 +527,7 @@ function TopScorersCard({
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-6 w-6 rounded-full" />
                 <Skeleton className="h-5 flex-1" />
@@ -401,7 +546,11 @@ function TopScorersCard({
                 <RankBadge rank={i} />
                 <TeamLogo url={s.team.logoUrl} size={20} />
                 <div className="min-w-0 flex-1 leading-tight">
-                  <Link to="/$orgSlug/players/$playerId" params={{ orgSlug, playerId: s.player.id }} className="text-sm font-medium hover:underline truncate block">
+                  <Link
+                    to="/$orgSlug/players/$playerId"
+                    params={{ orgSlug, playerId: s.player.id }}
+                    className="text-sm font-medium hover:underline truncate block"
+                  >
                     {s.player.firstName} {s.player.lastName}
                   </Link>
                   <span className="text-[11px] text-muted-foreground block mt-0.5">{s.team.shortName}</span>
@@ -458,6 +607,7 @@ function TopPenalizedCard({
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-6 w-6 rounded-full" />
                 <Skeleton className="h-5 flex-1" />
@@ -476,7 +626,11 @@ function TopPenalizedCard({
                 <RankBadge rank={i} />
                 <TeamLogo url={s.team.logoUrl} size={20} />
                 <div className="min-w-0 flex-1">
-                  <Link to="/$orgSlug/players/$playerId" params={{ orgSlug, playerId: s.player.id }} className="text-sm font-medium hover:underline truncate block">
+                  <Link
+                    to="/$orgSlug/players/$playerId"
+                    params={{ orgSlug, playerId: s.player.id }}
+                    className="text-sm font-medium hover:underline truncate block"
+                  >
                     {s.player.firstName} {s.player.lastName}
                   </Link>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -528,6 +682,7 @@ function RecentResultsCard({
         {isLoading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
               <Skeleton key={i} className="h-10 w-full" />
             ))}
           </div>
@@ -602,8 +757,6 @@ function DashboardPage() {
     { enabled: !!season?.id },
   )
 
-  const { data: publicReportCount } = trpc.publicGameReport.count.useQuery()
-
   if (!seasonLoading && !season) {
     return (
       <div className="space-y-6">
@@ -636,6 +789,7 @@ function DashboardPage() {
         <StatCard
           label={t("dashboard.cards.teams")}
           value={data?.counts.teams ?? 0}
+          total={data?.counts.totalTeams}
           icon={<Users size={18} />}
           color="hsl(215, 55%, 23%)"
           isLoading={loading}
@@ -643,6 +797,7 @@ function DashboardPage() {
         <StatCard
           label={t("dashboard.cards.players")}
           value={data?.counts.players ?? 0}
+          total={data?.counts.totalPlayers}
           icon={<Users size={18} />}
           color="hsl(142, 71%, 45%)"
           isLoading={loading}
@@ -663,34 +818,20 @@ function DashboardPage() {
         />
       </div>
 
-      {/* Row 2: Action Items */}
+      {/* Row 2: Action Items — 2x2 grid with equal-height cards */}
       <div>
         <h2 className="text-lg font-semibold mb-3">{t("dashboard.sections.actionItems")}</h2>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <MissingReportsCard reports={data?.missingReports ?? []} isLoading={loading} t={t} orgSlug={orgSlug} />
-          <UpcomingGamesCard games={data?.upcomingGames ?? []} isLoading={loading} t={t} />
-          <ActiveSuspensionsCard suspensions={data?.activeSuspensions ?? []} isLoading={loading} t={t} orgSlug={orgSlug} />
+          <UpcomingGamesCard games={data?.upcomingGames ?? []} isLoading={loading} t={t} orgSlug={orgSlug} />
+          <ActiveSuspensionsCard
+            suspensions={data?.activeSuspensions ?? []}
+            isLoading={loading}
+            t={t}
+            orgSlug={orgSlug}
+          />
+          <PublicReportsCard orgSlug={orgSlug} seasonId={season?.id} isSeasonReady={!!season?.id} t={t} />
         </div>
-        {(publicReportCount?.count ?? 0) > 0 && (
-          <div className="mt-4">
-            <Link to="/$orgSlug/games/public-reports" params={{ orgSlug }}>
-              <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 shrink-0">
-                    <FileText size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{t("publicReports.title")}</p>
-                    <p className="text-xs text-muted-foreground">{t("publicReports.description")}</p>
-                  </div>
-                  <Badge variant="secondary" className="text-blue-600 bg-blue-500/10">
-                    {publicReportCount?.count ?? 0}
-                  </Badge>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        )}
       </div>
 
       {/* Row 3: Season Insights */}

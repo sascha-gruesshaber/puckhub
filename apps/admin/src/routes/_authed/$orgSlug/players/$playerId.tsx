@@ -34,13 +34,13 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DangerZone } from "~/components/dangerZone"
 import { DetailPageLayout } from "~/components/detailPageLayout"
-import { TabNavigation } from "~/components/tabNavigation"
 import { ImageUpload } from "~/components/imageUpload"
-import { EditContractDialog } from "~/components/roster/editContractDialog"
-import { ReleasePlayerDialog } from "~/components/roster/releasePlayerDialog"
+import { EditContractSheet } from "~/components/roster/editContractSheet"
+import { ReleasePlayerSheet } from "~/components/roster/releasePlayerSheet"
 import type { ContractRow } from "~/components/roster/rosterTable"
-import { SignPlayerDialog } from "~/components/roster/signPlayerDialog"
-import { TransferDialog } from "~/components/roster/transferDialog"
+import { SignPlayerSheet } from "~/components/roster/signPlayerSheet"
+import { TransferSheet } from "~/components/roster/transferSheet"
+import { TabNavigation } from "~/components/tabNavigation"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
@@ -113,7 +113,6 @@ function formatDate(dob: Date | string | null | undefined): string {
   return date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" })
 }
 
-
 const POSITION_ACCENT: Record<string, string> = {
   goalie: "text-blue-600",
   defense: "text-emerald-600",
@@ -134,11 +133,7 @@ function PlayerDetailPage() {
 
   // --- Data queries ---
   const { data: player, isLoading } = trpc.player.getByIdWithHistory.useQuery({ id: playerId })
-  const { data: seasons } = trpc.season.list.useQuery()
-  const { data: teams } = trpc.team.list.useQuery(
-    { seasonId: workingSeason?.id },
-    { enabled: !!workingSeason?.id },
-  )
+  const { data: teams } = trpc.team.list.useQuery({ seasonId: workingSeason?.id }, { enabled: !!workingSeason?.id })
   const utils = trpc.useUtils()
 
   const navigate = useNavigate()
@@ -222,6 +217,14 @@ function PlayerDetailPage() {
       jerseyNumber: contract.jerseyNumber,
       startSeasonId: contract.startSeasonId,
       endSeasonId: contract.endSeasonId,
+      teamId: contract.teamId,
+      team: {
+        id: contract.team.id,
+        name: contract.team.name,
+        shortName: contract.team.shortName,
+        logoUrl: contract.team.logoUrl,
+        primaryColor: contract.team.primaryColor,
+      },
       player: {
         id: player!.id,
         firstName: player!.firstName,
@@ -254,9 +257,7 @@ function PlayerDetailPage() {
       firstName: player.firstName,
       lastName: player.lastName,
       dateOfBirth:
-        player.dateOfBirth instanceof Date
-          ? player.dateOfBirth.toISOString().slice(0, 10)
-          : player.dateOfBirth || "",
+        player.dateOfBirth instanceof Date ? player.dateOfBirth.toISOString().slice(0, 10) : player.dateOfBirth || "",
       nationality: player.nationality || "",
       photoUrl: player.photoUrl || "",
     })
@@ -310,543 +311,575 @@ function PlayerDetailPage() {
       notFoundContent={<p className="text-muted-foreground">{t("playersPage.playerDetail.notFound")}</p>}
     >
       {player && (
-      <>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
-        {/* ── Main content ── */}
-        <div className="space-y-6">
-          {/* Player Info Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6">
-            <h1 className="text-xl font-bold text-foreground mb-6">
-              {player.firstName} {player.lastName}
-            </h1>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+            {/* ── Main content ── */}
+            <div className="space-y-6">
+              {/* Player Info Card */}
+              <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6">
+                <h1 className="text-xl font-bold text-foreground mb-6">
+                  {player.firstName} {player.lastName}
+                </h1>
 
-            <div className="flex items-start gap-6">
-              {/* Photo */}
-              <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-muted overflow-hidden">
-                {player.photoUrl ? (
-                  <img
-                    src={player.photoUrl}
-                    alt={`${player.firstName} ${player.lastName}`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-2xl font-bold text-muted-foreground">
-                    {player.firstName[0]}
-                    {player.lastName[0]}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0 space-y-3">
-                {/* DOB + Age */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                  {player.dateOfBirth && (
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {formatDate(player.dateOfBirth)}
-                      {age !== null && (
-                        <span className="text-xs">({t("playersPage.hoverCard.ageYears", { age })})</span>
-                      )}
-                    </span>
-                  )}
-                  {player.nationality && (
-                    <span className="inline-block bg-muted text-xs rounded px-1.5 py-0.5 font-medium">
-                      {player.nationality}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tabs: Contracts / History */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <TabNavigation
-                groups={[{
-                  key: "player-tabs",
-                  tabs: [
-                    { id: "contracts" as const, label: t("playersPage.playerDetail.tabs.contracts"), icon: FileText },
-                    { id: "history" as const, label: t("playersPage.playerDetail.tabs.history"), icon: History },
-                  ],
-                }]}
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-              />
-              {activeTab === "contracts" && (
-                <Button variant="accent" size="sm" onClick={() => setSignDialogOpen(true)}>
-                  <UserPlus className="h-3.5 w-3.5 mr-1.5" />
-                  {t("playersPage.playerDetail.signToTeam")}
-                </Button>
-              )}
-            </div>
-
-          {activeTab === "contracts" && (
-          <>
-        {sortedContracts.length === 0 ? (
-          <div className="text-sm text-muted-foreground bg-white rounded-xl shadow-sm border border-border/50 p-6 text-center">
-            {t("playersPage.playerDetail.noContracts")}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {sortedContracts.map((c) => {
-              const isActive = !c.endSeasonId
-              const seasonRange = c.endSeason
-                ? `${c.startSeason.name} – ${c.endSeason.name}`
-                : `${c.startSeason.name} – ${t(`playersPage.playerDetail.ongoing`)}`
-
-              return (
-                <div
-                  key={c.id}
-                  className={`bg-white rounded-xl shadow-sm border p-5 ${isActive ? `border-emerald-300 dark:border-emerald-700` : `border-border/50`}`}
-                >
-                  {/* Header: team info + status */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {c.team.logoUrl ? (
-                        <img src={c.team.logoUrl} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-muted shrink-0 flex items-center justify-center text-sm font-bold text-muted-foreground">
-                          {c.team.shortName.slice(0, 2)}
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <div className="font-semibold text-foreground text-base truncate">{c.team.name}</div>
-                        <div className="flex flex-wrap items-center gap-2 mt-0.5 text-sm text-muted-foreground">
-                          <span className={POSITION_ACCENT[c.position] ?? ""}>
-                            {t(`rosterPage.positions.${c.position}`)}
-                          </span>
-                          {c.jerseyNumber != null && (
-                            <span className="font-mono text-xs">#{c.jerseyNumber}</span>
-                          )}
-                          <span className="text-border">·</span>
-                          <span className="flex items-center gap-1 text-xs">
-                            <Calendar className="h-3 w-3" />
-                            {seasonRange}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Badge
-                      variant="secondary"
-                      className={isActive
-                        ? "bg-emerald-600 text-white dark:bg-emerald-700 shrink-0"
-                        : "bg-muted text-muted-foreground shrink-0"
-                      }
-                    >
-                      {isActive ? t("playersPage.playerDetail.active") : t("playersPage.playerDetail.ended")}
-                    </Badge>
+                <div className="flex items-start gap-6">
+                  {/* Photo */}
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-xl bg-muted overflow-hidden">
+                    {player.photoUrl ? (
+                      <img
+                        src={player.photoUrl}
+                        alt={`${player.firstName} ${player.lastName}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-muted-foreground">
+                        {player.firstName[0]}
+                        {player.lastName[0]}
+                      </span>
+                    )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-border/30">
-                    {isActive && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setActiveDialogTeamId(c.teamId); setEditContract(toContractRow(c)) }}
-                        >
-                          <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                          {t("playersPage.playerDetail.editContract")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => { setActiveDialogTeamId(c.teamId); setTransferContract(toContractRow(c)) }}
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
-                          {t("playersPage.playerDetail.transfer")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => { setActiveDialogTeamId(c.teamId); setReleaseContract(toContractRow(c)) }}
-                        >
-                          <UserMinus className="h-3.5 w-3.5 mr-1.5" />
-                          {t("playersPage.playerDetail.release")}
-                        </Button>
-                      </>
-                    )}
-                    {!isActive && (
+                  <div className="flex-1 min-w-0 space-y-3">
+                    {/* DOB + Age */}
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                      {player.dateOfBirth && (
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {formatDate(player.dateOfBirth)}
+                          {age !== null && (
+                            <span className="text-xs">({t("playersPage.hoverCard.ageYears", { age })})</span>
+                          )}
+                        </span>
+                      )}
+                      {player.nationality && (
+                        <span className="inline-block bg-muted text-xs rounded px-1.5 py-0.5 font-medium">
+                          {player.nationality}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabs: Contracts / History */}
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <TabNavigation
+                    groups={[
+                      {
+                        key: "player-tabs",
+                        tabs: [
+                          {
+                            id: "contracts" as const,
+                            label: t("playersPage.playerDetail.tabs.contracts"),
+                            icon: FileText,
+                          },
+                          { id: "history" as const, label: t("playersPage.playerDetail.tabs.history"), icon: History },
+                        ],
+                      },
+                    ]}
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                  />
+                  {activeTab === "contracts" && (
+                    <Button variant="accent" size="sm" onClick={() => setSignDialogOpen(true)}>
+                      <UserPlus className="h-3.5 w-3.5 mr-1.5" />
+                      {t("playersPage.playerDetail.signToTeam")}
+                    </Button>
+                  )}
+                </div>
+
+                {activeTab === "contracts" &&
+                  (sortedContracts.length === 0 ? (
+                    <div className="text-sm text-muted-foreground bg-white rounded-xl shadow-sm border border-border/50 p-6 text-center">
+                      {t("playersPage.playerDetail.noContracts")}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {sortedContracts.map((c) => {
+                        const isActive = !c.endSeasonId
+                        const seasonRange = c.endSeason
+                          ? `${c.startSeason.name} – ${c.endSeason.name}`
+                          : `${c.startSeason.name} – ${t(`playersPage.playerDetail.ongoing`)}`
+
+                        return (
+                          <div
+                            key={c.id}
+                            className={`bg-white rounded-xl shadow-sm border p-5 ${isActive ? `border-emerald-300 dark:border-emerald-700` : `border-border/50`}`}
+                          >
+                            {/* Header: team info + status */}
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                {c.team.logoUrl ? (
+                                  <img
+                                    src={c.team.logoUrl}
+                                    alt=""
+                                    className="h-10 w-10 rounded-full object-cover shrink-0"
+                                  />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-full bg-muted shrink-0 flex items-center justify-center text-sm font-bold text-muted-foreground">
+                                    {c.team.shortName.slice(0, 2)}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-foreground text-base truncate">{c.team.name}</div>
+                                  <div className="flex flex-wrap items-center gap-2 mt-0.5 text-sm text-muted-foreground">
+                                    <span className={POSITION_ACCENT[c.position] ?? ""}>
+                                      {t(`rosterPage.positions.${c.position}`)}
+                                    </span>
+                                    {c.jerseyNumber != null && (
+                                      <span className="font-mono text-xs">#{c.jerseyNumber}</span>
+                                    )}
+                                    <span className="text-border">·</span>
+                                    <span className="flex items-center gap-1 text-xs">
+                                      <Calendar className="h-3 w-3" />
+                                      {seasonRange}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <Badge
+                                variant="secondary"
+                                className={
+                                  isActive
+                                    ? "bg-emerald-600 text-white dark:bg-emerald-700 shrink-0"
+                                    : "bg-muted text-muted-foreground shrink-0"
+                                }
+                              >
+                                {isActive ? t("playersPage.playerDetail.active") : t("playersPage.playerDetail.ended")}
+                              </Badge>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-border/30">
+                              {isActive && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setActiveDialogTeamId(c.teamId)
+                                      setEditContract(toContractRow(c))
+                                    }}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                                    {t("playersPage.playerDetail.editContract")}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setActiveDialogTeamId(c.teamId)
+                                      setTransferContract(toContractRow(c))
+                                    }}
+                                  >
+                                    <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />
+                                    {t("playersPage.playerDetail.transfer")}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive"
+                                    onClick={() => {
+                                      setActiveDialogTeamId(c.teamId)
+                                      setReleaseContract(toContractRow(c))
+                                    }}
+                                  >
+                                    <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+                                    {t("playersPage.playerDetail.release")}
+                                  </Button>
+                                </>
+                              )}
+                              {!isActive && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={reopenContractMutation.isPending}
+                                  onClick={() => reopenContractMutation.mutate({ id: c.id })}
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
+                                  {t("playersPage.playerDetail.reopenContract.button")}
+                                </Button>
+                              )}
+                              <div className="flex-1" />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive/50 hover:text-destructive"
+                                onClick={() => setDeleteContractId(c.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                {t("playersPage.playerDetail.deleteContract.title")}
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+
+                {/* History tab */}
+                {activeTab === "history" &&
+                  (sortedContracts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      {t("playersPage.playerDetail.historyTable.noHistory")}
+                    </p>
+                  ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-border/40 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                            <th className="px-4 py-3">{t("playersPage.playerDetail.historyTable.season")}</th>
+                            <th className="px-4 py-3">{t("playersPage.playerDetail.historyTable.team")}</th>
+                            <th className="px-4 py-3">{t("playersPage.playerDetail.historyTable.position")}</th>
+                            <th className="px-4 py-3 text-center">
+                              {t("playersPage.playerDetail.historyTable.jersey")}
+                            </th>
+                            <th className="px-4 py-3 text-center">
+                              {t("playersPage.playerDetail.historyTable.status")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sortedContracts.map((c) => {
+                            const isActive = !c.endSeasonId
+                            return (
+                              <tr
+                                key={c.id}
+                                className="border-b border-border/40 last:border-0 hover:bg-accent/5 transition-colors"
+                              >
+                                <td className="px-4 py-3 font-medium text-foreground">
+                                  {c.endSeason ? `${c.startSeason.name} – ${c.endSeason.name}` : c.startSeason.name}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
+                                    {c.team.logoUrl ? (
+                                      <img
+                                        src={c.team.logoUrl}
+                                        alt=""
+                                        className="h-5 w-5 rounded-full object-cover shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="h-5 w-5 rounded-full bg-muted shrink-0 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
+                                        {c.team.shortName.slice(0, 2)}
+                                      </div>
+                                    )}
+                                    <span className="text-foreground">{c.team.name}</span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-muted-foreground">
+                                  {t(`rosterPage.positions.${c.position}`)}
+                                </td>
+                                <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
+                                  {c.jerseyNumber != null ? `#${c.jerseyNumber}` : "–"}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <Badge
+                                    variant="secondary"
+                                    className={
+                                      isActive
+                                        ? "bg-emerald-600 text-white dark:bg-emerald-700"
+                                        : "bg-muted text-muted-foreground"
+                                    }
+                                  >
+                                    {isActive
+                                      ? t("playersPage.playerDetail.active")
+                                      : t("playersPage.playerDetail.ended")}
+                                  </Badge>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* ── Action sidebar ── */}
+            <Card className="lg:sticky lg:top-20">
+              <CardContent className="p-5 space-y-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={openEditInfo}
+                  data-testid="player-edit-info"
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  {t("playersPage.playerDetail.editInfo")}
+                </Button>
+
+                <DangerZone hint={t("playersPage.playerDetail.deletePlayer.hint")}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    data-testid="player-delete"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    {t("playersPage.playerDetail.deletePlayer.button")}
+                  </Button>
+                </DangerZone>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Delete Player Confirmation                                         */}
+          {/* ----------------------------------------------------------------- */}
+          <ConfirmDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            title={t("playersPage.playerDetail.deletePlayer.title")}
+            description={t("playersPage.playerDetail.deletePlayer.description")}
+            confirmLabel={t("playersPage.playerDetail.deletePlayer.confirm")}
+            variant="destructive"
+            isPending={deletePlayerMutation.isPending}
+            confirmTestId="player-delete-confirm"
+            onConfirm={() => deletePlayerMutation.mutate({ id: playerId })}
+          />
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Edit Player Info Dialog                                            */}
+          {/* ----------------------------------------------------------------- */}
+          <Sheet open={editInfoOpen} onOpenChange={setEditInfoOpen}>
+            <SheetContent size="lg">
+              <SheetClose />
+              <SheetHeader>
+                <SheetTitle>{t("playersPage.dialogs.editTitle")}</SheetTitle>
+                <SheetDescription>{t("playersPage.dialogs.editDescription")}</SheetDescription>
+              </SheetHeader>
+
+              <form onSubmit={handleEditSubmit} className="flex flex-1 flex-col overflow-hidden">
+                <SheetBody className="space-y-6">
+                  {/* Photo */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">{t("playersPage.fields.photo")}</Label>
+                    <ImageUpload
+                      value={form.photoUrl || null}
+                      onChange={(url) => setField("photoUrl", url || "")}
+                      type="photo"
+                      label={t("playersPage.fields.uploadPhoto")}
+                    />
+                  </div>
+
+                  {/* Name row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label={t("playersPage.fields.firstName")} error={formErrors.firstName} required>
+                      <Input
+                        value={form.firstName}
+                        onChange={(e) => setField("firstName", e.target.value)}
+                        placeholder={t("playersPage.fields.firstNamePlaceholder")}
+                      />
+                    </FormField>
+                    <FormField label={t("playersPage.fields.lastName")} error={formErrors.lastName} required>
+                      <Input
+                        data-testid="player-edit-last-name"
+                        value={form.lastName}
+                        onChange={(e) => setField("lastName", e.target.value)}
+                        placeholder={t("playersPage.fields.lastNamePlaceholder")}
+                      />
+                    </FormField>
+                  </div>
+
+                  {/* Date of birth + Nationality */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField label={t("playersPage.fields.dateOfBirth")} error={formErrors.dateOfBirth}>
+                      <Input
+                        type="date"
+                        value={form.dateOfBirth}
+                        onChange={(e) => setField("dateOfBirth", e.target.value)}
+                      />
+                    </FormField>
+                    <FormField label={t("playersPage.fields.nationality")}>
+                      <Input
+                        value={form.nationality}
+                        onChange={(e) => setField("nationality", e.target.value)}
+                        placeholder={t("playersPage.fields.nationalityPlaceholder")}
+                      />
+                    </FormField>
+                  </div>
+                </SheetBody>
+
+                <SheetFooter>
+                  <div className="flex-1" />
+                  <Button type="button" variant="outline" onClick={() => setEditInfoOpen(false)}>
+                    {t("cancel")}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="accent"
+                    disabled={updateMutation.isPending}
+                    data-testid="player-edit-submit"
+                  >
+                    {updateMutation.isPending ? t("saving") : t("save")}
+                  </Button>
+                </SheetFooter>
+              </form>
+            </SheetContent>
+          </Sheet>
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Sign to Team Dialog                                                */}
+          {/* ----------------------------------------------------------------- */}
+          {workingSeason && (
+            <SignPlayerSheet
+              open={signDialogOpen}
+              onOpenChange={setSignDialogOpen}
+              playerId={playerId}
+              seasonId={workingSeason.id}
+              teams={(teams ?? []).map((team) => ({
+                id: team.id,
+                name: team.name,
+                shortName: team.shortName,
+                city: team.city,
+                logoUrl: team.logoUrl,
+                primaryColor: team.primaryColor,
+              }))}
+              onSuccess={handleDialogSuccess}
+            />
+          )}
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Contract Action Dialogs (Edit / Transfer / Release)                */}
+          {/* ----------------------------------------------------------------- */}
+          {activeDialogTeamId && workingSeason && (
+            <>
+              <EditContractSheet
+                open={!!editContract}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setEditContract(null)
+                    setActiveDialogTeamId(null)
+                    handleDialogSuccess()
+                  }
+                }}
+                contract={editContract}
+                seasonId={workingSeason.id}
+              />
+
+              <TransferSheet
+                open={!!transferContract}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setTransferContract(null)
+                    setActiveDialogTeamId(null)
+                    handleDialogSuccess()
+                  }
+                }}
+                contract={transferContract}
+                seasonId={workingSeason.id}
+                teams={(teams ?? []).map((team) => ({
+                  id: team.id,
+                  name: team.name,
+                  shortName: team.shortName,
+                  city: team.city,
+                  logoUrl: team.logoUrl,
+                  primaryColor: team.primaryColor,
+                }))}
+              />
+
+              <ReleasePlayerSheet
+                open={!!releaseContract}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setReleaseContract(null)
+                    setActiveDialogTeamId(null)
+                    handleDialogSuccess()
+                  }
+                }}
+                contract={releaseContract}
+                seasonId={workingSeason.id}
+              />
+            </>
+          )}
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Delete Contract Confirmation Dialog                                */}
+          {/* ----------------------------------------------------------------- */}
+          <Sheet open={!!deleteContractId} onOpenChange={(open) => !open && setDeleteContractId(null)}>
+            <SheetContent>
+              <SheetClose />
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  {t("playersPage.playerDetail.deleteContract.title")}
+                </SheetTitle>
+                <SheetDescription>{t("playersPage.playerDetail.deleteContract.description")}</SheetDescription>
+              </SheetHeader>
+
+              <SheetBody className="space-y-4">
+                {/* End contract alternative */}
+                {(() => {
+                  const contractToDelete = deleteContractId
+                    ? (player?.contracts as ContractWithRelations[] | undefined)?.find((c) => c.id === deleteContractId)
+                    : null
+                  const isActive = contractToDelete && !contractToDelete.endSeasonId
+
+                  return isActive ? (
+                    <div className="p-3 rounded-md bg-muted/60 border border-border">
+                      <p className="text-sm text-foreground font-medium mb-1.5">
+                        {t("playersPage.playerDetail.deleteContract.endInstead")}
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        {t("playersPage.playerDetail.deleteContract.endInsteadDescription")}
+                      </p>
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={reopenContractMutation.isPending}
-                        onClick={() => reopenContractMutation.mutate({ id: c.id })}
+                        onClick={() => {
+                          if (contractToDelete) {
+                            setDeleteContractId(null)
+                            setActiveDialogTeamId(contractToDelete.teamId)
+                            setReleaseContract(toContractRow(contractToDelete))
+                          }
+                        }}
                       >
-                        <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                        {t("playersPage.playerDetail.reopenContract.button")}
+                        <UserMinus className="h-3.5 w-3.5 mr-1.5" />
+                        {t("playersPage.playerDetail.release")}
                       </Button>
-                    )}
-                    <div className="flex-1" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive/50 hover:text-destructive"
-                      onClick={() => setDeleteContractId(c.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                      {t("playersPage.playerDetail.deleteContract.title")}
-                    </Button>
-                  </div>
+                    </div>
+                  ) : null
+                })()}
+
+                {/* Destructive warning */}
+                <div className="p-3 rounded-md bg-destructive/5 border border-destructive/15">
+                  <p className="text-sm font-medium text-destructive mb-2">
+                    {t("playersPage.playerDetail.deleteContract.warning")}
+                  </p>
+                  <ul className="text-sm text-destructive/80 space-y-1 list-disc list-inside">
+                    <li>{t("playersPage.playerDetail.deleteContract.consequences.lineups")}</li>
+                    <li>{t("playersPage.playerDetail.deleteContract.consequences.stats")}</li>
+                    <li>{t("playersPage.playerDetail.deleteContract.consequences.goalieStats")}</li>
+                  </ul>
                 </div>
-              )
-            })}
-          </div>
-        )}
-          </>
-          )}
+              </SheetBody>
 
-          {/* History tab */}
-          {activeTab === "history" && (
-            sortedContracts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                {t("playersPage.playerDetail.historyTable.noHistory")}
-              </p>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/40 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                      <th className="px-4 py-3">{t("playersPage.playerDetail.historyTable.season")}</th>
-                      <th className="px-4 py-3">{t("playersPage.playerDetail.historyTable.team")}</th>
-                      <th className="px-4 py-3">{t("playersPage.playerDetail.historyTable.position")}</th>
-                      <th className="px-4 py-3 text-center">{t("playersPage.playerDetail.historyTable.jersey")}</th>
-                      <th className="px-4 py-3 text-center">{t("playersPage.playerDetail.historyTable.status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedContracts.map((c) => {
-                      const isActive = !c.endSeasonId
-                      return (
-                        <tr key={c.id} className="border-b border-border/40 last:border-0 hover:bg-accent/5 transition-colors">
-                          <td className="px-4 py-3 font-medium text-foreground">
-                            {c.endSeason
-                              ? `${c.startSeason.name} – ${c.endSeason.name}`
-                              : c.startSeason.name}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              {c.team.logoUrl ? (
-                                <img src={c.team.logoUrl} alt="" className="h-5 w-5 rounded-full object-cover shrink-0" />
-                              ) : (
-                                <div className="h-5 w-5 rounded-full bg-muted shrink-0 flex items-center justify-center text-[10px] font-bold text-muted-foreground">
-                                  {c.team.shortName.slice(0, 2)}
-                                </div>
-                              )}
-                              <span className="text-foreground">{c.team.name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {t(`rosterPage.positions.${c.position}`)}
-                          </td>
-                          <td className="px-4 py-3 text-center tabular-nums text-muted-foreground">
-                            {c.jerseyNumber != null ? `#${c.jerseyNumber}` : "–"}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <Badge
-                              variant="secondary"
-                              className={isActive
-                                ? "bg-emerald-600 text-white dark:bg-emerald-700"
-                                : "bg-muted text-muted-foreground"
-                              }
-                            >
-                              {isActive ? t("playersPage.playerDetail.active") : t("playersPage.playerDetail.ended")}
-                            </Badge>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )
-          )}
-          </div>
-        </div>
-
-        {/* ── Action sidebar ── */}
-        <Card className="lg:sticky lg:top-20">
-          <CardContent className="p-5 space-y-3">
-            <Button variant="outline" size="sm" className="w-full" onClick={openEditInfo} data-testid="player-edit-info">
-              <Pencil className="h-3.5 w-3.5 mr-1.5" />
-              {t("playersPage.playerDetail.editInfo")}
-            </Button>
-
-            <DangerZone hint={t("playersPage.playerDetail.deletePlayer.hint")}>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full"
-                onClick={() => setDeleteDialogOpen(true)}
-                data-testid="player-delete"
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                {t("playersPage.playerDetail.deletePlayer.button")}
-              </Button>
-            </DangerZone>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Delete Player Confirmation                                         */}
-      {/* ----------------------------------------------------------------- */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title={t("playersPage.playerDetail.deletePlayer.title")}
-        description={t("playersPage.playerDetail.deletePlayer.description")}
-        confirmLabel={t("playersPage.playerDetail.deletePlayer.confirm")}
-        variant="destructive"
-        isPending={deletePlayerMutation.isPending}
-        confirmTestId="player-delete-confirm"
-        onConfirm={() => deletePlayerMutation.mutate({ id: playerId })}
-      />
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Edit Player Info Dialog                                            */}
-      {/* ----------------------------------------------------------------- */}
-      <Sheet open={editInfoOpen} onOpenChange={setEditInfoOpen}>
-        <SheetContent size="lg">
-          <SheetClose />
-          <SheetHeader>
-            <SheetTitle>{t("playersPage.dialogs.editTitle")}</SheetTitle>
-            <SheetDescription>{t("playersPage.dialogs.editDescription")}</SheetDescription>
-          </SheetHeader>
-
-          <form onSubmit={handleEditSubmit} className="flex flex-1 flex-col overflow-hidden">
-            <SheetBody className="space-y-6">
-              {/* Photo */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">
-                  {t("playersPage.fields.photo")}
-                </Label>
-                <ImageUpload
-                  value={form.photoUrl || null}
-                  onChange={(url) => setField("photoUrl", url || "")}
-                  type="photo"
-                  label={t("playersPage.fields.uploadPhoto")}
-                />
-              </div>
-
-              {/* Name row */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label={t("playersPage.fields.firstName")} error={formErrors.firstName} required>
-                  <Input
-                    value={form.firstName}
-                    onChange={(e) => setField("firstName", e.target.value)}
-                    placeholder={t("playersPage.fields.firstNamePlaceholder")}
-                  />
-                </FormField>
-                <FormField label={t("playersPage.fields.lastName")} error={formErrors.lastName} required>
-                  <Input
-                    data-testid="player-edit-last-name"
-                    value={form.lastName}
-                    onChange={(e) => setField("lastName", e.target.value)}
-                    placeholder={t("playersPage.fields.lastNamePlaceholder")}
-                  />
-                </FormField>
-              </div>
-
-              {/* Date of birth + Nationality */}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label={t("playersPage.fields.dateOfBirth")} error={formErrors.dateOfBirth}>
-                  <Input
-                    type="date"
-                    value={form.dateOfBirth}
-                    onChange={(e) => setField("dateOfBirth", e.target.value)}
-                  />
-                </FormField>
-                <FormField label={t("playersPage.fields.nationality")}>
-                  <Input
-                    value={form.nationality}
-                    onChange={(e) => setField("nationality", e.target.value)}
-                    placeholder={t("playersPage.fields.nationalityPlaceholder")}
-                  />
-                </FormField>
-              </div>
-            </SheetBody>
-
-            <SheetFooter>
-              <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => setEditInfoOpen(false)}>
-                {t("cancel")}
-              </Button>
-              <Button type="submit" variant="accent" disabled={updateMutation.isPending} data-testid="player-edit-submit">
-                {updateMutation.isPending ? t("saving") : t("save")}
-              </Button>
-            </SheetFooter>
-          </form>
-        </SheetContent>
-      </Sheet>
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Sign to Team Dialog                                                */}
-      {/* ----------------------------------------------------------------- */}
-      {workingSeason && (
-        <SignPlayerDialog
-          open={signDialogOpen}
-          onOpenChange={setSignDialogOpen}
-          playerId={playerId}
-          seasonId={workingSeason.id}
-          teams={(teams ?? []).map((team) => ({
-            id: team.id,
-            name: team.name,
-            shortName: team.shortName,
-            city: team.city,
-            logoUrl: team.logoUrl,
-            primaryColor: team.primaryColor,
-          }))}
-          onSuccess={handleDialogSuccess}
-        />
-      )}
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Contract Action Dialogs (Edit / Transfer / Release)                */}
-      {/* ----------------------------------------------------------------- */}
-      {activeDialogTeamId && workingSeason && (
-        <>
-          <EditContractDialog
-            open={!!editContract}
-            onOpenChange={(open) => {
-              if (!open) {
-                setEditContract(null)
-                setActiveDialogTeamId(null)
-                handleDialogSuccess()
-              }
-            }}
-            contract={editContract}
-            teamId={activeDialogTeamId}
-            seasonId={workingSeason.id}
-          />
-
-          <TransferDialog
-            open={!!transferContract}
-            onOpenChange={(open) => {
-              if (!open) {
-                setTransferContract(null)
-                setActiveDialogTeamId(null)
-                handleDialogSuccess()
-              }
-            }}
-            contract={transferContract}
-            currentTeamId={activeDialogTeamId}
-            seasonId={workingSeason.id}
-            teams={(teams ?? []).map((team) => ({
-              id: team.id,
-              name: team.name,
-              shortName: team.shortName,
-              city: team.city,
-              logoUrl: team.logoUrl,
-              primaryColor: team.primaryColor,
-            }))}
-          />
-
-          <ReleasePlayerDialog
-            open={!!releaseContract}
-            onOpenChange={(open) => {
-              if (!open) {
-                setReleaseContract(null)
-                setActiveDialogTeamId(null)
-                handleDialogSuccess()
-              }
-            }}
-            contract={releaseContract}
-            teamId={activeDialogTeamId}
-            seasonId={workingSeason.id}
-          />
+              <SheetFooter>
+                <div className="flex-1" />
+                <Button type="button" variant="outline" onClick={() => setDeleteContractId(null)}>
+                  {t("cancel")}
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={deleteContractMutation.isPending}
+                  onClick={() => {
+                    if (deleteContractId) {
+                      deleteContractMutation.mutate({ id: deleteContractId })
+                    }
+                  }}
+                >
+                  {deleteContractMutation.isPending
+                    ? t("playersPage.playerDetail.deleteContract.deleting")
+                    : t("playersPage.playerDetail.deleteContract.confirm")}
+                </Button>
+              </SheetFooter>
+            </SheetContent>
+          </Sheet>
         </>
-      )}
-
-      {/* ----------------------------------------------------------------- */}
-      {/* Delete Contract Confirmation Dialog                                */}
-      {/* ----------------------------------------------------------------- */}
-      <Sheet open={!!deleteContractId} onOpenChange={(open) => !open && setDeleteContractId(null)}>
-        <SheetContent>
-          <SheetClose />
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              {t("playersPage.playerDetail.deleteContract.title")}
-            </SheetTitle>
-            <SheetDescription>
-              {t("playersPage.playerDetail.deleteContract.description")}
-            </SheetDescription>
-          </SheetHeader>
-
-          <SheetBody className="space-y-4">
-            {/* End contract alternative */}
-            {(() => {
-              const contractToDelete = deleteContractId
-                ? (player?.contracts as ContractWithRelations[] | undefined)?.find((c) => c.id === deleteContractId)
-                : null
-              const isActive = contractToDelete && !contractToDelete.endSeasonId
-
-              return isActive ? (
-                <div className="p-3 rounded-md bg-muted/60 border border-border">
-                  <p className="text-sm text-foreground font-medium mb-1.5">
-                    {t("playersPage.playerDetail.deleteContract.endInstead")}
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    {t("playersPage.playerDetail.deleteContract.endInsteadDescription")}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (contractToDelete) {
-                        setDeleteContractId(null)
-                        setActiveDialogTeamId(contractToDelete.teamId)
-                        setReleaseContract(toContractRow(contractToDelete))
-                      }
-                    }}
-                  >
-                    <UserMinus className="h-3.5 w-3.5 mr-1.5" />
-                    {t("playersPage.playerDetail.release")}
-                  </Button>
-                </div>
-              ) : null
-            })()}
-
-            {/* Destructive warning */}
-            <div className="p-3 rounded-md bg-destructive/5 border border-destructive/15">
-              <p className="text-sm font-medium text-destructive mb-2">
-                {t("playersPage.playerDetail.deleteContract.warning")}
-              </p>
-              <ul className="text-sm text-destructive/80 space-y-1 list-disc list-inside">
-                <li>{t("playersPage.playerDetail.deleteContract.consequences.lineups")}</li>
-                <li>{t("playersPage.playerDetail.deleteContract.consequences.stats")}</li>
-                <li>{t("playersPage.playerDetail.deleteContract.consequences.goalieStats")}</li>
-              </ul>
-            </div>
-          </SheetBody>
-
-          <SheetFooter>
-            <div className="flex-1" />
-            <Button type="button" variant="outline" onClick={() => setDeleteContractId(null)}>
-              {t("cancel")}
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={deleteContractMutation.isPending}
-              onClick={() => {
-                if (deleteContractId) {
-                  deleteContractMutation.mutate({ id: deleteContractId })
-                }
-              }}
-            >
-              {deleteContractMutation.isPending
-                ? t("playersPage.playerDetail.deleteContract.deleting")
-                : t("playersPage.playerDetail.deleteContract.confirm")}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-      </>
       )}
     </DetailPageLayout>
   )

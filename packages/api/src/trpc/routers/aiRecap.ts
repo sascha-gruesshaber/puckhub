@@ -1,14 +1,9 @@
 import { z } from "zod"
-import { APP_ERROR_CODES } from "../../errors/codes"
 import { createAppError } from "../../errors/appError"
-import { orgProcedure, requireRole, router } from "../init"
+import { APP_ERROR_CODES } from "../../errors/codes"
+import { checkRecapEligibility, generateAndPersistRecap, getMonthlyTokenUsage } from "../../services/aiRecapService"
 import { getOrgPlan } from "../../services/planLimits"
-import {
-  checkRecapEligibility,
-  checkTokenBudget,
-  generateAndPersistRecap,
-  getMonthlyTokenUsage,
-} from "../../services/aiRecapService"
+import { orgProcedure, requireRole, router } from "../init"
 
 export const aiRecapRouter = router({
   getUsage: orgProcedure.query(async ({ ctx }) => {

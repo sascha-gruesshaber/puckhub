@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
-import { useT } from "~/lib/i18n"
 import { PillTabs } from "~/components/shared/pillTabs"
-import { LEAGUE_CHART_COLORS, EChartsWrapper } from "./echartsWrapper"
+import { useT } from "~/lib/i18n"
+import { EChartsWrapper, LEAGUE_CHART_COLORS } from "./echartsWrapper"
 
 type Metric = "wins" | "goalsFor" | "goalsAgainst" | "goalDifference" | "pim"
 

@@ -1,8 +1,4 @@
-import {
-  HoverCard as HoverCardPrimitive,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@puckhub/ui"
+import { HoverCardContent, HoverCard as HoverCardPrimitive, HoverCardTrigger } from "@puckhub/ui"
 import type { ReactNode } from "react"
 
 interface HoverCardProps {
@@ -49,5 +45,5 @@ function HoverCard({
   )
 }
 
-export { HoverCard }
 export type { HoverCardProps }
+export { HoverCard }

@@ -1,16 +1,16 @@
 import { createFileRoute, Navigate, useSearch } from "@tanstack/react-router"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { lazy, useMemo } from "react"
 import { StatsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { ChartSuspense, PlayerTable } from "~/components/stats/statsTables"
-import { StatsFilterBar } from "./scorers"
-import { useFeatures, useOrg, useSeason } from "~/lib/context"
+import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useSubRouteVisible } from "~/hooks/useSubRouteVisible"
+import { useFeatures, useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { useLocalePath } from "~/lib/localizedRoutes"
 import { trpc } from "../../../lib/trpc"
+import { StatsFilterBar } from "./scorers"
 
 const ScorerChart = lazy(() => import("~/components/charts/scorerChart").then((m) => ({ default: m.ScorerChart })))
 
@@ -96,11 +96,7 @@ export function GoalsPage() {
           </ChartSuspense>
         </div>
       )}
-      {isLoading ? (
-        <StatsTableSkeleton />
-      ) : (
-        <PlayerTable stats={sorted} sortBy="goals" />
-      )}
+      {isLoading ? <StatsTableSkeleton /> : <PlayerTable stats={sorted} sortBy="goals" />}
     </StatsPageShell>
   )
 }

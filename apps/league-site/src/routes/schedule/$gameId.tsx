@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router"
-import { useEffect } from "react"
 import { ArrowLeft, Loader2, Sparkles } from "lucide-react"
+import { useEffect } from "react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
 import { PublicReportForm } from "~/components/shared/publicReportForm"
@@ -66,6 +66,9 @@ export function GameDetailPage() {
 
   const goals = game.events.filter((e) => e.eventType === "goal")
   const penalties = game.events.filter((e) => e.eventType === "penalty")
+  const noteEvents = game.events.filter((e: any) => e.eventType === "note")
+  const gameWideNotes = noteEvents.filter((n: any) => n.period == null)
+  const timelineNotes = noteEvents.filter((n: any) => n.period != null)
   const homeLineup = game.lineups.filter((l) => l.team.id === game.homeTeamId)
   const awayLineup = game.lineups.filter((l) => l.team.id === game.awayTeamId)
 
@@ -192,13 +195,27 @@ export function GameDetailPage() {
           </div>
         )}
 
+        {/* Game-wide notes */}
+        {gameWideNotes.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-bold mb-3">{t.gameDetail.notes}</h3>
+            <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden divide-y divide-league-text/5">
+              {gameWideNotes.map((note: any) => (
+                <div key={note.id} className="px-4 py-3 text-sm">
+                  <p className="whitespace-pre-wrap">{note.noteText}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Goals */}
         {goals.length > 0 && (
           <div className="mb-8">
             <h3 className="text-lg font-bold mb-3">{t.gameDetail.goals}</h3>
             <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden divide-y divide-league-text/5">
               {goals.map((event) => {
-                const isHome = event.team.id === game.homeTeamId
+                const isHome = event.team?.id === game.homeTeamId
                 return (
                   <div
                     key={event.id}
@@ -208,7 +225,10 @@ export function GameDetailPage() {
                       {event.scorer ? (
                         <Link
                           to="/players/$playerId/$slug"
-                          params={{ playerId: event.scorer.id ?? "", slug: slugify(`${event.scorer.firstName} ${event.scorer.lastName}`) }}
+                          params={{
+                            playerId: event.scorer.id ?? "",
+                            slug: slugify(`${event.scorer.firstName} ${event.scorer.lastName}`),
+                          }}
                           search={{ from: backPath }}
                           className="font-medium hover:text-league-primary transition-colors"
                         >
@@ -250,7 +270,10 @@ export function GameDetailPage() {
                     {event.penaltyPlayer ? (
                       <Link
                         to="/players/$playerId/$slug"
-                        params={{ playerId: event.penaltyPlayer.id ?? "", slug: slugify(`${event.penaltyPlayer.firstName} ${event.penaltyPlayer.lastName}`) }}
+                        params={{
+                          playerId: event.penaltyPlayer.id ?? "",
+                          slug: slugify(`${event.penaltyPlayer.firstName} ${event.penaltyPlayer.lastName}`),
+                        }}
                         search={{ from: backPath }}
                         className="font-medium hover:text-league-primary transition-colors"
                       >
@@ -259,7 +282,7 @@ export function GameDetailPage() {
                     ) : (
                       <span className="font-medium">–</span>
                     )}
-                    <span className="text-league-text/50 ml-2 text-xs">({event.team.shortName})</span>
+                    {event.team && <span className="text-league-text/50 ml-2 text-xs">({event.team.shortName})</span>}
                   </div>
                   <div className="text-league-text/60 text-xs">
                     {event.penaltyMinutes && (
@@ -279,9 +302,31 @@ export function GameDetailPage() {
           </div>
         )}
 
+        {/* Timeline notes */}
+        {timelineNotes.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-lg font-bold mb-3">{t.gameDetail.notes}</h3>
+            <div className="rounded-lg border border-league-text/10 bg-league-surface overflow-hidden divide-y divide-league-text/5">
+              {timelineNotes.map((note: any) => (
+                <div key={note.id} className="flex items-center px-4 py-3 text-sm">
+                  <div className="flex-1">
+                    <p className="whitespace-pre-wrap">{note.noteText}</p>
+                    {note.team && <span className="text-league-text/50 text-xs">({note.team.shortName})</span>}
+                  </div>
+                  <div className="pl-4 text-league-text/50 text-xs tabular-nums">
+                    {note.period}. {t.abbr.period} &middot; {String(note.timeMinutes).padStart(2, "0")}:
+                    {String(note.timeSeconds).padStart(2, "0")}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* No detailed data hint */}
         {goals.length === 0 &&
           penalties.length === 0 &&
+          noteEvents.length === 0 &&
           homeLineup.length === 0 &&
           awayLineup.length === 0 &&
           game.status === "completed" && (
@@ -319,7 +364,10 @@ export function GameDetailPage() {
                         <span className="flex-1">
                           <Link
                             to="/players/$playerId/$slug"
-                            params={{ playerId: l.player.id, slug: slugify(`${l.player.firstName} ${l.player.lastName}`) }}
+                            params={{
+                              playerId: l.player.id,
+                              slug: slugify(`${l.player.firstName} ${l.player.lastName}`),
+                            }}
                             search={{ from: backPath }}
                             className="hover:text-league-primary transition-colors"
                           >

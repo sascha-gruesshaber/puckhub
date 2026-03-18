@@ -149,5 +149,5 @@ function TeamHoverCardContent({
   )
 }
 
-export { TeamHoverCard }
 export type { TeamHoverCardProps }
+export { TeamHoverCard }

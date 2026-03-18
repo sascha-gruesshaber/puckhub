@@ -27,16 +27,10 @@ function DetailPageLayout({
   children,
   maxWidth = "",
 }: DetailPageLayoutProps) {
-  const wrapperClass = maxWidth
-    ? `${maxWidth} mx-auto`
-    : undefined
+  const wrapperClass = maxWidth ? `${maxWidth} mx-auto` : undefined
 
   if (isLoading) {
-    return (
-      <div className={wrapperClass}>
-        {loadingSkeleton ?? <DetailPageSkeleton />}
-      </div>
-    )
+    return <div className={wrapperClass}>{loadingSkeleton ?? <DetailPageSkeleton />}</div>
   }
 
   if (notFound) {

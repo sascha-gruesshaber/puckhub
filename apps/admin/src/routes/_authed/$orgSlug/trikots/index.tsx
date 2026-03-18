@@ -21,16 +21,16 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
-import { FilterBar } from "~/components/filterBar"
 import { EmptyState } from "~/components/emptyState"
-import { FilterDropdown } from "~/components/filterDropdown"
+import { FeatureGate } from "~/components/featureGate"
+import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
+import { FilterDropdown } from "~/components/filterDropdown"
 import { NoResults } from "~/components/noResults"
 import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 import { TeamCombobox } from "~/components/teamCombobox"
 import { TrikotPreview } from "~/components/trikotPreview"
-import { FeatureGate } from "~/components/featureGate"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
@@ -135,7 +135,7 @@ function TrikotsPage() {
       setAssignName("")
       setEditingAssignment(null)
     }
-  }, [editId, isNew, editingTrikot, templates])
+  }, [isNew, editingTrikot, templates])
 
   function closeSheet() {
     navigate({ search: (prev) => ({ ...prev, edit: undefined }), replace: true })
@@ -255,7 +255,8 @@ function TrikotsPage() {
       value: tmpl.id,
       label: getTemplateLabel(tmpl.name, tmpl.templateType, tmpl.colorCount),
     }))
-  }, [trikots])
+    // biome-ignore lint/correctness/useExhaustiveDependencies: getTemplateLabel depends only on t which is already stable
+  }, [trikots, getTemplateLabel])
 
   const filtered = useMemo(() => {
     if (!trikots) return []
@@ -352,7 +353,7 @@ function TrikotsPage() {
         title={t("trikotsPage.title")}
         description={t("trikotsPage.description")}
         action={
-          <Button variant="accent" onClick={() => openSheet("new")}>
+          <Button variant="accent" onClick={() => openSheet("new")} data-testid="trikots-new">
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             {t("trikotsPage.actions.new")}
           </Button>
@@ -395,21 +396,15 @@ function TrikotsPage() {
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((trikot, i) => (
-              <div
+              <button
                 key={trikot.id}
+                type="button"
                 onClick={() => openSheet(trikot.id)}
-                className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer ${
+                data-testid="trikot-row"
+                className={`data-row group flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors cursor-pointer w-full text-left ${
                   i < filtered.length - 1 ? "border-b border-border/40" : ""
                 }`}
                 style={{ "--row-index": i } as React.CSSProperties}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault()
-                    openSheet(trikot.id)
-                  }
-                }}
               >
                 {/* Trikot preview */}
                 <div className="shrink-0">
@@ -446,21 +441,25 @@ function TrikotsPage() {
                     </div>
                   </div>
                 </div>
-
-              </div>
+              </button>
             ))}
           </div>
         )}
       </DataPageLayout>
 
       {/* Create/Edit Sheet with Assignments */}
-      <Sheet open={sheetOpen} onOpenChange={(open) => { if (!open) closeSheet() }} dirty={isDirty} onDirtyClose={() => setConfirmCloseOpen(true)}>
+      <Sheet
+        open={sheetOpen}
+        onOpenChange={(open) => {
+          if (!open) closeSheet()
+        }}
+        dirty={isDirty}
+        onDirtyClose={() => setConfirmCloseOpen(true)}
+      >
         <SheetContent size="lg">
           <SheetClose />
           <SheetHeader>
-            <SheetTitle>
-              {isNew ? t("trikotsPage.dialogs.newTitle") : t("trikotsPage.dialogs.editTitle")}
-            </SheetTitle>
+            <SheetTitle>{isNew ? t("trikotsPage.dialogs.newTitle") : t("trikotsPage.dialogs.editTitle")}</SheetTitle>
             <SheetDescription>
               {isNew ? t("trikotsPage.dialogs.newDescription") : t("trikotsPage.dialogs.editDescription")}
             </SheetDescription>
@@ -471,6 +470,7 @@ function TrikotsPage() {
               {/* Name */}
               <FormField label={t("trikotsPage.fields.name")} error={errors.name} required>
                 <Input
+                  data-testid="trikot-form-name"
                   value={form.name}
                   onChange={(e) => setField("name", e.target.value)}
                   placeholder={t("trikotsPage.fields.namePlaceholder")}
@@ -488,6 +488,7 @@ function TrikotsPage() {
                     <button
                       key={tmpl.id}
                       type="button"
+                      data-testid={`trikot-form-template-${tmpl.templateType ?? tmpl.id}`}
                       onClick={() => setField("templateId", tmpl.id)}
                       className="relative flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-colors"
                       style={{
@@ -545,7 +546,9 @@ function TrikotsPage() {
               {/* Assignments section — only in edit mode */}
               {editingTrikot && (
                 <div className="border-t pt-6 space-y-4">
-                  <h3 className="text-sm font-semibold">{t("trikotsPage.assignments.title", { name: editingTrikot.name })}</h3>
+                  <h3 className="text-sm font-semibold">
+                    {t("trikotsPage.assignments.title", { name: editingTrikot.name })}
+                  </h3>
                   <p className="text-xs text-muted-foreground">{t("trikotsPage.assignments.description")}</p>
 
                   {/* Existing assignments */}
@@ -560,7 +563,12 @@ function TrikotsPage() {
                                 onChange={(e) => setEditingAssignment({ ...editingAssignment, name: e.target.value })}
                                 className="flex-1 h-8 text-sm"
                               />
-                              <Button type="submit" size="sm" variant="accent" disabled={updateAssignmentMutation.isPending}>
+                              <Button
+                                type="submit"
+                                size="sm"
+                                variant="accent"
+                                disabled={updateAssignmentMutation.isPending}
+                              >
                                 {t("trikotsPage.assignments.actions.save")}
                               </Button>
                               <Button
@@ -603,7 +611,9 @@ function TrikotsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">{t("trikotsPage.assignments.empty")}</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      {t("trikotsPage.assignments.empty")}
+                    </p>
                   )}
 
                   {/* Add assignment form */}
@@ -661,6 +671,7 @@ function TrikotsPage() {
                   type="button"
                   variant="destructive"
                   size="sm"
+                  data-testid="trikot-delete"
                   onClick={() => setDeleteDialogOpen(true)}
                 >
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
@@ -668,10 +679,17 @@ function TrikotsPage() {
                 </Button>
               )}
               <div className="flex-1" />
-              <Button type="button" variant="outline" onClick={() => { if (isDirty) setConfirmCloseOpen(true); else closeSheet() }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (isDirty) setConfirmCloseOpen(true)
+                  else closeSheet()
+                }}
+              >
                 {t("cancel")}
               </Button>
-              <Button type="submit" variant="accent" disabled={isSaving}>
+              <Button type="submit" variant="accent" disabled={isSaving} data-testid="trikot-form-submit">
                 {isSaving ? t("saving") : isNew ? t("create") : t("save")}
               </Button>
             </SheetFooter>
@@ -684,7 +702,9 @@ function TrikotsPage() {
         open={confirmCloseOpen}
         onOpenChange={setConfirmCloseOpen}
         title={t("unsavedChanges.title", { defaultValue: "Ungespeicherte Änderungen" })}
-        description={t("unsavedChanges.description", { defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?" })}
+        description={t("unsavedChanges.description", {
+          defaultValue: "Du hast ungespeicherte Änderungen. Möchtest du wirklich schließen?",
+        })}
         confirmLabel={t("unsavedChanges.discard", { defaultValue: "Verwerfen" })}
         variant="destructive"
         onConfirm={() => {
@@ -700,6 +720,7 @@ function TrikotsPage() {
         title={t("trikotsPage.deleteDialog.title")}
         description={t("trikotsPage.deleteDialog.description", { name: editingTrikot?.name ?? "" })}
         confirmLabel={t("trikotsPage.actions.delete")}
+        confirmTestId="trikot-delete-confirm"
         variant="destructive"
         isPending={deleteMutation.isPending}
         onConfirm={() => {
