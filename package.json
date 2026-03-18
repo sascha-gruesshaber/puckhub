@@ -49,8 +49,8 @@
     "playwright": "^1.52.0",
     "postgres": "^3.4.0",
     "testcontainers": "^10.24.0",
-    "turbo": "^2.8.16",
     "tsx": "^4.19.0",
+    "turbo": "^2.8.18",
     "typescript": "^5.9.3",
     "wait-on": "^9.0.4"
   }
