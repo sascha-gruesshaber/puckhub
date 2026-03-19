@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
-import { checkRecapEligibility, generateAndPersistRecap, getMonthlyTokenUsage } from "../../services/aiRecapService"
+import { checkAiEligibility, generateAndPersistRecap, getMonthlyTokenUsage } from "../../services/aiRecapService"
 import { getOrgPlan } from "../../services/planLimits"
 import { orgProcedure, requireRole, router } from "../init"
 
@@ -13,7 +13,7 @@ export const aiRecapRouter = router({
       select: { aiEnabled: true },
     })
 
-    const featureAvailable = plan ? !!plan.featureAiRecaps : true
+    const featureAvailable = plan ? !!plan.featureAi : true
     const tokenLimit = (plan?.aiMonthlyTokenLimit as number | null) ?? null
     const used = await getMonthlyTokenUsage(ctx.db, ctx.organizationId)
 
@@ -44,7 +44,7 @@ export const aiRecapRouter = router({
     }
 
     // Check eligibility
-    const eligibility = await checkRecapEligibility(ctx.db, ctx.organizationId)
+    const eligibility = await checkAiEligibility(ctx.db, ctx.organizationId)
     if (!eligibility.eligible) {
       throw createAppError("FORBIDDEN", APP_ERROR_CODES.AI_RECAP_UNAVAILABLE, eligibility.reason)
     }
@@ -67,4 +67,5 @@ export const aiRecapRouter = router({
 
     return { success: true }
   }),
+
 })

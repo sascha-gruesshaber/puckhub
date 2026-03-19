@@ -9,6 +9,9 @@
   "dangerZone": {
     "title": "Gefahrenzone"
   },
+  "seoPreview": {
+    "title": "SEO-Vorschau"
+  },
   "draft": "Entwurf",
   "published": "Veröffentlicht",
   "logout": "Abmelden",
@@ -1605,6 +1608,7 @@
   "topBar": {
     "profile": "Profil",
     "switchLeague": "Liga wechseln",
+    "platform": "Plattform-Admin",
     "logout": "Abmelden"
   },
   "gameReport": {
@@ -1755,13 +1759,25 @@
     "title": "KI-Funktionen",
     "description": "KI-gestützte Funktionen für deine Liga konfigurieren.",
     "enableToggle": "KI-Funktionen aktivieren",
-    "enableDescription": "Ermöglicht KI-gestützte Spielberichte für abgeschlossene Spiele.",
+    "enableDescription": "Hauptschalter für alle KI-gestützten Funktionen.",
     "usage": "Token-Verbrauch",
     "usageLabel": "{{used}} / {{limit}} Tokens",
     "usageUnlimited": "{{used}} / ∞ Tokens",
     "resetHint": "Wird am 1. jedes Monats zurückgesetzt.",
     "unavailable": "KI-Funktionen sind in deinem aktuellen Plan nicht verfügbar.",
-    "headerChip": "KI {{percent}}%"
+    "headerChip": "KI {{percent}}%",
+    "contentGeneration": "Inhaltserstellung",
+    "homeWidgets": "Startseiten-Widgets",
+    "toggleGameRecaps": "Spielberichte",
+    "toggleGameRecapsDesc": "Automatische Zusammenfassungen für abgeschlossene Spiele.",
+    "toggleNewsSeo": "News-SEO",
+    "toggleNewsSeoDesc": "Automatische SEO-Titel und -Beschreibungen für News-Artikel.",
+    "togglePageSeo": "Seiten-SEO",
+    "togglePageSeoDesc": "Automatische SEO-Titel und -Beschreibungen für benutzerdefinierte Seiten.",
+    "toggleLeaguePulse": "Liga-Puls",
+    "toggleLeaguePulseDesc": "\"Was ist passiert?\" — Spieltag-Zusammenfassung.",
+    "toggleHeadlinesTicker": "Schlagzeilen-Ticker",
+    "toggleHeadlinesTickerDesc": "Knackige Einzeiler über bemerkenswerte Ereignisse."
   },
   "publicReports": {
     "title": "Öffentliche Spielberichte",

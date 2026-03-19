@@ -26,7 +26,7 @@ type FeatureKey =
   | "featureScheduler"
   | "featureScheduledNews"
   | "featureAdvancedRoles"
-  | "featureAiRecaps"
+  | "featureAi"
   | "featurePublicReports"
 
 interface Plan {
@@ -50,7 +50,7 @@ interface Plan {
   featureScheduler: boolean
   featureScheduledNews: boolean
   featureAdvancedRoles: boolean
-  featureAiRecaps: boolean
+  featureAi: boolean
   featurePublicReports: boolean
   aiMonthlyTokenLimit: number | null
 }

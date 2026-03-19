@@ -1,6 +1,8 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { checkAiEligibility } from "../../services/aiRecapService"
+import { generateNewsSeo } from "../../services/aiSeoService"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 import type { Context } from "../context"
 import { orgProcedure, requireRole, router } from "../init"
@@ -86,6 +88,21 @@ export const newsRouter = router({
           scheduledPublishAt: input.scheduledPublishAt ? new Date(input.scheduledPublishAt) : null,
         },
       })
+
+      // Fire-and-forget SEO generation (respects granular toggle)
+      ctx.db.organization
+        .findUnique({ where: { id: ctx.organizationId }, select: { aiNewsSeo: true } })
+        .then((org) => {
+          if (!org?.aiNewsSeo) return
+          return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
+            if (e.eligible) {
+              generateNewsSeo(ctx.db, article.id, ctx.organizationId).catch((err) =>
+                console.error("[ai-seo] News SEO generation failed:", err),
+              )
+            }
+          })
+        })
+
       return article
     }),
 
@@ -133,6 +150,21 @@ export const newsRouter = router({
           updatedAt: new Date(),
         },
       })
+
+      // Fire-and-forget SEO generation (respects granular toggle)
+      ctx.db.organization
+        .findUnique({ where: { id: ctx.organizationId }, select: { aiNewsSeo: true } })
+        .then((org) => {
+          if (!org?.aiNewsSeo) return
+          return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
+            if (e.eligible) {
+              generateNewsSeo(ctx.db, article.id, ctx.organizationId).catch((err) =>
+                console.error("[ai-seo] News SEO generation failed:", err),
+              )
+            }
+          })
+        })
+
       return article
     }),
 

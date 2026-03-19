@@ -36,6 +36,8 @@ export interface SiteFeatures {
   publicReports: boolean
   publicReportsRequireEmail: boolean
   publicReportsBotDetection: boolean
+  aiWidgetLeaguePulse: boolean
+  aiWidgetHeadlinesTicker: boolean
 }
 
 export const OrgContext = createContext<OrgData | null>(null)
@@ -51,6 +53,8 @@ export const FeaturesContext = createContext<SiteFeatures>({
   publicReports: false,
   publicReportsRequireEmail: true,
   publicReportsBotDetection: true,
+  aiWidgetLeaguePulse: false,
+  aiWidgetHeadlinesTicker: false,
 })
 
 export function useOrg() {

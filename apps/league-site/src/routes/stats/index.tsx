@@ -4,7 +4,6 @@ import { StatsTableSkeleton } from "~/components/shared/loadingSkeleton"
 import { StatsSummaryCards } from "~/components/shared/statsSummaryCards"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
 import { ChartSuspense } from "~/components/stats/statsTables"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useFeatures, useOrg, useSeason } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { useLocalePath } from "~/lib/localizedRoutes"
@@ -29,12 +28,8 @@ export function StatsIndex() {
   const lp = useLocalePath()
   const org = useOrg()
   const season = useSeason()
-  const filterNavigate = useFilterNavigate()
   const { season: seasonParam } = useSearch({ strict: false }) as { season?: string }
   const selectedSeasonId = seasonParam ?? season.current?.id
-
-  const setSelectedSeasonId = (v: string) =>
-    filterNavigate({ search: { season: v === season.current?.id ? undefined : v } })
 
   const shouldFetch = !!selectedSeasonId && features.advancedStats
   const { data: playerStats, isLoading: playerLoading } = trpc.publicSite.getPlayerStats.useQuery(
@@ -59,11 +54,7 @@ export function StatsIndex() {
   const topScorers = [...(playerStats ?? [])].sort((a, b) => b.totalPoints - a.totalPoints).slice(0, 10)
 
   return (
-    <StatsPageShell
-      title={t.statsOverview.title}
-      selectedSeasonId={selectedSeasonId}
-      onSeasonChange={setSelectedSeasonId}
-    >
+    <StatsPageShell title={t.statsOverview.title}>
       {playerStats && (
         <StatsSummaryCards
           playerStats={playerStats}

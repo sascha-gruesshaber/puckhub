@@ -1,6 +1,6 @@
 # @puckhub/admin
 
-TanStack Start (React 19) admin application with Vite 7, file-based routing, tRPC integration, i18n (DE/EN), magic link authentication, and AI game recap generation.
+TanStack Start (React 19) admin application with Vite 7, file-based routing, tRPC integration, i18n (DE/EN), magic link authentication, and AI content generation (recaps, SEO, home widgets).
 
 ## Route Structure (29 routes)
 
@@ -16,7 +16,7 @@ src/routes/
     └── $orgSlug.tsx        # Org-scoped layout (sidebar, season/org context)
         ├── index.tsx           # Dashboard
         ├── profile.tsx         # User profile (name, language, 2FA, passkeys)
-        ├── settings.tsx        # League settings + AI recap configuration
+        ├── settings.tsx        # League settings + AI feature configuration (recaps, SEO, home widgets)
         ├── website.tsx         # Website builder (subdomain/domain config, theme, preview)
         ├── games/index.tsx     # Games calendar + scheduling
         ├── games/public-reports.tsx  # Public game reports review (approve/revert)
@@ -202,7 +202,7 @@ src/lib/                   # Inside src/
 ## Key Features
 
 - **Magic Link Authentication**: Email-based passwordless login with passkey and 2FA support
-- **AI Game Recaps**: Generate game summaries via OpenRouter (Gemini), with token budget tracking and eligibility guards
+- **AI Content Generation**: Game recaps, news/page SEO, season descriptions, and home page widgets via OpenRouter (Gemini), with granular per-feature toggles and token budget tracking
 - **Pages CMS**: Drag-and-drop page builder with parent-child hierarchies, system routes, and URL aliases
 - **Team-Scoped Roles**: owner, admin, game_manager, game_reporter, team_manager, editor — some scoped to specific teams
 - **Public Game Reports**: Community-submitted game scores with email OTP verification, bot detection (math captcha + honeypot), admin review/revert with audit trail

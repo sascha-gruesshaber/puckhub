@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useEffect } from "react"
 import { SectionWrapper } from "~/components/layout/sectionWrapper"
 import { HtmlContent } from "~/components/shared/htmlContent"
 import { PageSkeleton } from "~/components/shared/loadingSkeleton"
@@ -18,6 +19,33 @@ function CmsPage() {
     { organizationId: org.id, slug },
     { staleTime: 120_000 },
   )
+
+  // Dynamic SEO meta tags
+  useEffect(() => {
+    if (!page || "redirect" in page) return
+    document.title = page.seoTitle ?? page.title
+    const description = page.seoDescription ?? ""
+    if (description) {
+      const existing = document.querySelector('meta[name="description"]')
+      if (existing) {
+        existing.setAttribute("content", description)
+      } else {
+        const meta = document.createElement("meta")
+        meta.name = "description"
+        meta.content = description
+        document.head.appendChild(meta)
+      }
+      const ogExisting = document.querySelector('meta[property="og:description"]')
+      if (ogExisting) {
+        ogExisting.setAttribute("content", description)
+      } else {
+        const ogMeta = document.createElement("meta")
+        ogMeta.setAttribute("property", "og:description")
+        ogMeta.content = description
+        document.head.appendChild(ogMeta)
+      }
+    }
+  }, [page])
 
   if (isLoading) return <PageSkeleton />
 

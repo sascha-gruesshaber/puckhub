@@ -69,6 +69,13 @@ enum MenuLocation {
   @@map("menu_location")
 }
 
+enum AiHomeWidgetType {
+  league_pulse_digest
+  headlines_ticker
+
+  @@map("ai_home_widget_type")
+}
+
 enum TrikotTemplateType {
   one_color
   two_color
@@ -210,6 +217,14 @@ model Organization {
   logo      String?
   metadata  String?
   aiEnabled Boolean  @default(false) @map("ai_enabled")
+
+  // Granular AI feature toggles
+  aiGameRecaps            Boolean @default(true) @map("ai_game_recaps")
+  aiNewsSeo               Boolean @default(true) @map("ai_news_seo")
+  aiPageSeo               Boolean @default(true) @map("ai_page_seo")
+  aiWidgetLeaguePulse     Boolean @default(false) @map("ai_widget_league_pulse")
+  aiWidgetHeadlinesTicker Boolean @default(false) @map("ai_widget_headlines_ticker")
+
   createdAt DateTime @default(now())
 
   members        Member[]
@@ -241,6 +256,7 @@ model Organization {
   websiteConfig      WebsiteConfig?
   subscription       OrgSubscription?
   aiUsageLogs        AiUsageLog[]
+  aiHomeWidgets      AiHomeWidget[]
   publicGameReports  PublicGameReport[]
 
   @@map("organization")
@@ -302,12 +318,16 @@ model Season {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  aiDescriptionShort       String?   @map("ai_description_short")
+
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   divisions         Division[]
   contractsStarted  Contract[]         @relation("contractStartSeason")
   contractsEnded    Contract[]         @relation("contractEndSeason")
   playerSeasonStats PlayerSeasonStat[]
   goalieSeasonStats GoalieSeasonStat[]
+  aiUsageLogs       AiUsageLog[]
+  aiHomeWidgets     AiHomeWidget[]
 
   @@index([organizationId], map: "seasons_org_id_idx")
   @@map("seasons")
@@ -745,8 +765,12 @@ model News {
   createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  seoTitle       String?  @map("seo_title")
+  seoDescription String?  @map("seo_description")
+
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   author       User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  aiUsageLogs  AiUsageLog[]
 
   @@index([organizationId], map: "news_org_id_idx")
   @@map("news")
@@ -767,10 +791,14 @@ model Page {
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
+  seoTitle       String?  @map("seo_title")
+  seoDescription String?  @map("seo_description")
+
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   parent       Page?        @relation("pageChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children     Page[]       @relation("pageChildren")
   aliases      PageAlias[]
+  aiUsageLogs  AiUsageLog[]
 
   @@unique([slug, parentId, organizationId], map: "pages_slug_parent_org_unique")
   @@index([organizationId], map: "pages_org_id_idx")
@@ -956,7 +984,7 @@ model Plan {
   featureScheduledNews  Boolean @default(false) @map("feature_scheduled_news")
   featureAdvancedRoles  Boolean @default(false) @map("feature_advanced_roles")
   featureAdvancedStats  Boolean @default(false) @map("feature_advanced_stats")
-  featureAiRecaps        Boolean @default(false) @map("feature_ai_recaps")
+  featureAi              Boolean @default(false) @map("feature_ai")
   featurePublicReports   Boolean @default(false) @map("feature_public_reports")
   aiMonthlyTokenLimit    Int?    @map("ai_monthly_token_limit")
 
@@ -1024,6 +1052,26 @@ model PublicGameReport {
   @@map("public_game_reports")
 }
 
+// ─── AI Home Widgets ─────────────────────────────────────────────────────────
+
+model AiHomeWidget {
+  id             String           @id @default(uuid(7)) @db.Uuid
+  organizationId String           @map("organization_id")
+  seasonId       String           @map("season_id") @db.Uuid
+  widgetType     AiHomeWidgetType @map("widget_type")
+  content        String
+  generatedAt    DateTime         @default(now()) @map("generated_at") @db.Timestamptz
+  generating     Boolean          @default(false)
+  dataHash       String?          @map("data_hash")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, seasonId, widgetType])
+  @@index([organizationId], map: "ai_home_widgets_org_id_idx")
+  @@map("ai_home_widgets")
+}
+
 // ─── AI Usage Tracking ───────────────────────────────────────────────────────
 
 model AiUsageLog {
@@ -1035,10 +1083,16 @@ model AiUsageLog {
   outputTokens   Int      @map("output_tokens")
   totalTokens    Int      @map("total_tokens")
   gameId         String?  @map("game_id") @db.Uuid
+  seasonId       String?  @map("season_id") @db.Uuid
+  newsId         String?  @map("news_id") @db.Uuid
+  pageId         String?  @map("page_id") @db.Uuid
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   game         Game?        @relation(fields: [gameId], references: [id], onDelete: SetNull)
+  season       Season?      @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  news         News?        @relation(fields: [newsId], references: [id], onDelete: SetNull)
+  page         Page?        @relation(fields: [pageId], references: [id], onDelete: SetNull)
 
   @@index([organizationId, createdAt])
   @@map("ai_usage_log")

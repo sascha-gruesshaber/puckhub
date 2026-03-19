@@ -12,7 +12,7 @@ export function createDemoResetJob(): Job {
     name: "demo-reset",
     cronExpression,
     enabled,
-    handler: async () => {
+    handler: async (_ctx) => {
       console.log(`[demo-reset] Resetting demo org "${DEMO_ORG_ID}"...`)
       await seedDemoOrg(db)
       console.log(`[demo-reset] Demo org reset complete`)

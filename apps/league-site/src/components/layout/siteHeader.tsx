@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router"
+import { Link, useSearch } from "@tanstack/react-router"
 import { ChevronDown, Menu, X } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useFeatures, useOrg, useSettings, useSiteConfig } from "~/lib/context"
@@ -6,6 +6,7 @@ import { useT } from "~/lib/i18n"
 import { allPathVariants } from "~/lib/localizedRoutes"
 import { cn } from "~/lib/utils"
 import { trpc } from "../../../lib/trpc"
+import { HeaderSeasonMobile, HeaderSeasonPopover } from "./headerSeasonSelector"
 import { TeamsDesktopMegaDropdown, TeamsMobileGrid } from "./teamsMegaDropdown"
 
 export type MenuPage = {
@@ -39,9 +40,15 @@ function getPageLink(page: Pick<MenuPage, "isSystemRoute" | "routePath" | "slug"
   return { to: "/$slug" as const, params: { slug } as any }
 }
 
-function DesktopNavItem({ page }: { page: MenuPage }) {
+/** Build `search` prop that propagates ?season= across nav links */
+function seasonSearch(seasonParam: string | undefined): any {
+  return seasonParam ? { season: seasonParam } : undefined
+}
+
+function DesktopNavItem({ page, seasonParam }: { page: MenuPage; seasonParam: string | undefined }) {
   const link = getPageLink(page)
   const hasChildren = page.children.length > 0
+  const search = seasonSearch(seasonParam)
 
   const isTeamsPage = page.isSystemRoute && page.routePath === TEAMS_ROUTE_PATH
   if (isTeamsPage) {
@@ -53,6 +60,7 @@ function DesktopNavItem({ page }: { page: MenuPage }) {
       <Link
         to={link.to}
         params={link.params}
+        search={search}
         className="px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-white/10"
         activeProps={{ className: "bg-white/15" }}
         activeOptions={{ exact: page.isSystemRoute && page.routePath === "/" }}
@@ -67,6 +75,7 @@ function DesktopNavItem({ page }: { page: MenuPage }) {
       <Link
         to={link.to}
         params={link.params}
+        search={search}
         className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-white/10"
         activeProps={{ className: "bg-white/15" }}
         activeOptions={{ exact: page.isSystemRoute && page.routePath === "/" }}
@@ -83,6 +92,7 @@ function DesktopNavItem({ page }: { page: MenuPage }) {
               <Link
                 key={child.id}
                 to={child.routePath as any}
+                search={search}
                 className="block px-4 py-2 text-sm transition-colors hover:bg-white/10"
                 activeProps={{ className: "bg-white/15" }}
               >
@@ -93,6 +103,7 @@ function DesktopNavItem({ page }: { page: MenuPage }) {
                 key={child.id}
                 to="/$slug"
                 params={{ slug: `${page.slug}/${child.slug}` }}
+                search={search}
                 className="block px-4 py-2 text-sm transition-colors hover:bg-white/10"
                 activeProps={{ className: "bg-white/15" }}
               >
@@ -114,6 +125,7 @@ export function SiteHeader() {
   const config = useSiteConfig()
   const features = useFeatures()
   const t = useT()
+  const { season: seasonParam } = useSearch({ strict: false }) as { season?: string }
 
   const { data: menuPages } = trpc.publicSite.getMenuPages.useQuery(
     { organizationId: org.id, location: "main_nav" },
@@ -150,12 +162,15 @@ export function SiteHeader() {
             <span className="text-lg font-bold hidden sm:block">{settings.leagueShortName}</span>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {topLevelMenuPages?.map((page) => (
-              <DesktopNavItem key={page.id} page={page} />
-            ))}
-          </nav>
+          {/* Desktop: Season Selector + Nav */}
+          <div className="hidden md:flex items-center gap-1">
+            <HeaderSeasonPopover />
+            <nav className="flex items-center gap-1">
+              {topLevelMenuPages?.map((page) => (
+                <DesktopNavItem key={page.id} page={page} seasonParam={seasonParam} />
+              ))}
+            </nav>
+          </div>
 
           {/* Mobile menu button */}
           <button
@@ -176,6 +191,7 @@ export function SiteHeader() {
           mobileOpen ? "max-h-[80vh] border-t border-white/10 overflow-y-auto" : "max-h-0",
         )}
       >
+        <HeaderSeasonMobile onNavigate={() => setMobileOpen(false)} />
         <nav className="px-4 py-3 space-y-1">
           {topLevelMenuPages?.map((page) => {
             const link = getPageLink(page)
@@ -183,6 +199,7 @@ export function SiteHeader() {
             const isTeamsPage = page.isSystemRoute && page.routePath === TEAMS_ROUTE_PATH
             const showExpander = hasChildren || isTeamsPage
             const isExpanded = expandedMobileId === page.id
+            const search = seasonSearch(seasonParam)
 
             return (
               <div key={page.id}>
@@ -190,6 +207,7 @@ export function SiteHeader() {
                   <Link
                     to={link.to}
                     params={link.params}
+                    search={search}
                     className="flex-1 block px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-white/10"
                     activeProps={{ className: "bg-white/15" }}
                     activeOptions={{ exact: page.isSystemRoute && page.routePath === "/" }}
@@ -215,6 +233,7 @@ export function SiteHeader() {
                         <Link
                           key={child.id}
                           to={child.routePath as any}
+                          search={search}
                           className="block px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 opacity-80"
                           activeProps={{ className: "bg-white/15 opacity-100" }}
                           onClick={() => setMobileOpen(false)}
@@ -226,6 +245,7 @@ export function SiteHeader() {
                           key={child.id}
                           to="/$slug"
                           params={{ slug: `${page.slug}/${child.slug}` }}
+                          search={search}
                           className="block px-3 py-2 rounded-md text-sm transition-colors hover:bg-white/10 opacity-80"
                           activeProps={{ className: "bg-white/15 opacity-100" }}
                           onClick={() => setMobileOpen(false)}

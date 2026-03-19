@@ -17,6 +17,9 @@ interface NewsFormProps {
   onSubmit: (data: NewsFormData) => void
   isPending: boolean
   submitLabel?: string
+  /** SEO preview data (read-only, auto-generated) */
+  seoTitle?: string | null
+  seoDescription?: string | null
   /** Rendered at the bottom of the sidebar (e.g. danger zone with delete) */
   sidebarFooter?: React.ReactNode
 }
@@ -55,7 +58,7 @@ function initFromData(data: NewsFormData): FormState {
   }
 }
 
-export function NewsForm({ initialData, onSubmit, isPending, submitLabel, sidebarFooter }: NewsFormProps) {
+export function NewsForm({ initialData, onSubmit, isPending, submitLabel, seoTitle, seoDescription, sidebarFooter }: NewsFormProps) {
   const { t } = useTranslation("common")
   const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
@@ -200,6 +203,20 @@ export function NewsForm({ initialData, onSubmit, isPending, submitLabel, sideba
                 {t("cancel")}
               </Button>
             </div>
+
+            {(seoTitle || seoDescription) && (
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium mb-2 block">{t("seoPreview.title")}</Label>
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
+                  {seoTitle && (
+                    <p className="text-sm font-semibold text-blue-700 truncate">{seoTitle}</p>
+                  )}
+                  {seoDescription && (
+                    <p className="text-xs text-muted-foreground line-clamp-3">{seoDescription}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {sidebarFooter}
           </CardContent>

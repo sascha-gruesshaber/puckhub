@@ -2,7 +2,7 @@ import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } 
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
-import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
+import { checkAiEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { generateRoundRobin } from "../../services/schedulerService"
 import { orgProcedure, requireRole, router } from "../init"
 
@@ -240,25 +240,28 @@ export const gameRouter = router({
         },
       })
 
-      // Auto-regenerate AI recap when notes change on a completed game
+      // Auto-regenerate AI recap when notes change on a completed game (respects granular toggle)
       if (isNotesOnly && existing.status === "completed" && data.notes !== undefined && data.notes !== existing.notes) {
-        checkRecapEligibility(ctx.db, ctx.organizationId)
-          .then(async (eligibility) => {
-            if (eligibility.eligible) {
-              // Clear existing recap so the lock can be acquired
-              await ctx.db.game.update({
-                where: { id },
-                data: {
-                  recapTitle: null,
-                  recapContent: null,
-                  recapGeneratedAt: null,
-                  recapGenerating: false,
-                },
-              })
-              generateAndPersistRecap(ctx.db, id, ctx.organizationId).catch((err) =>
-                console.error("[ai-recap] Auto-regeneration on notes change failed:", err),
-              )
-            }
+        ctx.db.organization
+          .findUnique({ where: { id: ctx.organizationId }, select: { aiGameRecaps: true } })
+          .then((org) => {
+            if (!org?.aiGameRecaps) return
+            return checkAiEligibility(ctx.db, ctx.organizationId).then(async (eligibility) => {
+              if (eligibility.eligible) {
+                await ctx.db.game.update({
+                  where: { id },
+                  data: {
+                    recapTitle: null,
+                    recapContent: null,
+                    recapGeneratedAt: null,
+                    recapGenerating: false,
+                  },
+                })
+                generateAndPersistRecap(ctx.db, id, ctx.organizationId).catch((err) =>
+                  console.error("[ai-recap] Auto-regeneration on notes change failed:", err),
+                )
+              }
+            })
           })
           .catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
       }
@@ -354,14 +357,18 @@ export const gameRouter = router({
       await recalculateGoalieStats(ctx.db, seasonId)
     }
 
-    // Auto-generate AI recap (fire-and-forget)
-    checkRecapEligibility(ctx.db, ctx.organizationId)
-      .then((eligibility) => {
-        if (eligibility.eligible) {
-          generateAndPersistRecap(ctx.db, input.id, ctx.organizationId).catch((err) =>
-            console.error("[ai-recap] Auto-generation on complete failed:", err),
-          )
-        }
+    // Auto-generate AI recap (fire-and-forget, respects granular toggle)
+    ctx.db.organization
+      .findUnique({ where: { id: ctx.organizationId }, select: { aiGameRecaps: true } })
+      .then((org) => {
+        if (!org?.aiGameRecaps) return
+        return checkAiEligibility(ctx.db, ctx.organizationId).then((eligibility) => {
+          if (eligibility.eligible) {
+            generateAndPersistRecap(ctx.db, input.id, ctx.organizationId).catch((err) =>
+              console.error("[ai-recap] Auto-generation on complete failed:", err),
+            )
+          }
+        })
       })
       .catch((err) => console.error("[ai-recap] Eligibility check failed:", err))
 

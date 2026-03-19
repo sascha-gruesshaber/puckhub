@@ -90,6 +90,8 @@ function EditPagePage() {
           onSubmit={handleSubmit}
           isPending={updateMutation.isPending}
           isSystemRoute={page.isSystemRoute}
+          seoTitle={page.seoTitle}
+          seoDescription={page.seoDescription}
           sidebarFooter={
             !page.isSystemRoute ? (
               <DangerZone hint={t("pagesPage.deletePageDialog.hint")}>

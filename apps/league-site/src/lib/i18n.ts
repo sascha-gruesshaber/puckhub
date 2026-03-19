@@ -101,6 +101,7 @@ const en = {
     noNews: "No news available",
     noNewsDesc: "The latest news will appear here soon.",
     sponsors: "Sponsors",
+    widgetLeaguePulse: "League Pulse",
   },
 
   standings: {
@@ -272,6 +273,11 @@ const en = {
 
   roundNavigator: {
     group: "Group",
+  },
+
+  seasonSelector: {
+    switchSeason: "Switch Season",
+    current: "Current",
   },
 
   layout: {
@@ -481,6 +487,7 @@ const de: Translations = {
     noNews: "Keine News vorhanden",
     noNewsDesc: "Hier erscheinen bald die neuesten Nachrichten.",
     sponsors: "Sponsoren",
+    widgetLeaguePulse: "Liga-Puls",
   },
 
   standings: {
@@ -653,6 +660,11 @@ const de: Translations = {
 
   roundNavigator: {
     group: "Gruppe",
+  },
+
+  seasonSelector: {
+    switchSeason: "Saison wechseln",
+    current: "Aktuell",
   },
 
   layout: {

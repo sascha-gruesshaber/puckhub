@@ -9,7 +9,7 @@ import {
   maskPublicReportEmail,
   normalizePublicReportEmail,
 } from "../../lib/publicReportPrivacy"
-import { checkRecapEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
+import { checkAiEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
 
@@ -18,36 +18,6 @@ export const publicSiteRouter = router({
     return ctx.db.plan.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        sortOrder: true,
-        priceYearly: true,
-        currency: true,
-        maxTeams: true,
-        maxPlayers: true,
-        maxDivisionsPerSeason: true,
-        maxSeasons: true,
-        maxNewsArticles: true,
-        maxPages: true,
-        maxSponsors: true,
-        featureCustomDomain: true,
-        featureWebsiteBuilder: true,
-        featureSponsorMgmt: true,
-        featureTrikotDesigner: true,
-        featureGameReports: true,
-        featurePlayerStats: true,
-        featureScheduler: true,
-        featureScheduledNews: true,
-        featureAdvancedRoles: true,
-        featureAdvancedStats: true,
-        featurePublicReports: true,
-        maxAdmins: true,
-        maxDocuments: true,
-        storageQuotaMb: true,
-        featureAiRecaps: true,
-      },
     })
   }),
 
@@ -77,24 +47,36 @@ export const publicSiteRouter = router({
 
     if (!config) return null
 
-    const [settings, subscription] = await Promise.all([
+    const [settings, subscription, org] = await Promise.all([
       ctx.db.systemSettings.findUnique({
         where: { organizationId: config.organizationId },
       }),
       ctx.db.orgSubscription.findUnique({
         where: { organizationId: config.organizationId },
-        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true } } },
-      }),
+        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
+      }).catch(() => null),
+      ctx.db.organization.findUnique({
+        where: { id: config.organizationId },
+        select: {
+          aiEnabled: true,
+          aiWidgetLeaguePulse: true,
+          aiWidgetHeadlinesTicker: true,
+        },
+      }).catch(() => null),
     ])
 
     const planPublicReports = subscription?.plan?.featurePublicReports ?? false
     const settingsPublicReports = settings?.publicReportsEnabled ?? false
+    const planAi = (subscription?.plan as any)?.featureAi ?? false
+    const aiMaster = org?.aiEnabled ?? false
 
     const features = {
       advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
       publicReports: planPublicReports && settingsPublicReports,
       publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
       publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
+      aiWidgetLeaguePulse: aiMaster && planAi && ((org as any)?.aiWidgetLeaguePulse ?? false),
+      aiWidgetHeadlinesTicker: aiMaster && planAi && ((org as any)?.aiWidgetHeadlinesTicker ?? false),
     }
 
     // Expose org slug as subdomain on config for backward compat
@@ -111,24 +93,36 @@ export const publicSiteRouter = router({
     })
     if (!config) return null
 
-    const [settings, subscription] = await Promise.all([
+    const [settings, subscription, org] = await Promise.all([
       ctx.db.systemSettings.findUnique({
         where: { organizationId: input.organizationId },
       }),
       ctx.db.orgSubscription.findUnique({
         where: { organizationId: input.organizationId },
-        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true } } },
-      }),
+        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
+      }).catch(() => null),
+      ctx.db.organization.findUnique({
+        where: { id: input.organizationId },
+        select: {
+          aiEnabled: true,
+          aiWidgetLeaguePulse: true,
+          aiWidgetHeadlinesTicker: true,
+        },
+      }).catch(() => null),
     ])
 
     const planPublicReports = subscription?.plan?.featurePublicReports ?? false
     const settingsPublicReports = settings?.publicReportsEnabled ?? false
+    const planAi = (subscription?.plan as any)?.featureAi ?? false
+    const aiMaster = org?.aiEnabled ?? false
 
     const features = {
       advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
       publicReports: planPublicReports && settingsPublicReports,
       publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
       publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
+      aiWidgetLeaguePulse: aiMaster && planAi && ((org as any)?.aiWidgetLeaguePulse ?? false),
+      aiWidgetHeadlinesTicker: aiMaster && planAi && ((org as any)?.aiWidgetHeadlinesTicker ?? false),
     }
 
     const configWithSubdomain = { ...config, subdomain: config.organization.slug }
@@ -165,30 +159,37 @@ export const publicSiteRouter = router({
   getSeasonStructure: publicProcedure
     .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const divisions = await ctx.db.division.findMany({
-        where: { organizationId: input.organizationId, seasonId: input.seasonId },
-        orderBy: { sortOrder: "asc" },
-        include: {
-          rounds: {
-            orderBy: { sortOrder: "asc" },
-            select: { id: true, name: true, roundType: true, sortOrder: true, _count: { select: { games: true } } },
-          },
-          teamDivisions: {
-            select: {
-              team: {
-                select: {
-                  id: true,
-                  name: true,
-                  shortName: true,
-                  logoUrl: true,
-                  primaryColor: true,
+      const [divisions, season] = await Promise.all([
+        ctx.db.division.findMany({
+          where: { organizationId: input.organizationId, seasonId: input.seasonId },
+          orderBy: { sortOrder: "asc" },
+          include: {
+            rounds: {
+              orderBy: { sortOrder: "asc" },
+              select: { id: true, name: true, roundType: true, sortOrder: true, _count: { select: { games: true } } },
+            },
+            teamDivisions: {
+              select: {
+                team: {
+                  select: {
+                    id: true,
+                    name: true,
+                    shortName: true,
+                    logoUrl: true,
+                    primaryColor: true,
+                  },
                 },
               },
             },
           },
-        },
-      })
-      return divisions
+        }),
+        ctx.db.season.findUnique({
+          where: { id: input.seasonId },
+          select: { aiDescriptionShort: true },
+        }),
+      ])
+
+      return { divisions, aiDescriptionShort: season?.aiDescriptionShort ?? null }
     }),
 
   getHomeData: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
@@ -209,7 +210,7 @@ export const publicSiteRouter = router({
     const seasonId = currentSeason?.id
 
     // Run all queries in parallel
-    const [latestResults, upcomingGames, standings, sponsors] = await Promise.all([
+    const [latestResults, upcomingGames, standings, sponsors, aiWidgets] = await Promise.all([
       // Latest 5 completed games
       seasonId
         ? ctx.db.game.findMany({
@@ -275,9 +276,24 @@ export const publicSiteRouter = router({
         orderBy: { sortOrder: "asc" },
         select: { id: true, name: true, logoUrl: true, websiteUrl: true, hoverText: true },
       }),
+
+      // AI home widgets (graceful fallback if table doesn't exist yet)
+      seasonId
+        ? ctx.db.aiHomeWidget
+            .findMany({
+              where: {
+                organizationId: orgId,
+                seasonId,
+                generating: false,
+                widgetType: { in: ["league_pulse_digest", "headlines_ticker"] },
+              },
+              select: { widgetType: true, content: true, generatedAt: true },
+            })
+            .catch(() => [])
+        : [],
     ])
 
-    return { currentSeason, latestResults, upcomingGames, standings, sponsors }
+    return { currentSeason, latestResults, upcomingGames, standings, sponsors, aiWidgets }
   }),
 
   getStandings: publicProcedure
@@ -353,7 +369,7 @@ export const publicSiteRouter = router({
         dateFrom: z.string().optional(),
         dateTo: z.string().optional(),
         cursor: z.string().uuid().optional(),
-        limit: z.number().int().min(1).max(50).default(20),
+        limit: z.number().int().min(1).max(100).default(20),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -432,16 +448,20 @@ export const publicSiteRouter = router({
 
       if (!game) return game
 
-      // Lazy AI recap generation for completed games
+      // Lazy AI recap generation for completed games (respects granular toggle)
       if (game.status === "completed" && game.recapTitle === null && !game.recapGenerating) {
-        const eligibility = await checkRecapEligibility(ctx.db, input.organizationId)
-
-        if (eligibility.eligible) {
-          generateAndPersistRecap(ctx.db, game.id, input.organizationId).catch((err) =>
-            console.error("[ai-recap] Lazy generation failed:", err),
-          )
-          // Signal client to poll for result
-          ;(game as any).recapGenerating = true
+        const org = await ctx.db.organization.findUnique({
+          where: { id: input.organizationId },
+          select: { aiGameRecaps: true },
+        }).catch(() => null)
+        if ((org as any)?.aiGameRecaps) {
+          const eligibility = await checkAiEligibility(ctx.db, input.organizationId)
+          if (eligibility.eligible) {
+            generateAndPersistRecap(ctx.db, game.id, input.organizationId).catch((err) =>
+              console.error("[ai-recap] Lazy generation failed:", err),
+            )
+            ;(game as any).recapGenerating = true
+          }
         }
       }
 
@@ -622,6 +642,7 @@ export const publicSiteRouter = router({
           id: true,
           title: true,
           shortText: true,
+          seoDescription: true,
           publishedAt: true,
           author: { select: { name: true } },
         },
@@ -644,6 +665,8 @@ export const publicSiteRouter = router({
           shortText: true,
           content: true,
           publishedAt: true,
+          seoTitle: true,
+          seoDescription: true,
           author: { select: { name: true } },
         },
       })
@@ -671,7 +694,7 @@ export const publicSiteRouter = router({
         if (parent) {
           const child = await ctx.db.page.findFirst({
             where: { organizationId: input.organizationId, slug: parts[1]!, status: "published", parentId: parent.id },
-            select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true },
+            select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true, seoTitle: true, seoDescription: true },
           })
           if (child) return child
         }
@@ -680,7 +703,7 @@ export const publicSiteRouter = router({
       // Check direct page first
       const page = await ctx.db.page.findFirst({
         where: { organizationId: input.organizationId, slug: input.slug, status: "published" },
-        select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true },
+        select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true, seoTitle: true, seoDescription: true },
       })
       if (page) return page
 
@@ -697,6 +720,8 @@ export const publicSiteRouter = router({
               menuLocations: true,
               updatedAt: true,
               status: true,
+              seoTitle: true,
+              seoDescription: true,
             },
           },
         },

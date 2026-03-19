@@ -111,7 +111,7 @@ export function ComparisonPage() {
     setComparisonIds((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]))
 
   return (
-    <StatsPageShell title={t.compareTeams.title} showSeasonSelector={false}>
+    <StatsPageShell title={t.compareTeams.title}>
       {data && data.teams.length >= 2 ? (
         <div className="space-y-8">
           <ChartSuspense>

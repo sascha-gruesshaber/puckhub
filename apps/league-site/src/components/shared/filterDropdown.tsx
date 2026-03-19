@@ -9,6 +9,7 @@ interface FilterDropdownOption {
   value: string
   label: string
   icon?: ReactNode
+  group?: string
 }
 
 interface FilterDropdownProps {
@@ -95,39 +96,46 @@ function FilterDropdown({
 
       <PopoverContent align="start" className="min-w-[200px] w-auto p-0 border-league-text/10 bg-league-surface">
         <div role="listbox" aria-multiselectable={!singleSelect} className="max-h-[280px] overflow-y-auto py-1">
-          {options.map((option) => {
+          {options.map((option, i) => {
             const isSelected = value.includes(option.value)
+            const showGroupHeader = option.group && option.group !== options[i - 1]?.group
             return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={isSelected}
-                data-testid={optionTestIdPrefix ? `${optionTestIdPrefix}-${option.value}` : undefined}
-                onClick={() => toggleValue(option.value)}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left text-league-text transition-colors hover:bg-league-text/[0.03] focus:bg-league-text/[0.06] focus:outline-none"
-              >
-                <div
-                  className={cn(
-                    "flex h-4 w-4 shrink-0 items-center justify-center transition-colors",
-                    singleSelect ? "rounded-full border-2" : "rounded border",
-                    isSelected
-                      ? singleSelect
-                        ? "border-league-primary"
-                        : "border-league-primary bg-league-primary text-white"
-                      : "border-league-text/20",
-                  )}
+              <div key={option.value}>
+                {showGroupHeader && (
+                  <div className={cn("px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-league-text/35", i > 0 && "mt-1 border-t border-league-text/5 pt-2")}>
+                    {option.group}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  data-testid={optionTestIdPrefix ? `${optionTestIdPrefix}-${option.value}` : undefined}
+                  onClick={() => toggleValue(option.value)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-left text-league-text transition-colors hover:bg-league-text/[0.03] focus:bg-league-text/[0.06] focus:outline-none"
                 >
-                  {isSelected &&
-                    (singleSelect ? (
-                      <div className="h-2 w-2 rounded-full bg-league-primary" />
-                    ) : (
-                      <Check className="h-3 w-3" />
-                    ))}
-                </div>
-                {option.icon && <span className="shrink-0">{option.icon}</span>}
-                <span className="truncate">{option.label}</span>
-              </button>
+                  <div
+                    className={cn(
+                      "flex h-4 w-4 shrink-0 items-center justify-center transition-colors",
+                      singleSelect ? "rounded-full border-2" : "rounded border",
+                      isSelected
+                        ? singleSelect
+                          ? "border-league-primary"
+                          : "border-league-primary bg-league-primary text-white"
+                        : "border-league-text/20",
+                    )}
+                  >
+                    {isSelected &&
+                      (singleSelect ? (
+                        <div className="h-2 w-2 rounded-full bg-league-primary" />
+                      ) : (
+                        <Check className="h-3 w-3" />
+                      ))}
+                  </div>
+                  {option.icon && <span className="shrink-0">{option.icon}</span>}
+                  <span className="truncate">{option.label}</span>
+                </button>
+              </div>
             )
           })}
         </div>

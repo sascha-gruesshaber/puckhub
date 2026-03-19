@@ -30,9 +30,13 @@ try {
   // Register and start job scheduler
   const { Scheduler, setSchedulerInstance } = await import("./lib/scheduler")
   const { createDemoResetJob } = await import("./lib/jobs/demoResetJob")
+  const { createAiHomeWidgetsJob } = await import("./lib/jobs/aiHomeWidgetsJob")
+  const { createStatsRecalcJob } = await import("./lib/jobs/statsRecalcJob")
 
   const scheduler = new Scheduler()
   scheduler.register(createDemoResetJob())
+  scheduler.register(createAiHomeWidgetsJob())
+  scheduler.register(createStatsRecalcJob())
   scheduler.start()
   setSchedulerInstance(scheduler)
 

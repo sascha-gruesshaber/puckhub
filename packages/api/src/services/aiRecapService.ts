@@ -43,7 +43,7 @@ export async function checkTokenBudget(
 
 // ─── Eligibility Check (4-layer guard) ──────────────────────────────────────
 
-export async function checkRecapEligibility(
+export async function checkAiEligibility(
   db: PrismaClient,
   organizationId: string,
 ): Promise<{ eligible: boolean; reason?: string }> {
@@ -61,9 +61,9 @@ export async function checkRecapEligibility(
     return { eligible: false, reason: "ai_disabled" }
   }
 
-  // 3. Plan has featureAiRecaps
+  // 3. Plan has featureAi
   const plan = await getOrgPlan(db, organizationId)
-  if (plan && !plan.featureAiRecaps) {
+  if (plan && !plan.featureAi) {
     return { eligible: false, reason: "feature_unavailable" }
   }
 

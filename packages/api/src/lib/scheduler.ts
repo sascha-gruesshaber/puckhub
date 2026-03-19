@@ -1,11 +1,15 @@
 import { createTask, type ScheduledTask, validate } from "node-cron"
 
+export interface JobRunContext {
+  manual: boolean
+}
+
 export interface Job {
   name: string
   cronExpression: string
   timezone?: string
   enabled: boolean
-  handler: () => Promise<void>
+  handler: (ctx: JobRunContext) => Promise<void>
 }
 
 export interface JobStatus {
@@ -48,7 +52,7 @@ export class Scheduler {
     const task = createTask(
       job.cronExpression,
       async () => {
-        await this.executeJob(job.name)
+        await this.executeJob(job.name, { manual: false })
       },
       { timezone, name: job.name, noOverlap: true },
     )
@@ -65,7 +69,7 @@ export class Scheduler {
     console.log(`[scheduler] Registered job "${job.name}" (${job.cronExpression}, tz=${timezone})`)
   }
 
-  private async executeJob(name: string): Promise<void> {
+  private async executeJob(name: string, runCtx: JobRunContext): Promise<void> {
     const entry = this.jobs.get(name)
     if (!entry) return
 
@@ -80,7 +84,7 @@ export class Scheduler {
     console.log(`[scheduler] Job "${name}" started`)
 
     try {
-      await entry.job.handler()
+      await entry.job.handler(runCtx)
       const elapsed = Date.now() - start
       entry.lastRunDurationMs = elapsed
       entry.lastRunAt = new Date()
@@ -131,7 +135,7 @@ export class Scheduler {
     if (entry.running) {
       throw new Error(`Job "${name}" is already running`)
     }
-    await this.executeJob(name)
+    await this.executeJob(name, { manual: true })
   }
 }
 

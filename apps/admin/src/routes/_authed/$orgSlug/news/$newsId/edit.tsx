@@ -93,6 +93,8 @@ function EditNewsPage() {
           initialData={initialData}
           onSubmit={handleSubmit}
           isPending={updateMutation.isPending}
+          seoTitle={article?.seoTitle}
+          seoDescription={article?.seoDescription}
           sidebarFooter={
             <DangerZone hint={t("newsPage.deleteDialog.hint")}>
               <Button

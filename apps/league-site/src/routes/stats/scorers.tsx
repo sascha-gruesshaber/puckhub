@@ -48,10 +48,6 @@ export function ScorersPage() {
   const selectedTeamId = teamParam || undefined
   const selectedPosition = positionParam as "forward" | "defense" | undefined
 
-  const setSeasonId = (v: string) =>
-    filterNavigate({
-      search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }),
-    })
   const setTeamId = (v: string | undefined) => filterNavigate({ search: (p: any) => ({ ...p, team: v || undefined }) })
   const setPosition = (v: string | undefined) =>
     filterNavigate({ search: (p: any) => ({ ...p, position: v || undefined }) })
@@ -89,7 +85,7 @@ export function ScorersPage() {
     }))
 
   return (
-    <StatsPageShell title={t.statsScorers.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSeasonId}>
+    <StatsPageShell title={t.statsScorers.title}>
       <StatsFilterBar
         teamOptions={teamOptions}
         teamValue={selectedTeamId}

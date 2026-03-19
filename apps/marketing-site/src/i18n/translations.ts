@@ -46,7 +46,7 @@ export const translations = {
         {
           title: "Eigene Liga-Website",
           description:
-            "Jede Liga bekommt eine eigene Website mit Ergebnissen, Tabellen, News und Spielplan – mit deutschen oder englischen URLs.",
+            "Jede Liga bekommt eine eigene Website mit Ergebnissen, Tabellen, News und Spielplan – vollständig konfigurierbar.",
         },
         {
           title: "Tabellen & Statistiken",
@@ -54,9 +54,9 @@ export const translations = {
             "Automatische Tabellenberechnung, Spielerstatistiken und Torjägerlisten auf der öffentlichen Liga-Website in Echtzeit.",
         },
         {
-          title: "KI-Spielberichte",
+          title: "KI-gestützte Inhalte",
           description:
-            "Nach jedem Spiel generiert die KI automatisch einen professionellen Spielbericht basierend auf den echten Spieldaten.",
+            "Die KI generiert automatisch Spielberichte, SEO-Texte, Saisonbeschreibungen und tägliche Liga-Zusammenfassungen – für maximale Sichtbarkeit und minimalen Aufwand.",
         },
       ],
     },
@@ -122,26 +122,26 @@ export const translations = {
         // ── Section 1: Betrieb & Statistiken (items 4–7) ──
         {
           badge: "KI-Power",
-          title: "KI-Spielberichte",
+          title: "KI-gestützte Inhalte",
           description:
-            "Lass die KI nach jedem Spiel automatisch einen professionellen Spielbericht generieren. Basierend auf Toren, Strafen und Spielverlauf entsteht in Sekunden ein packender Bericht für deine Liga-Website – auf Deutsch oder Englisch.",
+            "PuckHub nutzt KI, um deine Liga-Website mit hochwertigen Inhalten zu füllen – vollautomatisch. Von Spielberichten über SEO-optimierte Texte bis hin zu täglichen Liga-Zusammenfassungen auf der Startseite. Jedes KI-Feature lässt sich einzeln aktivieren oder deaktivieren.",
           highlights: [
-            "Automatische Spielzusammenfassungen per KI",
-            "Basierend auf echten Spieldaten",
-            "Deutsch und Englisch verfügbar",
-            "Monatliches Token-Budget pro Liga",
+            "Automatische Spielberichte und Saisonbeschreibungen per KI",
+            "SEO-Titel und -Beschreibungen für News und CMS-Seiten",
+            "Täglicher Liga-Pulse-Digest und Schlagzeilen-Ticker auf der Startseite",
+            "Granulare Steuerung und monatliches Token-Budget pro Liga",
           ],
         },
         {
           badge: "Öffentliche Liga-Website",
           title: "Live-Statistiken & Tabellen",
           description:
-            "Jede Liga erhält eine eigene öffentliche Website mit Echtzeit-Tabellen, Torjägerlisten, Torwart-Statistiken und interaktiven Diagrammen. Fans sehen alle Ergebnisse und Statistiken auf einen Blick – mit deutschen oder englischen URLs.",
+            "Jede Liga erhält eine eigene öffentliche Website mit Echtzeit-Tabellen, Torjägerlisten, Torwart-Statistiken und interaktiven Diagrammen. Fans sehen alle Ergebnisse und Statistiken auf einen Blick.",
           highlights: [
             "Automatische Tabellenberechnung in Echtzeit",
             "Torjäger-, Torwart- und Strafstatistiken",
             "Interaktive Charts und Teamvergleiche",
-            "Lokalisierte URLs (deutsch/englisch)",
+            "Eigene Domain und individuelle Gestaltung",
           ],
         },
         {
@@ -193,18 +193,6 @@ export const translations = {
             "Öffentlich auf der Liga-Website",
           ],
         },
-        {
-          badge: "Internationalisierung",
-          title: "Vollständig zweisprachig",
-          description:
-            "Alle Apps unterstützen Deutsch und Englisch – inklusive lokalisierter URL-Pfade. Öffentliche Spielberichte, Strukturseiten, Statistiken und alle Features sind komplett in beiden Sprachen verfügbar.",
-          highlights: [
-            "Deutsch und Englisch vollständig unterstützt",
-            "Lokalisierte URL-Pfade (/tabelle, /standings)",
-            "Automatische Spracherkennung",
-            "Sprachumschalter in der Navigation",
-          ],
-        },
       ],
     },
     pricing: {
@@ -248,7 +236,7 @@ export const translations = {
         advancedRoles: "Erweiterte Rollen",
         publicReports: "Öffentliche Spielmeldungen",
         prioritySupport: "Prioritäts-Support",
-        aiRecaps: "KI-Spielberichte",
+        aiFeatures: "KI-Funktionen",
       },
     },
     demoCta: {
@@ -369,7 +357,7 @@ export const translations = {
         {
           title: "League Website",
           description:
-            "Every league gets its own website with results, standings, news, and schedules – with localized URLs in German or English.",
+            "Every league gets its own website with results, standings, news, and schedules – fully customizable.",
         },
         {
           title: "Standings & Statistics",
@@ -377,9 +365,9 @@ export const translations = {
             "Automatic standings calculation, player statistics, and scoring leaders on the public league website in real-time.",
         },
         {
-          title: "AI Game Recaps",
+          title: "AI-Powered Content",
           description:
-            "After every game, AI automatically generates a professional game recap based on real game data.",
+            "AI automatically generates game recaps, SEO texts, season descriptions, and daily league digests – maximum visibility with minimal effort.",
         },
       ],
     },
@@ -444,26 +432,26 @@ export const translations = {
         // ── Section 1: Operations & Statistics (items 4–7) ──
         {
           badge: "AI-Powered",
-          title: "AI Game Recaps",
+          title: "AI-Powered Content",
           description:
-            "Let AI automatically generate a professional game recap after every match. Based on goals, penalties, and game flow, a compelling report is created in seconds for your league website – in German or English.",
+            "PuckHub uses AI to fill your league website with high-quality content – fully automated. From game recaps and SEO-optimized texts to daily league digests on the home page. Each AI feature can be individually enabled or disabled.",
           highlights: [
-            "Automatic game summaries powered by AI",
-            "Based on real game data",
-            "Available in German and English",
-            "Monthly token budget per league",
+            "Automatic game recaps and season descriptions powered by AI",
+            "SEO titles and descriptions for news articles and CMS pages",
+            "Daily League Pulse Digest and Headlines Ticker on the home page",
+            "Granular controls and monthly token budget per league",
           ],
         },
         {
           badge: "Public League Website",
           title: "Live Statistics & Standings",
           description:
-            "Every league gets its own public website with real-time standings, scoring leaders, goalie statistics, and interactive charts. Fans can see all results and stats at a glance – with localized URLs.",
+            "Every league gets its own public website with real-time standings, scoring leaders, goalie statistics, and interactive charts. Fans can see all results and stats at a glance.",
           highlights: [
             "Automatic real-time standings calculation",
             "Scorer, goalie, and penalty statistics",
             "Interactive charts and team comparisons",
-            "Localized URLs (German/English)",
+            "Custom domain and individual styling",
           ],
         },
         {
@@ -515,18 +503,6 @@ export const translations = {
             "Public on the league website",
           ],
         },
-        {
-          badge: "Internationalization",
-          title: "Fully Bilingual",
-          description:
-            "All apps support German and English – including localized URL paths. Public game reports, structure pages, statistics, and all features are fully available in both languages.",
-          highlights: [
-            "Full German and English support",
-            "Localized URL paths (/tabelle, /standings)",
-            "Automatic language detection",
-            "Language switcher in navigation",
-          ],
-        },
       ],
     },
     pricing: {
@@ -570,7 +546,7 @@ export const translations = {
         advancedRoles: "Advanced Roles",
         publicReports: "Public Game Reports",
         prioritySupport: "Priority Support",
-        aiRecaps: "AI Game Recaps",
+        aiFeatures: "AI Features",
       },
     },
     demoCta: {

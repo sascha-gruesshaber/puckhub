@@ -9,6 +9,9 @@
   "dangerZone": {
     "title": "Danger zone"
   },
+  "seoPreview": {
+    "title": "SEO Preview"
+  },
   "draft": "Draft",
   "published": "Published",
   "logout": "Sign out",
@@ -1605,6 +1608,7 @@
   "topBar": {
     "profile": "Profile",
     "switchLeague": "Switch league",
+    "platform": "Platform Admin",
     "logout": "Sign out"
   },
   "gameReport": {
@@ -1755,13 +1759,25 @@
     "title": "AI Features",
     "description": "Configure AI-powered features for your league.",
     "enableToggle": "Enable AI Features",
-    "enableDescription": "Enables AI-powered game recaps for completed games.",
+    "enableDescription": "Master switch for all AI-powered features.",
     "usage": "Token Usage",
     "usageLabel": "{{used}} / {{limit}} Tokens",
     "usageUnlimited": "{{used}} / ∞ Tokens",
     "resetHint": "Resets on the 1st of each month.",
     "unavailable": "AI features are not available on your current plan.",
-    "headerChip": "AI {{percent}}%"
+    "headerChip": "AI {{percent}}%",
+    "contentGeneration": "Content Generation",
+    "homeWidgets": "Home Page Widgets",
+    "toggleGameRecaps": "Game Recaps",
+    "toggleGameRecapsDesc": "Auto-generate summaries for completed games.",
+    "toggleNewsSeo": "News SEO",
+    "toggleNewsSeoDesc": "Auto-generate SEO title and description for news articles.",
+    "togglePageSeo": "Page SEO",
+    "togglePageSeoDesc": "Auto-generate SEO title and description for custom pages.",
+    "toggleLeaguePulse": "League Pulse Digest",
+    "toggleLeaguePulseDesc": "\"What happened?\" — matchday summary widget.",
+    "toggleHeadlinesTicker": "Headlines Ticker",
+    "toggleHeadlinesTickerDesc": "Punchy one-liners about notable events."
   },
   "publicReports": {
     "title": "Public Game Reports",

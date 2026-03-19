@@ -33,6 +33,9 @@ interface PageFormProps {
   isPending: boolean
   submitLabel?: string
   isSystemRoute?: boolean
+  /** SEO preview data (read-only, auto-generated) */
+  seoTitle?: string | null
+  seoDescription?: string | null
   /** Rendered at the bottom of the sidebar (e.g. danger zone with delete) */
   sidebarFooter?: React.ReactNode
 }
@@ -62,6 +65,8 @@ export function PageForm({
   isPending,
   submitLabel,
   isSystemRoute,
+  seoTitle,
+  seoDescription,
   sidebarFooter,
 }: PageFormProps) {
   const { t } = useTranslation("common")
@@ -290,6 +295,20 @@ export function PageForm({
                 {t("cancel")}
               </Button>
             </div>
+
+            {(seoTitle || seoDescription) && (
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium mb-2 block">{t("seoPreview.title")}</Label>
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
+                  {seoTitle && (
+                    <p className="text-sm font-semibold text-blue-700 truncate">{seoTitle}</p>
+                  )}
+                  {seoDescription && (
+                    <p className="text-xs text-muted-foreground line-clamp-3">{seoDescription}</p>
+                  )}
+                </div>
+              </div>
+            )}
 
             {sidebarFooter}
           </CardContent>

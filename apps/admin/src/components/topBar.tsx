@@ -10,7 +10,7 @@ import {
   PopoverTrigger,
 } from "@puckhub/ui"
 import { Link, useNavigate, useParams, useRouterState } from "@tanstack/react-router"
-import { ArrowLeftRight, Calendar, Check, ChevronDown, LogOut, Menu, Plus, Sparkles, User } from "lucide-react"
+import { ArrowLeftRight, Calendar, Check, ChevronDown, LogOut, Menu, Plus, Shield, Sparkles, User } from "lucide-react"
 import { trpc } from "@/trpc"
 import { useMobileSidebar } from "~/contexts/mobileSidebarContext"
 import { useOrganization } from "~/contexts/organizationContext"
@@ -217,7 +217,7 @@ function AiUsageIndicator() {
 function UserSection() {
   const { t } = useTranslation("common")
   const { data: session } = useSession()
-  const { organizations } = useOrganization()
+  const { organizations, isPlatformAdmin } = useOrganization()
   const { orgSlug } = useParams({ strict: false }) as { orgSlug: string }
   const navigate = useNavigate()
 
@@ -281,6 +281,15 @@ function UserSection() {
             {t("topBar.profile")}
           </Link>
         </DropdownMenuItem>
+
+        {isPlatformAdmin && (
+          <DropdownMenuItem asChild>
+            <a href={window.location.origin.replace("admin.", "platform.")}>
+              <Shield size={15} strokeWidth={1.5} />
+              {t("topBar.platform")}
+            </a>
+          </DropdownMenuItem>
+        )}
 
         {organizations.length > 1 && (
           <DropdownMenuItem onClick={() => navigate({ to: "/", search: { switchOrg: true, redirect: undefined } })}>

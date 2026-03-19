@@ -186,6 +186,8 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
     publicReports: false,
     publicReportsRequireEmail: true,
     publicReportsBotDetection: true,
+    aiWidgetLeaguePulse: false,
+    aiWidgetHeadlinesTicker: false,
   }
 
   return (

@@ -25,7 +25,9 @@ function makePlan(overrides: Partial<Plan> = {}): Plan {
     featureScheduler: false,
     featureScheduledNews: false,
     featureAdvancedRoles: false,
-    featureAiRecaps: false,
+    featureAdvancedStats: false,
+    featureAi: false,
+    featurePublicReports: false,
     aiMonthlyTokenLimit: null,
     ...overrides,
   }
@@ -107,11 +109,11 @@ describe("planLimits service", () => {
         featureScheduler: true,
         featureScheduledNews: true,
         featureAdvancedRoles: true,
-        featureAiRecaps: true,
+        featureAi: true,
       })
       expect(() => checkFeature(allEnabled, "featureCustomDomain")).not.toThrow()
       expect(() => checkFeature(allEnabled, "featureScheduler")).not.toThrow()
-      expect(() => checkFeature(allEnabled, "featureAiRecaps")).not.toThrow()
+      expect(() => checkFeature(allEnabled, "featureAi")).not.toThrow()
     })
   })
 

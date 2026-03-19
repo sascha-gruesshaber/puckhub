@@ -1,6 +1,18 @@
 import { z } from "zod"
+import { checkAiEligibility } from "../../services/aiRecapService"
+import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+
+function triggerSeasonSeo(db: any, seasonId: string, organizationId: string) {
+  checkAiEligibility(db, organizationId).then((e: any) => {
+    if (e.eligible) {
+      generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
+        console.error("[ai-seo] Season SEO generation failed:", err),
+      )
+    }
+  })
+}
 
 export const divisionRouter = router({
   listBySeason: orgProcedure.input(z.object({ seasonId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -38,6 +50,7 @@ export const divisionRouter = router({
       const division = await ctx.db.division.create({
         data: { ...input, organizationId: ctx.organizationId },
       })
+      triggerSeasonSeo(ctx.db, input.seasonId, ctx.organizationId)
       return division
     }),
 
@@ -59,12 +72,22 @@ export const divisionRouter = router({
       const division = await ctx.db.division.findFirst({
         where: { id, organizationId: ctx.organizationId },
       })
+      if (division) {
+        triggerSeasonSeo(ctx.db, division.seasonId, ctx.organizationId)
+      }
       return division
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const division = await ctx.db.division.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      select: { seasonId: true },
+    })
     await ctx.db.division.deleteMany({
       where: { id: input.id, organizationId: ctx.organizationId },
     })
+    if (division) {
+      triggerSeasonSeo(ctx.db, division.seasonId, ctx.organizationId)
+    }
   }),
 })

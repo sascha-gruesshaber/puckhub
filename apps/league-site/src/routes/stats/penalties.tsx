@@ -43,10 +43,6 @@ export function PenaltiesPage() {
   const selectedSeasonId = seasonParam ?? season.current?.id
   const selectedTeamId = teamParam || undefined
 
-  const setSeasonId = (v: string) =>
-    filterNavigate({
-      search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }),
-    })
   const setTeamId = (v: string | undefined) => filterNavigate({ search: (p: any) => ({ ...p, team: v || undefined }) })
 
   const shouldFetch = !!selectedSeasonId && visible !== false
@@ -74,7 +70,7 @@ export function PenaltiesPage() {
     }))
 
   return (
-    <StatsPageShell title={t.statsPenalties.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSeasonId}>
+    <StatsPageShell title={t.statsPenalties.title}>
       <StatsFilterBar teamOptions={teamOptions} teamValue={selectedTeamId} onTeamChange={setTeamId} />
       {features.advancedStats && !isLoading && teamPenaltyStats && teamPenaltyStats.length > 0 && (
         <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">

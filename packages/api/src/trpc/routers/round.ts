@@ -1,5 +1,7 @@
 import { recalculateGoalieStats, recalculatePlayerStats } from "@puckhub/db/services"
 import { z } from "zod"
+import { checkAiEligibility } from "../../services/aiRecapService"
+import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const roundTypeValues = [
@@ -12,6 +14,16 @@ const roundTypeValues = [
   "placement",
   "final",
 ] as const
+
+function triggerSeasonSeo(db: any, seasonId: string, organizationId: string) {
+  checkAiEligibility(db, organizationId).then((e: any) => {
+    if (e.eligible) {
+      generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
+        console.error("[ai-seo] Season SEO generation failed:", err),
+      )
+    }
+  })
+}
 
 export const roundRouter = router({
   listByDivision: orgProcedure.input(z.object({ divisionId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -48,6 +60,13 @@ export const roundRouter = router({
       const round = await ctx.db.round.create({
         data: { ...input, organizationId: ctx.organizationId },
       })
+      const division = await ctx.db.division.findFirst({
+        where: { id: input.divisionId },
+        select: { seasonId: true },
+      })
+      if (division) {
+        triggerSeasonSeo(ctx.db, division.seasonId, ctx.organizationId)
+      }
       return round
     }),
 
@@ -82,19 +101,22 @@ export const roundRouter = router({
         where: { id, organizationId: ctx.organizationId },
       })
 
-      // Recalculate stats when counting flags change
-      if (statsToggleChanged && round) {
+      if (round) {
         const division = await ctx.db.division.findFirst({
           where: { id: round.divisionId },
           select: { seasonId: true },
         })
         if (division) {
-          if (input.countsForPlayerStats !== undefined) {
-            await recalculatePlayerStats(ctx.db, division.seasonId)
+          // Recalculate stats when counting flags change
+          if (statsToggleChanged) {
+            if (input.countsForPlayerStats !== undefined) {
+              await recalculatePlayerStats(ctx.db, division.seasonId)
+            }
+            if (input.countsForGoalieStats !== undefined) {
+              await recalculateGoalieStats(ctx.db, division.seasonId)
+            }
           }
-          if (input.countsForGoalieStats !== undefined) {
-            await recalculateGoalieStats(ctx.db, division.seasonId)
-          }
+          triggerSeasonSeo(ctx.db, division.seasonId, ctx.organizationId)
         }
       }
 
@@ -102,8 +124,15 @@ export const roundRouter = router({
     }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    const round = await ctx.db.round.findFirst({
+      where: { id: input.id, organizationId: ctx.organizationId },
+      select: { division: { select: { seasonId: true } } },
+    })
     await ctx.db.round.deleteMany({
       where: { id: input.id, organizationId: ctx.organizationId },
     })
+    if (round?.division) {
+      triggerSeasonSeo(ctx.db, round.division.seasonId, ctx.organizationId)
+    }
   }),
 })

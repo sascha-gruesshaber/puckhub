@@ -15,7 +15,7 @@ src/routes/
 │   └── $childSlug.tsx      # Nested CMS page route (parent/child slugs)
 ├── version.ts              # Version API endpoint (app name, version, commit)
 ├── schedule/
-│   ├── index.tsx           # Schedule with filters (status, team), grouped by date
+│   ├── index.tsx           # Schedule with filters (round, team, status), grouped by date
 │   └── $gameId.tsx         # Game detail (events, lineups, AI recap)
 ├── news/
 │   ├── $newsId.tsx         # News article detail (fallback, redirects to slug URL)
@@ -148,7 +148,7 @@ lib/
 - **Infinite pagination**: News and schedule pages support cursor-based infinite scroll
 - **Responsive design**: Desktop tables with mobile card variants, sticky headers
 - **StatsPageShell**: Common wrapper with season picker (pills for ≤4 seasons, select for >4)
-- **AI Recap Display**: Game detail page shows AI-generated recap with lazy background generation
+- **AI Content Display**: Game detail shows AI-generated recap (lazy generation), home page shows AI widgets (League Pulse Digest, Headlines Ticker) when enabled
 - **CMS Pages**: Dynamic `$slug` and `$parentSlug/$childSlug` routes render user-created pages from the admin CMS
 - **SEO Slug URLs**: Entity detail pages use `$id.$slug` pattern (e.g., `/teams/abc123.eishockey-club`) for SEO-friendly URLs. ID-only routes redirect to the slug variant. Dynamic page titles set via TanStack Router's `useEffect` + `document.title`
 

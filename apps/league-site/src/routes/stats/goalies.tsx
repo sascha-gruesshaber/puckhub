@@ -38,10 +38,6 @@ export function GoaliesPage() {
   const selectedSeasonId = seasonParam ?? season.current?.id
   const selectedTeamId = teamParam || undefined
 
-  const setSeasonId = (v: string) =>
-    filterNavigate({
-      search: (p: any) => ({ ...p, season: v === season.current?.id ? undefined : v, team: undefined }),
-    })
   const setTeamId = (v: string | undefined) => filterNavigate({ search: (p: any) => ({ ...p, team: v || undefined }) })
 
   const shouldFetch = !!selectedSeasonId && visible !== false
@@ -65,7 +61,7 @@ export function GoaliesPage() {
     }))
 
   return (
-    <StatsPageShell title={t.statsGoalies.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSeasonId}>
+    <StatsPageShell title={t.statsGoalies.title}>
       <StatsFilterBar teamOptions={teamOptions} teamValue={selectedTeamId} onTeamChange={setTeamId} />
       {features.advancedStats && !isLoading && goalieData && goalieData.qualified.length > 0 && (
         <div className="mb-8">

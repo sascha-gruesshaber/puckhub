@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
 import { ArrowRight, ChevronRight, Users } from "lucide-react"
-import { Fragment } from "react"
+import { Fragment, useEffect } from "react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { Skeleton } from "~/components/shared/loadingSkeleton"
 import { TeamLogo } from "~/components/shared/teamLogo"
 import { StatsPageShell } from "~/components/stats/statsPageShell"
-import { useFilterNavigate } from "~/hooks/useFilterNavigate"
 import { useOrg, useSeason } from "~/lib/context"
 import { type Translations, useT } from "~/lib/i18n"
 import { cn, slugify } from "~/lib/utils"
@@ -43,13 +42,11 @@ const ROUND_TYPE_COLORS: Record<string, string> = {
 function RoundNode({
   name,
   roundType,
-  divisionIndex,
   roundId,
   gameCount,
 }: {
   name: string
   roundType: string
-  divisionIndex: number
   roundId: string
   gameCount: number
 }) {
@@ -57,8 +54,8 @@ function RoundNode({
 
   return (
     <Link
-      to="/standings"
-      search={{ division: divisionIndex === 0 ? undefined : String(divisionIndex), round: roundId }}
+      to="/schedule"
+      search={{ round: roundId }}
       className="group/node flex flex-col items-center gap-2 min-w-[90px] py-2 transition-transform duration-200 hover:-translate-y-0.5"
     >
       {/* Colored circle with game count */}
@@ -197,7 +194,6 @@ function DivisionCard({
                   <RoundNode
                     name={round.name}
                     roundType={round.roundType}
-                    divisionIndex={divisionIndex}
                     roundId={round.id}
                     gameCount={round._count.games}
                   />
@@ -286,28 +282,51 @@ export function StructurePage() {
   const org = useOrg()
   const season = useSeason()
   const t = useT()
-  const filterNavigate = useFilterNavigate()
   const { season: seasonParam } = useSearch({ strict: false }) as { season?: string }
 
   const selectedSeasonId = seasonParam ?? season.current?.id
 
-  const setSelectedSeasonId = (v: string) =>
-    filterNavigate({
-      search: (prev: any) => ({ ...prev, season: v === season.current?.id ? undefined : v }),
-    })
-
   const { data: structure, isLoading } = trpc.publicSite.getSeasonStructure.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId! },
-    { enabled: !!selectedSeasonId, staleTime: 300_000 },
+    {
+      enabled: !!selectedSeasonId,
+      staleTime: 300_000,
+    },
   )
 
+  const divisions = structure?.divisions
+  const aiDescriptionShort = structure?.aiDescriptionShort
+
+  // Dynamic SEO meta tags
+  useEffect(() => {
+    if (!aiDescriptionShort) return
+    const existing = document.querySelector('meta[name="description"]')
+    if (existing) {
+      existing.setAttribute("content", aiDescriptionShort)
+    } else {
+      const meta = document.createElement("meta")
+      meta.name = "description"
+      meta.content = aiDescriptionShort
+      document.head.appendChild(meta)
+    }
+    const ogExisting = document.querySelector('meta[property="og:description"]')
+    if (ogExisting) {
+      ogExisting.setAttribute("content", aiDescriptionShort)
+    } else {
+      const ogMeta = document.createElement("meta")
+      ogMeta.setAttribute("property", "og:description")
+      ogMeta.content = aiDescriptionShort
+      document.head.appendChild(ogMeta)
+    }
+  }, [aiDescriptionShort])
+
   return (
-    <StatsPageShell title={t.structure.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSelectedSeasonId}>
+    <StatsPageShell title={t.structure.title}>
       {isLoading ? (
         <StructureSkeleton />
-      ) : structure && structure.length > 0 ? (
+      ) : divisions && divisions.length > 0 ? (
         <div className="space-y-8">
-          {structure.map((division, i) => (
+          {divisions.map((division, i) => (
             <DivisionCard
               key={division.id}
               division={division as DivisionData}

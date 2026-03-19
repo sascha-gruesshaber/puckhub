@@ -40,8 +40,6 @@ export function StandingsPage() {
   const selectedDivisionIdx = divisionParam ? Number(divisionParam) : 0
   const selectedRoundId = roundParam || undefined
 
-  const setSelectedSeasonId = (v: string) =>
-    filterNavigate({ search: { season: v === season.current?.id ? undefined : v } })
   const setSelectedDivisionIdx = (v: number) =>
     filterNavigate({
       search: (prev: any) => ({ ...prev, division: v === 0 ? undefined : String(v), round: undefined }),
@@ -54,8 +52,9 @@ export function StandingsPage() {
     { enabled: !!selectedSeasonId, staleTime: 300_000 },
   )
 
-  const firstDivision = structure?.[0]
-  const selectedDivision = structure?.[selectedDivisionIdx] ?? firstDivision
+  const divisions = structure?.divisions
+  const firstDivision = divisions?.[0]
+  const selectedDivision = divisions?.[selectedDivisionIdx] ?? firstDivision
   const activeRoundId = selectedRoundId ?? selectedDivision?.rounds[0]?.id
 
   const { data: standings, isLoading } = trpc.publicSite.getStandings.useQuery(
@@ -72,10 +71,10 @@ export function StandingsPage() {
   const backPath = useBackPath()
 
   return (
-    <StatsPageShell title={t.standings.title} selectedSeasonId={selectedSeasonId} onSeasonChange={setSelectedSeasonId}>
-      {structure && (
+    <StatsPageShell title={t.standings.title}>
+      {divisions && (
         <RoundNavigator
-          divisions={structure}
+          divisions={divisions}
           activeRoundId={activeRoundId}
           onRoundChange={setSelectedRoundId}
           onDivisionChange={setSelectedDivisionIdx}

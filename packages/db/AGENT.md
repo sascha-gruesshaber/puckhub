@@ -13,12 +13,12 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 
 ## Prisma Schema
 
-- Enums: 10 (`RoundType`, `Position`, `GameStatus`, `GameEventType`, `NewsStatus`, `PageStatus`, `MenuLocation`, `TrikotTemplateType`, `OrgRole`, `PlanInterval`). Note: `PlanInterval` now only contains `yearly` (monthly removed)
-- Models: 41 (auth, organization, core league, stats, CMS, trikot domain, SaaS/billing, AI, public reports)
+- Enums: 11 (`RoundType`, `Position`, `GameStatus`, `GameEventType`, `NewsStatus`, `PageStatus`, `MenuLocation`, `TrikotTemplateType`, `OrgRole`, `PlanInterval`, `AiHomeWidgetType`). Note: `PlanInterval` now only contains `yearly` (monthly removed)
+- Models: 42 (auth, organization, core league, stats, CMS, trikot domain, SaaS/billing, AI, public reports)
 - SaaS models: `WebsiteConfig` (per-org website settings + custom domain), `Plan` (subscription tiers with feature flags + limits), `OrgSubscription` (org-to-plan binding with Stripe fields)
-- AI models: `AiUsageLog` (monthly token tracking per org, indexed on `[organizationId, createdAt]`)
+- AI models: `AiUsageLog` (monthly token tracking per org), `AiHomeWidget` (per-org, per-season, per-widget-type cached AI content with staleness detection via data hash)
 - Public reports: `PublicGameReport` (visitor-submitted game scores with hashed email (`submitterEmailHash`), masked email (`submitterEmailMasked`), hashed IP (`submitterIpHash`) — original email/IP never stored. OTP tracking, active/reverted status)
-- Notable additions: `Game.recapTitle/recapContent/recapGeneratedAt/recapGenerating` (AI recap fields), `Organization.aiEnabled`, `Plan.featureAiRecaps/aiMonthlyTokenLimit/featurePublicReports`
+- Notable additions: `Game.recapTitle/recapContent/recapGeneratedAt/recapGenerating` (AI recap fields), `Organization.aiEnabled` + granular AI toggles (`aiGameRecaps`, `aiNewsSeo`, `aiPageSeo`, `aiWidget*`), `Plan.featureAi/aiMonthlyTokenLimit/featurePublicReports`, `AiHomeWidget` (per-org, per-season, per-widget-type cached AI content)
 - SystemSettings additions: `publicReportsEnabled`, `publicReportsRequireEmail`, `publicReportsBotDetection` (control public report feature per org)
 - Most app tables are organization-scoped via `organizationId`
 - All `id` fields use `@default(uuid(7))` for time-sortable UUIDs

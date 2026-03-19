@@ -351,8 +351,38 @@ function SettingsPage() {
       )}
 
       {/* AI Features section */}
-      {canUseFeature("featureAiRecaps") && <AiSettingsSection />}
+      {canUseFeature("featureAi") && <AiSettingsSection />}
     </div>
+  )
+}
+
+function AiToggle({
+  label,
+  description,
+  checked,
+  onChange,
+  disabled,
+}: {
+  label: string
+  description: string
+  checked: boolean
+  onChange: (v: boolean) => void
+  disabled?: boolean
+}) {
+  return (
+    <label className="flex items-center gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+        className="accent-primary w-4 h-4"
+      />
+      <div>
+        <span className="text-sm font-medium">{label}</span>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+    </label>
   )
 }
 
@@ -362,18 +392,29 @@ function AiSettingsSection() {
   const utils = trpc.useUtils()
 
   const { data: aiUsage } = trpc.aiRecap.getUsage.useQuery(undefined, { staleTime: 30_000 })
+  const { data: aiToggles } = trpc.organization.getAiToggles.useQuery(undefined, { staleTime: 30_000 })
 
   const setAiEnabled = trpc.organization.setAiEnabled.useMutation({
     onSuccess: () => {
       utils.aiRecap.getUsage.invalidate()
+      utils.organization.getAiToggles.invalidate()
       toast.success(t("settings.saved"))
     },
     onError: (err) => toast.error(resolveTranslatedError(err, tErrors)),
   })
 
-  if (!aiUsage) return null
+  const updateToggles = trpc.organization.updateAiToggles.useMutation({
+    onSuccess: () => {
+      utils.organization.getAiToggles.invalidate()
+      toast.success(t("settings.saved"))
+    },
+    onError: (err) => toast.error(resolveTranslatedError(err, tErrors)),
+  })
+
+  if (!aiUsage || !aiToggles) return null
 
   const usagePercent = aiUsage.limit ? Math.min(100, Math.round((aiUsage.used / aiUsage.limit) * 100)) : 0
+  const isPending = setAiEnabled.isPending || updateToggles.isPending
 
   return (
     <Card>
@@ -384,44 +425,94 @@ function AiSettingsSection() {
         </h3>
         <p className="text-xs text-muted-foreground">{t("settingsAi.description")}</p>
 
-        {/* Toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={aiUsage.aiEnabled}
-            onChange={(e) => setAiEnabled.mutate({ enabled: e.target.checked })}
-            disabled={setAiEnabled.isPending}
-            className="accent-primary w-4 h-4"
-          />
-          <div>
-            <span className="text-sm font-medium">{t("settingsAi.enableToggle")}</span>
-            <p className="text-xs text-muted-foreground">{t("settingsAi.enableDescription")}</p>
-          </div>
-        </label>
+        {/* Master toggle */}
+        <AiToggle
+          label={t("settingsAi.enableToggle")}
+          description={t("settingsAi.enableDescription")}
+          checked={aiUsage.aiEnabled}
+          onChange={(v) => setAiEnabled.mutate({ enabled: v })}
+          disabled={isPending}
+        />
 
-        {/* Token usage */}
+        {/* Granular toggles — only when master is on */}
         {aiUsage.aiEnabled && (
-          <div className="space-y-2 pt-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">{t("settingsAi.usage")}</span>
-              <span className="text-muted-foreground tabular-nums">
-                {aiUsage.limit
-                  ? t("settingsAi.usageLabel", {
-                      used: aiUsage.used.toLocaleString(),
-                      limit: aiUsage.limit.toLocaleString(),
-                    })
-                  : t("settingsAi.usageUnlimited", { used: aiUsage.used.toLocaleString() })}
-              </span>
-            </div>
-            {aiUsage.limit && (
-              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all ${usagePercent >= 80 ? `bg-amber-500` : `bg-primary`}`}
-                  style={{ width: `${usagePercent}%` }}
+          <div className="space-y-4 pt-2 border-t border-border/50">
+            {/* Content Generation */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                {t("settingsAi.contentGeneration")}
+              </h4>
+              <div className="space-y-3">
+                <AiToggle
+                  label={t("settingsAi.toggleGameRecaps")}
+                  description={t("settingsAi.toggleGameRecapsDesc")}
+                  checked={aiToggles.aiGameRecaps}
+                  onChange={(v) => updateToggles.mutate({ aiGameRecaps: v })}
+                  disabled={isPending}
+                />
+                <AiToggle
+                  label={t("settingsAi.toggleNewsSeo")}
+                  description={t("settingsAi.toggleNewsSeoDesc")}
+                  checked={aiToggles.aiNewsSeo}
+                  onChange={(v) => updateToggles.mutate({ aiNewsSeo: v })}
+                  disabled={isPending}
+                />
+                <AiToggle
+                  label={t("settingsAi.togglePageSeo")}
+                  description={t("settingsAi.togglePageSeoDesc")}
+                  checked={aiToggles.aiPageSeo}
+                  onChange={(v) => updateToggles.mutate({ aiPageSeo: v })}
+                  disabled={isPending}
                 />
               </div>
-            )}
-            <p className="text-xs text-muted-foreground">{t("settingsAi.resetHint")}</p>
+            </div>
+
+            {/* Home Page Widgets */}
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                {t("settingsAi.homeWidgets")}
+              </h4>
+              <div className="space-y-3">
+                <AiToggle
+                  label={t("settingsAi.toggleLeaguePulse")}
+                  description={t("settingsAi.toggleLeaguePulseDesc")}
+                  checked={aiToggles.aiWidgetLeaguePulse}
+                  onChange={(v) => updateToggles.mutate({ aiWidgetLeaguePulse: v })}
+                  disabled={isPending}
+                />
+                <AiToggle
+                  label={t("settingsAi.toggleHeadlinesTicker")}
+                  description={t("settingsAi.toggleHeadlinesTickerDesc")}
+                  checked={aiToggles.aiWidgetHeadlinesTicker}
+                  onChange={(v) => updateToggles.mutate({ aiWidgetHeadlinesTicker: v })}
+                  disabled={isPending}
+                />
+              </div>
+            </div>
+
+            {/* Token usage */}
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{t("settingsAi.usage")}</span>
+                <span className="text-muted-foreground tabular-nums">
+                  {aiUsage.limit
+                    ? t("settingsAi.usageLabel", {
+                        used: aiUsage.used.toLocaleString(),
+                        limit: aiUsage.limit.toLocaleString(),
+                      })
+                    : t("settingsAi.usageUnlimited", { used: aiUsage.used.toLocaleString() })}
+                </span>
+              </div>
+              {aiUsage.limit && (
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${usagePercent >= 80 ? `bg-amber-500` : `bg-primary`}`}
+                    style={{ width: `${usagePercent}%` }}
+                  />
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">{t("settingsAi.resetHint")}</p>
+            </div>
           </div>
         )}
       </CardContent>

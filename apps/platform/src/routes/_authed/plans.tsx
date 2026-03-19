@@ -44,7 +44,7 @@ interface PlanForm {
   featureScheduledNews: boolean
   featureAdvancedRoles: boolean
   featureAdvancedStats: boolean
-  featureAiRecaps: boolean
+  featureAi: boolean
   featurePublicReports: boolean
   aiMonthlyTokenLimit: number | null
 }
@@ -73,7 +73,7 @@ const emptyForm: PlanForm = {
   featureScheduledNews: false,
   featureAdvancedRoles: false,
   featureAdvancedStats: false,
-  featureAiRecaps: false,
+  featureAi: false,
   featurePublicReports: false,
   aiMonthlyTokenLimit: null,
 }
@@ -203,7 +203,7 @@ function PlansPage() {
       featureScheduledNews: plan.featureScheduledNews,
       featureAdvancedRoles: plan.featureAdvancedRoles,
       featureAdvancedStats: plan.featureAdvancedStats,
-      featureAiRecaps: plan.featureAiRecaps,
+      featureAi: plan.featureAi,
       featurePublicReports: plan.featurePublicReports,
       aiMonthlyTokenLimit: plan.aiMonthlyTokenLimit,
     })
@@ -437,9 +437,9 @@ function PlansPage() {
                   onChange={(v) => setForm((p) => ({ ...p, featureAdvancedStats: v }))}
                 />
                 <FeatureToggle
-                  label="AI Recaps"
-                  checked={form.featureAiRecaps}
-                  onChange={(v) => setForm((p) => ({ ...p, featureAiRecaps: v }))}
+                  label="AI Features"
+                  checked={form.featureAi}
+                  onChange={(v) => setForm((p) => ({ ...p, featureAi: v }))}
                 />
                 <FeatureToggle
                   label="Public Game Reports"
@@ -450,7 +450,7 @@ function PlansPage() {
             </div>
 
             {/* AI Limits */}
-            {form.featureAiRecaps && (
+            {form.featureAi && (
               <div>
                 <h4 className="text-sm font-semibold mb-3">AI Limits</h4>
                 <div className="grid grid-cols-2 gap-3">

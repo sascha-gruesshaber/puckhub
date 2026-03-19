@@ -1,6 +1,6 @@
 # @puckhub/api
 
-Hono HTTP server with tRPC routers, Better Auth (magic link + passkey + 2FA), AI recap service, and email infrastructure. Runs on port 3001.
+Hono HTTP server with tRPC routers, Better Auth (magic link + passkey + 2FA), AI services (recaps, SEO, home widgets), and email infrastructure. Runs on port 3001.
 
 ## Architecture
 
@@ -12,7 +12,9 @@ src/
 │   ├── auth.ts        # Better Auth config (magic link, passkey, 2FA, 7-day sessions)
 │   ├── ensureDefaultUser.ts  # Creates default admin on first startup (magic link, no password)
 │   ├── email.ts       # SMTP via nodemailer (falls back to console if unconfigured)
-│   └── emailTemplates.ts  # HTML email templates (magic link, invite, OTP, report reverted, contact OTP, contact notification)
+│   ├── emailTemplates.ts  # HTML email templates (magic link, invite, OTP, report reverted, contact OTP, contact notification)
+│   └── jobs/
+│       └── aiHomeWidgetsJob.ts  # Daily cron job for AI home widget generation
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
 │   └── codes.ts       # APP_ERROR_CODES enum (72 error codes)
@@ -20,6 +22,9 @@ src/
 │   └── upload.ts      # File upload handler (POST /api/upload)
 ├── services/
 │   ├── aiRecapService.ts          # AI game recap generation (OpenRouter + Gemini)
+│   ├── aiSeoService.ts             # AI SEO text generation for news/pages (OpenRouter + Gemini)
+│   ├── aiSeasonDescriptionService.ts  # AI season SEO description generation
+│   ├── aiHomeWidgetService.ts      # AI home page widgets (league pulse digest, headlines ticker)
 │   ├── ensureSystemPages.ts       # Auto-provision system pages for organizations
 │   ├── planLimits.ts              # Plan limit checking and enforcement
 │   ├── schedulerService.ts        # Round-robin game scheduling logic
@@ -101,7 +106,11 @@ export const myRouter = router({
 
 | Service | File | Purpose |
 |---------|------|---------|
-| AI Recap | `services/aiRecapService.ts` | Generate game recaps via OpenRouter (Gemini). 4-layer eligibility guard (not demo, aiEnabled, plan feature, token budget). Monthly token tracking per org. Fire-and-forget async generation with optimistic locking. |
+| AI Recap | `services/aiRecapService.ts` | Generate game recaps via OpenRouter (Gemini). 4-layer eligibility guard (not demo, aiEnabled, plan feature, token budget). Granular `aiGameRecaps` org toggle. Monthly token tracking per org. Fire-and-forget async generation with optimistic locking. |
+| AI SEO | `services/aiSeoService.ts` | Generate SEO titles/descriptions for news and pages via OpenRouter (Gemini). Respects granular org toggles (`aiNewsSeo`, `aiPageSeo`). Fire-and-forget on create/update. |
+| AI Season SEO | `services/aiSeasonDescriptionService.ts` | Generate season meta descriptions based on structure (divisions, teams, rounds). |
+| AI Home Widgets | `services/aiHomeWidgetService.ts` | Generate daily home page content: "League Pulse Digest" (markdown) and "Headlines Ticker" (JSON). Staleness detection via data hash. Orchestrated by daily cron job. |
+| Scheduler | `lib/jobs/aiHomeWidgetsJob.ts` | Daily cron (05:30 default, `AI_WIDGETS_CRON` env). Generates AI widgets for all enabled orgs. |
 | System Pages | `services/ensureSystemPages.ts` | Auto-provision required league site pages (home, standings, schedule, structure, etc.) on org creation. Locale-aware (DE/EN). Idempotent. |
 | Plan Limits | `services/planLimits.ts` | Check and enforce plan limits (maxTeams, maxPlayers, maxAdmins, etc.) |
 | Email | `lib/email.ts` | SMTP via nodemailer. Falls back to console logging in dev when SMTP unconfigured. |

@@ -7,7 +7,6 @@ import {
   ChevronRight,
   FileText,
   History,
-  Languages,
   Layers,
   Send,
   Shield,
@@ -20,22 +19,21 @@ import { useCallback, useEffect, useState } from "react"
 import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 
-// Icons and screenshots ordered to match the new section layout:
+// Icons and screenshots ordered to match the section layout:
 // Section 0 – Administration: Structure Builder, Schedule Generator, CMS, RBAC
-// Section 1 – Operations:     AI Recaps, Live Stats, Player Stats, Jersey Designer
-// Section 2 – Community:      Public Reports, Structure Overview, Bilingual
+// Section 1 – Operations:     AI Content, Live Stats, Player Stats, Jersey Designer
+// Section 2 – Community:      Public Reports, Structure Overview
 const itemIcons = [
   Blocks, // Season Structure Builder
   CalendarClock, // Schedule Generator
   FileText, // Content Management
   Shield, // RBAC
-  Sparkles, // AI Recaps
+  Sparkles, // AI Content
   BarChart3, // Live Stats & Standings
   History, // Season Progression & Player Stats
   Shirt, // Jersey Designer
   Send, // Public Game Reporting
   Layers, // Season Structure Overview
-  Languages, // Bilingual
 ]
 
 const itemScreenshots: string[][] = [
@@ -47,8 +45,8 @@ const itemScreenshots: string[][] = [
   ["/screenshots/pages-cms.png"],
   // RBAC
   [],
-  // AI Game Recaps
-  ["/screenshots/ai-game-recap.png"],
+  // AI Content (game recap + league home with AI widgets)
+  ["/screenshots/ai-game-recap.png", "/screenshots/league-home.png"],
   // Live Statistics & Standings
   ["/screenshots/league-stats.png", "/screenshots/league-standings.png", "/screenshots/goalie-stats.png"],
   // Season Progression & Player Stats
@@ -59,8 +57,6 @@ const itemScreenshots: string[][] = [
   ["/screenshots/public-report-form.png", "/screenshots/public-report-otp.png", "/screenshots/public-report-admin.png"],
   // Season Structure Overview
   ["/screenshots/season-structure.png"],
-  // Bilingual
-  [],
 ]
 
 // Section boundaries: which item index starts each section

@@ -694,6 +694,46 @@ export const organizationRouter = router({
     return { success: true }
   }),
 
+  updateAiToggles: orgAdminProcedure
+    .input(
+      z.object({
+        aiGameRecaps: z.boolean().optional(),
+        aiNewsSeo: z.boolean().optional(),
+        aiPageSeo: z.boolean().optional(),
+        aiWidgetLeaguePulse: z.boolean().optional(),
+        aiWidgetHeadlinesTicker: z.boolean().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.organizationId === "demo-league") {
+        throw createAppError(
+          "FORBIDDEN",
+          APP_ERROR_CODES.DEMO_ORG_RESTRICTED,
+          "AI features cannot be modified for demo organizations",
+        )
+      }
+      await ctx.db.organization.update({
+        where: { id: ctx.organizationId },
+        data: input,
+      })
+      return { success: true }
+    }),
+
+  getAiToggles: orgAdminProcedure.query(async ({ ctx }) => {
+    const org = await ctx.db.organization.findUnique({
+      where: { id: ctx.organizationId },
+      select: {
+        aiEnabled: true,
+        aiGameRecaps: true,
+        aiNewsSeo: true,
+        aiPageSeo: true,
+        aiWidgetLeaguePulse: true,
+        aiWidgetHeadlinesTicker: true,
+      },
+    })
+    return org
+  }),
+
   removeMemberRole: orgAdminProcedure
     .input(z.object({ memberRoleId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {

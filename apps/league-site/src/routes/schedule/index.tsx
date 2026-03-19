@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useSearch } from "@tanstack/react-router"
-import { Calendar, LayoutGrid, MapPin } from "lucide-react"
+import { Calendar, MapPin } from "lucide-react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { FilterDropdown } from "~/components/shared/filterDropdown"
 import { FilterPill } from "~/components/shared/filterPill"
@@ -14,10 +14,11 @@ import { trpc } from "../../../lib/trpc"
 
 export const scheduleSearchValidator = (
   s: Record<string, unknown>,
-): { season?: string; status?: string; team?: string } => ({
+): { season?: string; status?: string; team?: string; round?: string } => ({
   ...(typeof s.season === "string" && s.season ? { season: s.season } : {}),
   ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
   ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+  ...(typeof s.round === "string" && s.round ? { round: s.round } : {}),
 })
 
 export const Route = createFileRoute("/schedule/")({
@@ -301,22 +302,30 @@ export function SchedulePage() {
     season: seasonParam,
     status: statusParam,
     team: teamParam,
-  } = useSearch({ strict: false }) as { season?: string; status?: string; team?: string }
+    round: roundParam,
+  } = useSearch({ strict: false }) as { season?: string; status?: string; team?: string; round?: string }
 
   const isDE = (t as Translations).common.back === "Zurück"
 
   const selectedSeasonId = seasonParam ?? season.current?.id
   const statusFilter = statusParam || undefined
   const teamFilter = teamParam || undefined
+  const roundFilter = roundParam || undefined
 
-  const setSelectedSeasonId = (v: string) =>
-    filterNavigate({
-      search: (prev: any) => ({ ...prev, season: v === season.current?.id ? undefined : v, team: undefined }),
-    })
   const setStatusFilter = (v: string | undefined) =>
     filterNavigate({ search: (prev: any) => ({ ...prev, status: v || undefined }) })
   const setTeamFilter = (v: string | undefined) =>
     filterNavigate({ search: (prev: any) => ({ ...prev, team: v || undefined }) })
+  const setRoundFilter = (v: string | undefined) =>
+    filterNavigate({ search: (prev: any) => ({ ...prev, round: v || undefined }) })
+
+  // Fetch season structure to build round dropdown options
+  const { data: structure } = trpc.publicSite.getSeasonStructure.useQuery(
+    { organizationId: org.id, seasonId: selectedSeasonId! },
+    { enabled: !!selectedSeasonId, staleTime: 300_000 },
+  )
+
+  const divisions = structure?.divisions
 
   const { data: teams } = trpc.publicSite.listTeams.useQuery(
     { organizationId: org.id, seasonId: selectedSeasonId },
@@ -327,10 +336,11 @@ export function SchedulePage() {
     trpc.publicSite.listGames.useInfiniteQuery(
       {
         organizationId: org.id,
-        seasonId: selectedSeasonId,
+        seasonId: !roundFilter ? selectedSeasonId : undefined,
+        roundId: roundFilter,
         status: statusFilter as any,
         teamId: teamFilter,
-        limit: 40,
+        limit: 100,
       },
       {
         getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -357,14 +367,29 @@ export function SchedulePage() {
       icon: <TeamLogo name={team.name} logoUrl={team.logoUrl} size="sm" className="h-4 w-4 !text-[8px]" />,
     }))
 
+  // Build round dropdown options, grouped by division when there are multiple
+  const hasManyDivisions = (divisions?.length ?? 0) > 1
+  const roundOptions = (divisions ?? []).flatMap((div) =>
+    div.rounds.map((r) => ({
+      value: r.id,
+      label: r.name,
+      ...(hasManyDivisions ? { group: div.name } : {}),
+    })),
+  )
+
   return (
-    <StatsPageShell
-      title={t.schedule.titleFull}
-      selectedSeasonId={selectedSeasonId}
-      onSeasonChange={setSelectedSeasonId}
-    >
+    <StatsPageShell title={t.schedule.titleFull}>
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
+        {roundOptions.length > 0 && (
+          <FilterDropdown
+            label={t.structure.rounds}
+            options={roundOptions}
+            value={roundFilter ? [roundFilter] : []}
+            onChange={(v) => setRoundFilter(v[0] || undefined)}
+            singleSelect
+          />
+        )}
         {teamOptions.length > 0 && (
           <FilterDropdown
             label={t.schedule.allTeams}
@@ -374,7 +399,7 @@ export function SchedulePage() {
             singleSelect
           />
         )}
-        {teamOptions.length > 0 && <div className="w-px h-5 bg-league-text/10 mx-1" />}
+        {(roundOptions.length > 0 || teamOptions.length > 0) && <div className="w-px h-5 bg-league-text/10 mx-1" />}
         <FilterPill
           label={t.common.all}
           active={statusFilter === undefined}
@@ -396,15 +421,6 @@ export function SchedulePage() {
           active={statusFilter === "cancelled"}
           onClick={() => setStatusFilter("cancelled")}
         />
-        <div className="w-px h-5 bg-league-text/10 mx-1" />
-        <Link
-          to="/structure"
-          search={{ season: selectedSeasonId !== season.current?.id ? selectedSeasonId : undefined } as any}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-league-text/50 hover:text-league-primary border border-league-text/8 hover:border-league-primary/30 transition-colors"
-        >
-          <LayoutGrid className="h-3.5 w-3.5" />
-          {t.structure.title}
-        </Link>
       </div>
 
       {/* Game cards */}

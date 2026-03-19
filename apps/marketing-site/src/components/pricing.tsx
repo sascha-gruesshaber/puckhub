@@ -110,7 +110,7 @@ export function Pricing() {
                       <PlanFeature label={t.pricing.planFeatures.scheduledNews} enabled={plan.featureScheduledNews} />
                       <PlanFeature label={t.pricing.planFeatures.advancedRoles} enabled={plan.featureAdvancedRoles} />
                       <PlanFeature label={t.pricing.planFeatures.publicReports} enabled={plan.featurePublicReports} />
-                      <PlanFeature label={t.pricing.planFeatures.aiRecaps} enabled={plan.featureAiRecaps} />
+                      <PlanFeature label={t.pricing.planFeatures.aiFeatures} enabled={plan.featureAi} />
                       <PlanFeature
                         label={t.pricing.planFeatures.prioritySupport}
                         enabled={plan.slug === "pro" || plan.slug === "unlimited"}

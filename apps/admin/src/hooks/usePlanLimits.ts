@@ -25,7 +25,7 @@ type FeatureKey =
   | "featureScheduledNews"
   | "featureAdvancedRoles"
   | "featureAdvancedStats"
-  | "featureAiRecaps"
+  | "featureAi"
   | "featurePublicReports"
 
 /** Map from LimitKey → usage field name */

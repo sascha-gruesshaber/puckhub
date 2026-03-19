@@ -14,7 +14,7 @@ const FEATURE_LABELS: Record<FeatureKey, string> = {
   featureScheduledNews: "Scheduled News",
   featureAdvancedRoles: "Advanced Roles",
   featureAdvancedStats: "Advanced Statistics",
-  featureAiRecaps: "AI Recaps",
+  featureAi: "AI Features",
   featurePublicReports: "Public Game Reports",
 }
 

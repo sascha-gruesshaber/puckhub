@@ -649,6 +649,12 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       name: "Demo League",
       slug: "demo-league",
       createdAt: new Date(),
+      aiEnabled: true,
+      aiGameRecaps: true,
+      aiNewsSeo: true,
+      aiPageSeo: true,
+      aiWidgetLeaguePulse: true,
+      aiWidgetHeadlinesTicker: true,
     },
   })
 
@@ -659,7 +665,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     // Ensure Pro plan has AI features
     await db.plan.update({
       where: { id: PRO_PLAN_ID },
-      data: { featureAiRecaps: true, featurePublicReports: true, aiMonthlyTokenLimit: 500000 },
+      data: { featureAi: true, featurePublicReports: true, aiMonthlyTokenLimit: 500000 },
     })
     console.log("[demo-seed] Assigning Pro plan to demo org...")
     const now = new Date()
@@ -1069,6 +1075,74 @@ export async function seedDemoOrg(db: Database): Promise<void> {
           createdAt: new Date(game.finalizedAt!.getTime() - 30 * 60 * 1000),
         }
       }),
+    })
+  }
+
+  // ── 9d. Season SEO Descriptions ──────────────────────────────────────
+  console.log("[demo-seed] Seeding season SEO descriptions...")
+  for (let sIdx = 0; sIdx < seasonStructure.length; sIdx++) {
+    const sDef = seasonStructure[sIdx]!
+    const season = insertedSeasons[sIdx]!
+
+    const totalTeams = new Set(sDef.divisions.flatMap((d) => d.teamIndices)).size
+    const divCount = sDef.divisions.length
+    const metaDescription = `${sDef.name} season: ${totalTeams} teams in ${divCount} division${divCount > 1 ? "s" : ""} — PuckHub Demo League amateur ice hockey.`
+
+    await db.season.update({
+      where: { id: season.id },
+      data: {
+        aiDescriptionShort: metaDescription.slice(0, 160),
+      },
+    })
+  }
+
+  // ── 9e. AI Home Widgets ─────────────────────────────────────────────
+  // Use the season that's actually "current" right now (covers today's date).
+  // The getHomeData query resolves the season by seasonStart <= now <= seasonEnd,
+  // which in March 2026 is the 2025/26 season, not the 2026/27 season.
+  const activeSeasonId = lastSeasonId ?? currentSeasonId
+  console.log("[demo-seed] Seeding AI home widgets...")
+  if (activeSeasonId) {
+    const leaguePulseContent = [
+      "The race for the top spots is heating up in the Demo League! **Glacier Bears** continue their dominant run with three ",
+      "consecutive wins, extending their lead at the top of the table. Meanwhile, **Thunderhawks** have found their stride after ",
+      "a rocky start, climbing into playoff contention with back-to-back victories.\n\n",
+      "**Player Spotlight:** Forward *Jake Morrison* (Glacier Bears) leads the scoring charts with an impressive points-per-game ",
+      "average, while goaltender *Marcus Webb* (Blizzard Wolves) has posted two shutouts in the last three games.\n\n",
+      "Looking ahead, this weekend's matchup between **Frost Giants** and **Thunderhawks** could shake up the standings — ",
+      "both teams are separated by just two points. Don't miss it!",
+    ].join("")
+
+    const headlinesTickerContent = JSON.stringify([
+      "Glacier Bears on fire: Five wins in a row!",
+      "Thunderhawks climb to 3rd after comeback victory",
+      "Jake Morrison leads scoring race with 24 points",
+      "Marcus Webb posts 2nd shutout of the season",
+      "Frost Giants vs Thunderhawks: Weekend showdown preview",
+      "Blizzard Wolves add reinforcements ahead of playoffs",
+    ])
+
+    await db.aiHomeWidget.createMany({
+      data: [
+        {
+          organizationId: DEMO_ORG_ID,
+          seasonId: activeSeasonId,
+          widgetType: "league_pulse_digest",
+          content: leaguePulseContent,
+          generatedAt: new Date(),
+          generating: false,
+          dataHash: "demo-seed-pulse",
+        },
+        {
+          organizationId: DEMO_ORG_ID,
+          seasonId: activeSeasonId,
+          widgetType: "headlines_ticker",
+          content: headlinesTickerContent,
+          generatedAt: new Date(),
+          generating: false,
+          dataHash: "demo-seed-ticker",
+        },
+      ],
     })
   }
 
@@ -1934,6 +2008,21 @@ export async function seedDemoOrg(db: Database): Promise<void> {
   ]
   await db.news.createMany({ data: newsValues })
 
+  // Backfill SEO fields for seeded news
+  const seededNews = await db.news.findMany({
+    where: { organizationId: DEMO_ORG_ID },
+    select: { id: true, title: true, shortText: true },
+  })
+  for (const n of seededNews) {
+    await db.news.update({
+      where: { id: n.id },
+      data: {
+        seoTitle: n.title.slice(0, 60),
+        seoDescription: (n.shortText ?? n.title).slice(0, 155),
+      },
+    })
+  }
+
   // ── 15. Pages ────────────────────────────────────────────────────────
   console.log("[demo-seed] Seeding pages...")
 
@@ -2136,7 +2225,7 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Rules and guidance</h2><p>IIHF rules apply with local recreational adjustments.</p><h3>Game format</h3><ul><li>3 x 15-minute periods</li><li>5-minute intermissions</li></ul><h3>Safety rules</h3><ul><li>No full body checking</li><li>Protective equipment is mandatory</li></ul>",
       status: "published",
-      menuLocations: ["main_nav", "footer"],
+      menuLocations: ["footer"],
       sortOrder: 2,
     },
     {
@@ -2155,6 +2244,12 @@ export async function seedDemoOrg(db: Database): Promise<void> {
 
   const aboutLeague = insertedPages.find((p) => p.slug === "about-the-league")!
   const rulesPage = insertedPages.find((p) => p.slug === "rules-and-guidance")!
+
+  // Make "Rules And Guidance" a sub-page of "About The League" to reduce main nav items
+  await db.page.update({
+    where: { id: rulesPage.id },
+    data: { parentId: aboutLeague.id, sortOrder: 3 },
+  })
 
   const subPages: any[] = [
     {
@@ -2186,13 +2281,28 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       content:
         "<h2>Penalty guide</h2><p>In addition to IIHF rules, recreational safety standards are strictly enforced.</p><ul><li>Minor penalties: 2 minutes</li><li>Major penalties: 5 minutes</li><li>Misconduct penalties as applicable</li></ul>",
       status: "published",
-      parentId: rulesPage.id,
+      parentId: aboutLeague.id,
       menuLocations: [],
-      sortOrder: 1,
+      sortOrder: 4,
     },
   ]
 
   await db.page.createMany({ data: subPages })
+
+  // Backfill SEO fields for seeded pages (non-system-route only)
+  const seededPages = await db.page.findMany({
+    where: { organizationId: DEMO_ORG_ID, isSystemRoute: false },
+    select: { id: true, title: true },
+  })
+  for (const p of seededPages) {
+    await db.page.update({
+      where: { id: p.id },
+      data: {
+        seoTitle: p.title.slice(0, 60),
+        seoDescription: `${p.title} - PuckHub Demo League`.slice(0, 155),
+      },
+    })
+  }
 
   // Page aliases
   const contactPage = insertedPages.find((p) => p.slug === "contact")!
@@ -2243,4 +2353,5 @@ export async function seedDemoOrg(db: Database): Promise<void> {
     `   • ${reportGames.length} game reports (${totalGoals} goals, ${totalPenalties} penalties, ${totalSuspensions} suspensions, ${lineupValues.length} lineup entries)`,
   )
   console.log(`   • ${gamesForRecap.length} AI recaps (current + last season)`)
+  console.log(`   • 2 AI home widgets (league pulse digest, headlines ticker)`)
 }

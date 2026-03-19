@@ -36,6 +36,33 @@ export function NewsDetailPage() {
     }
   }, [article, newsId])
 
+  // Dynamic SEO meta tags
+  useEffect(() => {
+    if (!article) return
+    document.title = article.seoTitle ?? article.title
+    const description = article.seoDescription ?? article.shortText ?? ""
+    if (description) {
+      const existing = document.querySelector('meta[name="description"]')
+      if (existing) {
+        existing.setAttribute("content", description)
+      } else {
+        const meta = document.createElement("meta")
+        meta.name = "description"
+        meta.content = description
+        document.head.appendChild(meta)
+      }
+      const ogExisting = document.querySelector('meta[property="og:description"]')
+      if (ogExisting) {
+        ogExisting.setAttribute("content", description)
+      } else {
+        const ogMeta = document.createElement("meta")
+        ogMeta.setAttribute("property", "og:description")
+        ogMeta.content = description
+        document.head.appendChild(ogMeta)
+      }
+    }
+  }, [article])
+
   if (isLoading) return <PageSkeleton />
 
   if (!article) {

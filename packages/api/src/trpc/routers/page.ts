@@ -1,6 +1,8 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { checkAiEligibility } from "../../services/aiRecapService"
+import { generatePageSeo } from "../../services/aiSeoService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgProcedure, requireRole, router } from "../init"
 
@@ -288,6 +290,23 @@ export const pageRouter = router({
           sortOrder: input.sortOrder,
         },
       })
+
+      // Fire-and-forget SEO generation (skip system routes, respects granular toggle)
+      if (!page.isSystemRoute) {
+        ctx.db.organization
+          .findUnique({ where: { id: ctx.organizationId }, select: { aiPageSeo: true } })
+          .then((org) => {
+            if (!org?.aiPageSeo) return
+            return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
+              if (e.eligible) {
+                generatePageSeo(ctx.db, page.id, ctx.organizationId).catch((err) =>
+                  console.error("[ai-seo] Page SEO generation failed:", err),
+                )
+              }
+            })
+          })
+      }
+
       return page
     }),
 
@@ -368,6 +387,22 @@ export const pageRouter = router({
         where: { id },
         data: updateData,
       })
+
+      // Fire-and-forget SEO generation if title or content changed (skip system routes, respects granular toggle)
+      if (!isSystemRoute && (data.title || data.content !== undefined)) {
+        ctx.db.organization
+          .findUnique({ where: { id: ctx.organizationId }, select: { aiPageSeo: true } })
+          .then((org) => {
+            if (!org?.aiPageSeo) return
+            return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
+              if (e.eligible) {
+                generatePageSeo(ctx.db, page.id, ctx.organizationId).catch((err) =>
+                  console.error("[ai-seo] Page SEO generation failed:", err),
+                )
+              }
+            })
+          })
+      }
 
       // Cascade: when a parent page is hidden, also hide all children
       if (data.status === "draft" && !existing.parentId) {

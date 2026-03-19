@@ -421,7 +421,7 @@ function GameReportPage() {
               tabs: [
                 { id: "lineup" as const, label: t("gameReport.tabs.lineup"), icon: Users },
                 { id: "report" as const, label: t("gameReport.tabs.report"), icon: ClipboardList },
-                ...(isCompleted && canUseFeature("featureAiRecaps")
+                ...(isCompleted && canUseFeature("featureAi")
                   ? [{ id: "ai" as const, label: t("gameReport.tabs.ai"), icon: Sparkles }]
                   : []),
               ],
@@ -473,7 +473,7 @@ function GameReportPage() {
           </div>
         )}
 
-        {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
+        {activeTab === "ai" && isCompleted && canUseFeature("featureAi") && (
           <Button
             variant="outline"
             size="sm"
@@ -534,7 +534,7 @@ function GameReportPage() {
       )}
 
       {/* AI Recap tab */}
-      {activeTab === "ai" && isCompleted && canUseFeature("featureAiRecaps") && (
+      {activeTab === "ai" && isCompleted && canUseFeature("featureAi") && (
         <Card>
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">

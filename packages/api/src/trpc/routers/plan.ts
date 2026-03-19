@@ -33,7 +33,7 @@ const planUpdateSchema = z.object({
   featureScheduledNews: z.boolean().optional(),
   featureAdvancedRoles: z.boolean().optional(),
   featureAdvancedStats: z.boolean().optional(),
-  featureAiRecaps: z.boolean().optional(),
+  featureAi: z.boolean().optional(),
   featurePublicReports: z.boolean().optional(),
   aiMonthlyTokenLimit: z.number().int().min(0).nullable().optional(),
 })
