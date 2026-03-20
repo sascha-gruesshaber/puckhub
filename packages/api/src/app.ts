@@ -204,7 +204,7 @@ if (process.env.DEMO_MODE === "true") {
       httpOnly: true,
       sameSite: "Lax",
       maxAge: 7 * 24 * 60 * 60,
-      secure: c.req.url.startsWith("https"),
+      secure: isSecure,
     })
 
     return c.json({ ok: true })
