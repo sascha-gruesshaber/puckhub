@@ -187,8 +187,8 @@ function NewsPage() {
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold truncate">{article.title}</h3>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <h3 className="font-semibold truncate min-w-0">{article.title}</h3>
                     {isScheduled ? (
                       <Badge variant="accent" className="shrink-0 text-[10px]">
                         <Clock className="mr-1 h-3 w-3" aria-hidden="true" />
@@ -203,19 +203,19 @@ function NewsPage() {
                   {article.shortText && (
                     <p className="text-sm text-muted-foreground truncate mt-0.5">{article.shortText}</p>
                   )}
-                  <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1.5 text-xs text-muted-foreground">
                     {article.author && <span>{article.author.name}</span>}
-                    <span className="text-border">|</span>
+                    <span className="text-border hidden sm:inline">|</span>
                     <span>{t("newsPage.meta.createdAt", { date: formatDate(article.createdAt) })}</span>
                     {article.publishedAt && (
                       <>
-                        <span className="text-border">|</span>
+                        <span className="text-border hidden sm:inline">|</span>
                         <span>{t("newsPage.meta.publishedAt", { date: formatDate(article.publishedAt) })}</span>
                       </>
                     )}
                     {isScheduled && (
                       <>
-                        <span className="text-border">|</span>
+                        <span className="text-border hidden sm:inline">|</span>
                         <span style={{ color: "hsl(var(--accent-foreground))" }}>
                           {t("newsPage.meta.scheduledFor", {
                             date: formatDate(article.scheduledPublishAt),
