@@ -32,7 +32,16 @@ export const EXPORT_REGISTRY: Record<string, ModelConfig> = {
     globalRefs: { templateId: { model: "trikotTemplate", key: "name" } },
   },
   teamTrikot: { order: 9, fkFields: { teamId: "team", trikotId: "trikot" } },
-  game: { order: 10, fkFields: { roundId: "round", homeTeamId: "team", awayTeamId: "team" } },
+  game: {
+    order: 10,
+    fkFields: {
+      roundId: "round",
+      homeTeamId: "team",
+      awayTeamId: "team",
+      homeTrikotId: "trikot",
+      awayTrikotId: "trikot",
+    },
+  },
   gameLineup: { order: 11, fkFields: { gameId: "game", playerId: "player", teamId: "team" } },
   gameEvent: {
     order: 12,
@@ -67,6 +76,9 @@ export const EXCLUDED_FROM_EXPORT: Record<string, string> = {
   standing: "recalculated on import",
   playerSeasonStat: "recalculated on import",
   goalieSeasonStat: "recalculated on import",
+  publicGameReport: "user-submitted data with PII hashes, not portable",
+  aiUsageLog: "usage tracking / billing data, not league data",
+  aiHomeWidget: "AI-generated content, regenerated on demand",
 } as const
 
 // Pluralize model name for JSON keys
