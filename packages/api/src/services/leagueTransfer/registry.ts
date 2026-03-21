@@ -67,6 +67,7 @@ export const EXPORT_REGISTRY: Record<string, ModelConfig> = {
   page: { order: 18, fkFields: { parentId: "page" }, selfRef: true },
   pageAlias: { order: 19, fkFields: { targetPageId: "page" } },
   document: { order: 20, fkFields: {} },
+  websiteConfig: { order: 21, fkFields: {}, nullifyOnImport: ["domain"] },
 } as const
 
 export const EXCLUDED_FROM_EXPORT: Record<string, string> = {
@@ -79,6 +80,7 @@ export const EXCLUDED_FROM_EXPORT: Record<string, string> = {
   publicGameReport: "user-submitted data with PII hashes, not portable",
   aiUsageLog: "usage tracking / billing data, not league data",
   aiHomeWidget: "AI-generated content, regenerated on demand",
+  orgSubscription: "billing / plan data, not league data",
 } as const
 
 // Pluralize model name for JSON keys
