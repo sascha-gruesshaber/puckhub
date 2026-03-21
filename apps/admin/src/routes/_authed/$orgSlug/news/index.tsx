@@ -153,7 +153,7 @@ function NewsPage() {
       ) : filtered.length === 0 ? (
         <NoResults query={search || t("newsPage.filters.fallback")} />
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
           {filtered.map((article, i) => {
             const isDraft = article.status === "draft"
             const isScheduled =

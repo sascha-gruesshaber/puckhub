@@ -32,6 +32,13 @@ const en = {
     forward: "Forward",
   },
 
+  playerStatus: {
+    hobby: "Recreational",
+    licensed: "Licensed",
+    tryout: "Tryout",
+    inactive: "Inactive",
+  },
+
   months: [
     "January",
     "February",
@@ -418,6 +425,13 @@ const de: Translations = {
     goalie: "Torwart",
     defense: "Verteidigung",
     forward: "Sturm",
+  },
+
+  playerStatus: {
+    hobby: "Hobbyspieler",
+    licensed: "Kontingent",
+    tryout: "Probespieler",
+    inactive: "Inaktiv",
   },
 
   months: [

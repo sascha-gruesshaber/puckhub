@@ -26,7 +26,7 @@ function StructurePage() {
       <PageHeader title={t("seasonStructure.title")} description={t("seasonStructure.description")} />
 
       <div
-        className="bg-white rounded-xl border border-border/50 shadow-sm overflow-hidden"
+        className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden"
         style={{ height: "calc(100vh - 200px)" }}
       >
         <Suspense fallback={<Skeleton className="h-full w-full" />}>

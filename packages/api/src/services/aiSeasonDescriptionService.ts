@@ -65,11 +65,7 @@ function buildUserPrompt(data: SeasonStructureData): string {
 
 // ─── Generate and Persist SEO Description ───────────────────────────────────
 
-export async function generateSeasonSeo(
-  db: PrismaClient,
-  seasonId: string,
-  organizationId: string,
-): Promise<void> {
+export async function generateSeasonSeo(db: PrismaClient, seasonId: string, organizationId: string): Promise<void> {
   try {
     // Fetch season with structure
     const season = await db.season.findUnique({

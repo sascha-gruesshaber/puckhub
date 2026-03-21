@@ -30,7 +30,7 @@ export function DetailPageSkeleton({ wide }: DetailPageSkeletonProps) {
       ) : (
         /* Card-style skeleton (info card + list) */
         <>
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6 space-y-4">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 p-6 space-y-4">
             <Skeleton className="h-7 w-64 rounded" />
             <div className="flex items-start gap-6">
               <Skeleton className="h-24 w-24 shrink-0 rounded-xl" />

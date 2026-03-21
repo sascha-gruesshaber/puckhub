@@ -47,6 +47,7 @@ import { LineupEditor } from "~/components/gameReport/lineupEditor"
 import { SuspensionWarnings } from "~/components/gameReport/suspensionWarnings"
 import { TabNavigation } from "~/components/tabNavigation"
 import { TeamCombobox } from "~/components/teamCombobox"
+import { TrikotSelect } from "~/components/trikotSelect"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { usePlanLimits } from "~/hooks/usePlanLimits"
 import { useTranslation } from "~/i18n/use-translation"
@@ -77,9 +78,19 @@ interface EditForm {
   awayTeamId: string
   location: string
   scheduledAt: string
+  homeTrikotId: string
+  awayTrikotId: string
 }
 
-const emptyEditForm: EditForm = { roundId: "", homeTeamId: "", awayTeamId: "", location: "", scheduledAt: "" }
+const emptyEditForm: EditForm = {
+  roundId: "",
+  homeTeamId: "",
+  awayTeamId: "",
+  location: "",
+  scheduledAt: "",
+  homeTrikotId: "",
+  awayTrikotId: "",
+}
 
 type Tab = "lineup" | "report" | "ai"
 
@@ -273,7 +284,9 @@ function GameReportPage() {
   const readOnly = isCompleted || isCancelled
   const canComplete = !isCompleted && !isCancelled
 
-  const gamePublicReport = isCompleted ? publicReports?.find((r: any) => r.gameId === gameId && !r.reverted) : undefined
+  const gamePublicReport = isCompleted
+    ? publicReports?.items.find((r: any) => r.gameId === gameId && !r.reverted)
+    : undefined
 
   const isEditDirty =
     editSheetOpen &&
@@ -281,7 +294,9 @@ function GameReportPage() {
       editForm.homeTeamId !== (game?.homeTeamId ?? "") ||
       editForm.awayTeamId !== (game?.awayTeamId ?? "") ||
       editForm.location !== (game?.location ?? "") ||
-      editForm.scheduledAt !== toLocalInputValue(game?.scheduledAt))
+      editForm.scheduledAt !== toLocalInputValue(game?.scheduledAt) ||
+      editForm.homeTrikotId !== ((game as any)?.homeTrikotId ?? "") ||
+      editForm.awayTrikotId !== ((game as any)?.awayTrikotId ?? ""))
 
   // ── Helpers ──
 
@@ -293,6 +308,8 @@ function GameReportPage() {
       awayTeamId: game.awayTeamId,
       location: game.location ?? "",
       scheduledAt: toLocalInputValue(game.scheduledAt),
+      homeTrikotId: (game as any).homeTrikotId ?? "",
+      awayTrikotId: (game as any).awayTrikotId ?? "",
     })
     setEditSheetOpen(true)
   }
@@ -306,13 +323,15 @@ function GameReportPage() {
       awayTeamId: editForm.awayTeamId || undefined,
       location: editForm.location || null,
       scheduledAt: editForm.scheduledAt ? new Date(editForm.scheduledAt).toISOString() : null,
+      homeTrikotId: editForm.homeTrikotId || null,
+      awayTrikotId: editForm.awayTrikotId || null,
     })
   }
 
   function handleEditHomeTeamChange(teamId: string) {
     setEditForm((prev) => {
       const team = editTeams.find((t) => t.id === teamId)
-      return { ...prev, homeTeamId: teamId, location: prev.location || team?.homeVenue || "" }
+      return { ...prev, homeTeamId: teamId, homeTrikotId: "", location: prev.location || team?.homeVenue || "" }
     })
   }
 
@@ -676,14 +695,32 @@ function GameReportPage() {
                       placeholder={t("gamesPage.placeholders.homeTeam")}
                     />
                   </FormField>
+                  {editForm.homeTeamId && (
+                    <FormField label={t("gamesPage.form.fields.homeTrikot")}>
+                      <TrikotSelect
+                        teamId={editForm.homeTeamId}
+                        value={editForm.homeTrikotId}
+                        onChange={(v) => setEditForm((p) => ({ ...p, homeTrikotId: v }))}
+                      />
+                    </FormField>
+                  )}
                   <FormField label={t("gamesPage.form.fields.awayTeam")} required>
                     <TeamCombobox
                       teams={editTeams}
                       value={editForm.awayTeamId}
-                      onChange={(teamId) => setEditForm((p) => ({ ...p, awayTeamId: teamId }))}
+                      onChange={(teamId) => setEditForm((p) => ({ ...p, awayTeamId: teamId, awayTrikotId: "" }))}
                       placeholder={t("gamesPage.placeholders.awayTeam")}
                     />
                   </FormField>
+                  {editForm.awayTeamId && (
+                    <FormField label={t("gamesPage.form.fields.awayTrikot")}>
+                      <TrikotSelect
+                        teamId={editForm.awayTeamId}
+                        value={editForm.awayTrikotId}
+                        onChange={(v) => setEditForm((p) => ({ ...p, awayTrikotId: v }))}
+                      />
+                    </FormField>
+                  )}
                 </div>
               </div>
 

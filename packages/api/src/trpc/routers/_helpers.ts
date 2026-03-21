@@ -4,13 +4,16 @@
 export async function getEligibleGameIds(
   db: any,
   seasonId: string,
+  organizationId: string,
   toggle: "countsForPlayerStats" | "countsForGoalieStats",
 ): Promise<string[]> {
   const eligibleRounds = await db.round.findMany({
     where: {
       [toggle]: true,
+      organizationId,
       division: {
         seasonId,
+        organizationId,
       },
     },
     select: { id: true },
@@ -22,6 +25,7 @@ export async function getEligibleGameIds(
   const completedGames = await db.game.findMany({
     where: {
       roundId: { in: roundIds },
+      organizationId,
       status: "completed",
     },
     select: { id: true },

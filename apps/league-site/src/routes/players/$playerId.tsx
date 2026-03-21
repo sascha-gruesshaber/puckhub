@@ -229,6 +229,21 @@ export function PlayerHistoryPage() {
                     {player.nationality}
                   </span>
                 )}
+                {player.status && (
+                  <span
+                    className={`inline-block text-xs font-medium rounded px-1.5 py-0.5 ${
+                      player.status === "licensed"
+                        ? "bg-blue-500/10 text-blue-600"
+                        : player.status === "tryout"
+                          ? "bg-amber-500/10 text-amber-600"
+                          : player.status === "inactive"
+                            ? "bg-league-text/[0.06] text-league-text/40"
+                            : "bg-emerald-500/10 text-emerald-600"
+                    }`}
+                  >
+                    {t.playerStatus[player.status as keyof typeof t.playerStatus]}
+                  </span>
+                )}
               </div>
             </div>
           </div>

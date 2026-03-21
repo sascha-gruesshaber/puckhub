@@ -35,9 +35,13 @@ import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
 
 export const Route = createFileRoute("/_authed/$orgSlug/players/")({
-  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string; edit?: string } => ({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { search?: string; team?: string; position?: string; status?: string; edit?: string } => ({
     ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
     ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
+    ...(typeof s.position === "string" && s.position ? { position: s.position } : {}),
+    ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
     ...(typeof s.edit === "string" && s.edit ? { edit: s.edit } : {}),
   }),
   loader: () => {
@@ -54,6 +58,7 @@ interface PlayerForm {
   lastName: string
   dateOfBirth: string
   nationality: string
+  status: string
   photoUrl: string
 }
 
@@ -62,6 +67,7 @@ const emptyForm: PlayerForm = {
   lastName: "",
   dateOfBirth: "",
   nationality: "",
+  status: "hobby",
   photoUrl: "",
 }
 
@@ -75,16 +81,26 @@ function PlayersPage() {
   const { t: tErrors } = useTranslation("errors")
   const { isAtLimit, usageText } = usePlanLimits()
   const atPlayerLimit = isAtLimit("maxPlayers")
-  const { search: searchParam, team, edit: editId } = Route.useSearch()
+  const { search: searchParam, team, position, status, edit: editId } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
   const teamFilter = useMemo(() => (team ? team.split(",") : []), [team])
+  const positionFilter = useMemo(() => (position ? position.split(",") : []), [position])
+  const statusFilter = useMemo(() => (status ? status.split(",") : []), [status])
   const setSearch = useCallback(
     (v: string) => navigate({ search: (prev) => ({ ...prev, search: v || undefined }), replace: true }),
     [navigate],
   )
   const setTeamFilter = useCallback(
     (v: string[]) => navigate({ search: (prev) => ({ ...prev, team: v.join(",") || undefined }), replace: true }),
+    [navigate],
+  )
+  const setPositionFilter = useCallback(
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, position: v.join(",") || undefined }), replace: true }),
+    [navigate],
+  )
+  const setStatusFilter = useCallback(
+    (v: string[]) => navigate({ search: (prev) => ({ ...prev, status: v.join(",") || undefined }), replace: true }),
     [navigate],
   )
 
@@ -143,6 +159,24 @@ function PlayersPage() {
     return opts
   }, [players, seasonTeams, unassignedCount, t])
 
+  const positionOptions: FilterDropdownOption[] = useMemo(
+    () =>
+      (["goalie", "defense", "forward"] as const).map((pos) => ({
+        value: pos,
+        label: t(`playersPage.positions.${pos}`),
+      })),
+    [t],
+  )
+
+  const statusOptions: FilterDropdownOption[] = useMemo(
+    () =>
+      (["licensed", "hobby", "tryout", "inactive"] as const).map((s) => ({
+        value: s,
+        label: t(`playerStatus.${s}`),
+      })),
+    [t],
+  )
+
   // Populate form when sheet opens
   useEffect(() => {
     if (isNew) {
@@ -186,6 +220,16 @@ function PlayersPage() {
       result = result.filter((p) => p.currentTeam)
     }
 
+    // Position filter (based on current contract position)
+    if (positionFilter.length > 0) {
+      result = result.filter((p) => p.currentTeam && positionFilter.includes(p.currentTeam.position))
+    }
+
+    // Status filter
+    if (statusFilter.length > 0) {
+      result = result.filter((p) => statusFilter.includes(p.status))
+    }
+
     // Search filter
     if (search.trim()) {
       const q = search.toLowerCase()
@@ -199,7 +243,7 @@ function PlayersPage() {
     }
 
     return result
-  }, [players, search, teamFilter])
+  }, [players, search, teamFilter, positionFilter, statusFilter])
 
   // Group by team when no filter is active (= "All")
   const grouped = useMemo(() => {
@@ -275,6 +319,7 @@ function PlayersPage() {
       lastName: form.lastName.trim(),
       dateOfBirth: form.dateOfBirth || undefined,
       nationality: form.nationality.trim() || undefined,
+      status: form.status as "hobby" | "licensed" | "tryout" | "inactive",
       photoUrl: form.photoUrl || undefined,
     })
   }
@@ -333,6 +378,21 @@ function PlayersPage() {
             {player.currentTeam?.jerseyNumber != null && (
               <span className="text-xs font-mono text-muted-foreground shrink-0">
                 #{player.currentTeam.jerseyNumber}
+              </span>
+            )}
+            {player.status && (
+              <span
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${
+                  player.status === "licensed"
+                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                    : player.status === "tryout"
+                      ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                      : player.status === "inactive"
+                        ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                        : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                }`}
+              >
+                {t(`playerStatus.${player.status}`)}
               </span>
             )}
           </div>
@@ -418,24 +478,46 @@ function PlayersPage() {
             search={{ value: search, onChange: setSearch, placeholder: t("playersPage.searchPlaceholder") }}
           >
             {isLoading ? (
-              <FilterPillsSkeleton count={1} />
-            ) : teamOptions.length > 0 ? (
-              <FilterDropdown
-                label={t("playersPage.filters.allTeams")}
-                options={teamOptions}
-                value={teamFilter}
-                onChange={setTeamFilter}
-                testId="players-team-filter"
-                optionTestIdPrefix="players-team-filter-option"
-              />
-            ) : null}
+              <FilterPillsSkeleton count={3} />
+            ) : (
+              <>
+                {teamOptions.length > 0 && (
+                  <FilterDropdown
+                    label={t("playersPage.filters.allTeams")}
+                    options={teamOptions}
+                    value={teamFilter}
+                    onChange={setTeamFilter}
+                    testId="players-team-filter"
+                    optionTestIdPrefix="players-team-filter-option"
+                  />
+                )}
+                <FilterDropdown
+                  label={t("playersPage.filters.allPositions")}
+                  options={positionOptions}
+                  value={positionFilter}
+                  onChange={setPositionFilter}
+                  testId="players-position-filter"
+                />
+                <FilterDropdown
+                  label={t("playersPage.filters.allStatus")}
+                  options={statusOptions}
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  testId="players-status-filter"
+                />
+              </>
+            )}
           </FilterBar>
         }
       >
         {/* Content */}
         {isLoading ? (
           <DataListSkeleton rows={8} />
-        ) : filtered.length === 0 && !search && teamFilter.length === 0 ? (
+        ) : filtered.length === 0 &&
+          !search &&
+          teamFilter.length === 0 &&
+          positionFilter.length === 0 &&
+          statusFilter.length === 0 ? (
           <EmptyState
             icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
             title={t("playersPage.empty.noPlayersTitle")}
@@ -490,7 +572,7 @@ function PlayersPage() {
                         {groupPlayers.length}
                       </Badge>
                     </div>
-                    <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                    <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                       {groupPlayers.map((p, pi) => {
                         const row = renderPlayerRow(p, globalIndex++, pi === groupPlayers.length - 1)
                         return row
@@ -503,7 +585,7 @@ function PlayersPage() {
           </div>
         ) : (
           // Flat list (specific team or unassigned)
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((player, i) => renderPlayerRow(player, i, i === filtered.length - 1))}
           </div>
         )}
@@ -575,6 +657,20 @@ function PlayersPage() {
                   />
                 </FormField>
               </div>
+
+              {/* Status */}
+              <FormField label={t("playersPage.fields.status")}>
+                <select
+                  value={form.status}
+                  onChange={(e) => setField("status", e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="hobby">{t("playerStatus.hobby")}</option>
+                  <option value="licensed">{t("playerStatus.licensed")}</option>
+                  <option value="tryout">{t("playerStatus.tryout")}</option>
+                  <option value="inactive">{t("playerStatus.inactive")}</option>
+                </select>
+              </FormField>
             </SheetBody>
 
             <SheetFooter>

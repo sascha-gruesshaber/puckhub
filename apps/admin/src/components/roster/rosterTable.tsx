@@ -6,9 +6,9 @@ import { useTranslation } from "~/i18n/use-translation"
 const POSITION_ORDER = ["goalie", "defense", "forward"] as const
 
 const POSITION_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  goalie: { bg: "bg-blue-500/10", text: "text-blue-700", border: "border-l-blue-500" },
-  defense: { bg: "bg-emerald-500/10", text: "text-emerald-700", border: "border-l-emerald-500" },
-  forward: { bg: "bg-red-500/10", text: "text-red-700", border: "border-l-red-500" },
+  goalie: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-l-blue-500" },
+  defense: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-l-emerald-500" },
+  forward: { bg: "bg-red-500/10", text: "text-red-400", border: "border-l-red-500" },
 }
 
 interface ContractRow {
@@ -121,7 +121,7 @@ function RosterTable({ contracts, teams, onEdit, onRelease, onTransfer, hideTeam
           )}
 
           {/* Player rows */}
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {group.players.map((c, i) => {
               const rowIndex = globalRowIndex++
               const posColors = POSITION_COLORS[c.position] ?? POSITION_COLORS.forward

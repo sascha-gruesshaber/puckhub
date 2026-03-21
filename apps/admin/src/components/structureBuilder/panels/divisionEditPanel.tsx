@@ -89,19 +89,19 @@ export function DivisionEditPanel({
       </div>
 
       <div className="flex flex-col gap-3">
-        <label htmlFor="division-edit-name" className="text-[11px] font-medium text-gray-600">
+        <label htmlFor="division-edit-name" className="text-[11px] font-medium text-muted-foreground">
           {t("seasonStructure.fields.name")}
         </label>
         <Input
           id="division-edit-name"
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
-          className="h-8 text-xs bg-white border-gray-200 text-gray-900"
+          className="h-8 text-xs bg-card border-border text-foreground"
         />
       </div>
 
       <div className="flex flex-col gap-3">
-        <label htmlFor="division-edit-order" className="text-[11px] font-medium text-gray-600">
+        <label htmlFor="division-edit-order" className="text-[11px] font-medium text-muted-foreground">
           {t("seasonStructure.fields.sortOrder")}
         </label>
         <Input
@@ -109,12 +109,12 @@ export function DivisionEditPanel({
           type="number"
           value={editOrder}
           onChange={(e) => setEditOrder(e.target.value)}
-          className="h-8 text-xs bg-white border-gray-200 text-gray-900"
+          className="h-8 text-xs bg-card border-border text-foreground"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="division-edit-goalie-min-games" className="text-[11px] font-medium text-gray-600">
+        <label htmlFor="division-edit-goalie-min-games" className="text-[11px] font-medium text-muted-foreground">
           {t("seasonStructure.fields.goalieMinGames")}
         </label>
         <Input
@@ -123,9 +123,9 @@ export function DivisionEditPanel({
           min={0}
           value={editGoalieMinGames}
           onChange={(e) => setEditGoalieMinGames(e.target.value)}
-          className="h-8 text-xs bg-white border-gray-200 text-gray-900 w-20"
+          className="h-8 text-xs bg-card border-border text-foreground w-20"
         />
-        <span className="text-[10px] text-gray-400">{t("seasonStructure.fields.goalieMinGamesHint")}</span>
+        <span className="text-[10px] text-muted-foreground/60">{t("seasonStructure.fields.goalieMinGamesHint")}</span>
       </div>
 
       <Button
@@ -138,13 +138,13 @@ export function DivisionEditPanel({
         {updateMutation.isPending ? t("saving") : t("save")}
       </Button>
 
-      <div className="border-t border-gray-200 pt-3 flex flex-col gap-2">
+      <div className="border-t border-border pt-3 flex flex-col gap-2">
         <Button
           variant="outline"
           size="sm"
           onClick={handleAddRound}
           disabled={createRoundMutation.isPending}
-          className="text-xs h-8 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          className="text-xs h-8 border-border text-muted-foreground hover:text-foreground hover:bg-secondary/50"
         >
           <Plus className="mr-1.5 h-3.5 w-3.5" />
           {t("seasonStructure.divisionPanel.addRound")}
@@ -155,7 +155,7 @@ export function DivisionEditPanel({
           size="sm"
           onClick={() => setDeleteDialogOpen(true)}
           disabled={deleteMutation.isPending}
-          className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="text-xs h-8 text-red-400 hover:text-red-400 hover:bg-red-500/10"
         >
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
           {t("seasonStructure.divisionPanel.deleteDivision")}
@@ -168,11 +168,11 @@ export function DivisionEditPanel({
         title={t("seasonStructure.confirmDelete.divisionTitle")}
         description={
           <div className="flex flex-col gap-3">
-            <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 p-3">
-              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-              <span className="text-sm text-red-800">{t("seasonStructure.confirmDelete.divisionWarning")}</span>
+            <div className="flex items-start gap-2 rounded-md bg-red-500/10 border border-red-500/20 p-3">
+              <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+              <span className="text-sm text-red-400">{t("seasonStructure.confirmDelete.divisionWarning")}</span>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {t("seasonStructure.confirmDelete.divisionDescription", { name: editName })}
             </p>
           </div>

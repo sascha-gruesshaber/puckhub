@@ -1,8 +1,7 @@
-import type { PrismaClient } from "@puckhub/db"
-import { type AiHomeWidgetType } from "@puckhub/db"
+import { createHash } from "node:crypto"
+import type { AiHomeWidgetType, PrismaClient } from "@puckhub/db"
 import OpenAI from "openai"
 import { checkAiEligibility } from "./aiRecapService"
-import { createHash } from "crypto"
 
 // ─── OpenRouter Client ──────────────────────────────────────────────────────
 
@@ -66,11 +65,7 @@ const WIDGET_FEATURE_NAMES: Record<AiHomeWidgetType, string> = {
 
 // ─── Data Gathering ─────────────────────────────────────────────────────────
 
-async function gatherLeagueContext(
-  db: PrismaClient,
-  organizationId: string,
-  seasonId: string,
-): Promise<LeagueContext> {
+async function gatherLeagueContext(db: PrismaClient, organizationId: string, seasonId: string): Promise<LeagueContext> {
   const settings = await db.systemSettings.findFirst({
     where: { organizationId },
     select: { leagueName: true, locale: true },
@@ -199,9 +194,7 @@ async function gatherLeagueContext(
       roundName: g.round.name,
       goals: g.events.map((e) => ({
         scorer: e.scorer ? `${e.scorer.firstName} ${e.scorer.lastName}` : "Unknown",
-        assists: [e.assist1, e.assist2]
-          .filter(Boolean)
-          .map((a) => `${a!.firstName} ${a!.lastName}`),
+        assists: [e.assist1, e.assist2].filter(Boolean).map((a) => `${a!.firstName} ${a!.lastName}`),
         team: e.team?.shortName ?? "",
       })),
     })),
@@ -249,7 +242,9 @@ function buildContextBlock(ctx: LeagueContext): string {
   if (ctx.standings.length > 0) {
     lines.push("\nStandings:")
     for (const s of ctx.standings) {
-      lines.push(`  ${s.team}: ${s.points}pts (${s.wins}W ${s.draws}D ${s.losses}L, GD ${s.goalDifference > 0 ? "+" : ""}${s.goalDifference})`)
+      lines.push(
+        `  ${s.team}: ${s.points}pts (${s.wins}W ${s.draws}D ${s.losses}L, GD ${s.goalDifference > 0 ? "+" : ""}${s.goalDifference})`,
+      )
     }
   }
 

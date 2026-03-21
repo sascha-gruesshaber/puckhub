@@ -15,6 +15,12 @@
   "draft": "Entwurf",
   "published": "Veröffentlicht",
   "logout": "Abmelden",
+  "playerStatus": {
+    "hobby": "Hobbyspieler",
+    "licensed": "Kontingent",
+    "tryout": "Probespieler",
+    "inactive": "Inaktiv"
+  },
   "sidebar": {
     "leagueAdmin": "Liga-Verwaltung",
     "groups": {
@@ -37,7 +43,7 @@
       "settings": "Einstellungen",
       "website": "Website",
       "security": "Sicherheit",
-      "dashboard": "Dashboard"
+      "dashboard": "Game Center"
     }
   },
   "login": {
@@ -385,14 +391,16 @@
     }
   },
   "dashboard": {
-    "title": "Dashboard",
+    "title": "Game Center",
     "subtitle": "Übersicht der aktuellen Saison",
-    "noSeason": "Bitte eine Arbeitssaison auswählen, um das Dashboard zu sehen.",
+    "noSeason": "Bitte eine Arbeitssaison auswählen, um das Game Center zu sehen.",
     "cards": {
       "teams": "Teams",
       "players": "Spieler",
       "completed": "Abgeschlossen",
+      "completedDesc": "Spiele mit bestätigten Ergebnissen",
       "remaining": "Ausstehend",
+      "remainingDesc": "Verbleibende Spiele diese Saison",
       "totalOf": "{total} insgesamt"
     },
     "sections": {
@@ -657,6 +665,8 @@
     "filters": {
       "all": "Alle",
       "allTeams": "Alle aktiven",
+      "allPositions": "Alle Positionen",
+      "allStatus": "Alle Status",
       "fallback": "Filter",
       "withoutTeam": "Ohne Team",
       "withoutTeamCount": "Ohne Team ({{count}})",
@@ -696,7 +706,8 @@
       "lastNamePlaceholder": "z.B. Mustermann",
       "dateOfBirth": "Geburtsdatum",
       "nationality": "Nationalität",
-      "nationalityPlaceholder": "z.B. DE"
+      "nationalityPlaceholder": "z.B. DE",
+      "status": "Spielerstatus"
     },
     "dialogs": {
       "newTitle": "Neuen Spieler erstellen",
@@ -1236,6 +1247,12 @@
       "title": "Trikot löschen",
       "description": "Bist du sicher, dass du {{name}} löschen möchtest? Bestehende Teamzuordnungen werden ebenfalls entfernt."
     },
+    "assignmentTypes": {
+      "home": "Heim",
+      "away": "Auswärts",
+      "alternate": "Alternativ",
+      "custom": "Benutzerdefiniert"
+    },
     "assignments": {
       "title": "Zuordnungen: {{name}}",
       "description": "Ordne dieses Trikot Teams zu und vergib beschreibende Namen.",
@@ -1244,6 +1261,7 @@
       "fields": {
         "team": "Team",
         "teamPlaceholder": "Team wählen...",
+        "assignmentType": "Typ",
         "label": "Bezeichnung",
         "labelPlaceholder": "z.B. Heimtrikot"
       },
@@ -1501,7 +1519,9 @@
         "scheduledAt": "Datum und Uhrzeit",
         "status": "Status",
         "homeGoals": "Heimtore",
-        "awayGoals": "Auswärtstore"
+        "awayGoals": "Auswärtstore",
+        "homeTrikot": "Trikot Heim",
+        "awayTrikot": "Trikot Auswärts"
       }
     },
     "placeholders": {
@@ -1514,7 +1534,8 @@
       "awayGoals": "Auswärtstore",
       "name": "Name",
       "city": "Stadt",
-      "address": "Adresse"
+      "address": "Adresse",
+      "noTrikot": "Kein Trikot"
     },
     "toast": {
       "error": "Fehler",
@@ -1798,7 +1819,8 @@
     "revertNotePlaceholder": "Grund für die Rücksetzung...",
     "revertSuccess": "Bericht erfolgreich zurückgesetzt.",
     "publicReportNotice": "Dieses Spiel wurde über eine öffentliche Meldung abgeschlossen.",
-    "viewPublicReports": "Öffentliche Berichte anzeigen"
+    "viewPublicReports": "Öffentliche Berichte anzeigen",
+    "loadMore": "Mehr laden"
   },
   "settingsPublicReports": {
     "title": "Öffentliche Spielberichte",

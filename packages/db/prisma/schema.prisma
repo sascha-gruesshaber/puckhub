@@ -48,6 +48,15 @@ enum GameEventType {
   @@map("game_event_type")
 }
 
+enum PlayerStatus {
+  hobby
+  licensed
+  tryout
+  inactive
+
+  @@map("player_status")
+}
+
 enum NewsStatus {
   draft
   published
@@ -418,15 +427,16 @@ model Team {
 }
 
 model Player {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  organizationId String   @map("organization_id")
-  firstName      String   @map("first_name")
-  lastName       String   @map("last_name")
-  dateOfBirth    DateTime?  @map("date_of_birth") @db.Date
+  id             String       @id @default(uuid(7)) @db.Uuid
+  organizationId String       @map("organization_id")
+  firstName      String       @map("first_name")
+  lastName       String       @map("last_name")
+  dateOfBirth    DateTime?    @map("date_of_birth") @db.Date
   nationality    String?
-  photoUrl       String?  @map("photo_url")
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  status         PlayerStatus @default(hobby)
+  photoUrl       String?      @map("photo_url")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   contracts         Contract[]
@@ -484,6 +494,8 @@ model Game {
   awayScore      Int?       @map("away_score")
   gameNumber     Int?       @map("game_number")
   notes          String?
+  homeTrikotId   String?    @map("home_trikot_id") @db.Uuid
+  awayTrikotId   String?    @map("away_trikot_id") @db.Uuid
   recapTitle       String?   @map("recap_title")
   recapContent     String?   @map("recap_content")
   recapGeneratedAt DateTime? @map("recap_generated_at") @db.Timestamptz
@@ -496,6 +508,8 @@ model Game {
   round           Round            @relation(fields: [roundId], references: [id], onDelete: Cascade)
   homeTeam        Team             @relation("homeTeam", fields: [homeTeamId], references: [id])
   awayTeam        Team             @relation("awayTeam", fields: [awayTeamId], references: [id])
+  homeTrikot      Trikot?          @relation("homeGameTrikot", fields: [homeTrikotId], references: [id], onDelete: SetNull)
+  awayTrikot      Trikot?          @relation("awayGameTrikot", fields: [awayTrikotId], references: [id], onDelete: SetNull)
   events          GameEvent[]
   lineups         GameLineup[]
   suspensions     GameSuspension[]
@@ -508,6 +522,8 @@ model Game {
   @@index([awayTeamId], map: "games_away_team_id_idx")
   @@index([scheduledAt], map: "games_scheduled_at_idx")
   @@index([organizationId], map: "games_org_id_idx")
+  @@index([homeTrikotId], map: "games_home_trikot_id_idx")
+  @@index([awayTrikotId], map: "games_away_trikot_id_idx")
   @@map("games")
 }
 
@@ -885,19 +901,31 @@ model Trikot {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   template     TrikotTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
   teamTrikots  TeamTrikot[]
+  homeGames    Game[] @relation("homeGameTrikot")
+  awayGames    Game[] @relation("awayGameTrikot")
 
   @@index([organizationId], map: "trikots_org_id_idx")
   @@map("trikots")
 }
 
+enum TrikotAssignmentType {
+  home
+  away
+  alternate
+  custom
+
+  @@map("trikot_assignment_type")
+}
+
 model TeamTrikot {
-  id             String   @id @default(uuid(7)) @db.Uuid
-  organizationId String   @map("organization_id")
-  teamId         String   @map("team_id") @db.Uuid
-  trikotId       String   @map("trikot_id") @db.Uuid
+  id             String               @id @default(uuid(7)) @db.Uuid
+  organizationId String               @map("organization_id")
+  teamId         String               @map("team_id") @db.Uuid
+  trikotId       String               @map("trikot_id") @db.Uuid
   name           String
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  assignmentType TrikotAssignmentType @default(custom) @map("assignment_type")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -1039,6 +1067,7 @@ model PublicGameReport {
   revertedBy           String?   @map("reverted_by")
   revertedAt           DateTime? @map("reverted_at") @db.Timestamptz
   revertNote           String?   @map("revert_note")
+  legacyData           Json?     @map("legacy_data")
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)

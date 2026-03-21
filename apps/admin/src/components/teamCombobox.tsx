@@ -71,7 +71,7 @@ export function TeamCombobox({
           data-testid={testId}
           className={cn(
             "relative w-full h-12 px-4 rounded-lg border-2 transition-all duration-200",
-            "bg-white hover:bg-gray-50",
+            "bg-card hover:bg-gray-50",
             "text-left flex items-center justify-between gap-3",
             open
               ? "border-accent shadow-lg shadow-accent/10 ring-4 ring-accent/5"

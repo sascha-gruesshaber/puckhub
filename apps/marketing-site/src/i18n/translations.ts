@@ -30,7 +30,7 @@ export const translations = {
       nextLabel: "Nächstes Feature",
       slides: [
         {
-          title: "Dashboard",
+          title: "Game Center",
           description:
             "Behalte den Überblick über deine gesamte Liga – anstehende Spiele, aktuelle Tabellen und die neuesten Ergebnisse auf einen Blick.",
         },
@@ -342,7 +342,7 @@ export const translations = {
       nextLabel: "Next feature",
       slides: [
         {
-          title: "Dashboard",
+          title: "Game Center",
           description:
             "Keep track of your entire league – upcoming games, current standings, and the latest results at a glance.",
         },

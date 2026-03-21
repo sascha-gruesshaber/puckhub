@@ -82,6 +82,7 @@ interface PlayerForm {
   lastName: string
   dateOfBirth: string
   nationality: string
+  status: string
   photoUrl: string
 }
 
@@ -90,6 +91,7 @@ const emptyForm: PlayerForm = {
   lastName: "",
   dateOfBirth: "",
   nationality: "",
+  status: "hobby",
   photoUrl: "",
 }
 
@@ -259,6 +261,7 @@ function PlayerDetailPage() {
       dateOfBirth:
         player.dateOfBirth instanceof Date ? player.dateOfBirth.toISOString().slice(0, 10) : player.dateOfBirth || "",
       nationality: player.nationality || "",
+      status: player.status || "hobby",
       photoUrl: player.photoUrl || "",
     })
     setFormErrors({})
@@ -290,6 +293,7 @@ function PlayerDetailPage() {
       lastName: form.lastName.trim(),
       dateOfBirth: form.dateOfBirth || undefined,
       nationality: form.nationality.trim() || undefined,
+      status: form.status as "hobby" | "licensed" | "tryout" | "inactive",
       photoUrl: form.photoUrl || undefined,
     })
   }
@@ -316,7 +320,7 @@ function PlayerDetailPage() {
             {/* ── Main content ── */}
             <div className="space-y-6">
               {/* Player Info Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6">
+              <div className="bg-card rounded-xl shadow-sm border border-border/50 p-6">
                 <h1 className="text-xl font-bold text-foreground mb-6">
                   {player.firstName} {player.lastName}
                 </h1>
@@ -355,6 +359,21 @@ function PlayerDetailPage() {
                           {player.nationality}
                         </span>
                       )}
+                      {player.status && (
+                        <span
+                          className={`inline-block text-xs rounded px-1.5 py-0.5 font-medium ${
+                            player.status === "licensed"
+                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                              : player.status === "tryout"
+                                ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                : player.status === "inactive"
+                                  ? "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                                  : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                          }`}
+                        >
+                          {t(`playerStatus.${player.status}`)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -390,7 +409,7 @@ function PlayerDetailPage() {
 
                 {activeTab === "contracts" &&
                   (sortedContracts.length === 0 ? (
-                    <div className="text-sm text-muted-foreground bg-white rounded-xl shadow-sm border border-border/50 p-6 text-center">
+                    <div className="text-sm text-muted-foreground bg-card rounded-xl shadow-sm border border-border/50 p-6 text-center">
                       {t("playersPage.playerDetail.noContracts")}
                     </div>
                   ) : (
@@ -404,7 +423,7 @@ function PlayerDetailPage() {
                         return (
                           <div
                             key={c.id}
-                            className={`bg-white rounded-xl shadow-sm border p-5 ${isActive ? `border-emerald-300 dark:border-emerald-700` : `border-border/50`}`}
+                            className={`bg-card rounded-xl shadow-sm border p-5 ${isActive ? `border-emerald-300 dark:border-emerald-700` : `border-border/50`}`}
                           >
                             {/* Header: team info + status */}
                             <div className="flex items-start justify-between gap-3">
@@ -525,7 +544,7 @@ function PlayerDetailPage() {
                       {t("playersPage.playerDetail.historyTable.noHistory")}
                     </p>
                   ) : (
-                    <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                    <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-border/40 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -702,6 +721,20 @@ function PlayerDetailPage() {
                       />
                     </FormField>
                   </div>
+
+                  {/* Status */}
+                  <FormField label={t("playersPage.fields.status")}>
+                    <select
+                      value={form.status}
+                      onChange={(e) => setField("status", e.target.value)}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                    >
+                      <option value="hobby">{t("playerStatus.hobby")}</option>
+                      <option value="licensed">{t("playerStatus.licensed")}</option>
+                      <option value="tryout">{t("playerStatus.tryout")}</option>
+                      <option value="inactive">{t("playerStatus.inactive")}</option>
+                    </select>
+                  </FormField>
                 </SheetBody>
 
                 <SheetFooter>

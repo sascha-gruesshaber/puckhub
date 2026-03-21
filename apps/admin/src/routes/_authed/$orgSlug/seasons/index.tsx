@@ -276,7 +276,7 @@ function SeasonsPage() {
         ) : filtered.length === 0 ? (
           <NoResults query={search || t("seasonsPage.filterFallback")} />
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((season, i) => {
               const divisionCount = structureCounts?.[season.id] ?? 0
               const created = season.createdAt instanceof Date ? season.createdAt : new Date(season.createdAt)

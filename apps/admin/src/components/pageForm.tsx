@@ -153,7 +153,7 @@ export function PageForm({
         {/* Main content area */}
         <div className="space-y-5">
           {isSystemRoute && (
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-400">
               {t("pageForm.systemRouteInfo")}
             </div>
           )}
@@ -300,12 +300,8 @@ export function PageForm({
               <div className="border-t pt-4">
                 <Label className="text-sm font-medium mb-2 block">{t("seoPreview.title")}</Label>
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-1.5">
-                  {seoTitle && (
-                    <p className="text-sm font-semibold text-blue-700 truncate">{seoTitle}</p>
-                  )}
-                  {seoDescription && (
-                    <p className="text-xs text-muted-foreground line-clamp-3">{seoDescription}</p>
-                  )}
+                  {seoTitle && <p className="text-sm font-semibold text-blue-400 truncate">{seoTitle}</p>}
+                  {seoDescription && <p className="text-xs text-muted-foreground line-clamp-3">{seoDescription}</p>}
                 </div>
               </div>
             )}

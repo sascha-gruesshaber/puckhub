@@ -15,6 +15,12 @@
   "draft": "Draft",
   "published": "Published",
   "logout": "Sign out",
+  "playerStatus": {
+    "hobby": "Recreational",
+    "licensed": "Licensed",
+    "tryout": "Tryout",
+    "inactive": "Inactive"
+  },
   "sidebar": {
     "leagueAdmin": "League management",
     "groups": {
@@ -37,7 +43,7 @@
       "settings": "Settings",
       "website": "Website",
       "security": "Security",
-      "dashboard": "Dashboard"
+      "dashboard": "Game Center"
     }
   },
   "login": {
@@ -385,14 +391,16 @@
     }
   },
   "dashboard": {
-    "title": "Dashboard",
+    "title": "Game Center",
     "subtitle": "Overview of the current season",
-    "noSeason": "Please select a working season to view the dashboard.",
+    "noSeason": "Please select a working season to view the Game Center.",
     "cards": {
       "teams": "Teams",
       "players": "Players",
       "completed": "Completed",
+      "completedDesc": "Games with verified results",
       "remaining": "Remaining",
+      "remainingDesc": "Games left this season",
       "totalOf": "{total} total"
     },
     "sections": {
@@ -657,6 +665,8 @@
     "filters": {
       "all": "All",
       "allTeams": "All active",
+      "allPositions": "All positions",
+      "allStatus": "All status",
       "fallback": "Filter",
       "withoutTeam": "Without team",
       "withoutTeamCount": "Without team ({{count}})",
@@ -696,7 +706,8 @@
       "lastNamePlaceholder": "e.g. Mustermann",
       "dateOfBirth": "Date of birth",
       "nationality": "Nationality",
-      "nationalityPlaceholder": "e.g. DE"
+      "nationalityPlaceholder": "e.g. DE",
+      "status": "Player status"
     },
     "dialogs": {
       "newTitle": "Create new player",
@@ -1236,6 +1247,12 @@
       "title": "Delete jersey",
       "description": "Are you sure you want to delete {{name}}? Existing team assignments will also be removed."
     },
+    "assignmentTypes": {
+      "home": "Home",
+      "away": "Away",
+      "alternate": "Alternate",
+      "custom": "Custom"
+    },
     "assignments": {
       "title": "Assignments: {{name}}",
       "description": "Assign this jersey to teams and give descriptive names.",
@@ -1244,6 +1261,7 @@
       "fields": {
         "team": "Team",
         "teamPlaceholder": "Select team...",
+        "assignmentType": "Type",
         "label": "Label",
         "labelPlaceholder": "e.g. Home jersey"
       },
@@ -1501,7 +1519,9 @@
         "scheduledAt": "Date and time",
         "status": "Status",
         "homeGoals": "Home goals",
-        "awayGoals": "Away goals"
+        "awayGoals": "Away goals",
+        "homeTrikot": "Home Jersey",
+        "awayTrikot": "Away Jersey"
       }
     },
     "placeholders": {
@@ -1514,7 +1534,8 @@
       "awayGoals": "Away goals",
       "name": "Name",
       "city": "City",
-      "address": "Address"
+      "address": "Address",
+      "noTrikot": "No jersey"
     },
     "toast": {
       "error": "Error",
@@ -1798,7 +1819,8 @@
     "revertNotePlaceholder": "Reason for reverting...",
     "revertSuccess": "Report reverted successfully.",
     "publicReportNotice": "This game was completed via a public submission.",
-    "viewPublicReports": "View public reports"
+    "viewPublicReports": "View public reports",
+    "loadMore": "Load more"
   },
   "settingsPublicReports": {
     "title": "Public Game Reports",

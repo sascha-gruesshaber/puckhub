@@ -90,7 +90,7 @@ describe("publicGameReport router", () => {
       await createPublicReportFixtures()
       const admin = createTestCaller({ asAdmin: true })
       const result = await admin.publicGameReport.list({ limit: 50 })
-      expect(result).toEqual([])
+      expect(result.items).toEqual([])
     })
 
     it("returns reports with game details", async () => {
@@ -109,11 +109,11 @@ describe("publicGameReport router", () => {
 
       const admin = createTestCaller({ asAdmin: true })
       const result = await admin.publicGameReport.list({ limit: 50 })
-      expect(result).toHaveLength(1)
-      expect(result[0]!.homeScore).toBe(3)
-      expect(result[0]!.awayScore).toBe(2)
-      expect(result[0]!.game.homeTeam.shortName).toBe("EAG")
-      expect(result[0]!.game.awayTeam.shortName).toBe("WOL")
+      expect(result.items).toHaveLength(1)
+      expect(result.items[0]!.homeScore).toBe(3)
+      expect(result.items[0]!.awayScore).toBe(2)
+      expect(result.items[0]!.game.homeTeam.shortName).toBe("EAG")
+      expect(result.items[0]!.game.awayTeam.shortName).toBe("WOL")
     })
 
     it("filters by reverted status", async () => {
@@ -146,12 +146,12 @@ describe("publicGameReport router", () => {
       const admin = createTestCaller({ asAdmin: true })
 
       const active = await admin.publicGameReport.list({ reverted: false, limit: 50 })
-      expect(active).toHaveLength(1)
-      expect(active[0]!.submitterEmailMasked).toBe("a***@example.com")
+      expect(active.items).toHaveLength(1)
+      expect(active.items[0]!.submitterEmailMasked).toBe("a***@example.com")
 
       const reverted = await admin.publicGameReport.list({ reverted: true, limit: 50 })
-      expect(reverted).toHaveLength(1)
-      expect(reverted[0]!.submitterEmailMasked).toBe("b***@example.com")
+      expect(reverted.items).toHaveLength(1)
+      expect(reverted.items[0]!.submitterEmailMasked).toBe("b***@example.com")
     })
 
     it("rejects unauthenticated calls", async () => {
@@ -172,7 +172,7 @@ describe("publicGameReport router", () => {
     it("returns 0 when no active reports", async () => {
       await createPublicReportFixtures()
       const admin = createTestCaller({ asAdmin: true })
-      const result = await admin.publicGameReport.count()
+      const result = await admin.publicGameReport.count({})
       expect(result.count).toBe(0)
     })
 
@@ -204,8 +204,33 @@ describe("publicGameReport router", () => {
       })
 
       const admin = createTestCaller({ asAdmin: true })
-      const result = await admin.publicGameReport.count()
+      const result = await admin.publicGameReport.count({})
       expect(result.count).toBe(1)
+    })
+
+    it("filters by seasonId when provided", async () => {
+      const { db, game, season } = await createPublicReportFixtures()
+
+      await db.publicGameReport.create({
+        data: {
+          organizationId: TEST_ORG_ID,
+          gameId: game.id,
+          homeScore: 3,
+          awayScore: 2,
+          submitterEmailHash: "hash-alice",
+          submitterEmailMasked: "a***@example.com",
+        },
+      })
+
+      const admin = createTestCaller({ asAdmin: true })
+
+      // With matching seasonId — should find the report
+      const withSeason = await admin.publicGameReport.count({ seasonId: season.id })
+      expect(withSeason.count).toBe(1)
+
+      // With non-existent seasonId — should find nothing
+      const otherSeason = await admin.publicGameReport.count({ seasonId: "00000000-0000-0000-0000-000000000000" })
+      expect(otherSeason.count).toBe(0)
     })
   })
 

@@ -18,7 +18,7 @@ function AuthedLayout() {
 
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: "#f8fafc" }}>
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div
           className="flex h-11 w-11 items-center justify-center rounded-xl"
           style={{
@@ -51,7 +51,7 @@ function AuthedLayout() {
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: "#f8fafc" }}>
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="max-w-sm text-center">
           <h1 className="text-lg font-bold text-foreground">Access Denied</h1>
           <p className="mt-2 text-sm text-muted-foreground">

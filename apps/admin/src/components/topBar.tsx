@@ -72,7 +72,6 @@ function SeasonSection() {
         style={{
           height: TOPBAR_CONTROL_HEIGHT,
           border: "1px dashed hsl(var(--border))",
-          background: "white",
         }}
       >
         <Plus size={16} strokeWidth={1.5} style={{ color: "hsl(var(--muted-foreground))" }} />
@@ -200,7 +199,7 @@ function AiUsageIndicator() {
       params={{ orgSlug }}
       className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors ${
         percent >= 80
-          ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
+          ? "text-amber-400 bg-amber-500/15 hover:bg-amber-500/25"
           : "text-muted-foreground bg-muted/50 hover:bg-muted"
       }`}
       title={`AI: ${aiUsage.used.toLocaleString()} / ${aiUsage.limit?.toLocaleString()} tokens`}

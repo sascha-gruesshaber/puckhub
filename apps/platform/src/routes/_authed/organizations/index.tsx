@@ -368,7 +368,7 @@ function OrganizationsPage() {
           ))}
         </div>
       ) : !orgs || orgs.length === 0 ? (
-        <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-border/50 bg-card p-8 text-center shadow-sm">
           <Building2 size={32} className="mx-auto mb-3 text-muted-foreground" />
           <p className="font-medium text-foreground">No leagues yet</p>
           <p className="mt-1 text-sm text-muted-foreground">Create the first league to get started.</p>
@@ -378,7 +378,7 @@ function OrganizationsPage() {
           </Button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
           {orgs.map((org, i) => (
             <div
               key={org.id}

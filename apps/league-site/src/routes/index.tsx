@@ -561,7 +561,6 @@ function HomePage() {
               ) : (
                 <EmptyState title={t.home.noNews} description={t.home.noNewsDesc} />
               )}
-
             </div>
 
             {/* Right column: Sidebar */}

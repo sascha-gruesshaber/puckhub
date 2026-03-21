@@ -1610,15 +1610,40 @@ export async function seedDemoOrg(db: Database): Promise<void> {
       teamId: team.id,
       trikotId: homeTrikot.id,
       name: "Home",
+      assignmentType: "home" as const,
     })
     teamTrikotValues.push({
       organizationId: DEMO_ORG_ID,
       teamId: team.id,
       trikotId: awayTrikot.id,
       name: "Away",
+      assignmentType: "away" as const,
     })
   }
   await db.teamTrikot.createMany({ data: teamTrikotValues })
+
+  // ── 12b. Assign trikots to games ───────────────────────────────────
+  console.log("[demo-seed] Assigning trikots to games...")
+  const teamTrikotLookup = new Map<string, { home: string; away: string }>()
+  for (let t = 0; t < insertedTeams.length; t++) {
+    const team = insertedTeams[t]!
+    const homeTrikot = insertedTrikots[t * 2]!
+    const awayTrikot = insertedTrikots[t * 2 + 1]!
+    teamTrikotLookup.set(team.id, { home: homeTrikot.id, away: awayTrikot.id })
+  }
+  const trikotUpdates = insertedGames.map((g) => {
+    const homeTrikots = teamTrikotLookup.get(g.homeTeamId)
+    const awayTrikots = teamTrikotLookup.get(g.awayTeamId)
+    return db.game.update({
+      where: { id: g.id },
+      data: {
+        homeTrikotId: homeTrikots?.home ?? null,
+        awayTrikotId: awayTrikots?.away ?? null,
+      },
+    })
+  })
+  await db.$transaction(trikotUpdates)
+  console.log(`[demo-seed]    → ${trikotUpdates.length} games updated with trikot assignments`)
 
   // ── 13. Sponsors ─────────────────────────────────────────────────────
   console.log("[demo-seed] Seeding sponsors...")

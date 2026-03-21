@@ -23,6 +23,7 @@ import type {
   LegacyPlayer,
   LegacyPlayerTeam,
   LegacyReport,
+  LegacyResultService,
   LegacySeason,
   LegacyTeam,
   LegacyTeamLineUp,
@@ -103,6 +104,7 @@ interface LegacyData {
   news: LegacyNews[]
   lineups: LegacyTeamLineUp[]
   trikots: LegacyTrikot[]
+  resultServices: LegacyResultService[]
 }
 
 async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
@@ -122,6 +124,7 @@ async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
     news,
     lineups,
     trikots,
+    resultServices,
   ] = await Promise.all([
     query<LegacyTeam>(
       conn,
@@ -137,7 +140,7 @@ async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
     query<LegacyPlayerTeam>(conn, "SELECT * FROM alPlayerTeam ORDER BY id"),
     query<LegacyGame>(
       conn,
-      "SELECT id, team_home, team_guest, term, location, goals_home, goals_guest, decided, round, saisonID, game_nr FROM alGames ORDER BY id",
+      "SELECT id, team_home, team_guest, term, location, goals_home, goals_guest, decided, round, saisonID, game_nr, home_trikot, guest_trikot FROM alGames ORDER BY id",
     ),
     query<LegacyReport>(conn, "SELECT * FROM alReport ORDER BY id"),
     query<LegacyGoalieStat>(conn, "SELECT * FROM alGoalieStatistic ORDER BY id"),
@@ -145,10 +148,11 @@ async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
     query<LegacyNews>(conn, "SELECT * FROM alNews ORDER BY id"),
     query<LegacyTeamLineUp>(conn, "SELECT * FROM alTeamLineUp ORDER BY id"),
     query<LegacyTrikot>(conn, "SELECT * FROM alTrikots ORDER BY id"),
+    query<LegacyResultService>(conn, "SELECT * FROM alResultService ORDER BY id"),
   ])
 
   console.log(
-    `[legacy] Loaded: ${teams.length} teams, ${seasons.length} seasons, ${players.length} players, ${games.length} games, ${reports.length} report entries, ${goalieStats.length} goalie stats, ${trikots.length} trikots, ${news.length} news`,
+    `[legacy] Loaded: ${teams.length} teams, ${seasons.length} seasons, ${players.length} players, ${games.length} games, ${reports.length} report entries, ${goalieStats.length} goalie stats, ${trikots.length} trikots, ${news.length} news, ${resultServices.length} public reports`,
   )
 
   return {
@@ -165,6 +169,7 @@ async function loadLegacyData(conn: mysql.Connection): Promise<LegacyData> {
     news,
     lineups,
     trikots,
+    resultServices,
   }
 }
 
@@ -430,6 +435,7 @@ export async function analyzeLegacy(conn: mysql.Connection): Promise<LegacyData>
   )
   console.log(`  News articles: ${data.news.length}`)
   console.log(`  Game lineups: ${data.lineups.length}`)
+  console.log(`  Public game reports: ${data.resultServices.length}`)
 
   console.log("\n══════════════════════════════════════════════════════════\n")
 
@@ -618,11 +624,11 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   const oneColorTemplate = templateByType.get("one_color")
   const twoColorTemplate = templateByType.get("two_color")
 
+  const trikotUuidMap = new Map<number, string>() // legacy trikot ID → new UUID (hoisted for game mapping)
   if (!oneColorTemplate || !twoColorTemplate) {
     console.log("[step 3b]    ⚠ TrikotTemplates not found — run db:seed first. Skipping trikots.")
   } else {
     // Create Trikot records (skip id=3 which is a placeholder with template_id=0)
-    const trikotUuidMap = new Map<number, string>() // legacy trikot ID → new UUID
     const validTrikots = data.trikots.filter((t) => t.id !== 3 && (t.template_id === 1 || t.template_id === 2))
 
     if (validTrikots.length > 0) {
@@ -642,23 +648,33 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
     console.log(`[step 3b]   → ${trikotUuidMap.size} trikots created`)
 
     // Create TeamTrikot assignments
-    const teamTrikotValues: Array<{ organizationId: string; teamId: string; trikotId: string; name: string }> = []
+    const teamTrikotValues: Array<{
+      organizationId: string
+      teamId: string
+      trikotId: string
+      name: string
+      assignmentType: "home" | "away" | "alternate" | "custom"
+    }> = []
 
     for (const team of data.teams) {
       const teamUuid = teamUuidMap.get(team.id)
       if (!teamUuid) continue
 
-      const assignments: Array<{ legacyTrikotId: number | null; name: string }> = [
-        { legacyTrikotId: team.trikot_1, name: "Heim" },
-        { legacyTrikotId: team.trikot_2, name: "Auswärts" },
-        { legacyTrikotId: team.trikot_3, name: "Alternativ" },
+      const assignments: Array<{
+        legacyTrikotId: number | null
+        name: string
+        assignmentType: "home" | "away" | "alternate"
+      }> = [
+        { legacyTrikotId: team.trikot_1, name: "Heim", assignmentType: "home" },
+        { legacyTrikotId: team.trikot_2, name: "Auswärts", assignmentType: "away" },
+        { legacyTrikotId: team.trikot_3, name: "Alternativ", assignmentType: "alternate" },
       ]
 
-      for (const { legacyTrikotId, name } of assignments) {
+      for (const { legacyTrikotId, name, assignmentType } of assignments) {
         if (!legacyTrikotId) continue
         const trikotUuid = trikotUuidMap.get(legacyTrikotId)
         if (!trikotUuid) continue
-        teamTrikotValues.push({ organizationId: ORG_ID, teamId: teamUuid, trikotId: trikotUuid, name })
+        teamTrikotValues.push({ organizationId: ORG_ID, teamId: teamUuid, trikotId: trikotUuid, name, assignmentType })
       }
     }
 
@@ -777,6 +793,7 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       firstName: p.firstname.trim(),
       lastName: p.lastname.trim(),
       dateOfBirth: parseLegacyDate(p.birthday),
+      status: legacyStatusToPlayerStatus(p.status),
     })),
   })
   data.players.forEach((p, i) => {
@@ -961,6 +978,8 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
       homeScore: isCompleted ? (g.goals_home ?? 0) : null,
       awayScore: isCompleted ? (g.goals_guest ?? 0) : null,
       gameNumber: g.game_nr,
+      homeTrikotId: trikotUuidMap.get(g.home_trikot) ?? null,
+      awayTrikotId: trikotUuidMap.get(g.guest_trikot) ?? null,
       finalizedAt: isCompleted ? g.term : null,
       _legacyId: g.id, // temporarily stored for mapping, stripped before insert
     })
@@ -1238,6 +1257,100 @@ export async function migrateLegacy(db: Database, conn: mysql.Connection): Promi
   }
   console.log(`[step 14]   → ${newsValues.length} news articles`)
 
+  // ── Step 14b: Public Game Reports ──────────────────────────────────
+  console.log("[step 14b] Creating public game reports...")
+  const reportValues: Array<any> = []
+  let unmatchedReports = 0
+
+  // Build lookups for matching
+  const rsTeamNameMap = new Map(data.teams.map((t) => [t.id, t.name]))
+  const gamesByMatchup = new Map<string, LegacyGame[]>()
+  for (const g of data.games) {
+    const key = `${g.team_home}:${g.team_guest}:${g.saisonID}:${g.goals_home}:${g.goals_guest}`
+    if (!gamesByMatchup.has(key)) gamesByMatchup.set(key, [])
+    gamesByMatchup.get(key)!.push(g)
+  }
+
+  for (const rs of data.resultServices) {
+    // Match by teams + season + score
+    const key = `${rs.home}:${rs.guest}:${rs.saisonID}:${rs.homegoals}:${rs.guestgoals}`
+    const candidates = gamesByMatchup.get(key)
+
+    let matchedGameId: number | null = null
+    if (candidates && candidates.length === 1) {
+      matchedGameId = candidates[0]!.id
+    } else if (candidates && candidates.length > 1) {
+      // Disambiguate by closest date to the report submission
+      const rsDate = new Date(rs.postdate).getTime()
+      let bestGame = candidates[0]!
+      let bestDiff = Math.abs(new Date(bestGame.term).getTime() - rsDate)
+      for (let i = 1; i < candidates.length; i++) {
+        const diff = Math.abs(new Date(candidates[i]!.term).getTime() - rsDate)
+        if (diff < bestDiff) {
+          bestDiff = diff
+          bestGame = candidates[i]!
+        }
+      }
+      matchedGameId = bestGame.id
+    }
+
+    if (!matchedGameId) {
+      // Fallback: try matching without score (for reports where score differs from final)
+      const fallbackGames = data.games.filter(
+        (g) => g.team_home === rs.home && g.team_guest === rs.guest && g.saisonID === rs.saisonID,
+      )
+      if (fallbackGames.length > 0) {
+        const rsDate = new Date(rs.postdate).getTime()
+        let bestGame = fallbackGames[0]!
+        let bestDiff = Math.abs(new Date(bestGame.term).getTime() - rsDate)
+        for (let i = 1; i < fallbackGames.length; i++) {
+          const diff = Math.abs(new Date(fallbackGames[i]!.term).getTime() - rsDate)
+          if (diff < bestDiff) {
+            bestDiff = diff
+            bestGame = fallbackGames[i]!
+          }
+        }
+        matchedGameId = bestGame.id
+      }
+    }
+
+    const gameUuid = matchedGameId ? gameUuidMap.get(matchedGameId) : null
+    if (!gameUuid) {
+      unmatchedReports++
+      continue
+    }
+
+    // Merge comment + penaltycomment
+    const parts: string[] = []
+    if (rs.comment) parts.push(rs.comment)
+    if (rs.penaltycomment) parts.push(`Strafen: ${rs.penaltycomment}`)
+    const mergedComment = parts.length > 0 ? parts.join("\n\n") : null
+
+    reportValues.push({
+      organizationId: ORG_ID,
+      gameId: gameUuid,
+      homeScore: rs.homegoals,
+      awayScore: rs.guestgoals,
+      comment: mergedComment,
+      legacyData: {
+        submitterName: rs.postername,
+        submitterTeamId: rs.posterteam,
+        submitterTeamName: rsTeamNameMap.get(rs.posterteam) ?? null,
+        protest: rs.protest === 1,
+        legacyId: rs.id,
+      },
+      createdAt: rs.postdate,
+    })
+  }
+
+  for (let i = 0; i < reportValues.length; i += BATCH_SIZE) {
+    await db.publicGameReport.createMany({ data: reportValues.slice(i, i + BATCH_SIZE) })
+  }
+  if (unmatchedReports > 0) {
+    console.log(`[step 14b]  ⚠ ${unmatchedReports} public reports could not be matched to a game`)
+  }
+  console.log(`[step 14b]  → ${reportValues.length} public game reports created`)
+
   // ── Step 15: Recalculate standings ───────────────────────────────────
   console.log("[step 15] Recalculating standings for all rounds...")
   let standingsCount = 0
@@ -1289,6 +1402,7 @@ async function printVerification(db: Database, data: LegacyData): Promise<void> 
   const newGameLineups = await db.gameLineup.count({ where: { organizationId: ORG_ID } })
   const newTeamLogos = await db.team.count({ where: { organizationId: ORG_ID, logoUrl: { not: null } } })
   const newTeamPhotos = await db.team.count({ where: { organizationId: ORG_ID, teamPhotoUrl: { not: null } } })
+  const newPublicReports = await db.publicGameReport.count({ where: { organizationId: ORG_ID } })
 
   const decidedGames = data.games.filter((g) => g.decided === 1).length
   const legacyGoals = data.reports.filter((r) => r.goal > 0).length
@@ -1319,6 +1433,7 @@ async function printVerification(db: Database, data: LegacyData): Promise<void> 
     `Contracts          | ${String(data.playerTeams.filter((pt) => pt.active === 1).length).padStart(11)} | ${newContracts} (consolidated)`,
   )
   console.log(`News               | ${String(data.news.length).padStart(11)} | ${newNews}`)
+  console.log(`Public reports     | ${String(data.resultServices.length).padStart(11)} | ${newPublicReports}`)
   console.log(`Standings          |           — | ${newStandings}`)
   console.log(`Player season stats|           — | ${newPlayerStats}`)
   console.log(`Goalie season stats|           — | ${newGoalieSeasonStats}`)
@@ -1462,6 +1577,21 @@ function derivePeriod(playminute: number): number {
   if (playminute < 20) return 1
   if (playminute < 40) return 2
   return 3
+}
+
+/** Map legacy status to PlayerStatus enum.
+ *  Legacy: 0=Kontingentspieler, 1=Hobbyspieler, 2=Kontingentspieler Ü40, 999=XXX */
+function legacyStatusToPlayerStatus(status: number): "hobby" | "licensed" | "tryout" | "inactive" {
+  switch (status) {
+    case 0:
+      return "licensed" // Kontingentspieler
+    case 2:
+      return "licensed" // Kontingentspieler Ü40 (age derived from birthdate)
+    case 999:
+      return "inactive" // XXX (garbage/placeholder)
+    default:
+      return "hobby" // Hobbyspieler (status=1 and any unknown)
+  }
 }
 
 /** Map legacy posID to Position enum */

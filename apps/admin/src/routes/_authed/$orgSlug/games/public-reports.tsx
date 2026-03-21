@@ -1,6 +1,6 @@
 import { Badge, Button, Card, CardContent, toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { AlertTriangle, FileText, RotateCcw } from "lucide-react"
+import { AlertTriangle, FileText, Loader2, RotateCcw } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
@@ -22,10 +22,15 @@ function PublicReportsPage() {
   const utils = trpc.useUtils()
   const { season } = useWorkingSeason()
 
-  const { data: reports, isLoading } = trpc.publicGameReport.list.useQuery({
-    seasonId: season?.id,
-    limit: 50,
-  })
+  const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    trpc.publicGameReport.list.useInfiniteQuery(
+      { seasonId: season?.id, limit: 50 },
+      {
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+      },
+    )
+
+  const reports = data?.pages.flatMap((p) => p.items) ?? []
 
   const [revertId, setRevertId] = useState<string | null>(null)
   const [revertNote, setRevertNote] = useState("")
@@ -73,7 +78,7 @@ function PublicReportsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : !reports || reports.length === 0 ? (
+      ) : reports.length === 0 ? (
         <EmptyState
           icon={<FileText className="w-7 h-7 text-muted-foreground" />}
           title={t("publicReports.empty")}
@@ -155,6 +160,14 @@ function PublicReportsPage() {
                 </tbody>
               </table>
             </div>
+            {hasNextPage && (
+              <div className="flex justify-center py-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                  {isFetchingNextPage && <Loader2 className="w-3 h-3 mr-2 animate-spin" />}
+                  {t("publicReports.loadMore")}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

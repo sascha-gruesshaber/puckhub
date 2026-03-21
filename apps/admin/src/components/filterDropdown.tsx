@@ -120,7 +120,7 @@ function FilterDropdown({
             "filter-pill flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 cursor-pointer transition-colors",
             hasSelection
               ? "filter-pill--active bg-primary text-primary-foreground"
-              : "bg-white border border-border text-muted-foreground hover:text-foreground",
+              : "bg-card border border-border text-muted-foreground hover:text-foreground",
             className,
           )}
         >

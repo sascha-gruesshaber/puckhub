@@ -129,6 +129,12 @@ export const gameRouter = router({
           },
           homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
           awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+          homeTrikot: {
+            select: { id: true, primaryColor: true, secondaryColor: true, template: { select: { svg: true } } },
+          },
+          awayTrikot: {
+            select: { id: true, primaryColor: true, secondaryColor: true, template: { select: { svg: true } } },
+          },
         },
         orderBy: [{ scheduledAt: "asc" }, { gameNumber: "asc" }, { createdAt: "asc" }],
       })
@@ -150,6 +156,8 @@ export const gameRouter = router({
         },
         homeTeam: true,
         awayTeam: true,
+        homeTrikot: { include: { template: true } },
+        awayTrikot: { include: { template: true } },
       },
     })
   }),
@@ -164,6 +172,8 @@ export const gameRouter = router({
         scheduledAt: z.string().datetime().optional(),
         gameNumber: z.number().int().optional(),
         notes: z.string().optional(),
+        homeTrikotId: z.string().uuid().optional(),
+        awayTrikotId: z.string().uuid().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -175,6 +185,28 @@ export const gameRouter = router({
         select: { homeVenue: true },
       })
 
+      // Auto-assign trikots from team defaults if not explicitly provided
+      let homeTrikotId = input.homeTrikotId
+      let awayTrikotId = input.awayTrikotId
+      if (!homeTrikotId || !awayTrikotId) {
+        const defaults = await ctx.db.teamTrikot.findMany({
+          where: {
+            organizationId: ctx.organizationId,
+            OR: [
+              { teamId: input.homeTeamId, assignmentType: "home" },
+              { teamId: input.awayTeamId, assignmentType: "away" },
+            ],
+          },
+          select: { teamId: true, trikotId: true, assignmentType: true },
+        })
+        if (!homeTrikotId) {
+          homeTrikotId = defaults.find((d) => d.teamId === input.homeTeamId && d.assignmentType === "home")?.trikotId
+        }
+        if (!awayTrikotId) {
+          awayTrikotId = defaults.find((d) => d.teamId === input.awayTeamId && d.assignmentType === "away")?.trikotId
+        }
+      }
+
       const game = await ctx.db.game.create({
         data: {
           organizationId: ctx.organizationId,
@@ -185,6 +217,8 @@ export const gameRouter = router({
           scheduledAt: input.scheduledAt ? new Date(input.scheduledAt) : undefined,
           gameNumber: input.gameNumber,
           notes: input.notes,
+          homeTrikotId,
+          awayTrikotId,
         },
       })
 
@@ -202,6 +236,8 @@ export const gameRouter = router({
         scheduledAt: z.string().datetime().nullable().optional(),
         gameNumber: z.number().int().nullable().optional(),
         notes: z.string().nullable().optional(),
+        homeTrikotId: z.string().uuid().nullable().optional(),
+        awayTrikotId: z.string().uuid().nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -219,8 +255,8 @@ export const gameRouter = router({
         requireRole(ctx, "game_manager")
       }
 
-      // Allow notes-only updates on completed/cancelled games
-      const isNotesOnly = Object.keys(data).every((k) => k === "notes")
+      // Allow notes-only and trikot-only updates on completed/cancelled games
+      const isNotesOnly = Object.keys(data).every((k) => k === "notes" || k === "homeTrikotId" || k === "awayTrikotId")
       if ((existing.status === "completed" || existing.status === "cancelled") && !isNotesOnly) {
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_NOT_EDITABLE)
       }

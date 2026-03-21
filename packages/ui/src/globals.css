@@ -6,29 +6,29 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 215 55% 23%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 354 85% 42%;
-    --secondary-foreground: 210 40% 98%;
-    --accent: 44 87% 65%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --destructive: 0 84.2% 60.2%;
+    --background: 222 54% 9.5%;
+    --foreground: 222 40% 93%;
+    --card: 222 35% 15%;
+    --card-foreground: 222 40% 93%;
+    --popover: 222 33% 16%;
+    --popover-foreground: 222 40% 93%;
+    --primary: 44 87% 66%;
+    --primary-foreground: 222 54% 9.5%;
+    --secondary: 222 28% 19%;
+    --secondary-foreground: 222 30% 80%;
+    --accent: 44 87% 66%;
+    --accent-foreground: 222 54% 9.5%;
+    --muted: 222 28% 19%;
+    --muted-foreground: 215 16% 56%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 44 87% 65%;
+    --border: 222 25% 21%;
+    --input: 222 25% 21%;
+    --ring: 44 87% 66%;
     --radius: 0.5rem;
 
     --sidebar-width: 260px;
-    --sidebar-bg: #0c1929;
+    --sidebar-bg: #080e1e;
     --sidebar-text: #a8b8cc;
     --sidebar-text-hover: #e2e8f0;
     --sidebar-text-muted: #5a7394;
@@ -36,7 +36,7 @@
     --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
     --sidebar-active-bg: rgba(244, 211, 94, 0.08);
     --sidebar-border: rgba(255, 255, 255, 0.08);
-    --content-bg: #f5f6fa;
+    --content-bg: #0e1729;
     --brand-logo-size: 34px;
   }
 }
@@ -152,7 +152,8 @@
   justify-content: space-between;
   height: 52px;
   padding: 0 12px;
-  background: #ffffff;
+  background: hsl(var(--background) / 0.82);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid hsl(var(--border));
 }
 
@@ -254,8 +255,8 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #047857;
-  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.15);
   padding: 2px 6px;
   border-radius: 999px;
 }

@@ -209,8 +209,23 @@ export function TeamDetailPage() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm truncate">
+                            <div className="font-medium text-sm truncate flex items-center gap-1.5">
                               {p.firstName} {p.lastName}
+                              {p.status && (
+                                <span
+                                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                    p.status === "licensed"
+                                      ? "bg-blue-500/10 text-blue-600"
+                                      : p.status === "tryout"
+                                        ? "bg-amber-500/10 text-amber-600"
+                                        : p.status === "inactive"
+                                          ? "bg-league-text/[0.06] text-league-text/40"
+                                          : "bg-emerald-500/10 text-emerald-600"
+                                  }`}
+                                >
+                                  {t.playerStatus[p.status as keyof typeof t.playerStatus]}
+                                </span>
+                              )}
                             </div>
                           </div>
                           <span className="text-league-text/30 tabular-nums font-bold text-sm flex-shrink-0">

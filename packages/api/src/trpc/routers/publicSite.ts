@@ -51,18 +51,22 @@ export const publicSiteRouter = router({
       ctx.db.systemSettings.findUnique({
         where: { organizationId: config.organizationId },
       }),
-      ctx.db.orgSubscription.findUnique({
-        where: { organizationId: config.organizationId },
-        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
-      }).catch(() => null),
-      ctx.db.organization.findUnique({
-        where: { id: config.organizationId },
-        select: {
-          aiEnabled: true,
-          aiWidgetLeaguePulse: true,
-          aiWidgetHeadlinesTicker: true,
-        },
-      }).catch(() => null),
+      ctx.db.orgSubscription
+        .findUnique({
+          where: { organizationId: config.organizationId },
+          include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
+        })
+        .catch(() => null),
+      ctx.db.organization
+        .findUnique({
+          where: { id: config.organizationId },
+          select: {
+            aiEnabled: true,
+            aiWidgetLeaguePulse: true,
+            aiWidgetHeadlinesTicker: true,
+          },
+        })
+        .catch(() => null),
     ])
 
     const planPublicReports = subscription?.plan?.featurePublicReports ?? false
@@ -97,18 +101,22 @@ export const publicSiteRouter = router({
       ctx.db.systemSettings.findUnique({
         where: { organizationId: input.organizationId },
       }),
-      ctx.db.orgSubscription.findUnique({
-        where: { organizationId: input.organizationId },
-        include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
-      }).catch(() => null),
-      ctx.db.organization.findUnique({
-        where: { id: input.organizationId },
-        select: {
-          aiEnabled: true,
-          aiWidgetLeaguePulse: true,
-          aiWidgetHeadlinesTicker: true,
-        },
-      }).catch(() => null),
+      ctx.db.orgSubscription
+        .findUnique({
+          where: { organizationId: input.organizationId },
+          include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
+        })
+        .catch(() => null),
+      ctx.db.organization
+        .findUnique({
+          where: { id: input.organizationId },
+          select: {
+            aiEnabled: true,
+            aiWidgetLeaguePulse: true,
+            aiWidgetHeadlinesTicker: true,
+          },
+        })
+        .catch(() => null),
     ])
 
     const planPublicReports = subscription?.plan?.featurePublicReports ?? false
@@ -419,6 +427,12 @@ export const publicSiteRouter = router({
         include: {
           homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } },
           awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true } },
+          homeTrikot: {
+            select: { id: true, primaryColor: true, secondaryColor: true, template: { select: { svg: true } } },
+          },
+          awayTrikot: {
+            select: { id: true, primaryColor: true, secondaryColor: true, template: { select: { svg: true } } },
+          },
           round: { select: { name: true, roundType: true, division: { select: { name: true } } } },
           events: {
             where: { OR: [{ eventType: { not: "note" } }, { notePublic: true }] },
@@ -450,10 +464,12 @@ export const publicSiteRouter = router({
 
       // Lazy AI recap generation for completed games (respects granular toggle)
       if (game.status === "completed" && game.recapTitle === null && !game.recapGenerating) {
-        const org = await ctx.db.organization.findUnique({
-          where: { id: input.organizationId },
-          select: { aiGameRecaps: true },
-        }).catch(() => null)
+        const org = await ctx.db.organization
+          .findUnique({
+            where: { id: input.organizationId },
+            select: { aiGameRecaps: true },
+          })
+          .catch(() => null)
         if ((org as any)?.aiGameRecaps) {
           const eligibility = await checkAiEligibility(ctx.db, input.organizationId)
           if (eligibility.eligible) {
@@ -594,7 +610,7 @@ export const publicSiteRouter = router({
             : { endSeasonId: null }),
         },
         include: {
-          player: { select: { id: true, firstName: true, lastName: true, photoUrl: true } },
+          player: { select: { id: true, firstName: true, lastName: true, photoUrl: true, status: true } },
         },
         orderBy: [{ position: "asc" }, { jerseyNumber: "asc" }],
       })
@@ -606,6 +622,7 @@ export const publicSiteRouter = router({
           firstName: c.player.firstName,
           lastName: c.player.lastName,
           photoUrl: c.player.photoUrl,
+          status: c.player.status,
           position: c.position,
           jerseyNumber: c.jerseyNumber,
         })),
@@ -694,7 +711,16 @@ export const publicSiteRouter = router({
         if (parent) {
           const child = await ctx.db.page.findFirst({
             where: { organizationId: input.organizationId, slug: parts[1]!, status: "published", parentId: parent.id },
-            select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true, seoTitle: true, seoDescription: true },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              content: true,
+              menuLocations: true,
+              updatedAt: true,
+              seoTitle: true,
+              seoDescription: true,
+            },
           })
           if (child) return child
         }
@@ -703,7 +729,16 @@ export const publicSiteRouter = router({
       // Check direct page first
       const page = await ctx.db.page.findFirst({
         where: { organizationId: input.organizationId, slug: input.slug, status: "published" },
-        select: { id: true, title: true, slug: true, content: true, menuLocations: true, updatedAt: true, seoTitle: true, seoDescription: true },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          content: true,
+          menuLocations: true,
+          updatedAt: true,
+          seoTitle: true,
+          seoDescription: true,
+        },
       })
       if (page) return page
 
@@ -854,7 +889,7 @@ export const publicSiteRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
+      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, input.organizationId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
 
       const penaltyWhere: any = {
@@ -927,7 +962,7 @@ export const publicSiteRouter = router({
   getTeamPenaltyStats: publicProcedure
     .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
+      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, input.organizationId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
 
       const penaltyAgg = await ctx.db.gameEvent.findMany({

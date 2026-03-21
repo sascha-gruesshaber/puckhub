@@ -282,15 +282,15 @@ function UsersPage() {
   function roleColor(role: string) {
     switch (role) {
       case "owner":
-        return "bg-amber-100 text-amber-800 border-amber-200"
+        return "bg-amber-500/15 text-amber-400 border-amber-500/25"
       case "admin":
-        return "bg-blue-100 text-blue-800 border-blue-200"
+        return "bg-blue-500/15 text-blue-400 border-blue-500/25"
       case "game_manager":
-        return "bg-green-100 text-green-800 border-green-200"
+        return "bg-green-500/15 text-green-400 border-green-500/25"
       case "editor":
-        return "bg-purple-100 text-purple-800 border-purple-200"
+        return "bg-purple-500/15 text-purple-400 border-purple-500/25"
       default:
-        return "bg-gray-100 text-gray-600 border-gray-200"
+        return "bg-secondary text-muted-foreground border-border"
     }
   }
 
@@ -315,7 +315,7 @@ function UsersPage() {
           placeholder="Search by name or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full rounded-lg border border-border/50 bg-white py-2 pl-9 pr-3 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-lg border border-border/50 bg-card py-2 pl-9 pr-3 text-sm shadow-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -326,7 +326,7 @@ function UsersPage() {
           ))}
         </div>
       ) : !filtered || filtered.length === 0 ? (
-        <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-border/50 bg-card p-8 text-center shadow-sm">
           <Users size={32} className="mx-auto mb-3 text-muted-foreground" />
           <p className="font-medium text-foreground">{search ? "No users found" : "No users yet"}</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -334,7 +334,7 @@ function UsersPage() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
           {filtered.map((user, i) => (
             <div
               key={user.id}

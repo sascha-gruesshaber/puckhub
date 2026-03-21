@@ -311,7 +311,7 @@ function TeamsPage() {
         ) : filtered.length === 0 ? (
           <NoResults query={search || t("teamsPage.filters.fallback")} />
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((team, i) => {
               const initials = team.shortName.substring(0, 2).toUpperCase()
               const firstTrikot = team.teamTrikots[0]?.trikot ?? null

@@ -142,7 +142,7 @@ function OrgSlugLayout() {
 
   if (isLoading || syncing || !matchedOrg) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <div
             className="pulse-brand flex items-center justify-center rounded-xl"

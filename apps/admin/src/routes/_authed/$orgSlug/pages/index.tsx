@@ -155,7 +155,7 @@ function SortablePageRow({
               {isDraft ? t("pagesPage.status.draft") : t("pagesPage.status.published")}
             </Badge>
             {page.isSystemRoute && (
-              <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400 text-blue-600">
+              <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400/50 bg-blue-500/10 text-blue-400">
                 <PanelTop className="h-2.5 w-2.5 mr-1" />
                 {t("pagesPage.menu.builtIn")}
               </Badge>
@@ -174,12 +174,12 @@ function SortablePageRow({
               type="button"
               onClick={() => onToggleStatus(page.id, page.status)}
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
-                page.status === "published" ? "bg-green-500" : "bg-gray-300"
+                page.status === "published" ? "bg-green-500" : "bg-secondary"
               }`}
               title={page.status === "published" ? t("pagesPage.status.published") : t("pagesPage.status.draft")}
             >
               <span
-                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition-transform ${
+                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-card shadow-lg ring-0 transition-transform ${
                   page.status === "published" ? "translate-x-4" : "translate-x-0"
                 }`}
               />
@@ -205,7 +205,7 @@ function SortablePageRow({
 function DragPreview({ page }: { page: PageRowData }) {
   const isDraft = page.status === "draft"
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white px-4 py-3 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.2)] ring-1 ring-black/[0.08] cursor-grabbing">
+    <div className="flex items-center gap-3 rounded-xl bg-card px-4 py-3 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.2)] ring-1 ring-black/[0.08] cursor-grabbing">
       <GripVertical className="h-4 w-4 text-primary shrink-0" />
       <div
         className="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white"
@@ -213,7 +213,7 @@ function DragPreview({ page }: { page: PageRowData }) {
       />
       <span className="font-semibold truncate text-sm">{page.title}</span>
       {page.isSystemRoute && (
-        <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400 text-blue-600">
+        <Badge variant="outline" className="shrink-0 text-[10px] border-blue-400/50 bg-blue-500/10 text-blue-400">
           <PanelTop className="h-2.5 w-2.5 mr-1" />
           Built-in
         </Badge>
@@ -563,7 +563,7 @@ function PagesPage() {
                   {filtered.reduce((sum, p) => sum + 1 + (p.children?.length ?? 0), 0)}
                 </span>
               </div>
-              <div className="bg-white rounded-xl shadow-sm border border-border/50">
+              <div className="bg-card rounded-xl shadow-sm border border-border/50">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -651,7 +651,7 @@ function PagesPage() {
                     {t("pagesPage.aliases.new")}
                   </Button>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                   {aliases.map((alias, i) => (
                     <div
                       key={alias.id}

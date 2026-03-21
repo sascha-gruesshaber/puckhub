@@ -10,7 +10,7 @@ function triggerSeasonSeo(db: any, seasonId: string, organizationId: string) {
         console.error("[ai-seo] Season SEO generation failed:", err),
       )
     }
-  })
+  }).catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
 }
 
 export const teamDivisionRouter = router({

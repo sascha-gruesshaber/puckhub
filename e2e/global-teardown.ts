@@ -38,8 +38,6 @@ export default async function globalTeardown() {
   }
 
   // 3. Delete state + log files (Ryuk handles container cleanup)
-  unlinkSync(stateFile)
-  if (existsSync(apiLogFile)) {
-    unlinkSync(apiLogFile)
-  }
+  try { unlinkSync(stateFile) } catch { /* may already be deleted by another suite */ }
+  try { unlinkSync(apiLogFile) } catch { /* may already be deleted */ }
 }

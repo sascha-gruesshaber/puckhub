@@ -133,7 +133,7 @@ export async function seed(dbUrl: string) {
         feature_custom_domain, feature_website_builder, feature_sponsor_mgmt,
         feature_trikot_designer, feature_game_reports,
         feature_player_stats, feature_scheduler, feature_scheduled_news,
-        feature_advanced_roles, feature_advanced_stats, feature_ai_recaps,
+        feature_advanced_roles, feature_advanced_stats, feature_ai,
         feature_public_reports
       ) VALUES (
         ${planId}, ${"E2E Pro"}, ${"e2e-pro"}, ${1}, ${true},

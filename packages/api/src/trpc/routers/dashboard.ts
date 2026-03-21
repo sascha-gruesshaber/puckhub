@@ -46,14 +46,14 @@ export const dashboardRouter = router({
     if (season) {
       // Seasons that started before the working season ends (valid contract start seasons)
       const validStartSeasons = await db.season.findMany({
-        where: { seasonStart: { lt: season.seasonEnd } },
+        where: { organizationId: ctx.organizationId, seasonStart: { lt: season.seasonEnd } },
         select: { id: true },
       })
       const validStartIds = validStartSeasons.map((s: any) => s.id)
 
       // Seasons that end after the working season starts (valid contract end seasons)
       const validEndSeasons = await db.season.findMany({
-        where: { seasonEnd: { gt: season.seasonStart } },
+        where: { organizationId: ctx.organizationId, seasonEnd: { gt: season.seasonStart } },
         select: { id: true },
       })
       const validEndIds = validEndSeasons.map((s: any) => s.id)
@@ -66,6 +66,7 @@ export const dashboardRouter = router({
 
         const playerCountResult = await db.contract.findMany({
           where: {
+            organizationId: ctx.organizationId,
             startSeasonId: { in: validStartIds },
             ...endCondition,
           },
@@ -76,23 +77,26 @@ export const dashboardRouter = router({
       }
     }
 
-    // Games: completed vs remaining
+    // Games: completed vs remaining (aligned with games page display statuses)
+    const now = new Date()
     let completedCount = 0
     let remainingCount = 0
     if (roundIds.length > 0) {
-      const gameCountResults = await db.game.groupBy({
-        by: ["status"],
-        where: { roundId: { in: roundIds } },
-        _count: { id: true },
+      completedCount = await db.game.count({
+        where: { roundId: { in: roundIds }, status: "completed" },
       })
-
-      for (const row of gameCountResults) {
-        if (row.status === "completed") {
-          completedCount = row._count.id
-        } else if (["scheduled", "in_progress", "postponed"].includes(row.status)) {
-          remainingCount += row._count.id
-        }
-      }
+      // Remaining = truly upcoming: scheduled with future date + in_progress
+      // Excludes past-date scheduled games (those are "report_pending" on the games page)
+      remainingCount = await db.game.count({
+        where: {
+          roundId: { in: roundIds },
+          OR: [
+            { status: "in_progress" },
+            { status: "scheduled", scheduledAt: { gt: now } },
+            { status: "scheduled", scheduledAt: null },
+          ],
+        },
+      })
     }
 
     // --- Total org-wide counts (not season-scoped) ---
@@ -104,7 +108,8 @@ export const dashboardRouter = router({
     })
 
     // --- Missing Reports ---
-    // Completed games with no game_lineups entries
+    // Matches the games page "report_pending" display status:
+    // status=scheduled, scheduledAt in the past, location is set
     let missingReports: Array<{
       id: string
       scheduledAt: Date | null
@@ -112,18 +117,12 @@ export const dashboardRouter = router({
       awayTeam: { id: string; shortName: string; logoUrl: string | null }
     }> = []
     if (roundIds.length > 0) {
-      // Get game IDs that have lineups
-      const gamesWithLineups = await db.gameLineup.findMany({
-        select: { gameId: true },
-        distinct: ["gameId"],
-      })
-      const gameIdsWithLineups = gamesWithLineups.map((g: any) => g.gameId)
-
-      const missing = await db.game.findMany({
+      missingReports = await db.game.findMany({
         where: {
           roundId: { in: roundIds },
-          status: "completed",
-          id: gameIdsWithLineups.length > 0 ? { notIn: gameIdsWithLineups } : undefined,
+          status: "scheduled",
+          scheduledAt: { lt: now },
+          NOT: [{ location: null }, { location: "" }],
         },
         select: {
           id: true,
@@ -134,11 +133,9 @@ export const dashboardRouter = router({
         orderBy: { scheduledAt: "desc" },
         take: 10,
       })
-      missingReports = missing
     }
 
     // --- Upcoming Games ---
-    const now = new Date()
     let upcomingGames: Array<{
       id: string
       scheduledAt: Date | null
@@ -169,6 +166,7 @@ export const dashboardRouter = router({
     const activeSuspensions = (await db.$queryRaw`
       SELECT
         gs.id,
+        gs.game_id AS "gameId",
         gs.suspended_games AS "suspendedGames",
         gs.served_games AS "servedGames",
         json_build_object(
@@ -191,6 +189,7 @@ export const dashboardRouter = router({
       LIMIT 10
     `) as Array<{
       id: string
+      gameId: string
       suspendedGames: number
       servedGames: number
       player: { id: string; firstName: string; lastName: string }
@@ -230,6 +229,7 @@ export const dashboardRouter = router({
     let recentResults: Array<{
       id: string
       scheduledAt: Date | null
+      location: string | null
       homeScore: number | null
       awayScore: number | null
       homeTeam: { id: string; shortName: string; logoUrl: string | null }
@@ -244,6 +244,7 @@ export const dashboardRouter = router({
         select: {
           id: true,
           scheduledAt: true,
+          location: true,
           homeScore: true,
           awayScore: true,
           homeTeam: { select: { id: true, shortName: true, logoUrl: true } },

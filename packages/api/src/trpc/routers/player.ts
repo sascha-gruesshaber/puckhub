@@ -132,6 +132,7 @@ export const playerRouter = router({
         lastName: z.string().min(1),
         dateOfBirth: z.string().optional(),
         nationality: z.string().optional(),
+        status: z.enum(["hobby", "licensed", "tryout", "inactive"]).optional(),
         photoUrl: z.string().optional(),
       }),
     )
@@ -159,6 +160,7 @@ export const playerRouter = router({
         lastName: z.string().min(1).optional(),
         dateOfBirth: z.string().optional(),
         nationality: z.string().optional(),
+        status: z.enum(["hobby", "licensed", "tryout", "inactive"]).optional(),
         photoUrl: z.string().optional(),
       }),
     )

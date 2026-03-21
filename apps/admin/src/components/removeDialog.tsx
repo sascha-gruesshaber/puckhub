@@ -85,13 +85,15 @@ function RemoveDialog({
               {/* ── Deactivate option ── */}
               <div
                 className={`rounded-xl border p-5 transition-colors ${
-                  deactivate.available ? "border-emerald-200 bg-emerald-50/60" : "border-border bg-muted/30 opacity-60"
+                  deactivate.available
+                    ? "border-emerald-500/20 bg-emerald-500/10"
+                    : "border-border bg-muted/30 opacity-60"
                 }`}
               >
                 <div className="flex items-start gap-3.5">
                   <div
                     className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                      deactivate.available ? "bg-emerald-100 text-emerald-600" : "bg-muted text-muted-foreground"
+                      deactivate.available ? "bg-emerald-500/15 text-emerald-400" : "bg-muted text-muted-foreground"
                     }`}
                   >
                     <Pause className="h-4 w-4" />
@@ -100,7 +102,7 @@ function RemoveDialog({
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-[15px]">{deactivate.title}</h3>
                       {deactivate.available && (
-                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+                        <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
                           {labels.recommended}
                         </span>
                       )}
@@ -113,7 +115,7 @@ function RemoveDialog({
                       <>
                         <ul className="mt-3 space-y-1">
                           {deactivate.preserved.map((item) => (
-                            <li key={item} className="flex items-center gap-2 text-[13px] text-emerald-700">
+                            <li key={item} className="flex items-center gap-2 text-[13px] text-emerald-400">
                               <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
                               <span>{item}</span>
                             </li>
@@ -143,9 +145,9 @@ function RemoveDialog({
               </div>
 
               {/* ── Delete option ── */}
-              <div className="rounded-xl border border-red-200/80 bg-red-50/30 p-5">
+              <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-5">
                 <div className="flex items-start gap-3.5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100/80 text-red-500">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/15 text-red-400">
                     <Trash2 className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -153,7 +155,7 @@ function RemoveDialog({
                     <p className="text-[13px] text-muted-foreground leading-relaxed">{permanentDelete.description}</p>
                     <ul className="mt-3 space-y-1">
                       {permanentDelete.consequences.map((item) => (
-                        <li key={item} className="flex items-center gap-2 text-[13px] text-red-600/80">
+                        <li key={item} className="flex items-center gap-2 text-[13px] text-red-400/80">
                           <X className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
                           <span>{item}</span>
                         </li>
@@ -162,7 +164,7 @@ function RemoveDialog({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="mt-4 text-destructive hover:text-destructive border-red-200 hover:bg-red-50 hover:border-red-300"
+                      className="mt-4 text-destructive hover:text-destructive border-red-500/30 hover:bg-red-500/10 hover:border-red-500/40"
                       onClick={() => setStep("confirm")}
                     >
                       {permanentDelete.buttonLabel}
@@ -182,9 +184,9 @@ function RemoveDialog({
           /* ── Step 2: Final delete confirmation ── */
           <>
             <div className="relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-red-50 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-red-950/30 to-transparent pointer-events-none" />
               <DialogHeader className="relative pt-8 pb-2 items-center text-center">
-                <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-red-100 ring-4 ring-red-100/50">
+                <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/15 ring-4 ring-red-500/10">
                   <AlertTriangle className="h-7 w-7 text-red-600" />
                 </div>
                 <DialogTitle>{permanentDelete.confirmTitle}</DialogTitle>
@@ -193,9 +195,9 @@ function RemoveDialog({
             </div>
 
             <div className="px-6 pb-2">
-              <ul className="space-y-2 rounded-xl bg-red-50/60 border border-red-100 p-4">
+              <ul className="space-y-2 rounded-xl bg-red-500/10 border border-red-500/20 p-4">
                 {permanentDelete.consequences.map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-[13px] text-red-700">
+                  <li key={item} className="flex items-center gap-2.5 text-[13px] text-red-400">
                     <div className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" />
                     <span>{item}</span>
                   </li>

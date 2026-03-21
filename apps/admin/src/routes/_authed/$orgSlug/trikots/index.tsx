@@ -5,6 +5,11 @@ import {
   FormField,
   Input,
   Label,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Sheet,
   SheetBody,
   SheetClose,
@@ -96,7 +101,12 @@ function TrikotsPage() {
   // Assignment form state
   const [assignTeamId, setAssignTeamId] = useState("")
   const [assignName, setAssignName] = useState("")
-  const [editingAssignment, setEditingAssignment] = useState<{ id: string; name: string } | null>(null)
+  const [assignType, setAssignType] = useState<"home" | "away" | "alternate" | "custom">("custom")
+  const [editingAssignment, setEditingAssignment] = useState<{
+    id: string
+    name: string
+    assignmentType: string
+  } | null>(null)
 
   const utils = trpc.useUtils()
   const { data: trikots, isLoading } = trpc.trikot.list.useQuery()
@@ -182,6 +192,7 @@ function TrikotsPage() {
       utils.trikot.list.invalidate()
       setAssignTeamId("")
       setAssignName("")
+      setAssignType("custom")
       toast.success(t("trikotsPage.assignments.toast.created"))
     },
     onError: (err) => toast.error(t("trikotsPage.toast.error"), { description: resolveTranslatedError(err, tErrors) }),
@@ -319,20 +330,24 @@ function TrikotsPage() {
 
   function handleAssign(e: React.FormEvent) {
     e.preventDefault()
-    if (!assignTeamId || !assignName.trim() || !editId || isNew) return
+    if (!assignTeamId || !editId || isNew) return
+    if (assignType === "custom" && !assignName.trim()) return
     assignMutation.mutate({
       teamId: assignTeamId,
       trikotId: editId,
-      name: assignName.trim(),
+      name: assignType !== "custom" ? undefined : assignName.trim(),
+      assignmentType: assignType,
     })
   }
 
   function handleUpdateAssignment(e: React.FormEvent) {
     e.preventDefault()
-    if (!editingAssignment || !editingAssignment.name.trim()) return
+    if (!editingAssignment) return
+    if (editingAssignment.assignmentType === "custom" && !editingAssignment.name.trim()) return
     updateAssignmentMutation.mutate({
       id: editingAssignment.id,
-      name: editingAssignment.name.trim(),
+      name: editingAssignment.assignmentType !== "custom" ? undefined : editingAssignment.name.trim(),
+      assignmentType: editingAssignment.assignmentType as any,
     })
   }
 
@@ -394,7 +409,7 @@ function TrikotsPage() {
         ) : filtered.length === 0 ? (
           <NoResults query={search || t("trikotsPage.filters.fallback")} />
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((trikot, i) => (
               <button
                 key={trikot.id}
@@ -554,61 +569,97 @@ function TrikotsPage() {
                   {/* Existing assignments */}
                   {assignments && assignments.length > 0 ? (
                     <div className="space-y-2">
-                      {assignments.map((a) => (
-                        <div key={a.id} className="flex items-center gap-3 rounded-lg border p-3">
-                          {editingAssignment?.id === a.id ? (
-                            <form onSubmit={handleUpdateAssignment} className="flex items-center gap-2 flex-1">
-                              <Input
-                                value={editingAssignment.name}
-                                onChange={(e) => setEditingAssignment({ ...editingAssignment, name: e.target.value })}
-                                className="flex-1 h-8 text-sm"
-                              />
-                              <Button
-                                type="submit"
-                                size="sm"
-                                variant="accent"
-                                disabled={updateAssignmentMutation.isPending}
-                              >
-                                {t("trikotsPage.assignments.actions.save")}
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => setEditingAssignment(null)}
-                                title={t("trikotsPage.assignments.actions.cancelEdit")}
-                                aria-label={t("trikotsPage.assignments.actions.cancelEdit")}
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </Button>
-                            </form>
-                          ) : (
-                            <>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate">{a.team.name}</p>
-                                <p className="text-xs text-muted-foreground">{a.name}</p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setEditingAssignment({ id: a.id, name: a.name })}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                                disabled={removeAssignmentMutation.isPending}
-                                onClick={() => removeAssignmentMutation.mutate({ id: a.id })}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      ))}
+                      {assignments.map((a) => {
+                        const aType = (a as any).assignmentType ?? "custom"
+                        return (
+                          <div key={a.id} className="flex items-center gap-3 rounded-lg border p-3">
+                            {editingAssignment?.id === a.id ? (
+                              <form onSubmit={handleUpdateAssignment} className="flex items-center gap-2 flex-1">
+                                <Select
+                                  value={editingAssignment.assignmentType}
+                                  onValueChange={(v) =>
+                                    setEditingAssignment({
+                                      ...editingAssignment,
+                                      assignmentType: v,
+                                      name: v !== "custom" ? "" : editingAssignment.name,
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger className="h-8 w-28 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(["home", "away", "alternate", "custom"] as const).map((at) => (
+                                      <SelectItem key={at} value={at}>
+                                        {t(`trikotsPage.assignmentTypes.${at}`)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                {editingAssignment.assignmentType === "custom" && (
+                                  <Input
+                                    value={editingAssignment.name}
+                                    onChange={(e) =>
+                                      setEditingAssignment({ ...editingAssignment, name: e.target.value })
+                                    }
+                                    className="flex-1 h-8 text-sm"
+                                    placeholder={t("trikotsPage.assignments.fields.labelPlaceholder")}
+                                  />
+                                )}
+                                <Button
+                                  type="submit"
+                                  size="sm"
+                                  variant="accent"
+                                  disabled={
+                                    updateAssignmentMutation.isPending ||
+                                    (editingAssignment.assignmentType === "custom" && !editingAssignment.name.trim())
+                                  }
+                                >
+                                  {t("trikotsPage.assignments.actions.save")}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => setEditingAssignment(null)}
+                                  title={t("trikotsPage.assignments.actions.cancelEdit")}
+                                  aria-label={t("trikotsPage.assignments.actions.cancelEdit")}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </form>
+                            ) : (
+                              <>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium truncate">{a.team.name}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    {aType !== "custom" ? t(`trikotsPage.assignmentTypes.${aType}`) : a.name}
+                                  </p>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() =>
+                                    setEditingAssignment({ id: a.id, name: a.name, assignmentType: aType })
+                                  }
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                                  disabled={removeAssignmentMutation.isPending}
+                                  onClick={() => removeAssignmentMutation.mutate({ id: a.id })}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">
@@ -640,21 +691,48 @@ function TrikotsPage() {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground mb-1 block">
-                          {t("trikotsPage.assignments.fields.label")}
+                          {t("trikotsPage.assignments.fields.assignmentType")}
                         </Label>
-                        <Input
-                          value={assignName}
-                          onChange={(e) => setAssignName(e.target.value)}
-                          placeholder={t("trikotsPage.assignments.fields.labelPlaceholder")}
-                          className="h-10"
-                        />
+                        <Select
+                          value={assignType}
+                          onValueChange={(v: any) => {
+                            setAssignType(v)
+                            if (v !== "custom") setAssignName("")
+                          }}
+                        >
+                          <SelectTrigger className="h-10 w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(["home", "away", "alternate", "custom"] as const).map((at) => (
+                              <SelectItem key={at} value={at}>
+                                {t(`trikotsPage.assignmentTypes.${at}`)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
+                      {assignType === "custom" && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground mb-1 block">
+                            {t("trikotsPage.assignments.fields.label")}
+                          </Label>
+                          <Input
+                            value={assignName}
+                            onChange={(e) => setAssignName(e.target.value)}
+                            placeholder={t("trikotsPage.assignments.fields.labelPlaceholder")}
+                            className="h-10"
+                          />
+                        </div>
+                      )}
                     </div>
                     <Button
                       type="button"
                       size="sm"
                       variant="accent"
-                      disabled={!assignTeamId || !assignName.trim() || assignMutation.isPending}
+                      disabled={
+                        !assignTeamId || (assignType === "custom" && !assignName.trim()) || assignMutation.isPending
+                      }
                       onClick={handleAssign as unknown as React.MouseEventHandler}
                     >
                       <Plus className="mr-1.5 h-3.5 w-3.5" />

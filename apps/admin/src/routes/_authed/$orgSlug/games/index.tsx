@@ -15,7 +15,7 @@ import {
 } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
 import { CalendarDays, FileText, Plus, Sparkles } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
@@ -30,6 +30,7 @@ import { DataListSkeleton } from "~/components/skeletons/dataListSkeleton"
 import { FilterPillsSkeleton } from "~/components/skeletons/filterPillsSkeleton"
 
 import { TeamCombobox } from "~/components/teamCombobox"
+import { TrikotSelect } from "~/components/trikotSelect"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useStructureOptions } from "~/hooks/useStructureOptions"
@@ -52,6 +53,8 @@ interface GameForm {
   awayTeamId: string
   location: string
   scheduledAt: string
+  homeTrikotId: string
+  awayTrikotId: string
 }
 
 const emptyGameForm: GameForm = {
@@ -60,6 +63,8 @@ const emptyGameForm: GameForm = {
   awayTeamId: "",
   location: "",
   scheduledAt: "",
+  homeTrikotId: "",
+  awayTrikotId: "",
 }
 
 const ALL_DISPLAY_STATUSES: DisplayStatus[] = [
@@ -85,11 +90,14 @@ function toLocalInputValue(value: Date | string | null | undefined): string {
 }
 
 export const Route = createFileRoute("/_authed/$orgSlug/games/")({
-  validateSearch: (s: Record<string, unknown>): { search?: string; team?: string; status?: string; tab?: string } => ({
+  validateSearch: (
+    s: Record<string, unknown>,
+  ): { search?: string; team?: string; status?: string; tab?: string; action?: string } => ({
     ...(typeof s.search === "string" && s.search ? { search: s.search } : {}),
     ...(typeof s.team === "string" && s.team ? { team: s.team } : {}),
     ...(typeof s.status === "string" && s.status ? { status: s.status } : {}),
     ...(typeof s.tab === "string" && s.tab ? { tab: s.tab } : {}),
+    ...(typeof s.action === "string" && s.action ? { action: s.action } : {}),
   }),
   component: GamesPage,
 })
@@ -102,7 +110,7 @@ function GamesPage() {
   const { season } = useWorkingSeason()
   const utils = trpc.useUtils()
 
-  const { search: searchParam, team, status: statusParam, tab: tabParam } = Route.useSearch()
+  const { search: searchParam, team, status: statusParam, tab: tabParam, action: actionParam } = Route.useSearch()
   const navigate = useNavigate({ from: Route.fullPath })
   const search = searchParam ?? ""
   const activeTab = tabParam ?? "all"
@@ -264,6 +272,18 @@ function GamesPage() {
       })
   }, [filteredGames])
 
+  // Auto-open create dialog when navigating with ?action=new
+  // (must be before early returns to satisfy Rules of Hooks)
+  useEffect(() => {
+    if (!season) return
+    if (actionParam === "new" && !isStructureLoading && rounds.length > 0) {
+      setEditingGameId(null)
+      setGameForm({ ...emptyGameForm, roundId: rounds[0]?.id ?? "" })
+      setGameDialogOpen(true)
+      navigate({ search: (prev) => ({ ...prev, action: undefined }), replace: true })
+    }
+  }, [actionParam, isStructureLoading, rounds, navigate, season])
+
   if (!season) {
     return (
       <EmptyState
@@ -318,6 +338,8 @@ function GamesPage() {
       awayTeamId: gameForm.awayTeamId,
       location: gameForm.location || undefined,
       scheduledAt: gameForm.scheduledAt ? new Date(gameForm.scheduledAt).toISOString() : undefined,
+      homeTrikotId: gameForm.homeTrikotId || undefined,
+      awayTrikotId: gameForm.awayTrikotId || undefined,
     }
     if (!editingGameId) {
       createGame.mutate(base)
@@ -328,6 +350,8 @@ function GamesPage() {
       ...base,
       location: gameForm.location || null,
       scheduledAt: gameForm.scheduledAt ? new Date(gameForm.scheduledAt).toISOString() : null,
+      homeTrikotId: gameForm.homeTrikotId || null,
+      awayTrikotId: gameForm.awayTrikotId || null,
     })
   }
 
@@ -337,6 +361,7 @@ function GamesPage() {
       return {
         ...prev,
         homeTeamId: teamId,
+        homeTrikotId: "",
         location: prev.location || team?.homeVenue || "",
       }
     })
@@ -417,7 +442,7 @@ function GamesPage() {
           {isLoading ? (
             <DataListSkeleton rows={5} />
           ) : groupedGames.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden px-4 py-6 text-sm text-muted-foreground">
+            <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden px-4 py-6 text-sm text-muted-foreground">
               {search.trim() ? t("noResults.subtitle") : t("gamesPage.noScheduledGames")}
             </div>
           ) : (
@@ -441,7 +466,7 @@ function GamesPage() {
                       {group.games.length}
                     </span>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden lg:grid lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:gap-x-4">
+                  <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden lg:grid lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:gap-x-4">
                     {group.games.map((g, i) => (
                       // biome-ignore lint/a11y/useSemanticElements: grid subgrid layout requires div; role=button and keyboard handling provided
                       <div
@@ -628,16 +653,36 @@ function GamesPage() {
                       optionTestIdPrefix="games-form-home-team-option"
                     />
                   </FormField>
+                  {gameForm.homeTeamId && (
+                    <FormField label={t("gamesPage.form.fields.homeTrikot")}>
+                      <TrikotSelect
+                        teamId={gameForm.homeTeamId}
+                        value={gameForm.homeTrikotId}
+                        onChange={(v) => setGameForm((p) => ({ ...p, homeTrikotId: v }))}
+                        autoSelectType="home"
+                      />
+                    </FormField>
+                  )}
                   <FormField label={t("gamesPage.form.fields.awayTeam", { defaultValue: "Away team" })} required>
                     <TeamCombobox
                       teams={teams}
                       value={gameForm.awayTeamId}
-                      onChange={(teamId) => setGameForm((p) => ({ ...p, awayTeamId: teamId }))}
+                      onChange={(teamId) => setGameForm((p) => ({ ...p, awayTeamId: teamId, awayTrikotId: "" }))}
                       placeholder={t("gamesPage.placeholders.awayTeam")}
                       testId="games-form-away-team"
                       optionTestIdPrefix="games-form-away-team-option"
                     />
                   </FormField>
+                  {gameForm.awayTeamId && (
+                    <FormField label={t("gamesPage.form.fields.awayTrikot")}>
+                      <TrikotSelect
+                        teamId={gameForm.awayTeamId}
+                        value={gameForm.awayTrikotId}
+                        onChange={(v) => setGameForm((p) => ({ ...p, awayTrikotId: v }))}
+                        autoSelectType="away"
+                      />
+                    </FormField>
+                  )}
                 </div>
               </div>
 

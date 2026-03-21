@@ -35,13 +35,13 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/60" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t("seasonStructure.teamPalette.searchPlaceholder")}
-          className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-gray-50 border border-gray-200 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#F4D35E]/40"
+          className="w-full h-8 pl-8 pr-3 text-xs rounded-lg bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#F4D35E]/40"
         />
       </div>
 
@@ -62,7 +62,7 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
                 onDragTypeChange("team")
               }}
               onDragEnd={() => onDragTypeChange(null)}
-              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors cursor-grab hover:bg-gray-100 active:cursor-grabbing list-none"
+              className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg transition-colors cursor-grab hover:bg-secondary active:cursor-grabbing list-none"
             >
               <GripVertical className="h-3.5 w-3.5 text-gray-300 shrink-0" />
 
@@ -75,14 +75,14 @@ export function TeamPalette({ teams, teamDivisionCounts, onDragTypeChange }: Tea
                 {team.logoUrl ? (
                   <img src={team.logoUrl} alt="" className="w-full h-full object-contain" />
                 ) : (
-                  <div className="w-full h-full rounded-md bg-gray-100 flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-gray-600">{initials}</span>
+                  <div className="w-full h-full rounded-md bg-secondary flex items-center justify-center">
+                    <span className="text-[9px] font-bold text-muted-foreground">{initials}</span>
                   </div>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-medium text-gray-900 truncate">{team.shortName}</div>
+                <div className="text-xs font-medium text-foreground truncate">{team.shortName}</div>
                 <div className="text-[10px] text-gray-500 truncate">{team.name}</div>
               </div>
 

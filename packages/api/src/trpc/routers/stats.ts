@@ -197,7 +197,7 @@ export const statsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
+      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, ctx.organizationId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
 
       const penaltyWhere: any = {
@@ -299,7 +299,7 @@ export const statsRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, "countsForPlayerStats")
+      const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, ctx.organizationId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
 
       const penaltyAgg = await ctx.db.gameEvent.findMany({

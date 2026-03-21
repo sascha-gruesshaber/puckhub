@@ -431,7 +431,7 @@ function SponsorsPage() {
                     {grouped.active.length}
                   </Badge>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                   {grouped.active.map((sponsor, i) => renderSponsorRow(sponsor, i, i === grouped.active.length - 1))}
                 </div>
               </div>
@@ -451,7 +451,7 @@ function SponsorsPage() {
                     {grouped.inactive.length}
                   </Badge>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                   {grouped.inactive.map((sponsor, i) =>
                     renderSponsorRow(sponsor, grouped.active.length + i, i === grouped.inactive.length - 1),
                   )}
@@ -461,7 +461,7 @@ function SponsorsPage() {
           </div>
         ) : (
           // Flat list (only one status present, or specific filter)
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((sponsor, i) => renderSponsorRow(sponsor, i, i === filtered.length - 1))}
           </div>
         )}

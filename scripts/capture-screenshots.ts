@@ -48,11 +48,11 @@ interface ScreenshotTarget {
 
 // Admin portal screenshots (paths include org slug)
 const adminTargets: ScreenshotTarget[] = [
-  { name: "dashboard", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}`, waitFor: "main", delay: 3000 },
+  { name: "game-center", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}`, waitFor: "main", delay: 3000 },
   { name: "game-report", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/games`, waitFor: "main", delay: 2000 },
   { name: "team-list", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/teams`, waitFor: "main", delay: 2000 },
   { name: "website-config", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/website`, waitFor: "main", delay: 2000 },
-  { name: "trikot-designer", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/trikots`, waitFor: "main", delay: 2500 },
+  // trikot-designer captured separately below (needs click to open edit panel)
   { name: "pages-cms", baseUrl: "admin", path: `/${DEMO_ORG_SLUG}/pages`, waitFor: "main", delay: 2000 },
 ]
 
@@ -235,6 +235,35 @@ async function main() {
   console.log("=== Admin Portal Screenshots ===\n")
   for (const target of adminTargets) {
     await captureTarget(page, target)
+  }
+
+  // Trikot designer — open an existing trikot in the edit side panel
+  try {
+    console.log("\nCapturing trikot-designer...")
+    const trikotUrl = `${ADMIN_URL}/${DEMO_ORG_SLUG}/trikots`
+    await page.goto(trikotUrl, { waitUntil: "domcontentloaded", timeout: 20000 })
+    try {
+      await page.waitForSelector("main", { timeout: 10000 })
+    } catch {
+      console.log("  Warning: main not found")
+    }
+    await page.waitForTimeout(2500)
+
+    // Click the first trikot row to open the edit sheet
+    const trikotRow = page.locator("[data-testid='trikot-row']").first()
+    if (await trikotRow.count()) {
+      await trikotRow.click()
+      await page.waitForTimeout(1500)
+      console.log("  Opened trikot edit panel")
+    } else {
+      console.log("  No trikot rows found, taking screenshot of list")
+    }
+
+    const outputPath = resolve(OUTPUT_DIR, "trikot-designer.png")
+    await page.screenshot({ path: outputPath, fullPage: false })
+    console.log(`  Saved: ${outputPath}`)
+  } catch (err) {
+    console.error("  Error capturing trikot-designer:", (err as Error).message)
   }
 
   // AI game recap — find a completed game that has a seeded recap

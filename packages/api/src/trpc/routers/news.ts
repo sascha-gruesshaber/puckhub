@@ -90,18 +90,16 @@ export const newsRouter = router({
       })
 
       // Fire-and-forget SEO generation (respects granular toggle)
-      ctx.db.organization
-        .findUnique({ where: { id: ctx.organizationId }, select: { aiNewsSeo: true } })
-        .then((org) => {
-          if (!org?.aiNewsSeo) return
-          return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
-            if (e.eligible) {
-              generateNewsSeo(ctx.db, article.id, ctx.organizationId).catch((err) =>
-                console.error("[ai-seo] News SEO generation failed:", err),
-              )
-            }
-          })
+      ctx.db.organization.findUnique({ where: { id: ctx.organizationId }, select: { aiNewsSeo: true } }).then((org) => {
+        if (!org?.aiNewsSeo) return
+        return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
+          if (e.eligible) {
+            generateNewsSeo(ctx.db, article.id, ctx.organizationId).catch((err) =>
+              console.error("[ai-seo] News SEO generation failed:", err),
+            )
+          }
         })
+      }).catch((err) => console.error("[ai-seo] Eligibility check failed:", err))
 
       return article
     }),
@@ -152,18 +150,16 @@ export const newsRouter = router({
       })
 
       // Fire-and-forget SEO generation (respects granular toggle)
-      ctx.db.organization
-        .findUnique({ where: { id: ctx.organizationId }, select: { aiNewsSeo: true } })
-        .then((org) => {
-          if (!org?.aiNewsSeo) return
-          return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
-            if (e.eligible) {
-              generateNewsSeo(ctx.db, article.id, ctx.organizationId).catch((err) =>
-                console.error("[ai-seo] News SEO generation failed:", err),
-              )
-            }
-          })
+      ctx.db.organization.findUnique({ where: { id: ctx.organizationId }, select: { aiNewsSeo: true } }).then((org) => {
+        if (!org?.aiNewsSeo) return
+        return checkAiEligibility(ctx.db, ctx.organizationId).then((e) => {
+          if (e.eligible) {
+            generateNewsSeo(ctx.db, article.id, ctx.organizationId).catch((err) =>
+              console.error("[ai-seo] News SEO generation failed:", err),
+            )
+          }
         })
+      }).catch((err) => console.error("[ai-seo] Eligibility check failed:", err))
 
       return article
     }),

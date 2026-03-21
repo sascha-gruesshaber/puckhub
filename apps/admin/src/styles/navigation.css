@@ -1,10 +1,10 @@
 /* ── Tab Navigation ── */
 
 .tab-nav {
-  background: white;
+  background: hsl(var(--card));
   border-radius: 12px;
-  border: 1px solid hsl(var(--border) / 0.7);
-  box-shadow: 0 1px 4px rgba(12, 25, 41, 0.05);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
   padding: 6px;
 }
 
@@ -96,10 +96,10 @@
 
 .tab-nav__tab--active {
   color: hsl(var(--primary));
-  background: white;
+  background: hsl(var(--secondary));
   box-shadow:
-    0 1px 3px rgba(12, 25, 41, 0.08),
-    0 0 0 1px hsl(var(--border) / 0.4);
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 0 0 1px hsl(var(--border) / 0.6);
   font-weight: 600;
 }
 

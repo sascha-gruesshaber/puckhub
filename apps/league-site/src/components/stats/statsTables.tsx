@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { Suspense } from "react"
 import { EmptyState } from "~/components/shared/emptyState"
 import { TeamLogo } from "~/components/shared/teamLogo"
+import type { Translations } from "~/lib/i18n"
 import { useT } from "~/lib/i18n"
 import { cn, slugify, useBackPath } from "~/lib/utils"
 
@@ -25,6 +26,22 @@ export function Th({ children, title, className }: { children: React.ReactNode; 
 
 export function ChartSuspense({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<div className="h-64 rounded-lg bg-league-text/5 animate-pulse" />}>{children}</Suspense>
+}
+
+const statusColors: Record<string, string> = {
+  licensed: "bg-blue-500/10 text-blue-600",
+  tryout: "bg-amber-500/10 text-amber-600",
+  inactive: "bg-gray-500/10 text-gray-400",
+  hobby: "bg-emerald-500/10 text-emerald-600",
+}
+
+function PlayerStatusBadge({ status, t }: { status?: string | null; t: Translations }) {
+  if (!status) return null
+  return (
+    <span className={`text-[10px] font-semibold px-1 py-0.5 rounded ${statusColors[status] ?? statusColors.hobby}`}>
+      {t.playerStatus[status as keyof typeof t.playerStatus]}
+    </span>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -86,6 +103,7 @@ export function PlayerTable({ stats, sortBy }: { stats: any[]; sortBy: SortColum
                   >
                     {s.player.firstName} {s.player.lastName}
                   </Link>
+                  <PlayerStatusBadge status={s.player.status} t={t} />
                 </div>
               </td>
               <td className="px-4 py-3 hidden sm:table-cell">
@@ -164,6 +182,7 @@ function GoalieSection({ title, stats, startRank }: { title?: string; stats: any
                     >
                       {s.player.firstName} {s.player.lastName}
                     </Link>
+                    <PlayerStatusBadge status={s.player.status} t={t} />
                   </div>
                 </td>
                 <td className="px-4 py-3 hidden sm:table-cell">
@@ -251,14 +270,17 @@ export function PenaltyTable({ stats }: { stats: any[] }) {
                     <TeamLogo name={s.team?.name ?? ""} logoUrl={s.team?.logoUrl} size="sm" />
                   </span>
                   {s.player ? (
-                    <Link
-                      to="/players/$playerId/$slug"
-                      params={{ playerId: s.player.id, slug: slugify(`${s.player.firstName} ${s.player.lastName}`) }}
-                      search={{ from: backPath }}
-                      className="font-medium hover:text-league-primary transition-colors"
-                    >
-                      {s.player.firstName} {s.player.lastName}
-                    </Link>
+                    <>
+                      <Link
+                        to="/players/$playerId/$slug"
+                        params={{ playerId: s.player.id, slug: slugify(`${s.player.firstName} ${s.player.lastName}`) }}
+                        search={{ from: backPath }}
+                        className="font-medium hover:text-league-primary transition-colors"
+                      >
+                        {s.player.firstName} {s.player.lastName}
+                      </Link>
+                      <PlayerStatusBadge status={s.player.status} t={t} />
+                    </>
                   ) : (
                     <span className="font-medium">–</span>
                   )}

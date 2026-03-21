@@ -21,7 +21,7 @@ export function PageSkeleton() {
       </div>
 
       {/* Data rows */}
-      <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
         {Array.from({ length: 5 }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id
           <div key={i} className={`flex items-center gap-4 px-4 py-3.5 ${i < 4 ? "border-b border-border/40" : ""}`}>

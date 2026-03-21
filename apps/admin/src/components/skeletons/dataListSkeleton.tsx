@@ -7,7 +7,7 @@ interface DataListSkeletonProps {
 
 export function DataListSkeleton({ rows = 5, showIcon = true }: DataListSkeletonProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+    <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
       {Array.from({ length: rows }, (_, i) => (
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: static placeholder items have no unique id

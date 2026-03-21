@@ -450,7 +450,7 @@ function UsersPage() {
         ) : filtered.length === 0 ? (
           <NoResults query={search || t("usersPage.filters.fallback")} />
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {filtered.map((user, i) => {
               const memberRoles = ((user as any).memberRoles ?? []) as MemberRoleEntry[]
               const isOwner = memberRoles.some((r) => r.role === "owner")

@@ -66,7 +66,7 @@ function InjectRouterContext() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de">
+    <html lang="de" className="dark">
       <head>
         <HeadContent />
       </head>

@@ -194,9 +194,7 @@ if (process.env.DEMO_MODE === "true") {
     // Better Auth adds __Secure- prefix when baseURL is https
     const baseUrl = process.env.BETTER_AUTH_BASE_URL ?? "http://api.puckhub.localhost"
     const isSecure = baseUrl.startsWith("https")
-    const cookieName = isSecure
-      ? "__Secure-better-auth.session_token"
-      : "better-auth.session_token"
+    const cookieName = isSecure ? "__Secure-better-auth.session_token" : "better-auth.session_token"
 
     await setSignedCookie(c, cookieName, sessionToken, secret, {
       path: "/",

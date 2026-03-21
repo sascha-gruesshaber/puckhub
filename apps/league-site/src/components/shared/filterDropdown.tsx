@@ -102,7 +102,12 @@ function FilterDropdown({
             return (
               <div key={option.value}>
                 {showGroupHeader && (
-                  <div className={cn("px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-league-text/35", i > 0 && "mt-1 border-t border-league-text/5 pt-2")}>
+                  <div
+                    className={cn(
+                      "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-league-text/35",
+                      i > 0 && "mt-1 border-t border-league-text/5 pt-2",
+                    )}
+                  >
                     {option.group}
                   </div>
                 )}

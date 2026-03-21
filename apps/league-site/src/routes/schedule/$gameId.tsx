@@ -7,6 +7,7 @@ import { PublicReportForm } from "~/components/shared/publicReportForm"
 import { ScoreBadge } from "~/components/shared/scoreBadge"
 import { StatusBadge } from "~/components/shared/statusBadge"
 import { TeamLogo } from "~/components/shared/teamLogo"
+import { TrikotPreview } from "~/components/shared/trikotPreview"
 import { useFeatures, useOrg } from "~/lib/context"
 import { useT } from "~/lib/i18n"
 import { cn, formatDateTime, slugify, useBackPath } from "~/lib/utils"
@@ -100,6 +101,15 @@ export function GameDetailPage() {
               className="text-center flex-1 group"
             >
               <TeamLogo name={game.homeTeam.name} logoUrl={game.homeTeam.logoUrl} size="lg" className="mx-auto mb-2" />
+              {(game as any).homeTrikot && (
+                <TrikotPreview
+                  svg={(game as any).homeTrikot.template.svg}
+                  primaryColor={(game as any).homeTrikot.primaryColor}
+                  secondaryColor={(game as any).homeTrikot.secondaryColor}
+                  size="sm"
+                  className="mx-auto mb-1"
+                />
+              )}
               <div className="font-bold text-lg group-hover:text-league-primary transition-colors">
                 {game.homeTeam.shortName}
               </div>
@@ -122,6 +132,15 @@ export function GameDetailPage() {
               className="text-center flex-1 group"
             >
               <TeamLogo name={game.awayTeam.name} logoUrl={game.awayTeam.logoUrl} size="lg" className="mx-auto mb-2" />
+              {(game as any).awayTrikot && (
+                <TrikotPreview
+                  svg={(game as any).awayTrikot.template.svg}
+                  primaryColor={(game as any).awayTrikot.primaryColor}
+                  secondaryColor={(game as any).awayTrikot.secondaryColor}
+                  size="sm"
+                  className="mx-auto mb-1"
+                />
+              )}
               <div className="font-bold text-lg group-hover:text-league-primary transition-colors">
                 {game.awayTeam.shortName}
               </div>

@@ -1,7 +1,7 @@
 import { Button, toast } from "@puckhub/ui"
 import type { Node } from "@xyflow/react"
 import { ChevronLeft, ChevronRight, GripVertical, Plus } from "lucide-react"
-import { useState } from "react"
+
 import { trpc } from "@/trpc"
 import { useTranslation } from "~/i18n/use-translation"
 import { resolveTranslatedError } from "~/lib/errorI18n"
@@ -29,6 +29,8 @@ interface SidePanelProps {
   onInvalidate: () => void
   onDragTypeChange: (type: DragType) => void
   atDivisionLimit?: boolean
+  collapsed: boolean
+  onCollapsedChange: (collapsed: boolean) => void
 }
 
 const allRoundTypes = Object.keys(roundTypeMap) as RoundType[]
@@ -77,18 +79,18 @@ function StructurePalette({
             {divisionIcon}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-900">{t("seasonStructure.panel.division")}</div>
+            <div className="text-xs font-medium text-foreground">{t("seasonStructure.panel.division")}</div>
             <div className="text-[10px] text-gray-500">{t("seasonStructure.panel.dragToCanvas")}</div>
           </div>
         </li>
 
         {/* Separator */}
         <div className="flex items-center gap-2 my-1">
-          <div className="flex-1 border-t border-gray-200" />
-          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">
+          <div className="flex-1 border-t border-border" />
+          <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">
             {t("seasonStructure.panel.roundTypes")}
           </span>
-          <div className="flex-1 border-t border-gray-200" />
+          <div className="flex-1 border-t border-border" />
         </div>
 
         {/* Individual round type drag items */}
@@ -106,7 +108,7 @@ function StructurePalette({
                 onDragTypeChange("round")
               }}
               onDragEnd={() => onDragTypeChange(null)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-gray-200 cursor-grab hover:bg-gray-50 active:cursor-grabbing transition-colors list-none"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border cursor-grab hover:bg-secondary/50 active:cursor-grabbing transition-colors list-none"
               style={{
                 borderColor: undefined,
               }}
@@ -127,7 +129,7 @@ function StructurePalette({
                 {icon}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-medium text-gray-800">{t(config.labelKey)}</div>
+                <div className="text-[11px] font-medium text-foreground">{t(config.labelKey)}</div>
               </div>
               <div
                 className="text-[9px] font-semibold px-1.5 py-0.5 rounded"
@@ -151,10 +153,11 @@ export function SidePanel({
   onInvalidate,
   onDragTypeChange,
   atDivisionLimit,
+  collapsed,
+  onCollapsedChange,
 }: SidePanelProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
-  const [collapsed, setCollapsed] = useState(false)
 
   const createDivisionMutation = trpc.division.create.useMutation({
     onSuccess: () => {
@@ -178,7 +181,7 @@ export function SidePanel({
       return (
         <>
           <StructurePalette t={t} onDragTypeChange={onDragTypeChange} atDivisionLimit={atDivisionLimit} />
-          <div className="border-t border-gray-200 mt-4 pt-4">
+          <div className="border-t border-border mt-4 pt-4">
             <TeamPalette teams={teams} teamDivisionCounts={teamDivisionCounts} onDragTypeChange={onDragTypeChange} />
           </div>
         </>
@@ -194,12 +197,12 @@ export function SidePanel({
       return (
         <div className="flex flex-col gap-4">
           <StructurePalette t={t} onDragTypeChange={onDragTypeChange} atDivisionLimit={atDivisionLimit} />
-          <div className="border-t border-gray-200 pt-4">
+          <div className="border-t border-border pt-4">
             <div className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               {t("seasonStructure.panel.season")}
             </div>
-            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 mt-3">
-              <div className="text-sm font-semibold text-gray-900">{d.name as string}</div>
+            <div className="p-3 rounded-lg bg-secondary/50 border border-border mt-3">
+              <div className="text-sm font-semibold text-foreground">{d.name as string}</div>
               <div className="text-xs text-gray-500 mt-1">
                 {t("seasonStructure.panel.range", {
                   start: String(start.getUTCFullYear()).slice(-2),
@@ -213,7 +216,7 @@ export function SidePanel({
               onClick={handleAddDivision}
               disabled={createDivisionMutation.isPending || atDivisionLimit}
               title={atDivisionLimit ? t("plan.limitReached", { defaultValue: "Plan limit reached" }) : undefined}
-              className="text-xs h-8 mt-3 border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              className="text-xs h-8 mt-3 border-border text-muted-foreground hover:text-foreground hover:bg-secondary/50"
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               {t("seasonStructure.panel.addDivision")}
@@ -267,7 +270,7 @@ export function SidePanel({
     return (
       <>
         <StructurePalette t={t} onDragTypeChange={onDragTypeChange} atDivisionLimit={atDivisionLimit} />
-        <div className="border-t border-gray-200 mt-4 pt-4">
+        <div className="border-t border-border mt-4 pt-4">
           <TeamPalette teams={teams} teamDivisionCounts={teamDivisionCounts} onDragTypeChange={onDragTypeChange} />
         </div>
       </>
@@ -279,8 +282,8 @@ export function SidePanel({
       {/* Collapse toggle */}
       <button
         type="button"
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute top-4 z-10 flex items-center justify-center w-6 h-12 rounded-l-md bg-white border border-r-0 border-gray-200 text-gray-400 hover:text-gray-600 transition-colors"
+        onClick={() => onCollapsedChange(!collapsed)}
+        className="absolute top-4 z-10 flex items-center justify-center w-6 h-12 rounded-l-md bg-card border border-r-0 border-border text-muted-foreground/60 hover:text-muted-foreground transition-colors"
         style={{ right: collapsed ? 0 : 320 }}
       >
         {collapsed ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -291,9 +294,9 @@ export function SidePanel({
         className="absolute top-0 right-0 bottom-0 z-10 flex flex-col overflow-hidden transition-transform duration-200"
         style={{
           width: 320,
-          background: "#FFFFFF",
-          borderLeft: "1px solid #E5E7EB",
-          boxShadow: "-4px 0 16px rgba(0, 0, 0, 0.06)",
+          background: "hsl(var(--card))",
+          borderLeft: "1px solid hsl(var(--border))",
+          boxShadow: "-4px 0 16px rgba(0, 0, 0, 0.15)",
           transform: collapsed ? "translateX(100%)" : "translateX(0)",
         }}
       >

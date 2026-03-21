@@ -122,6 +122,8 @@ export interface LegacyGame {
   round: number // FK to alPlayrounds
   saisonID: number
   game_nr: number | null
+  home_trikot: number
+  guest_trikot: number
 }
 
 /** alReport — Game events (goals + penalties in same table) */
@@ -184,6 +186,23 @@ export interface LegacyNews {
   infozeile: string // subtitle
   show_complete: number
   saisonID: number
+}
+
+/** alResultService — Public game reports submitted by team contacts */
+export interface LegacyResultService {
+  id: number
+  home: number // team ID
+  guest: number // team ID
+  comment: string | null
+  postername: string
+  postdate: Date
+  homegoals: number
+  guestgoals: number
+  posterteam: number // team ID of the submitter
+  protest: number // 0 or 1
+  saisonID: number
+  penaltycomment: string | null
+  group_id: number
 }
 
 /** alTeamLineUp — Game lineups */

@@ -41,7 +41,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ background: "#f8fafc" }}>
+    <div className="flex min-h-screen items-center justify-center bg-background">
       <p className="text-sm text-muted-foreground">Redirecting to login...</p>
     </div>
   )

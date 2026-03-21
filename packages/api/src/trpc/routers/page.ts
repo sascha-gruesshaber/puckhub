@@ -305,6 +305,7 @@ export const pageRouter = router({
               }
             })
           })
+          .catch((err) => console.error("[ai-seo] Eligibility check failed:", err))
       }
 
       return page
@@ -402,6 +403,7 @@ export const pageRouter = router({
               }
             })
           })
+          .catch((err) => console.error("[ai-seo] Eligibility check failed:", err))
       }
 
       // Cascade: when a parent page is hidden, also hide all children

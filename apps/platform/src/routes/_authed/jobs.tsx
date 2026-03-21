@@ -51,7 +51,7 @@ function JobsPage() {
           ))}
         </div>
       ) : !jobs || jobs.length === 0 ? (
-        <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
+        <div className="rounded-xl border border-border/50 bg-card p-8 text-center shadow-sm">
           <Clock size={32} className="mx-auto mb-3 text-muted-foreground" />
           <p className="font-medium text-foreground">No jobs registered</p>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -63,7 +63,7 @@ function JobsPage() {
           {jobs.map((job, i) => (
             <div
               key={job.name}
-              className="data-row rounded-xl border border-border/50 bg-white p-5 shadow-sm"
+              className="data-row rounded-xl border border-border/50 bg-card p-5 shadow-sm"
               style={{ "--row-index": i } as React.CSSProperties}
             >
               <div className="flex items-start justify-between gap-4">

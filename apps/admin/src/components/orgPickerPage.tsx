@@ -67,7 +67,7 @@ export function OrgPickerPage() {
               key={org.id}
               type="button"
               onClick={() => navigate({ to: "/$orgSlug", params: { orgSlug: org.slug } })}
-              className="flex w-full items-center gap-4 rounded-xl border border-border/50 bg-white p-4 text-left shadow-sm transition-all hover:border-border hover:shadow-md"
+              className="flex w-full items-center gap-4 rounded-xl border border-border/50 bg-card p-4 text-left shadow-sm transition-all hover:border-border hover:shadow-md"
               style={{ cursor: "pointer" }}
             >
               {org.logo ? (
@@ -97,7 +97,7 @@ export function OrgPickerPage() {
         </div>
 
         {organizations.length === 0 && (
-          <div className="rounded-xl border border-border/50 bg-white p-8 text-center shadow-sm">
+          <div className="rounded-xl border border-border/50 bg-card p-8 text-center shadow-sm">
             <Building2 size={32} className="mx-auto mb-3 text-muted-foreground" />
             <p className="font-medium text-foreground">{t("org.noOrgs")}</p>
             <p className="mt-1 text-sm text-muted-foreground">

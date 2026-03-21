@@ -1,5 +1,12 @@
 import { GameStatusBadge } from "~/components/gameStatusBadge"
+import { TrikotPreview } from "~/components/trikotPreview"
 import { useTranslation } from "~/i18n/use-translation"
+
+interface TrikotData {
+  primaryColor: string
+  secondaryColor: string | null
+  template: { svg: string }
+}
 
 interface GameReportHeaderProps {
   game: {
@@ -11,6 +18,8 @@ interface GameReportHeaderProps {
     scheduledAt: string | Date | null
     location: string | null
     round: { name: string; roundType?: string; division: { name: string } }
+    homeTrikot?: TrikotData | null
+    awayTrikot?: TrikotData | null
   }
 }
 
@@ -45,6 +54,14 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
             </p>
             <p className="text-xs text-muted-foreground">{t("gameReport.home")}</p>
           </div>
+          {game.homeTrikot && (
+            <TrikotPreview
+              svg={game.homeTrikot.template.svg}
+              primaryColor={game.homeTrikot.primaryColor}
+              secondaryColor={game.homeTrikot.secondaryColor}
+              size="sm"
+            />
+          )}
           <div className="h-12 w-12 shrink-0 rounded-md bg-muted/40 flex items-center justify-center overflow-hidden">
             {game.homeTeam.logoUrl ? (
               <img src={game.homeTeam.logoUrl} alt={game.homeTeam.name} className="h-full w-full object-contain" />
@@ -82,6 +99,14 @@ function GameReportHeader({ game }: GameReportHeaderProps) {
               <span className="text-sm font-bold text-muted-foreground/60">{game.awayTeam.shortName.slice(0, 2)}</span>
             )}
           </div>
+          {game.awayTrikot && (
+            <TrikotPreview
+              svg={game.awayTrikot.template.svg}
+              primaryColor={game.awayTrikot.primaryColor}
+              secondaryColor={game.awayTrikot.secondaryColor}
+              size="sm"
+            />
+          )}
           <div className="min-w-0">
             <p
               className={`text-lg truncate ${aWins ? "font-bold text-emerald-600 dark:text-emerald-400" : done ? "font-medium text-muted-foreground" : "font-semibold text-foreground"}`}

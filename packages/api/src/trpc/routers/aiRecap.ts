@@ -67,5 +67,4 @@ export const aiRecapRouter = router({
 
     return { success: true }
   }),
-
 })

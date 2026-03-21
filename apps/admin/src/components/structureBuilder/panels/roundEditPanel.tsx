@@ -92,21 +92,21 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="round-edit-name" className="text-[11px] font-medium text-gray-600">
+        <label htmlFor="round-edit-name" className="text-[11px] font-medium text-muted-foreground">
           {t("seasonStructure.fields.name")}
         </label>
         <Input
           id="round-edit-name"
           value={editName}
           onChange={(e) => setEditName(e.target.value)}
-          className="h-8 text-xs bg-white border-gray-200 text-gray-900"
+          className="h-8 text-xs bg-card border-border text-foreground"
         />
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.roundType")}</p>
+        <p className="text-[11px] font-medium text-muted-foreground">{t("seasonStructure.fields.roundType")}</p>
         <Select value={editType} onValueChange={(v) => setEditType(v)}>
-          <SelectTrigger className="h-8 text-xs bg-white border-gray-200 text-gray-900">
+          <SelectTrigger className="h-8 text-xs bg-card border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -120,7 +120,7 @@ export function RoundEditPanel({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.points")}</p>
+        <p className="text-[11px] font-medium text-muted-foreground">{t("seasonStructure.fields.points")}</p>
         <div className="grid grid-cols-3 gap-2">
           <div>
             <div className="text-[10px] text-gray-500 mb-1">{t("seasonStructure.points.win")}</div>
@@ -128,7 +128,7 @@ export function RoundEditPanel({
               type="number"
               value={editWin}
               onChange={(e) => setEditWin(e.target.value)}
-              className="h-8 text-xs bg-white border-gray-200 text-gray-900 text-center"
+              className="h-8 text-xs bg-card border-border text-foreground text-center"
             />
           </div>
           <div>
@@ -137,7 +137,7 @@ export function RoundEditPanel({
               type="number"
               value={editDraw}
               onChange={(e) => setEditDraw(e.target.value)}
-              className="h-8 text-xs bg-white border-gray-200 text-gray-900 text-center"
+              className="h-8 text-xs bg-card border-border text-foreground text-center"
             />
           </div>
           <div>
@@ -146,14 +146,14 @@ export function RoundEditPanel({
               type="number"
               value={editLoss}
               onChange={(e) => setEditLoss(e.target.value)}
-              className="h-8 text-xs bg-white border-gray-200 text-gray-900 text-center"
+              className="h-8 text-xs bg-card border-border text-foreground text-center"
             />
           </div>
         </div>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-[11px] font-medium text-gray-600">{t("seasonStructure.fields.statistics")}</p>
+        <p className="text-[11px] font-medium text-muted-foreground">{t("seasonStructure.fields.statistics")}</p>
         <div className="flex flex-col gap-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -162,7 +162,7 @@ export function RoundEditPanel({
               onChange={(e) => setEditPlayerStats(e.target.checked)}
               className="h-3.5 w-3.5 rounded border-gray-300 text-[#F4D35E] focus:ring-[#F4D35E]/40"
             />
-            <span className="text-[11px] text-gray-700">{t("seasonStructure.stats.playerStats")}</span>
+            <span className="text-[11px] text-muted-foreground">{t("seasonStructure.stats.playerStats")}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -171,7 +171,7 @@ export function RoundEditPanel({
               onChange={(e) => setEditGoalieStats(e.target.checked)}
               className="h-3.5 w-3.5 rounded border-gray-300 text-[#F4D35E] focus:ring-[#F4D35E]/40"
             />
-            <span className="text-[11px] text-gray-700">{t("seasonStructure.stats.goalieStats")}</span>
+            <span className="text-[11px] text-muted-foreground">{t("seasonStructure.stats.goalieStats")}</span>
           </label>
         </div>
       </div>
@@ -186,13 +186,13 @@ export function RoundEditPanel({
         {updateMutation.isPending ? t("saving") : t("save")}
       </Button>
 
-      <div className="border-t border-gray-200 pt-3">
+      <div className="border-t border-border pt-3">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setDeleteDialogOpen(true)}
           disabled={deleteMutation.isPending}
-          className="text-xs h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+          className="text-xs h-8 text-red-400 hover:text-red-400 hover:bg-red-500/10"
         >
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
           {t("seasonStructure.roundPanel.deleteRound")}
@@ -205,11 +205,11 @@ export function RoundEditPanel({
         title={t("seasonStructure.confirmDelete.roundTitle")}
         description={
           <div className="flex flex-col gap-3">
-            <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-200 p-3">
-              <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
-              <span className="text-sm text-red-800">{t("seasonStructure.confirmDelete.roundWarning")}</span>
+            <div className="flex items-start gap-2 rounded-md bg-red-500/10 border border-red-500/20 p-3">
+              <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
+              <span className="text-sm text-red-400">{t("seasonStructure.confirmDelete.roundWarning")}</span>
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {t("seasonStructure.confirmDelete.roundDescription", { name: editName })}
             </p>
           </div>

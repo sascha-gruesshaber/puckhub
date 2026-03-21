@@ -19,10 +19,7 @@ export function createAiHomeWidgetsJob(): Job {
       const orgs = await db.organization.findMany({
         where: {
           aiEnabled: true,
-          OR: [
-            { aiWidgetLeaguePulse: true },
-            { aiWidgetHeadlinesTicker: true },
-          ],
+          OR: [{ aiWidgetLeaguePulse: true }, { aiWidgetHeadlinesTicker: true }],
         },
         select: { id: true },
       })

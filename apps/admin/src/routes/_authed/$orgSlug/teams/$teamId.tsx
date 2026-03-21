@@ -48,6 +48,7 @@ import { RosterTable } from "~/components/roster/rosterTable"
 import { SignPlayerSheet } from "~/components/roster/signPlayerSheet"
 import { TransferSheet } from "~/components/roster/transferSheet"
 import { TabNavigation } from "~/components/tabNavigation"
+import { TrikotPreview } from "~/components/trikotPreview"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
@@ -100,6 +101,7 @@ function TeamDetailPage() {
   // --- Data ---
   const { data: historyData, isLoading: historyLoading } = trpc.team.history.useQuery({ teamId })
   const { data: fullTeam } = trpc.team.getById.useQuery({ id: teamId })
+  const { data: teamTrikots } = trpc.teamTrikot.listByTeam.useQuery({ teamId })
 
   const activeSeasonId = workingSeason?.id ?? null
   const team = historyData?.team ?? null
@@ -310,8 +312,13 @@ function TeamDetailPage() {
             {/* ── Main content ── */}
             <div className="space-y-8">
               {/* Team Info Card */}
-              <div className="bg-white rounded-xl shadow-sm border border-border/50 p-6">
-                <TeamInfoSection team={team} fullTeam={fullTeam ?? null} initials={initials} />
+              <div className="bg-card rounded-xl shadow-sm border border-border/50 p-6">
+                <TeamInfoSection
+                  team={team}
+                  fullTeam={fullTeam ?? null}
+                  initials={initials}
+                  trikots={teamTrikots ?? []}
+                />
               </div>
 
               {/* ─── Tabs: Roster / Season History ─── */}
@@ -389,7 +396,7 @@ function TeamDetailPage() {
                       description=""
                     />
                   ) : (
-                    <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+                    <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-border/40 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -658,10 +665,22 @@ function TeamDetailPage() {
 // ---------------------------------------------------------------------------
 // Team Info Section (read-only display)
 // ---------------------------------------------------------------------------
+interface TeamTrikotItem {
+  id: string
+  name: string
+  assignmentType: string
+  trikot: {
+    primaryColor: string
+    secondaryColor: string | null
+    template: { svg: string }
+  }
+}
+
 function TeamInfoSection({
   team,
   fullTeam,
   initials,
+  trikots,
 }: {
   team: {
     id: string
@@ -680,7 +699,9 @@ function TeamInfoSection({
     website: string | null
   } | null
   initials: string
+  trikots: TeamTrikotItem[]
 }) {
+  const { t } = useTranslation("common")
   const accentColor = team.primaryColor || "hsl(var(--primary))"
 
   return (
@@ -765,6 +786,29 @@ function TeamInfoSection({
                 {fullTeam.website.replace(/^https?:\/\//, "")}
                 <ExternalLink className="inline ml-1 h-3 w-3" />
               </a>
+            </div>
+          )}
+
+          {/* Trikots */}
+          {trikots.length > 0 && (
+            <div className="flex items-center gap-3 pt-1">
+              {trikots.map((tt) => {
+                const label =
+                  tt.assignmentType && tt.assignmentType !== "custom"
+                    ? t(`trikotsPage.assignmentTypes.${tt.assignmentType}`)
+                    : tt.name
+                return (
+                  <div key={tt.id} className="flex items-center gap-1.5" title={label}>
+                    <TrikotPreview
+                      svg={tt.trikot.template.svg}
+                      primaryColor={tt.trikot.primaryColor}
+                      secondaryColor={tt.trikot.secondaryColor}
+                      size="sm"
+                    />
+                    <span className="text-xs text-muted-foreground">{label}</span>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

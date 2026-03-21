@@ -74,6 +74,8 @@ export const gameReportRouter = router({
         round: { include: { division: true } },
         homeTeam: true,
         awayTeam: true,
+        homeTrikot: { include: { template: true } },
+        awayTrikot: { include: { template: true } },
         events: {
           include: {
             team: true,
@@ -245,7 +247,8 @@ export const gameReportRouter = router({
           json_build_object(
             'id', p.id,
             'firstName', p.first_name,
-            'lastName', p.last_name
+            'lastName', p.last_name,
+            'status', p.status
           ) AS player
         FROM contracts c
         JOIN players p ON p.id = c.player_id

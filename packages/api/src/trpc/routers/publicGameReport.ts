@@ -20,6 +20,7 @@ export const publicGameReportRouter = router({
         seasonId: z.string().uuid().optional(),
         reverted: z.boolean().optional(),
         limit: z.number().int().min(1).max(100).default(50),
+        cursor: z.string().uuid().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -33,10 +34,11 @@ export const publicGameReportRouter = router({
         where.game = { round: { division: { seasonId: input.seasonId } } }
       }
 
-      return ctx.db.publicGameReport.findMany({
+      const items = await ctx.db.publicGameReport.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        take: input.limit,
+        take: input.limit + 1,
+        ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
         include: {
           game: {
             select: {
@@ -50,6 +52,14 @@ export const publicGameReportRouter = router({
           reverter: { select: { name: true } },
         },
       })
+
+      let nextCursor: string | undefined
+      if (items.length > input.limit) {
+        const next = items.pop()!
+        nextCursor = next.id
+      }
+
+      return { items, nextCursor }
     }),
 
   revert: orgProcedure
@@ -121,10 +131,12 @@ export const publicGameReportRouter = router({
       return { success: true }
     }),
 
-  count: orgProcedure.query(async ({ ctx }) => {
-    const count = await ctx.db.publicGameReport.count({
-      where: { organizationId: ctx.organizationId, reverted: false },
-    })
+  count: orgProcedure.input(z.object({ seasonId: z.string().uuid().optional() })).query(async ({ ctx, input }) => {
+    const where: any = { organizationId: ctx.organizationId, reverted: false }
+    if (input.seasonId) {
+      where.game = { round: { division: { seasonId: input.seasonId } } }
+    }
+    const count = await ctx.db.publicGameReport.count({ where })
     return { count }
   }),
 })

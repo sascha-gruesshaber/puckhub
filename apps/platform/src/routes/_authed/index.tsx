@@ -66,7 +66,7 @@ function DashboardPage() {
             {Object.entries(planDistribution).map(([name, count]) => (
               <div
                 key={name}
-                className="bg-white rounded-xl shadow-sm border border-border/50 px-5 py-3 flex items-center gap-3"
+                className="bg-card rounded-xl shadow-sm border border-border/50 px-5 py-3 flex items-center gap-3"
               >
                 <CreditCard size={16} className="text-muted-foreground" />
                 <div>
@@ -83,7 +83,7 @@ function DashboardPage() {
       {orgs && orgs.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Leagues</h2>
-          <div className="bg-white rounded-xl shadow-sm border border-border/50 overflow-hidden">
+          <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
             {orgs.map((org, i) => (
               <Link
                 key={org.id}
@@ -128,7 +128,7 @@ function DashboardPage() {
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border/50 p-5">
+    <div className="bg-card rounded-xl shadow-sm border border-border/50 p-5">
       <div className="flex items-center gap-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-lg"

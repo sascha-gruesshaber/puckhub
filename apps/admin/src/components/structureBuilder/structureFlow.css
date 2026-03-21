@@ -1,29 +1,29 @@
-/* ── React Flow light canvas theme ── */
+/* ── React Flow dark canvas theme ── */
 .structure-flow {
-  --xy-background-color: #fafafa;
-  --xy-background-pattern-color: rgba(0, 0, 0, 0.05);
-  --xy-minimap-background: #f5f5f5;
-  --xy-minimap-mask-background: rgba(250, 250, 250, 0.7);
-  --xy-controls-button-background: #ffffff;
-  --xy-controls-button-background-hover: #f5f5f5;
-  --xy-controls-button-color: #64748b;
-  --xy-controls-button-color-hover: #1e293b;
-  --xy-controls-button-border-color: #e2e8f0;
+  --xy-background-color: hsl(222 54% 9.5%);
+  --xy-background-pattern-color: rgba(255, 255, 255, 0.04);
+  --xy-minimap-background: hsl(222 35% 12%);
+  --xy-minimap-mask-background: rgba(11, 19, 38, 0.7);
+  --xy-controls-button-background: hsl(222 35% 15%);
+  --xy-controls-button-background-hover: hsl(222 28% 19%);
+  --xy-controls-button-color: #8b9ab8;
+  --xy-controls-button-color-hover: #e2e8f0;
+  --xy-controls-button-border-color: hsl(222 25% 21%);
 }
 
 .structure-flow .react-flow__background {
-  background: #fafafa;
+  background: hsl(222 54% 9.5%);
 }
 
 .structure-flow .react-flow__edge-path {
-  stroke: #cbd5e1;
+  stroke: hsl(222 25% 28%);
 }
 
 .structure-flow .react-flow__controls {
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid hsl(222 25% 21%);
 }
 
 .structure-flow .react-flow__controls button {
@@ -39,27 +39,27 @@
 /* ── Shared node base ── */
 .structure-node {
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
+  border: 1px solid hsl(222 25% 21%);
+  background: hsl(222 35% 15%);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.04);
+    0 1px 3px rgba(0, 0, 0, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.15);
   transition:
     border-color 200ms,
     box-shadow 200ms;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .structure-node:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: hsl(222 25% 28%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .structure-node.selected {
   border-color: hsl(var(--primary));
   box-shadow:
     0 0 0 2px hsl(var(--primary) / 0.15),
-    0 4px 12px rgba(0, 0, 0, 0.08);
+    0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 /* ── Season node ── */
@@ -70,7 +70,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #ffffff;
+  background: hsl(222 35% 15%);
 }
 
 .season-node .season-badge {
@@ -99,12 +99,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .season-node .season-sub {
   font-size: 11px;
-  color: #94a3b8;
+  color: #7b8ba2;
   margin-top: 2px;
 }
 
@@ -117,8 +117,8 @@
     border-color 200ms,
     box-shadow 200ms,
     background 200ms;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: hsl(222 35% 15%);
+  border: 1px solid hsl(222 25% 21%);
 }
 
 .division-node.drop-active {
@@ -171,14 +171,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: -0.01em;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .division-node .div-stats {
   display: flex;
   gap: 16px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #7b8ba2;
 }
 
 .division-node .div-stat {
@@ -194,7 +194,7 @@
 
 .division-node .div-stat-num {
   font-weight: 700;
-  color: #64748b;
+  color: #8b9ab8;
 }
 
 /* ── Round node ── */
@@ -205,9 +205,9 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-left: 3px solid #e2e8f0;
+  border-left: 3px solid hsl(222 25% 21%);
   border-radius: 2px 12px 12px 2px;
-  background: #ffffff;
+  background: hsl(222 35% 15%);
 }
 
 .round-node .round-header {
@@ -221,7 +221,7 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: #f8fafc;
+  background: hsl(222 28% 19%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,7 +234,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .round-node .round-type-badge {
@@ -250,7 +250,7 @@
   display: flex;
   gap: 12px;
   font-size: 10px;
-  color: #94a3b8;
+  color: #7b8ba2;
   padding-left: 32px;
 }
 
@@ -267,7 +267,7 @@
 
 .round-node .round-points .point-val {
   font-weight: 700;
-  color: #64748b;
+  color: #8b9ab8;
 }
 
 /* ── Team node ── */
@@ -279,21 +279,21 @@
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background: hsl(222 35% 15%);
+  border: 1px solid hsl(222 25% 21%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .team-node:hover {
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-color: hsl(222 25% 28%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .team-node.selected {
   border-color: hsl(var(--primary));
   box-shadow:
     0 0 0 2px hsl(var(--primary) / 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.08);
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .team-node .team-content {
@@ -314,7 +314,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: hsl(222 28% 19%);
 }
 
 .team-node .team-logo-img {
@@ -329,7 +329,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: #7b8ba2;
 }
 
 .team-node .team-shield-icon {
@@ -342,15 +342,15 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #475569;
+  color: #a8b8cc;
 }
 
 /* ── Handle visibility ── */
 .structure-flow .react-flow__handle {
   width: 8px;
   height: 8px;
-  background: #cbd5e1;
-  border: 2px solid #ffffff;
+  background: hsl(222 25% 28%);
+  border: 2px solid hsl(222 35% 15%);
   opacity: 0;
   transition: opacity 150ms;
 }

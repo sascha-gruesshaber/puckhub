@@ -9,6 +9,7 @@ import {
   ReactFlow,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "@xyflow/react/dist/style.css"
@@ -48,6 +49,7 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [wizardDismissed, setWizardDismissed] = useState(false)
   const [activeDragType, setActiveDragType] = useState<"division" | "round" | "team" | null>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const utils = trpc.useUtils()
 
@@ -244,27 +246,30 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
 
   return (
     <div className={`relative w-full h-full ${dragClass}`.trim()}>
-      <ReactFlow
-        className="structure-flow"
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeClick={onNodeClick}
-        onPaneClick={onPaneClick}
-        onDrop={onCanvasDrop}
-        onDragOver={onCanvasDragOver}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.3 }}
-        proOptions={{ hideAttribution: true }}
-        minZoom={0.2}
-        maxZoom={2}
-        selectNodesOnDrag={false}
-      >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
-        <Controls showInteractive={false} />
-      </ReactFlow>
+      <div className="absolute inset-0 transition-[right] duration-200" style={{ right: sidebarCollapsed ? 0 : 320 }}>
+        <ReactFlow
+          className="structure-flow"
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
+          onDrop={onCanvasDrop}
+          onDragOver={onCanvasDragOver}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.3 }}
+          proOptions={{ hideAttribution: true }}
+          minZoom={0.2}
+          maxZoom={2}
+          selectNodesOnDrag={false}
+        >
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+          <Controls showInteractive={false} />
+          <FitViewOnSidebarChange sidebarCollapsed={sidebarCollapsed} />
+        </ReactFlow>
+      </div>
 
       <SidePanel
         selectedNode={selectedNode}
@@ -274,7 +279,26 @@ export function StructureCanvas({ seasonId }: StructureCanvasProps) {
         onInvalidate={invalidate}
         onDragTypeChange={setActiveDragType}
         atDivisionLimit={atDivisionLimit}
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={setSidebarCollapsed}
       />
     </div>
   )
+}
+
+function FitViewOnSidebarChange({ sidebarCollapsed }: { sidebarCollapsed: boolean }) {
+  const { fitView } = useReactFlow()
+  const initialRender = useRef(true)
+
+  useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false
+      return
+    }
+    // Wait for the CSS transition to finish before re-fitting
+    const timer = setTimeout(() => fitView({ padding: 0.3, duration: 200 }), 220)
+    return () => clearTimeout(timer)
+  }, [fitView])
+
+  return null
 }

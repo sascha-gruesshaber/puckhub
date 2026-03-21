@@ -15,7 +15,7 @@ import { useT } from "~/i18n"
 const slideIcons = [LayoutDashboard, CalendarDays, ClipboardList, Globe, Trophy, Sparkles]
 
 const slideScreenshots = [
-  "/screenshots/dashboard.png",
+  "/screenshots/game-center.png",
   "/screenshots/season-builder.png",
   "/screenshots/game-report.png",
   "/screenshots/league-home.png",

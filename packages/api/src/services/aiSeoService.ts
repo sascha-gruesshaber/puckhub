@@ -1,5 +1,4 @@
 import type { PrismaClient } from "@puckhub/db"
-import { checkAiEligibility } from "./aiRecapService"
 import OpenAI from "openai"
 
 // ─── OpenRouter Client (same as aiRecapService) ─────────────────────────────
@@ -53,11 +52,7 @@ function buildUserPrompt(title: string, content: string): string {
 
 // ─── Generate SEO for News ──────────────────────────────────────────────────
 
-export async function generateNewsSeo(
-  db: PrismaClient,
-  newsId: string,
-  organizationId: string,
-): Promise<void> {
+export async function generateNewsSeo(db: PrismaClient, newsId: string, organizationId: string): Promise<void> {
   try {
     const article = await db.news.findFirst({
       where: { id: newsId, organizationId },
@@ -124,11 +119,7 @@ export async function generateNewsSeo(
 
 // ─── Generate SEO for Page ──────────────────────────────────────────────────
 
-export async function generatePageSeo(
-  db: PrismaClient,
-  pageId: string,
-  organizationId: string,
-): Promise<void> {
+export async function generatePageSeo(db: PrismaClient, pageId: string, organizationId: string): Promise<void> {
   try {
     const page = await db.page.findFirst({
       where: { id: pageId, organizationId },
