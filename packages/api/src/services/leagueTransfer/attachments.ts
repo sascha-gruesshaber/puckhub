@@ -29,6 +29,7 @@ export const IMAGE_FIELDS: Record<string, string[]> = {
   player: ["photoUrl"],
   sponsor: ["logoUrl"],
   document: ["fileUrl"],
+  websiteConfig: ["logoUrl", "faviconUrl", "ogImageUrl"],
 }
 
 // Resolve a URL like /api/uploads/orgId/logo/abc.webp to a filesystem path.
