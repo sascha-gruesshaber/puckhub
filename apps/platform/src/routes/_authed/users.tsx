@@ -295,15 +295,15 @@ function UsersPage() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Users</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Global user management across all leagues</p>
+    <div className="overflow-x-hidden">
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Users</h1>
+          <p className="mt-0.5 sm:mt-1 text-sm text-muted-foreground">Global user management across all leagues</p>
         </div>
-        <Button variant="accent" onClick={() => setCreateDialog(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          New User
+        <Button variant="accent" size="sm" className="sm:size-default shrink-0" onClick={() => setCreateDialog(true)}>
+          <UserPlus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">New User</span>
         </Button>
       </div>
 
@@ -338,160 +338,170 @@ function UsersPage() {
           {filtered.map((user, i) => (
             <div
               key={user.id}
-              className={`data-row flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
+              className={`data-row px-3 py-3 sm:px-4 sm:py-3.5 hover:bg-accent/5 transition-colors ${
                 i < filtered.length - 1 ? "border-b border-border/40" : ""
               }`}
               style={{ "--row-index": i } as React.CSSProperties}
             >
-              {/* Avatar */}
-              {user.image ? (
-                <img src={user.image} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-              ) : (
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                  style={{
-                    background: "hsl(var(--muted))",
-                    color: "hsl(var(--muted-foreground))",
-                    fontSize: 16,
-                    fontWeight: 700,
-                  }}
-                >
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              )}
-
-              {/* Name + Email */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold truncate">{user.name}</p>
-                  {user.role === "admin" && (
-                    <Badge variant="secondary" className="gap-1 text-xs">
-                      <Shield size={10} />
-                      Platform Admin
-                    </Badge>
-                  )}
-                  {user.banned && (
-                    <Badge variant="destructive" className="text-xs">
-                      Banned
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-              </div>
-
-              {/* Organization tags */}
-              <div className="hidden sm:flex items-center gap-1.5 shrink-0 flex-wrap max-w-xs">
-                {user.organizations.length === 0 ? (
-                  <span className="text-xs text-muted-foreground italic">No league</span>
+              <div className="flex items-center gap-3 sm:gap-4">
+                {/* Avatar */}
+                {user.image ? (
+                  <img src={user.image} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
                 ) : (
-                  user.organizations.map(
-                    (org: {
-                      organizationId: string
-                      organizationName: string
-                      role: string
-                      memberRoles: { role: string; teamId: string | null }[]
-                    }) => {
-                      const displayRole = getPrimaryRole(org)
-                      return (
-                        <span
-                          key={org.organizationId}
-                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${roleColor(displayRole)}`}
-                        >
-                          <Building2 size={10} />
-                          <span className="max-w-[100px] truncate">{org.organizationName}</span>
-                          <span className="opacity-60">({displayRole})</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setChangeRoleDialog({
-                                open: true,
-                                userId: user.id,
-                                userName: user.name,
-                                organizationId: org.organizationId,
-                                orgName: org.organizationName,
-                                currentRole: displayRole,
-                              })
-                              setNewRole(displayRole as typeof newRole)
-                            }}
-                            className="rounded hover:bg-black/10 p-0.5 transition-colors"
-                            title="Change role"
-                          >
-                            <Pencil size={10} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setRemoveDialog({
-                                open: true,
-                                userId: user.id,
-                                userName: user.name,
-                                organizationId: org.organizationId,
-                                orgName: org.organizationName,
-                              })
-                            }}
-                            className="rounded hover:bg-black/10 p-0.5 -mr-1 transition-colors"
-                            title="Remove from league"
-                          >
-                            <X size={10} />
-                          </button>
-                        </span>
-                      )
-                    },
-                  )
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      background: "hsl(var(--muted))",
+                      color: "hsl(var(--muted-foreground))",
+                      fontSize: 16,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
                 )}
 
-                {/* Add to league button */}
-                <button
-                  type="button"
-                  onClick={() => openAssignDialog(user)}
-                  className="inline-flex items-center justify-center rounded-md border border-dashed border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-                  title="Assign to league"
-                >
-                  <Plus size={12} />
-                </button>
+                {/* Name + Email */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold truncate">{user.name}</p>
+                    {user.role === "admin" && (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        <Shield size={10} />
+                        <span className="hidden sm:inline">Platform </span>Admin
+                      </Badge>
+                    )}
+                    {user.banned && (
+                      <Badge variant="destructive" className="text-xs">
+                        Banned
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+
+                {/* Organization tags - desktop only */}
+                <div className="hidden sm:flex items-center gap-1.5 shrink-0 flex-wrap max-w-xs">
+                  {user.organizations.length === 0 ? (
+                    <span className="text-xs text-muted-foreground italic">No league</span>
+                  ) : (
+                    user.organizations.map(
+                      (org: {
+                        organizationId: string
+                        organizationName: string
+                        role: string
+                        memberRoles: { role: string; teamId: string | null }[]
+                      }) => {
+                        const displayRole = getPrimaryRole(org)
+                        return (
+                          <span
+                            key={org.organizationId}
+                            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs ${roleColor(displayRole)}`}
+                          >
+                            <Building2 size={10} />
+                            <span className="max-w-[100px] truncate">{org.organizationName}</span>
+                            <span className="opacity-60">({displayRole})</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setChangeRoleDialog({
+                                  open: true,
+                                  userId: user.id,
+                                  userName: user.name,
+                                  organizationId: org.organizationId,
+                                  orgName: org.organizationName,
+                                  currentRole: displayRole,
+                                })
+                                setNewRole(displayRole as typeof newRole)
+                              }}
+                              className="rounded hover:bg-black/10 p-0.5 transition-colors"
+                              title="Change role"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setRemoveDialog({
+                                  open: true,
+                                  userId: user.id,
+                                  userName: user.name,
+                                  organizationId: org.organizationId,
+                                  orgName: org.organizationName,
+                                })
+                              }}
+                              className="rounded hover:bg-black/10 p-0.5 -mr-1 transition-colors"
+                              title="Remove from league"
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        )
+                      },
+                    )
+                  )}
+
+                  {/* Add to league button */}
+                  <button
+                    type="button"
+                    onClick={() => openAssignDialog(user)}
+                    className="inline-flex items-center justify-center rounded-md border border-dashed border-border/60 px-1.5 py-0.5 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                    title="Assign to league"
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+
+                {/* Created date */}
+                <div className="text-right shrink-0 hidden md:block">
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(user.createdAt).toLocaleDateString("de-DE")}
+                  </p>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs h-7 w-7 p-0 sm:h-8 sm:w-auto sm:px-2 md:px-3 text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      setEditEmailDialog({
+                        open: true,
+                        userId: user.id,
+                        userName: user.name,
+                        currentEmail: user.email,
+                      })
+                      setNewEmail(user.email)
+                      setEditEmailError("")
+                    }}
+                    title="Change email"
+                    aria-label="Change email"
+                  >
+                    <Mail className="h-3.5 w-3.5 md:mr-1.5" />
+                    <span className="hidden md:inline">Email</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-xs h-7 w-7 p-0 sm:h-8 sm:w-auto sm:px-2 md:px-3 text-destructive hover:text-destructive"
+                    onClick={() =>
+                      setDeleteDialog({
+                        open: true,
+                        user: { id: user.id, name: user.name, orgCount: user.organizations.length },
+                      })
+                    }
+                    title="Delete user"
+                    aria-label="Delete user"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
+                    <span className="hidden md:inline">Delete</span>
+                  </Button>
+                </div>
               </div>
-
-              {/* Created date */}
-              <div className="text-right shrink-0 hidden md:block">
-                <p className="text-xs text-muted-foreground">{new Date(user.createdAt).toLocaleDateString("de-DE")}</p>
-              </div>
-
-              {/* Edit email button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0 text-xs h-8 px-2 md:px-3 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setEditEmailDialog({ open: true, userId: user.id, userName: user.name, currentEmail: user.email })
-                  setNewEmail(user.email)
-                  setEditEmailError("")
-                }}
-                title="Change email"
-                aria-label="Change email"
-              >
-                <Mail className="h-3.5 w-3.5 md:mr-1.5" />
-                <span className="hidden md:inline">Email</span>
-              </Button>
-
-              {/* Delete button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="shrink-0 text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-                onClick={() =>
-                  setDeleteDialog({
-                    open: true,
-                    user: { id: user.id, name: user.name, orgCount: user.organizations.length },
-                  })
-                }
-                title="Delete user"
-                aria-label="Delete user"
-              >
-                <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
-                <span className="hidden md:inline">Delete</span>
-              </Button>
             </div>
           ))}
         </div>

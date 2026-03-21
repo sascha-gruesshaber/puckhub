@@ -341,19 +341,19 @@ function OrganizationsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Leagues</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage all leagues</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground">Leagues</h1>
+          <p className="mt-0.5 sm:mt-1 text-sm text-muted-foreground">Manage all leagues</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="mr-2 h-4 w-4" />
-            Import League
+          <Button variant="outline" size="sm" className="sm:size-default" onClick={() => fileInputRef.current?.click()}>
+            <Upload className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Import League</span>
           </Button>
-          <Button variant="accent" onClick={openCreateDialog}>
-            <Plus className="mr-2 h-4 w-4" />
-            New League
+          <Button variant="accent" size="sm" className="sm:size-default" onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">New League</span>
           </Button>
         </div>
       </div>
@@ -364,7 +364,7 @@ function OrganizationsPage() {
       {isLoading ? (
         <div className="space-y-3 animate-pulse">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 rounded-xl bg-muted" />
+            <div key={i} className="h-20 sm:h-16 rounded-xl bg-muted" />
           ))}
         </div>
       ) : !orgs || orgs.length === 0 ? (
@@ -378,110 +378,183 @@ function OrganizationsPage() {
           </Button>
         </div>
       ) : (
-        <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
+        <div className="space-y-3 sm:space-y-0 sm:bg-card sm:rounded-xl sm:shadow-sm sm:border sm:border-border/50 sm:overflow-hidden">
           {orgs.map((org, i) => (
             <div
               key={org.id}
-              className={`data-row flex items-center gap-4 px-4 py-3.5 hover:bg-accent/5 transition-colors ${
-                i < orgs.length - 1 ? "border-b border-border/40" : ""
+              className={`data-row bg-card rounded-xl border border-border/50 p-3.5 shadow-sm sm:rounded-none sm:border-0 sm:border-b sm:border-border/40 sm:shadow-none sm:px-4 sm:py-3.5 hover:bg-accent/5 transition-colors ${
+                i === orgs.length - 1 ? "sm:border-b-0" : ""
               }`}
               style={{ "--row-index": i } as React.CSSProperties}
             >
-              {org.logo ? (
-                <img src={org.logo} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-              ) : (
-                <div
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
-                  style={{
-                    background: "hsl(var(--muted))",
-                    color: "hsl(var(--muted-foreground))",
-                    fontSize: 16,
-                    fontWeight: 700,
-                  }}
-                >
-                  {org.name.charAt(0).toUpperCase()}
+              {/* Top row: avatar + info + meta (desktop: single row) */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                {org.logo ? (
+                  <img src={org.logo} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
+                ) : (
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+                    style={{
+                      background: "hsl(var(--muted))",
+                      color: "hsl(var(--muted-foreground))",
+                      fontSize: 16,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {org.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{org.name}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {org.slug && (
+                      <a
+                        href={`${window.location.protocol}//${org.slug}.${getBaseDomain()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                      >
+                        <Globe className="h-3 w-3" />
+                        {org.slug}.{getBaseDomain()}
+                      </a>
+                    )}
+                    <span className="text-xs text-muted-foreground sm:hidden">
+                      · {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
+                    </span>
+                  </div>
                 </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold truncate">{org.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {org.slug && (
-                    <a
-                      href={`${window.location.protocol}//${org.slug}.${getBaseDomain()}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                    >
-                      <Globe className="h-3 w-3" />
-                      {org.slug}.{getBaseDomain()}
-                    </a>
+                {/* Desktop meta */}
+                <div className="hidden sm:flex items-center gap-3 shrink-0">
+                  {(org as any).subscription?.plan && (
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
+                      <CreditCard className="h-3 w-3" />
+                      {(org as any).subscription.plan.name}
+                    </span>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
+                  </p>
+                </div>
+                {/* Desktop action buttons */}
+                <div className="hidden sm:flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-8 px-2 md:px-3"
+                    onClick={() => openEditDialog(org)}
+                    title="Edit league"
+                    aria-label="Edit league"
+                  >
+                    <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
+                    <span className="hidden md:inline">Edit</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-8 px-2 md:px-3"
+                    onClick={() => setActiveMutation.mutate({ organizationId: org.id })}
+                    disabled={setActiveMutation.isPending}
+                    title="Login to league"
+                    aria-label="Login to league"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 md:mr-1.5" />
+                    <span className="hidden md:inline">Login to league</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-8 px-2 md:px-3"
+                    onClick={() => handleExport(org.id, org.name)}
+                    disabled={exportingOrgId === org.id}
+                    title="Export league"
+                    aria-label="Export league"
+                  >
+                    {exportingOrgId === org.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin md:mr-1.5" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5 md:mr-1.5" />
+                    )}
+                    <span className="hidden md:inline">{exportingOrgId === org.id ? "Exporting..." : "Export"}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      setDeletingOrg({ id: org.id, name: org.name })
+                      setDeleteDialogOpen(true)
+                    }}
+                    title="Delete league"
+                    aria-label="Delete league"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
+                    <span className="hidden md:inline">Delete</span>
+                  </Button>
+                </div>
+              </div>
+
+              {/* Mobile: meta row + action buttons */}
+              <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-border/30 sm:hidden">
+                <div className="flex items-center gap-2">
+                  {(org as any).subscription?.plan && (
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
+                      <CreditCard className="h-3 w-3" />
+                      {(org as any).subscription.plan.name}
+                    </span>
                   )}
                 </div>
+                <div className="flex items-center gap-0.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 w-7 p-0"
+                    onClick={() => openEditDialog(org)}
+                    title="Edit league"
+                    aria-label="Edit league"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 w-7 p-0"
+                    onClick={() => setActiveMutation.mutate({ organizationId: org.id })}
+                    disabled={setActiveMutation.isPending}
+                    title="Login to league"
+                    aria-label="Login to league"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 w-7 p-0"
+                    onClick={() => handleExport(org.id, org.name)}
+                    disabled={exportingOrgId === org.id}
+                    title="Export league"
+                    aria-label="Export league"
+                  >
+                    {exportingOrgId === org.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Download className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={() => {
+                      setDeletingOrg({ id: org.id, name: org.name })
+                      setDeleteDialogOpen(true)
+                    }}
+                    title="Delete league"
+                    aria-label="Delete league"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                {(org as any).subscription?.plan && (
-                  <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
-                    <CreditCard className="h-3 w-3" />
-                    {(org as any).subscription.plan.name}
-                  </span>
-                )}
-                <p className="text-sm text-muted-foreground">
-                  {org.memberCount} {org.memberCount === 1 ? "member" : "members"}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-8 px-2 md:px-3"
-                onClick={() => openEditDialog(org)}
-                title="Edit league"
-                aria-label="Edit league"
-              >
-                <Pencil className="h-3.5 w-3.5 md:mr-1.5" />
-                <span className="hidden md:inline">Edit</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-8 px-2 md:px-3"
-                onClick={() => setActiveMutation.mutate({ organizationId: org.id })}
-                disabled={setActiveMutation.isPending}
-                title="Login to league"
-                aria-label="Login to league"
-              >
-                <ExternalLink className="h-3.5 w-3.5 md:mr-1.5" />
-                <span className="hidden md:inline">Login to league</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-8 px-2 md:px-3"
-                onClick={() => handleExport(org.id, org.name)}
-                disabled={exportingOrgId === org.id}
-                title="Export league"
-                aria-label="Export league"
-              >
-                {exportingOrgId === org.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin md:mr-1.5" />
-                ) : (
-                  <Download className="h-3.5 w-3.5 md:mr-1.5" />
-                )}
-                <span className="hidden md:inline">{exportingOrgId === org.id ? "Exporting..." : "Export"}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs h-8 px-2 md:px-3 text-destructive hover:text-destructive"
-                onClick={() => {
-                  setDeletingOrg({ id: org.id, name: org.name })
-                  setDeleteDialogOpen(true)
-                }}
-                title="Delete league"
-                aria-label="Delete league"
-              >
-                <Trash2 className="h-3.5 w-3.5 md:mr-1.5" />
-                <span className="hidden md:inline">Delete</span>
-              </Button>
             </div>
           ))}
         </div>
