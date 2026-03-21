@@ -526,9 +526,9 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
       </aside>
 
       {/* --- Main content --- */}
-      <main className="flex-1 min-h-screen flex flex-col lg:ml-[260px]" style={{ background: "var(--content-bg)" }}>
+      <main className="flex-1 min-w-0 min-h-screen flex flex-col lg:ml-[260px]" style={{ background: "var(--content-bg)" }}>
         <TopBar />
-        <div className="content-enter flex-1 px-4 py-4 sm:px-6 lg:px-11 lg:py-6">
+        <div className="content-enter flex-1 px-4 py-4 sm:px-6 lg:px-11 lg:py-6 min-w-0">
           <Suspense fallback={<PageSkeleton />}>
             <Outlet />
           </Suspense>
