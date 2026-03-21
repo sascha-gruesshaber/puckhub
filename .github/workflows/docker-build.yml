@@ -34,8 +34,6 @@ jobs:
         contains(github.event.pull_request.labels.*.name, 'skip-tests') ||
         contains(github.event.head_commit.message, '[skip tests]')
       )
-    env:
-      DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -51,6 +49,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
 
       - name: Run API tests
         run: pnpm test:api
