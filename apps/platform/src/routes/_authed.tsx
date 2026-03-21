@@ -1,6 +1,6 @@
 import { Button } from "@puckhub/ui"
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router"
-import { Building2, Clock, CreditCard, LayoutDashboard, LogOut, Users } from "lucide-react"
+import { Building2, Clock, CreditCard, LogOut, Users } from "lucide-react"
 import { Suspense, useEffect } from "react"
 import { signOut, useSession } from "@/auth-client"
 import { TopBar } from "~/components/topBar"
@@ -147,17 +147,6 @@ function PlatformSidebarLayout() {
           style={{ padding: "16px 12px" }}
           onClick={() => setSidebarOpen(false)}
         >
-          <Link
-            to="/"
-            activeOptions={{ exact: true }}
-            className="sidebar-link"
-            activeProps={{ className: "sidebar-link sidebar-link-active" }}
-            style={{ marginBottom: 18 }}
-          >
-            <LayoutDashboard {...iconProps} />
-            Dashboard
-          </Link>
-
           <div style={{ marginBottom: 20 }}>
             <div className="sidebar-group-label">Platform</div>
             <div className="flex flex-col" style={{ gap: 2 }}>
@@ -195,7 +184,10 @@ function PlatformSidebarLayout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 min-h-screen flex flex-col lg:ml-[260px]" style={{ background: "var(--content-bg)" }}>
+      <main
+        className="flex-1 min-h-screen min-w-0 flex flex-col lg:ml-[260px] overflow-x-hidden"
+        style={{ background: "var(--content-bg)" }}
+      >
         <TopBar />
         <div className="content-enter flex-1 px-4 py-4 sm:px-6 lg:px-11 lg:py-6">
           <Suspense
