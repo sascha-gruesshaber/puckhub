@@ -43,6 +43,6 @@
     "postgres": "^3.4.8",
     "testcontainers": "^11.11.0",
     "typescript": "^5.8.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.0"
   }
 }
