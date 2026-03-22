@@ -13,8 +13,7 @@
     "lint": "biome check . && tsc --noEmit",
     "format": "biome format --write ."
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.8.0"
+    "typescript": "^5.9.3"
   }
 }

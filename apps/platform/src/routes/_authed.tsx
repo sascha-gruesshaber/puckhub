@@ -104,6 +104,7 @@ function PlatformSidebarLayout() {
         }`}
         style={{
           width: "var(--sidebar-width)",
+          minWidth: "var(--sidebar-width)",
           background: "var(--sidebar-bg)",
           boxShadow: "4px 0 32px rgba(0, 0, 0, 0.2)",
         }}
@@ -112,7 +113,8 @@ function PlatformSidebarLayout() {
         <div
           className="flex items-center gap-3 shrink-0"
           style={{
-            padding: "20px 20px 18px",
+            height: 52,
+            padding: "0 20px",
             borderBottom: "1px solid var(--sidebar-border)",
           }}
         >

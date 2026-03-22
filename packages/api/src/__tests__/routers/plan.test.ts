@@ -68,7 +68,7 @@ describe("plan router", () => {
     it("throws PLAN_NOT_FOUND for non-existent id", async () => {
       const caller = createPlatformAdminCaller()
 
-      await expect(caller.plan.getById({ id: "00000000-0000-0000-0000-000000000099" })).rejects.toThrow(
+      await expect(caller.plan.getById({ id: "10000000-0000-1000-8000-000000000099" })).rejects.toThrow(
         "PLAN_NOT_FOUND",
       )
     })
@@ -99,7 +99,7 @@ describe("plan router", () => {
       const caller = createPlatformAdminCaller()
 
       await expect(
-        caller.plan.update({ id: "00000000-0000-0000-0000-000000000099", priceYearly: 100 }),
+        caller.plan.update({ id: "10000000-0000-1000-8000-000000000099", priceYearly: 100 }),
       ).rejects.toThrow("PLAN_NOT_FOUND")
     })
   })
@@ -114,7 +114,7 @@ describe("plan router", () => {
 
     it("rejects regular user on update", async () => {
       const user = createTestCaller({ asUser: true })
-      await expect(user.plan.update({ id: "00000000-0000-0000-0000-000000000099" })).rejects.toThrow(
+      await expect(user.plan.update({ id: "10000000-0000-1000-8000-000000000099" })).rejects.toThrow(
         "Keine Plattform-Administratorrechte",
       )
     })
@@ -126,7 +126,7 @@ describe("plan router", () => {
 
     it("rejects unauthenticated caller on getById", async () => {
       const caller = createTestCaller()
-      await expect(caller.plan.getById({ id: "00000000-0000-0000-0000-000000000099" })).rejects.toThrow(
+      await expect(caller.plan.getById({ id: "10000000-0000-1000-8000-000000000099" })).rejects.toThrow(
         "Not authenticated",
       )
     })
@@ -134,7 +134,7 @@ describe("plan router", () => {
     it("rejects unauthenticated caller on update", async () => {
       const caller = createTestCaller()
       await expect(
-        caller.plan.update({ id: "00000000-0000-0000-0000-000000000099", priceYearly: 100 }),
+        caller.plan.update({ id: "10000000-0000-1000-8000-000000000099", priceYearly: 100 }),
       ).rejects.toThrow("Not authenticated")
     })
   })

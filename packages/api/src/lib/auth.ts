@@ -1,4 +1,6 @@
 import { passkey } from "@better-auth/passkey"
+// TS2742 workaround: pnpm strict linking requires explicit type import
+import type {} from "@simplewebauthn/server"
 import { db } from "@puckhub/db"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
@@ -12,7 +14,7 @@ import { magicLinkEmail } from "./emailTemplates"
 
 const DEMO_BLOCKED_PATHS = new Set(["/two-factor/enable", "/two-factor/disable"])
 
-export const auth: ReturnType<typeof betterAuth> = betterAuth({
+export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_BASE_URL ?? "http://api.puckhub.localhost",
   database: prismaAdapter(db, {
     provider: "postgresql",

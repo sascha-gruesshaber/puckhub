@@ -365,6 +365,7 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
         }`}
         style={{
           width: "var(--sidebar-width)",
+          minWidth: "var(--sidebar-width)",
           background: "var(--sidebar-bg)",
           boxShadow: "4px 0 32px rgba(0, 0, 0, 0.2)",
         }}
@@ -373,7 +374,8 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
         <div
           className="flex items-center gap-3 shrink-0"
           style={{
-            padding: "20px 20px 18px",
+            height: 73,
+            padding: "0 20px",
             borderBottom: "1px solid var(--sidebar-border)",
           }}
         >
