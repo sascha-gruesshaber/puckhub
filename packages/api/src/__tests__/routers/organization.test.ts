@@ -91,7 +91,7 @@ describe("organization router", () => {
 
     it("rejects setting active org when user is not a member", async () => {
       const admin = createTestCaller({ asAdmin: true })
-      const randomOrgId = "00000000-0000-0000-0000-000000000099"
+      const randomOrgId = "10000000-0000-1000-8000-000000000099"
 
       await expect(admin.organization.setActive({ organizationId: randomOrgId })).rejects.toThrow("ORG_NOT_MEMBER")
     })
@@ -593,7 +593,7 @@ describe("organization router", () => {
     it("throws NOT_FOUND for missing org", async () => {
       const platformAdmin = createPlatformAdminCaller()
 
-      await expect(platformAdmin.organization.delete({ id: "00000000-0000-0000-0000-000000000099" })).rejects.toThrow(
+      await expect(platformAdmin.organization.delete({ id: "10000000-0000-1000-8000-000000000099" })).rejects.toThrow(
         "ORG_NOT_FOUND",
       )
     })
@@ -626,7 +626,7 @@ describe("organization router", () => {
 
       await expect(
         platformAdmin.organization.setActiveForAdmin({
-          organizationId: "00000000-0000-0000-0000-000000000099",
+          organizationId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("ORG_NOT_FOUND")
     })
@@ -889,7 +889,7 @@ describe("organization router", () => {
         admin.organization.addMemberRole({
           memberId: "test-user-member-id",
           role: "team_manager",
-          teamId: "00000000-0000-0000-0000-000000000099",
+          teamId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("TEAM_NOT_FOUND")
     })
@@ -979,7 +979,7 @@ describe("organization router", () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(
         admin.organization.removeMemberRole({
-          memberRoleId: "00000000-0000-0000-0000-000000000099",
+          memberRoleId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("MEMBER_ROLE_NOT_FOUND")
     })
@@ -1001,7 +1001,7 @@ describe("organization router", () => {
       const caller = createTestCaller()
       await expect(
         caller.organization.removeMemberRole({
-          memberRoleId: "00000000-0000-0000-0000-000000000099",
+          memberRoleId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("Not authenticated")
     })

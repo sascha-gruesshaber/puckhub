@@ -91,7 +91,7 @@ describe("leagueTransfer router", () => {
       const platformAdmin = createPlatformAdminCaller()
       await expect(
         platformAdmin.leagueTransfer.exportLeague({
-          organizationId: "00000000-0000-0000-0000-000000000099",
+          organizationId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("Organisation nicht gefunden")
     })

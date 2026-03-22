@@ -115,7 +115,7 @@ describe("subscription router", () => {
       await expect(
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
-          planId: "00000000-0000-0000-0000-000000000099",
+          planId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("PLAN_NOT_FOUND")
     })
@@ -137,7 +137,7 @@ describe("subscription router", () => {
       await expect(
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
-          planId: "00000000-0000-0000-0000-000000000099",
+          planId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("Keine Plattform-Administratorrechte")
     })
@@ -147,7 +147,7 @@ describe("subscription router", () => {
       await expect(
         caller.subscription.assignPlan({
           organizationId: TEST_ORG_ID,
-          planId: "00000000-0000-0000-0000-000000000099",
+          planId: "10000000-0000-1000-8000-000000000099",
         }),
       ).rejects.toThrow("Not authenticated")
     })
