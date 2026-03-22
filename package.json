@@ -51,7 +51,7 @@
     "postgres": "^3.4.8",
     "testcontainers": "^10.28.0",
     "tsx": "^4.21.0",
-    "turbo": "^2.8.18",
+    "turbo": "^2.8.20",
     "typescript": "^5.9.3",
     "wait-on": "^9.0.4"
   }
