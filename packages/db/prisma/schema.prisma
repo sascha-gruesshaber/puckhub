@@ -267,6 +267,7 @@ model Organization {
   aiUsageLogs        AiUsageLog[]
   aiHomeWidgets      AiHomeWidget[]
   publicGameReports  PublicGameReport[]
+  backups            Backup[]
 
   @@map("organization")
 }
@@ -1016,6 +1017,10 @@ model Plan {
   featurePublicReports   Boolean @default(false) @map("feature_public_reports")
   aiMonthlyTokenLimit    Int?    @map("ai_monthly_token_limit")
 
+  // Backup limits
+  backupFrequencyDays  Int @default(7)  @map("backup_frequency_days")
+  maxBackups           Int @default(1)  @map("max_backups")
+
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -1049,6 +1054,21 @@ model OrgSubscription {
   @@index([organizationId], map: "org_subscriptions_org_id_idx")
   @@index([planId], map: "org_subscriptions_plan_id_idx")
   @@map("org_subscriptions")
+}
+
+// ─── Backups ────────────────────────────────────────────────────────────────
+
+model Backup {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id")
+  storageKey     String   @map("storage_key")
+  sizeBytes      Int      @map("size_bytes")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("backups")
 }
 
 // ─── Public Game Reports ────────────────────────────────────────────────────

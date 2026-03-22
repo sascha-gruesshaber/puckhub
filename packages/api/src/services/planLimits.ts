@@ -53,6 +53,8 @@ interface Plan {
   featureAi: boolean
   featurePublicReports: boolean
   aiMonthlyTokenLimit: number | null
+  backupFrequencyDays: number
+  maxBackups: number
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
