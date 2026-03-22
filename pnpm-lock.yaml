@@ -169,7 +169,7 @@ importers:
         version: 0.563.0(react@19.2.4)
       nitro:
         specifier: npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5
-        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@1.21.7)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@17.3.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@1.21.7)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -263,7 +263,7 @@ importers:
         version: 0.563.0(react@19.2.4)
       nitro:
         specifier: npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5
-        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@17.3.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -348,7 +348,7 @@ importers:
         version: 0.563.0(react@19.2.4)
       nitro:
         specifier: npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5
-        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@17.3.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -436,7 +436,7 @@ importers:
         version: 0.563.0(react@19.2.4)
       nitro:
         specifier: npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5
-        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+        version: nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@17.3.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -514,8 +514,8 @@ importers:
         specifier: ^1.4.18
         version: 1.4.18(73398669523f9465f162f9f310469041)
       dotenv:
-        specifier: ^16.5.0
-        version: 16.6.1
+        specifier: ^17.3.1
+        version: 17.3.1
       hono:
         specifier: ^4.7.0
         version: 4.11.8
@@ -591,8 +591,8 @@ importers:
         specifier: ^1.4.18
         version: 1.4.18(d56c8645e8766cf9afd707580be186d6)
       dotenv:
-        specifier: ^16.5.0
-        version: 16.6.1
+        specifier: ^17.3.1
+        version: 17.3.1
       mysql2:
         specifier: ^3.18.1
         version: 3.18.1(@types/node@22.19.9)
@@ -4156,6 +4156,10 @@ packages:
 
   dotenv@16.6.1:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
+
+  dotenv@17.3.1:
+    resolution: {integrity: sha512-IO8C/dzEb6O3F9/twg6ZLXz164a2fhTnEWb95H23Dm4OuN+92NmEAlTrupP9VW6Jm3sO26tQlqyvyi4CsnY9GA==}
     engines: {node: '>=12'}
 
   drizzle-kit@0.31.9:
@@ -10017,6 +10021,8 @@ snapshots:
 
   dotenv@16.6.1: {}
 
+  dotenv@17.3.1: {}
+
   drizzle-kit@0.31.9:
     dependencies:
       '@drizzle-team/brocli': 0.10.2
@@ -10653,7 +10659,7 @@ snapshots:
 
   nf3@0.3.11: {}
 
-  nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@1.21.7)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)):
+  nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@17.3.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@1.21.7)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.4(srvx@0.11.9)
@@ -10670,7 +10676,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unstorage: 2.0.0-alpha.6(chokidar@4.0.3)(db0@0.3.4(@electric-sql/pglite@0.3.15)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(mysql2@3.18.1(@types/node@22.19.9)))(ofetch@2.0.0-alpha.3)
     optionalDependencies:
-      dotenv: 16.6.1
+      dotenv: 17.3.1
       giget: 2.0.0
       jiti: 1.21.7
       vite: 7.3.1(@types/node@22.19.9)(jiti@1.21.7)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
@@ -10704,7 +10710,7 @@ snapshots:
       - sqlite3
       - uploadthing
 
-  nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@16.6.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)):
+  nitro-nightly@3.0.1-20260312-093400-ba5147a5(@electric-sql/pglite@0.3.15)(chokidar@4.0.3)(dotenv@17.3.1)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(giget@2.0.0)(jiti@2.6.1)(mysql2@3.18.1(@types/node@22.19.9))(vite@7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.4(srvx@0.11.9)
@@ -10721,7 +10727,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       unstorage: 2.0.0-alpha.6(chokidar@4.0.3)(db0@0.3.4(@electric-sql/pglite@0.3.15)(drizzle-orm@0.44.7(@electric-sql/pglite@0.3.15)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@types/pg@8.16.0)(gel@2.2.0)(kysely@0.28.11)(mysql2@3.18.1(@types/node@22.19.9))(pg@8.18.0)(postgres@3.4.8)(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)))(mysql2@3.18.1(@types/node@22.19.9)))(ofetch@2.0.0-alpha.3)
     optionalDependencies:
-      dotenv: 16.6.1
+      dotenv: 17.3.1
       giget: 2.0.0
       jiti: 2.6.1
       vite: 7.3.1(@types/node@22.19.9)(jiti@2.6.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
