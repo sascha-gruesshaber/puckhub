@@ -42,7 +42,7 @@
     "@types/nodemailer": "^7.0.11",
     "postgres": "^3.4.8",
     "testcontainers": "^11.11.0",
-    "typescript": "^5.8.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
 }

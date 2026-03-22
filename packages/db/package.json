@@ -34,7 +34,7 @@
     "mysql2": "^3.18.1",
     "sharp": "^0.34.5",
     "tsx": "^4.19.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
