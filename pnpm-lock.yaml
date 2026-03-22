@@ -514,7 +514,7 @@ importers:
         specifier: ^1.4.18
         version: 1.4.18(73398669523f9465f162f9f310469041)
       dotenv:
-        specifier: ^16.5.0
+        specifier: ^16.6.1
         version: 16.6.1
       hono:
         specifier: ^4.7.0
@@ -591,7 +591,7 @@ importers:
         specifier: ^1.4.18
         version: 1.4.18(d56c8645e8766cf9afd707580be186d6)
       dotenv:
-        specifier: ^16.5.0
+        specifier: ^16.6.1
         version: 16.6.1
       mysql2:
         specifier: ^3.18.1
