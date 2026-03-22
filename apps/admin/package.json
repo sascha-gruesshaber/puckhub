@@ -53,7 +53,7 @@
     "better-auth": "^1.2.0",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.6",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^0.577.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",

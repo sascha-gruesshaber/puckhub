@@ -22,7 +22,7 @@
     "clsx": "^2.1.0",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.6",
-    "lucide-react": "^0.563.0",
+    "lucide-react": "^0.577.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
