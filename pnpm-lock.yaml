@@ -535,7 +535,7 @@ importers:
         specifier: ^4.19.0
         version: 4.21.0
       zod:
-        specifier: ^3.24.0
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@testcontainers/postgresql':
