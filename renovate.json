@@ -1,0 +1,94 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":rebaseStalePrs",
+    ":semanticCommits"
+  ],
+  "schedule": ["before 7am on monday"],
+  "timezone": "Europe/Berlin",
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 5am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group TanStack packages",
+      "matchPackagePatterns": ["^@tanstack/"],
+      "groupName": "tanstack"
+    },
+    {
+      "description": "Group Prisma packages",
+      "matchPackagePatterns": ["^@prisma/", "^prisma$"],
+      "groupName": "prisma"
+    },
+    {
+      "description": "Group tRPC packages",
+      "matchPackagePatterns": ["^@trpc/"],
+      "groupName": "trpc"
+    },
+    {
+      "description": "Group Radix UI packages",
+      "matchPackagePatterns": ["^@radix-ui/"],
+      "groupName": "radix-ui"
+    },
+    {
+      "description": "Group Tiptap packages",
+      "matchPackagePatterns": ["^@tiptap/"],
+      "groupName": "tiptap"
+    },
+    {
+      "description": "Group dnd-kit packages",
+      "matchPackagePatterns": ["^@dnd-kit/"],
+      "groupName": "dnd-kit"
+    },
+    {
+      "description": "Group AWS SDK packages",
+      "matchPackagePatterns": ["^@aws-sdk/"],
+      "groupName": "aws-sdk"
+    },
+    {
+      "description": "Group Playwright packages",
+      "matchPackagePatterns": ["^@playwright/", "^playwright$"],
+      "groupName": "playwright"
+    },
+    {
+      "description": "Group Testcontainers packages",
+      "matchPackagePatterns": ["^@testcontainers/", "^testcontainers$"],
+      "groupName": "testcontainers"
+    },
+    {
+      "description": "Group Better Auth packages",
+      "matchPackagePatterns": ["^@better-auth/", "^better-auth$"],
+      "groupName": "better-auth"
+    },
+    {
+      "description": "Group Biome packages",
+      "matchPackagePatterns": ["^@biomejs/"],
+      "groupName": "biome"
+    },
+    {
+      "description": "Group type definitions",
+      "matchPackagePatterns": ["^@types/"],
+      "groupName": "type-definitions"
+    },
+    {
+      "description": "Automerge patch updates",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    },
+    {
+      "description": "Automerge minor updates for dev dependencies",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": true
+    },
+    {
+      "description": "Do not touch pinned nitro nightly",
+      "matchPackageNames": ["nitro"],
+      "enabled": false
+    }
+  ]
+}
