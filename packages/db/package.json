@@ -27,8 +27,8 @@
     "db:migrate:eal:analyze": "tsx src/eal-migration/run.ts --analyze-only"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "@types/pg": "^8.11.0",
+    "@types/node": "^22.19.15",
+    "@types/pg": "^8.20.0",
     "better-auth": "^1.4.18",
     "dotenv": "^16.5.0",
     "mysql2": "^3.18.1",
