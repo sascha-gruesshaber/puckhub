@@ -161,9 +161,10 @@ const SheetClose = React.forwardRef<HTMLButtonElement, Omit<React.ButtonHTMLAttr
         ref={ref}
         type="button"
         className={cn(
-          "absolute right-4 top-4 z-10 rounded-md p-1.5 opacity-70 ring-offset-background transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+          "absolute z-10 rounded-md p-1.5 opacity-70 transition-all hover:opacity-100 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
           className,
         )}
+        style={{ right: "1rem", top: "1rem" }}
         onClick={requestClose}
         {...props}
       >

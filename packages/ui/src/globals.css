@@ -1,8 +1,93 @@
 @import "@fontsource-variable/outfit";
 @import "tailwindcss";
+@source "./";
 @config "../tailwind.config.ts";
 
+/* Tailwind v4 blocks bare `bg-accent` because `accent` conflicts with the
+   built-in accent-color utility. Opacity variants (bg-accent/5) work fine,
+   only the bare class is missing. */
+@layer utilities {
+  .bg-accent {
+    background-color: hsl(var(--accent));
+  }
+  .hover\:bg-accent:hover {
+    background-color: hsl(var(--accent));
+  }
+}
+
+/* ================================================================
+   tailwindcss-animate replacement for Tailwind v4
+   (v3 plugin not compatible with v4, manual CSS equivalent)
+   ================================================================ */
+@keyframes tw-enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+      scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), var(--tw-enter-scale, 1))
+      rotate(var(--tw-enter-rotate, 0));
+  }
+}
+@keyframes tw-exit {
+  to {
+    opacity: var(--tw-exit-opacity, 1);
+    transform: translate3d(var(--tw-exit-translate-x, 0), var(--tw-exit-translate-y, 0), 0)
+      scale3d(var(--tw-exit-scale, 1), var(--tw-exit-scale, 1), var(--tw-exit-scale, 1))
+      rotate(var(--tw-exit-rotate, 0));
+  }
+}
+
+/* Base animate-in / animate-out — used via data-[state=open/closed]: variants */
+.animate-in,
+[data-state="open"].animate-in,
+[data-state="open"] .animate-in {
+  animation-name: tw-enter;
+  animation-duration: 150ms;
+  --tw-enter-opacity: initial;
+  --tw-enter-scale: initial;
+  --tw-enter-rotate: initial;
+  --tw-enter-translate-x: initial;
+  --tw-enter-translate-y: initial;
+}
+.animate-out,
+[data-state="closed"].animate-out,
+[data-state="closed"] .animate-out {
+  animation-name: tw-exit;
+  animation-duration: 150ms;
+  --tw-exit-opacity: initial;
+  --tw-exit-scale: initial;
+  --tw-exit-rotate: initial;
+  --tw-exit-translate-x: initial;
+  --tw-exit-translate-y: initial;
+}
+
+/* Fade */
+.fade-in-0, [data-state="open"].fade-in-0, [data-state="open"] .fade-in-0 { --tw-enter-opacity: 0; }
+.fade-out-0, [data-state="closed"].fade-out-0, [data-state="closed"] .fade-out-0 { --tw-exit-opacity: 0; }
+
+/* Zoom */
+.zoom-in-95, [data-state="open"].zoom-in-95, [data-state="open"] .zoom-in-95 { --tw-enter-scale: 0.95; }
+.zoom-out-95, [data-state="closed"].zoom-out-95, [data-state="closed"] .zoom-out-95 { --tw-exit-scale: 0.95; }
+
+/* Slide-in */
+.slide-in-from-top-2, [data-state="open"].slide-in-from-top-2, [data-side="top"].slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+.slide-in-from-bottom-2, [data-state="open"].slide-in-from-bottom-2, [data-side="bottom"].slide-in-from-bottom-2 { --tw-enter-translate-y: 0.5rem; }
+.slide-in-from-left-2, [data-state="open"].slide-in-from-left-2, [data-side="left"].slide-in-from-left-2 { --tw-enter-translate-x: -0.5rem; }
+.slide-in-from-right-2, [data-state="open"].slide-in-from-right-2, [data-side="right"].slide-in-from-right-2 { --tw-enter-translate-x: 0.5rem; }
+.slide-in-from-left-1\/2, [data-state="open"].slide-in-from-left-1\/2 { --tw-enter-translate-x: -50%; }
+.slide-in-from-top-\[48\%\], [data-state="open"].slide-in-from-top-\[48\%\] { --tw-enter-translate-y: -48%; }
+.slide-in-from-right, [data-state="open"].slide-in-from-right { --tw-enter-translate-x: 100%; }
+
+/* Slide-out */
+.slide-out-to-right, [data-state="closed"].slide-out-to-right { --tw-exit-translate-x: 100%; }
+.slide-out-to-left-1\/2, [data-state="closed"].slide-out-to-left-1\/2 { --tw-exit-translate-x: -50%; }
+.slide-out-to-top-\[48\%\], [data-state="closed"].slide-out-to-top-\[48\%\] { --tw-exit-translate-y: -48%; }
+
 @layer base {
+  /* Tailwind v4 removed cursor: pointer from button resets */
+  button, [role="button"] {
+    cursor: pointer;
+  }
+
   :root {
     --background: 222 54% 9.5%;
     --foreground: 222 40% 93%;
