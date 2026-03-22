@@ -24,8 +24,8 @@
     "echarts-for-react": "^3.0.6",
     "lucide-react": "^0.563.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260312-093400-ba5147a5",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "superjson": "^2.2.0",
     "tailwind-merge": "^3.0.0"
   },
