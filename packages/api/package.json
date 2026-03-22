@@ -37,11 +37,11 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^11.11.0",
+    "@testcontainers/postgresql": "^11.13.0",
     "@types/node": "^22.0.0",
     "@types/nodemailer": "^7.0.11",
     "postgres": "^3.4.8",
-    "testcontainers": "^11.11.0",
+    "testcontainers": "^11.13.0",
     "typescript": "^5.8.0",
     "vitest": "^4.0.18"
   }
