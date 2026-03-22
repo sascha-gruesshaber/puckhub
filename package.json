@@ -2,7 +2,7 @@
   "name": "puckhub",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.32.1",
   "scripts": {
     "dev": "pnpm dev:docker:up && wait-on tcp:5432 && pnpm dev:servers",
     "dev:docker:up": "docker compose -p puckhub -f docker/docker-compose.yml up -d",
