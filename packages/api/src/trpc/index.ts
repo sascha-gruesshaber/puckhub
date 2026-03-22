@@ -1,5 +1,6 @@
 import { router } from "./init"
 import { aiRecapRouter } from "./routers/aiRecap"
+import { backupRouter } from "./routers/backup"
 import { bonusPointsRouter } from "./routers/bonusPoints"
 import { contactFormRouter } from "./routers/contactForm"
 import { contractRouter } from "./routers/contract"
@@ -34,6 +35,7 @@ import { websiteConfigRouter } from "./routers/websiteConfig"
 
 export const appRouter = router({
   aiRecap: aiRecapRouter,
+  backup: backupRouter,
   contactForm: contactFormRouter,
   bonusPoints: bonusPointsRouter,
   dashboard: dashboardRouter,

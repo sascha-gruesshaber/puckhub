@@ -81,6 +81,7 @@ export const EXCLUDED_FROM_EXPORT: Record<string, string> = {
   aiUsageLog: "usage tracking / billing data, not league data",
   aiHomeWidget: "AI-generated content, regenerated on demand",
   orgSubscription: "billing / plan data, not league data",
+  backup: "backup metadata / billing data, not league data",
 } as const
 
 // Pluralize model name for JSON keys

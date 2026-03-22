@@ -98,6 +98,8 @@ export async function runSeed(db: Database) {
       featureScheduledNews: false,
       featureAdvancedRoles: false,
       featureAdvancedStats: false,
+      backupFrequencyDays: 7,
+      maxBackups: 1,
     },
     {
       id: PLAN_IDS.starter,
@@ -125,6 +127,8 @@ export async function runSeed(db: Database) {
       featureScheduledNews: false,
       featureAdvancedRoles: false,
       featureAdvancedStats: false,
+      backupFrequencyDays: 7,
+      maxBackups: 2,
     },
     {
       id: PLAN_IDS.pro,
@@ -155,6 +159,8 @@ export async function runSeed(db: Database) {
       featureAi: true,
       featurePublicReports: true,
       aiMonthlyTokenLimit: 500000,
+      backupFrequencyDays: 1,
+      maxBackups: 7,
     },
     {
       id: PLAN_IDS.unlimited,
@@ -185,6 +191,8 @@ export async function runSeed(db: Database) {
       featureAi: true,
       featurePublicReports: true,
       aiMonthlyTokenLimit: 1000000,
+      backupFrequencyDays: 1,
+      maxBackups: 15,
     },
   ]
 

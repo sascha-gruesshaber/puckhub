@@ -89,7 +89,7 @@ export const subscriptionRouter = router({
       include: { plan: true },
     })
 
-    const [teams, players, seasons, news, pages, sponsors, admins] = await Promise.all([
+    const [teams, players, seasons, news, pages, sponsors, admins, backups] = await Promise.all([
       ctx.db.team.count({ where: { organizationId: ctx.organizationId } }),
       ctx.db.player.count({ where: { organizationId: ctx.organizationId } }),
       ctx.db.season.count({ where: { organizationId: ctx.organizationId } }),
@@ -102,6 +102,7 @@ export const subscriptionRouter = router({
           role: { in: ["owner", "admin"] },
         },
       }),
+      ctx.db.backup.count({ where: { organizationId: ctx.organizationId } }),
     ])
 
     const aiTokensUsed = await getMonthlyTokenUsage(ctx.db, ctx.organizationId)
@@ -109,7 +110,7 @@ export const subscriptionRouter = router({
     return {
       subscription,
       plan: subscription?.plan ?? null,
-      usage: { teams, players, seasons, news, pages, sponsors, admins },
+      usage: { teams, players, seasons, news, pages, sponsors, admins, backups },
       aiUsage: {
         tokensUsed: aiTokensUsed,
         tokenLimit: (subscription?.plan as any)?.aiMonthlyTokenLimit ?? null,

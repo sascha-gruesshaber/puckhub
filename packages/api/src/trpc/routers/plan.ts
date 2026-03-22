@@ -36,6 +36,8 @@ const planUpdateSchema = z.object({
   featureAi: z.boolean().optional(),
   featurePublicReports: z.boolean().optional(),
   aiMonthlyTokenLimit: z.number().int().min(0).nullable().optional(),
+  backupFrequencyDays: z.number().int().min(1).optional(),
+  maxBackups: z.number().int().min(0).optional(),
 })
 
 export const planRouter = router({
