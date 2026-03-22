@@ -250,7 +250,7 @@ importers:
         specifier: ^11.1.0
         version: 11.9.0(typescript@5.9.3)
       clsx:
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: 2.1.1
       echarts:
         specifier: ^6.0.0
@@ -341,7 +341,7 @@ importers:
         specifier: ^11.1.0
         version: 11.9.0(typescript@5.9.3)
       clsx:
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: 2.1.1
       lucide-react:
         specifier: ^0.563.0
@@ -651,7 +651,7 @@ importers:
         specifier: ^0.7.0
         version: 0.7.1
       clsx:
-        specifier: ^2.1.0
+        specifier: ^2.1.1
         version: 2.1.1
       cmdk:
         specifier: ^1.1.1
