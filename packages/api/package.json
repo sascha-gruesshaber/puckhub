@@ -32,7 +32,7 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.2",
     "openai": "^6.29.0",
-    "superjson": "^2.2.0",
+    "superjson": "^2.2.6",
     "tsx": "^4.19.0",
     "zod": "^3.24.0"
   },
