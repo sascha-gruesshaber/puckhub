@@ -499,8 +499,8 @@ importers:
         specifier: ^1.14.0
         version: 1.19.9(hono@4.11.8)
       '@hono/trpc-server':
-        specifier: ^0.3.0
-        version: 0.3.4(@trpc/server@11.9.0(typescript@5.9.3))(hono@4.11.8)
+        specifier: ^0.4.2
+        version: 0.4.2(@trpc/server@11.9.0(typescript@5.9.3))(hono@4.11.8)
       '@prisma/client':
         specifier: ^7.4.1
         version: 7.4.1(prisma@7.5.0(@types/react@19.2.13)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
@@ -1643,12 +1643,12 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/trpc-server@0.3.4':
-    resolution: {integrity: sha512-xFOPjUPnII70FgicDzOJy1ufIoBTu8eF578zGiDOrYOrYN8CJe140s9buzuPkX+SwJRYK8LjEBHywqZtxdm8aA==}
+  '@hono/trpc-server@0.4.2':
+    resolution: {integrity: sha512-3TDrc42CZLgcTFkXQba+y7JlRWRiyw1AqhLqztWyNS2IFT+3bHld0lxKdGBttCtGKHYx0505dM67RMazjhdZqw==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       '@trpc/server': ^10.10.0 || >11.0.0-rc
-      hono: '>=4.*'
+      hono: '>=4.0.0'
 
   '@img/colour@1.0.0':
     resolution: {integrity: sha512-A5P/LfWGFSl6nsckYtjw9da+19jB8hkJ6ACTGcDfEJ0aE+l2n2El7dsVM7UVHZQ9s2lmYMWlrS21YLy2IR1LUw==}
@@ -7188,7 +7188,7 @@ snapshots:
     dependencies:
       hono: 4.11.8
 
-  '@hono/trpc-server@0.3.4(@trpc/server@11.9.0(typescript@5.9.3))(hono@4.11.8)':
+  '@hono/trpc-server@0.4.2(@trpc/server@11.9.0(typescript@5.9.3))(hono@4.11.8)':
     dependencies:
       '@trpc/server': 11.9.0(typescript@5.9.3)
       hono: 4.11.8
