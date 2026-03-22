@@ -25,7 +25,7 @@
     "@hono/trpc-server": "^0.3.0",
     "@prisma/client": "^7.4.1",
     "@puckhub/db": "workspace:*",
-    "@trpc/server": "^11.1.0",
+    "@trpc/server": "^11.14.1",
     "better-auth": "^1.4.18",
     "dotenv": "^16.5.0",
     "hono": "^4.7.0",
