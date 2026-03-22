@@ -16,62 +16,62 @@
   "packageRules": [
     {
       "description": "Group TanStack packages",
-      "matchPackagePatterns": ["^@tanstack/"],
+      "matchPackageNames": ["/^@tanstack//"],
       "groupName": "tanstack"
     },
     {
       "description": "Group Prisma packages",
-      "matchPackagePatterns": ["^@prisma/", "^prisma$"],
+      "matchPackageNames": ["/^@prisma//", "/^prisma$/"],
       "groupName": "prisma"
     },
     {
       "description": "Group tRPC packages",
-      "matchPackagePatterns": ["^@trpc/"],
+      "matchPackageNames": ["/^@trpc//"],
       "groupName": "trpc"
     },
     {
       "description": "Group Radix UI packages",
-      "matchPackagePatterns": ["^@radix-ui/"],
+      "matchPackageNames": ["/^@radix-ui//"],
       "groupName": "radix-ui"
     },
     {
       "description": "Group Tiptap packages",
-      "matchPackagePatterns": ["^@tiptap/"],
+      "matchPackageNames": ["/^@tiptap//"],
       "groupName": "tiptap"
     },
     {
       "description": "Group dnd-kit packages",
-      "matchPackagePatterns": ["^@dnd-kit/"],
+      "matchPackageNames": ["/^@dnd-kit//"],
       "groupName": "dnd-kit"
     },
     {
       "description": "Group AWS SDK packages",
-      "matchPackagePatterns": ["^@aws-sdk/"],
+      "matchPackageNames": ["/^@aws-sdk//"],
       "groupName": "aws-sdk"
     },
     {
       "description": "Group Playwright packages",
-      "matchPackagePatterns": ["^@playwright/", "^playwright$"],
+      "matchPackageNames": ["/^@playwright//", "/^playwright$/"],
       "groupName": "playwright"
     },
     {
       "description": "Group Testcontainers packages",
-      "matchPackagePatterns": ["^@testcontainers/", "^testcontainers$"],
+      "matchPackageNames": ["/^@testcontainers//", "/^testcontainers$/"],
       "groupName": "testcontainers"
     },
     {
       "description": "Group Better Auth packages",
-      "matchPackagePatterns": ["^@better-auth/", "^better-auth$"],
+      "matchPackageNames": ["/^@better-auth//", "/^better-auth$/"],
       "groupName": "better-auth"
     },
     {
       "description": "Group Biome packages",
-      "matchPackagePatterns": ["^@biomejs/"],
+      "matchPackageNames": ["/^@biomejs//"],
       "groupName": "biome"
     },
     {
       "description": "Group type definitions",
-      "matchPackagePatterns": ["^@types/"],
+      "matchPackageNames": ["/^@types//"],
       "groupName": "type-definitions"
     },
     {
