@@ -51,8 +51,6 @@
     "@trpc/server": "^11.14.1",
     "@xyflow/react": "^12.10.1",
     "better-auth": "^1.5.6",
-    "echarts": "^6.0.0",
-    "echarts-for-react": "^3.0.6",
     "lucide-react": "^0.577.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260322-095631-ffdd706a",
     "qrcode": "^1.5.4",
