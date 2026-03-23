@@ -158,12 +158,6 @@ importers:
       better-auth:
         specifier: ^1.5.6
         version: 1.5.6(8356e228c6e70622f766b4c53a50b65b)
-      echarts:
-        specifier: ^6.0.0
-        version: 6.0.0
-      echarts-for-react:
-        specifier: ^3.0.6
-        version: 3.0.6(echarts@6.0.0)(react@19.2.4)
       lucide-react:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.4)
