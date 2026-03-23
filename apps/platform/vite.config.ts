@@ -1,4 +1,6 @@
 import { createRequire } from "node:module"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 import react from "@vitejs/plugin-react"
@@ -6,15 +8,24 @@ import { nitro } from "nitro/vite"
 import { defineConfig } from "vite"
 
 const require = createRequire(import.meta.url)
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const shimPath = path.resolve(
+  __dirname,
+  "../../packages/config/use-sync-external-store-shim.js",
+)
 
 export default defineConfig({
   envDir: "../../",
   base: process.env.VITE_BASE_PATH ?? "/",
   resolve: {
     tsconfigPaths: true,
-    alias: {
-      tslib: require.resolve("tslib/tslib.es6.mjs"),
-    },
+    alias: [
+      { find: "tslib", replacement: require.resolve("tslib/tslib.es6.mjs") },
+      {
+        find: /^use-sync-external-store\/shim(\/index\.js)?$/,
+        replacement: shimPath,
+      },
+    ],
   },
   server: {
     port: 3002,
@@ -25,7 +36,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     tanstackStart(),
-    nitro(),
+    nitro({ noExternals: true }),
     react(),
   ],
 })
