@@ -1,4 +1,4 @@
-# PuckHub CMS
+# PuckHub
 
 Ice Hockey League Management Platform -- a multi-tenant SaaS system for managing seasons, teams, players, games, and public league websites with AI-powered content generation (game recaps, SEO texts, home page widgets), public game reporting with email verification, passwordless authentication (magic links + passkeys), and localized German/English URLs.
 
@@ -40,8 +40,8 @@ Each service runs on its own subdomain, routed via Caddy reverse proxy.
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/sascha-gruesshaber/puckhub.cms.git
-   cd puckhub.cms
+   git clone https://github.com/sascha-gruesshaber/puckhub.git
+   cd puckhub
    ```
 
 2. **Install dependencies**
