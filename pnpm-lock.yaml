@@ -24,8 +24,8 @@ importers:
         specifier: ^1.58.2
         version: 1.58.2
       postgres:
-        specifier: ^3.4.8
-        version: 3.4.8
+        specifier: ^3.4.9
+        version: 3.4.9
       testcontainers:
         specifier: ^11.13.0
         version: 11.13.0
@@ -521,8 +521,8 @@ importers:
         specifier: ^7.0.11
         version: 7.0.11
       postgres:
-        specifier: ^3.4.8
-        version: 3.4.8
+        specifier: ^3.4.9
+        version: 3.4.9
       testcontainers:
         specifier: ^11.13.0
         version: 11.13.0
@@ -4557,8 +4557,8 @@ packages:
     resolution: {integrity: sha512-Jtc2612XINuBjIl/QTWsV5UvE8UHuNblcO3vVADSrKsrc6RqGX6lOW1cEo3CM2v0XG4Nat8nI+YM7/f26VxXLw==}
     engines: {node: '>=12'}
 
-  postgres@3.4.8:
-    resolution: {integrity: sha512-d+JFcLM17njZaOLkv6SCev7uoLaBtfK86vMUXhW1Z4glPWh4jozno9APvW/XKFJ3CCxVoC7OL38BqRydtu5nGg==}
+  postgres@3.4.9:
+    resolution: {integrity: sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw==}
     engines: {node: '>=12'}
 
   prettier@3.8.1:
@@ -9601,7 +9601,7 @@ snapshots:
 
   postgres@3.4.7: {}
 
-  postgres@3.4.8: {}
+  postgres@3.4.9: {}
 
   prettier@3.8.1: {}
 
