@@ -43,16 +43,16 @@
     ]
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.8",
-    "@playwright/test": "^1.58.2",
-    "@testcontainers/postgresql": "^11.13.0",
+    "@biomejs/biome": "^2.4.11",
+    "@playwright/test": "^1.59.1",
+    "@testcontainers/postgresql": "^11.14.0",
     "concurrently": "^9.2.1",
-    "playwright": "^1.58.2",
+    "playwright": "^1.59.1",
     "postgres": "^3.4.9",
     "testcontainers": "^11.13.0",
     "tsx": "^4.21.0",
     "turbo": "^2.8.20",
     "typescript": "^5.9.3",
-    "wait-on": "^9.0.4"
+    "wait-on": "^9.0.5"
   }
 }
