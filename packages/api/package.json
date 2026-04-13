@@ -41,7 +41,7 @@
     "@testcontainers/postgresql": "^11.13.0",
     "@types/node": "^25.5.0",
     "@types/nodemailer": "^7.0.11",
-    "postgres": "^3.4.8",
+    "postgres": "^3.4.9",
     "testcontainers": "^11.13.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
