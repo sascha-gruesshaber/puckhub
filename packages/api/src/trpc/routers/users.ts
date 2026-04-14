@@ -291,6 +291,13 @@ export const usersRouter = router({
     await ctx.db.member.deleteMany({
       where: { userId: input.id, organizationId: ctx.organizationId },
     })
+    await ctx.db.session.updateMany({
+      where: {
+        userId: input.id,
+        activeOrganizationId: ctx.organizationId,
+      },
+      data: { activeOrganizationId: null },
+    })
   }),
 
   updateRole: orgAdminProcedure
@@ -391,6 +398,13 @@ export const usersRouter = router({
 
       await ctx.db.member.deleteMany({
         where: { userId: input.userId, organizationId: input.organizationId },
+      })
+      await ctx.db.session.updateMany({
+        where: {
+          userId: input.userId,
+          activeOrganizationId: input.organizationId,
+        },
+        data: { activeOrganizationId: null },
       })
 
       return { ok: true }

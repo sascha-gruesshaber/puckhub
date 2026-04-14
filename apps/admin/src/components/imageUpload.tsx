@@ -127,7 +127,7 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/svg+xml"
+        accept="image/jpeg,image/png,image/webp"
         className="hidden"
         onChange={handleFileSelect}
       />

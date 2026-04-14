@@ -14,6 +14,10 @@ function getModel(): string {
   return process.env.OPENROUTER_MODEL || "google/gemini-3.1-flash-lite-preview"
 }
 
+function isAiDisabledForTests(): boolean {
+  return process.env.NODE_ENV === "test" || process.env.VITEST === "true"
+}
+
 // ─── Token Budget ───────────────────────────────────────────────────────────
 
 export async function getMonthlyTokenUsage(db: PrismaClient, organizationId: string): Promise<number> {
@@ -47,6 +51,10 @@ export async function checkAiEligibility(
   db: PrismaClient,
   organizationId: string,
 ): Promise<{ eligible: boolean; reason?: string }> {
+  if (isAiDisabledForTests()) {
+    return { eligible: false, reason: "disabled_in_tests" }
+  }
+
   // 1. Not demo org
   if (organizationId === "demo-league") {
     return { eligible: false, reason: "demo_org" }

@@ -418,6 +418,28 @@ describe("organization router", () => {
       expect(member).toBeNull()
     })
 
+    it("clears the removed member's active organization from existing sessions", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const db = getTestDb()
+
+      await db.session.create({
+        data: {
+          id: "remove-member-session",
+          token: "remove-member-session-token",
+          userId: "test-user-id",
+          expiresAt: new Date(Date.now() + 60_000),
+          activeOrganizationId: TEST_ORG_ID,
+        },
+      })
+
+      await admin.organization.removeMember({ memberId: "test-user-member-id" })
+
+      const session = await db.session.findUnique({
+        where: { id: "remove-member-session" },
+      })
+      expect(session?.activeOrganizationId).toBeNull()
+    })
+
     it("rejects self-removal", async () => {
       const admin = createTestCaller({ asAdmin: true })
 
