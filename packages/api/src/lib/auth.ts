@@ -1,7 +1,7 @@
 import { passkey } from "@better-auth/passkey"
+import { db } from "@puckhub/db"
 // TS2742 workaround: pnpm strict linking requires explicit type import
 import type {} from "@simplewebauthn/server"
-import { db } from "@puckhub/db"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { APIError, createAuthMiddleware } from "better-auth/api"
@@ -42,23 +42,6 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      // Block magic-link send for non-existent users (prevent sending useless emails).
-      // Uses lowercase lookup to match Better Auth's internal findUserByEmail behavior.
-      if (ctx.path === "/sign-in/magic-link") {
-        const email = ctx.body?.email
-        if (email) {
-          const exists = await db.user.findFirst({
-            where: { email: email.toLowerCase() },
-            select: { id: true },
-          })
-          if (!exists) {
-            throw new APIError("FORBIDDEN", {
-              message: "USER_NOT_FOUND",
-            })
-          }
-        }
-      }
-
       if (!DEMO_BLOCKED_PATHS.has(ctx.path)) return
       const session = ctx.context?.session
       if (!session?.user?.id) return
