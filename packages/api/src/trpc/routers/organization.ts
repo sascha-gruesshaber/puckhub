@@ -51,6 +51,16 @@ export const organizationRouter = router({
     const organizationId = ctx.activeOrganizationId
     if (!organizationId) return null
 
+    if ((ctx.user as any).role !== "admin") {
+      const membership = await ctx.db.member.findFirst({
+        where: { userId: ctx.user.id, organizationId },
+        select: { id: true },
+      })
+      if (!membership) {
+        return null
+      }
+    }
+
     const org = await ctx.db.organization.findFirst({
       where: { id: organizationId },
     })
@@ -491,6 +501,13 @@ export const organizationRouter = router({
     }
 
     await ctx.db.member.delete({ where: { id: input.memberId } })
+    await ctx.db.session.updateMany({
+      where: {
+        userId: memberRecord.userId,
+        activeOrganizationId: ctx.organizationId,
+      },
+      data: { activeOrganizationId: null },
+    })
   }),
 
   delete: platformAdminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
@@ -507,6 +524,16 @@ export const organizationRouter = router({
       select: { userId: true },
     })
     const memberUserIds = members.map((m) => m.userId)
+
+    if (memberUserIds.length > 0) {
+      await ctx.db.session.updateMany({
+        where: {
+          userId: { in: memberUserIds },
+          activeOrganizationId: input.id,
+        },
+        data: { activeOrganizationId: null },
+      })
+    }
 
     // Delete the organization (cascades member records)
     await ctx.db.organization.delete({ where: { id: input.id } })

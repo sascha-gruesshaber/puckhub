@@ -181,6 +181,51 @@ describe("users router", () => {
       expect(memberRecord).toBeNull()
     })
 
+    it("clears activeOrganizationId from the deleted member's sessions", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const db = getTestDb()
+
+      const userId = "delete-session-target"
+      await db.user.create({
+        data: {
+          id: userId,
+          name: "Delete Session Target",
+          email: "delete-session@test.local",
+          emailVerified: true,
+        },
+      })
+      await db.member.create({
+        data: {
+          id: "delete-session-target-member",
+          userId,
+          organizationId: TEST_ORG_ID,
+          role: "member",
+        },
+      })
+      await db.memberRole.create({
+        data: {
+          memberId: "delete-session-target-member",
+          role: "editor",
+        },
+      })
+      await db.session.create({
+        data: {
+          id: "delete-session-target-session",
+          token: "delete-session-target-token",
+          userId,
+          expiresAt: new Date(Date.now() + 60_000),
+          activeOrganizationId: TEST_ORG_ID,
+        },
+      })
+
+      await admin.users.delete({ id: userId })
+
+      const session = await db.session.findUnique({
+        where: { id: "delete-session-target-session" },
+      })
+      expect(session?.activeOrganizationId).toBeNull()
+    })
+
     it("prevents deleting yourself", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await expect(admin.users.delete({ id: "test-admin-id" })).rejects.toThrow()
@@ -461,6 +506,31 @@ describe("users router", () => {
         where: { userId: "test-user-id", organizationId: TEST_ORG_ID },
       })
       expect(member).toBeNull()
+    })
+
+    it("clears activeOrganizationId when a user is removed from an organization", async () => {
+      const platformAdmin = createPlatformAdminCaller()
+      const db = getTestDb()
+
+      await db.session.create({
+        data: {
+          id: "platform-remove-session",
+          token: "platform-remove-session-token",
+          userId: "test-user-id",
+          expiresAt: new Date(Date.now() + 60_000),
+          activeOrganizationId: TEST_ORG_ID,
+        },
+      })
+
+      await platformAdmin.users.removeFromOrganization({
+        userId: "test-user-id",
+        organizationId: TEST_ORG_ID,
+      })
+
+      const session = await db.session.findUnique({
+        where: { id: "platform-remove-session" },
+      })
+      expect(session?.activeOrganizationId).toBeNull()
     })
 
     it("prevents removing yourself", async () => {
