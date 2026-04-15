@@ -1,5 +1,6 @@
 import postgres from "postgres"
 import { afterAll, afterEach, beforeEach } from "vitest"
+import { resetDbClient } from "@puckhub/db"
 
 const baseUrl = process.env.TEST_DB_BASE_URL
 const template = process.env.TEST_DB_TEMPLATE
@@ -34,12 +35,15 @@ beforeEach(async () => {
   await maintenance.unsafe(`CREATE DATABASE ${dbName} TEMPLATE ${template}`)
 
   const dbUrl = replaceDbName(baseUrl, dbName)
+  process.env.DATABASE_URL = dbUrl
+  await resetDbClient()
   initTestDb(dbUrl)
 })
 
 afterEach(async () => {
   // Close per-test connection first
   await closeTestDb()
+  await resetDbClient()
 
   // Drop per-test DB
   if (currentDbName) {

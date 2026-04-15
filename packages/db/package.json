@@ -27,19 +27,19 @@
     "db:migrate:eal:analyze": "tsx src/eal-migration/run.ts --analyze-only"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "@types/pg": "^8.20.0",
-    "better-auth": "^1.5.6",
-    "dotenv": "^17.3.1",
-    "mysql2": "^3.20.0",
+    "better-auth": "^1.6.2",
+    "dotenv": "^17.4.2",
+    "mysql2": "^3.22.0",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.5.0",
+    "@prisma/adapter-pg": "^7.7.0",
+    "@prisma/client": "^7.7.0",
     "pg": "^8.20.0",
-    "prisma": "^7.5.0"
+    "prisma": "^7.7.0"
   }
 }
