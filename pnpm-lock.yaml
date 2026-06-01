@@ -27,7 +27,7 @@ importers:
         specifier: ^3.4.9
         version: 3.4.9
       testcontainers:
-        specifier: ^11.13.0
+        specifier: ^11.14.0
         version: 11.14.0
       tsx:
         specifier: ^4.21.0
@@ -524,7 +524,7 @@ importers:
         specifier: ^3.4.9
         version: 3.4.9
       testcontainers:
-        specifier: ^11.13.0
+        specifier: ^11.14.0
         version: 11.14.0
       typescript:
         specifier: ^5.9.3
