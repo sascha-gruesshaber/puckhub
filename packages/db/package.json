@@ -27,7 +27,7 @@
     "db:migrate:eal:analyze": "tsx src/eal-migration/run.ts --analyze-only"
   },
   "devDependencies": {
-    "@types/node": "^25.8.0",
+    "@types/node": "^25.9.1",
     "@types/pg": "^8.20.0",
     "better-auth": "^1.6.2",
     "dotenv": "^17.4.2",

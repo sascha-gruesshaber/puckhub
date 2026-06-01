@@ -190,7 +190,7 @@ importers:
         specifier: ^1.5.6
         version: 1.5.6
       '@types/react':
-        specifier: ^19.2.14
+        specifier: ^19.2.15
         version: 19.2.15
       '@types/react-dom':
         specifier: ^19.2.3
@@ -278,7 +278,7 @@ importers:
         specifier: ^1.167.20
         version: 1.168.11(@tanstack/react-router@1.170.8(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       '@types/react':
-        specifier: ^19.2.14
+        specifier: ^19.2.15
         version: 19.2.15
       '@types/react-dom':
         specifier: ^19.2.3
@@ -357,7 +357,7 @@ importers:
         specifier: ^1.167.20
         version: 1.168.11(@tanstack/react-router@1.170.8(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       '@types/react':
-        specifier: ^19.2.14
+        specifier: ^19.2.15
         version: 19.2.15
       '@types/react-dom':
         specifier: ^19.2.3
@@ -433,7 +433,7 @@ importers:
         specifier: ^1.167.20
         version: 1.168.11(@tanstack/react-router@1.170.8(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(vite@8.0.14(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       '@types/react':
-        specifier: ^19.2.14
+        specifier: ^19.2.15
         version: 19.2.15
       '@types/react-dom':
         specifier: ^19.2.3
@@ -515,7 +515,7 @@ importers:
         specifier: ^11.14.0
         version: 11.14.0
       '@types/node':
-        specifier: ^25.8.0
+        specifier: ^25.9.1
         version: 25.9.1
       '@types/nodemailer':
         specifier: ^7.0.11
@@ -555,7 +555,7 @@ importers:
         version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
     devDependencies:
       '@types/node':
-        specifier: ^25.8.0
+        specifier: ^25.9.1
         version: 25.9.1
       '@types/pg':
         specifier: ^8.20.0
@@ -646,7 +646,7 @@ importers:
         specifier: ^5.2.8
         version: 5.2.8
       '@types/react':
-        specifier: ^19.2.14
+        specifier: ^19.2.15
         version: 19.2.15
       react:
         specifier: ^19.2.6

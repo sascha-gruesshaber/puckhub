@@ -34,7 +34,7 @@
     "@playwright/test": "^1.59.1",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/router-plugin": "^1.167.20",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "tailwindcss": "^4.3.0",
