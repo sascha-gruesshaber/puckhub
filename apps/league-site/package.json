@@ -20,7 +20,7 @@
     "@trpc/react-query": "^11.16.0",
     "@trpc/server": "^11.16.0",
     "clsx": "^2.1.1",
-    "echarts": "^6.0.0",
+    "echarts": "^6.1.0",
     "echarts-for-react": "^3.0.6",
     "lucide-react": "^0.577.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260731-205209-52abde8a",
