@@ -44,10 +44,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.62.1",
     "@testcontainers/postgresql": "^11.14.0",
     "concurrently": "^9.2.4",
-    "playwright": "^1.59.1",
+    "playwright": "^1.62.1",
     "postgres": "^3.4.9",
     "testcontainers": "^11.14.0",
     "tsx": "^4.21.0",
