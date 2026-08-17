@@ -162,8 +162,8 @@ importers:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.6)
       nitro:
-        specifier: npm:nitro-nightly@3.0.1-20260731-205209-52abde8a
-        version: nitro-nightly@3.0.1-20260731-205209-52abde8a(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+        specifier: npm:nitro-nightly@3.0.1-20260810-113911-16ff2809
+        version: nitro-nightly@3.0.1-20260810-113911-16ff2809(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -250,8 +250,8 @@ importers:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.6)
       nitro:
-        specifier: npm:nitro-nightly@3.0.1-20260731-205209-52abde8a
-        version: nitro-nightly@3.0.1-20260731-205209-52abde8a(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+        specifier: npm:nitro-nightly@3.0.1-20260810-113911-16ff2809
+        version: nitro-nightly@3.0.1-20260810-113911-16ff2809(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       react:
         specifier: ^19.2.6
         version: 19.2.6
@@ -329,8 +329,8 @@ importers:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.6)
       nitro:
-        specifier: npm:nitro-nightly@3.0.1-20260731-205209-52abde8a
-        version: nitro-nightly@3.0.1-20260731-205209-52abde8a(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+        specifier: npm:nitro-nightly@3.0.1-20260810-113911-16ff2809
+        version: nitro-nightly@3.0.1-20260810-113911-16ff2809(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       react:
         specifier: ^19.2.6
         version: 19.2.6
@@ -411,8 +411,8 @@ importers:
         specifier: ^0.577.0
         version: 0.577.0(react@19.2.6)
       nitro:
-        specifier: npm:nitro-nightly@3.0.1-20260731-205209-52abde8a
-        version: nitro-nightly@3.0.1-20260731-205209-52abde8a(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+        specifier: npm:nitro-nightly@3.0.1-20260810-113911-16ff2809
+        version: nitro-nightly@3.0.1-20260810-113911-16ff2809(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
       react:
         specifier: ^19.2.6
         version: 19.2.6
@@ -4159,8 +4159,8 @@ packages:
   nf3@0.3.23:
     resolution: {integrity: sha512-RWVLAWozmVD3AaDmaU3qMGB3v+yNlH5d9qqStI4e/WLlNQVnJ4YErGDbYCIrGFyrHdbF6I6Baf0Ae6c7tFYmSg==}
 
-  nitro-nightly@3.0.1-20260731-205209-52abde8a:
-    resolution: {integrity: sha512-KI1rwOJPgD0U57mE+1AefoEPjd+aJPJ4GCTLym0cXyfBBi8JtVsHmtB/4D3g1RaDwntjoz8H5nWnWGg7agYnuA==}
+  nitro-nightly@3.0.1-20260810-113911-16ff2809:
+    resolution: {integrity: sha512-CD/oRD6udCLWDMOHRRulls448wD1bUzQ6GYfzlUKXTSERDGML9orZhp0dfXTDMZ0A4EtUkRogFH/vHAj9P42ow==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -8594,14 +8594,14 @@ snapshots:
   h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.11.22)):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.16
+      srvx: 0.11.22
     optionalDependencies:
       crossws: 0.4.10(srvx@0.11.22)
 
   h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.12.5)):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.16
+      srvx: 0.11.22
     optionalDependencies:
       crossws: 0.4.10(srvx@0.12.5)
 
@@ -8850,7 +8850,7 @@ snapshots:
 
   nf3@0.3.23: {}
 
-  nitro-nightly@3.0.1-20260731-205209-52abde8a(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0)):
+  nitro-nightly@3.0.1-20260810-113911-16ff2809(@electric-sql/pglite@0.4.1)(chokidar@5.0.0)(dotenv@17.4.2)(giget@3.2.0)(jiti@2.7.0)(mysql2@3.22.5(@types/node@25.9.1))(vite@8.0.16(@types/node@25.9.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0)):
     dependencies:
       consola: 3.4.2
       crossws: 0.4.10(srvx@0.11.22)
@@ -9019,7 +9019,7 @@ snapshots:
   pkg-types@2.3.1:
     dependencies:
       confbox: 0.2.4
-      exsolve: 1.0.8
+      exsolve: 1.1.1
       pathe: 2.0.3
 
   playwright-core@1.60.0: {}

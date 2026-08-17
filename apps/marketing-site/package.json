@@ -20,7 +20,7 @@
     "@trpc/server": "^11.16.0",
     "clsx": "^2.1.1",
     "lucide-react": "^0.577.0",
-    "nitro": "npm:nitro-nightly@3.0.1-20260731-205209-52abde8a",
+    "nitro": "npm:nitro-nightly@3.0.1-20260810-113911-16ff2809",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "superjson": "^2.2.6",
