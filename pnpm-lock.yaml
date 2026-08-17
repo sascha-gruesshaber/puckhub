@@ -466,8 +466,8 @@ importers:
         specifier: ^1.6.2
         version: 1.6.11(3a16d16913ba1bc1b6f74e56060be995)
       '@hono/node-server':
-        specifier: ^1.19.14
-        version: 1.19.14(hono@4.13.1)
+        specifier: ^1.19.17
+        version: 1.19.17(hono@4.13.1)
       '@hono/trpc-server':
         specifier: ^0.4.2
         version: 0.4.2(@trpc/server@11.17.0(typescript@5.9.3))(hono@4.13.1)
@@ -1290,8 +1290,8 @@ packages:
     peerDependencies:
       hono: ^4
 
-  '@hono/node-server@1.19.14':
-    resolution: {integrity: sha512-GwtvgtXxnWsucXvbQXkRgqksiH2Qed37H9xHZocE5sA3N8O8O8/8FA3uclQXxXVzc9XBZuEOMK7+r02FmSpHtw==}
+  '@hono/node-server@1.19.17':
+    resolution: {integrity: sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
@@ -5893,7 +5893,7 @@ snapshots:
     dependencies:
       hono: 4.13.1
 
-  '@hono/node-server@1.19.14(hono@4.13.1)':
+  '@hono/node-server@1.19.17(hono@4.13.1)':
     dependencies:
       hono: 4.13.1
 
@@ -8594,14 +8594,14 @@ snapshots:
   h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.11.22)):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.16
+      srvx: 0.11.22
     optionalDependencies:
       crossws: 0.4.10(srvx@0.11.22)
 
   h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.12.5)):
     dependencies:
       rou3: 0.8.1
-      srvx: 0.11.16
+      srvx: 0.11.22
     optionalDependencies:
       crossws: 0.4.10(srvx@0.12.5)
 
