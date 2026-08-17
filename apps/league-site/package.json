@@ -31,7 +31,7 @@
   },
   "devDependencies": {
     "@fontsource-variable/inter": "^5.2.8",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/router-plugin": "^1.167.20",
     "@types/react": "^19.2.14",
