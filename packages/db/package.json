@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/node": "^25.8.0",
     "@types/pg": "^8.20.0",
-    "better-auth": "^1.6.2",
+    "better-auth": "^1.6.29",
     "dotenv": "^17.4.2",
     "mysql2": "^3.22.5",
     "sharp": "^0.34.5",
