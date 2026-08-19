@@ -5,12 +5,20 @@
  * (unlike other apps which replace the first subdomain segment).
  */
 
+/**
+ * The bare domain the sibling hosts hang off. The site is also reachable on
+ * www., where prepending straight to the hostname would yield names like
+ * api.www.puckhub.eu — hosts that do not exist. Anything deriving a sibling
+ * host must go through here.
+ */
+export function getBaseHostname(): string {
+  if (typeof window === "undefined") return ""
+  return window.location.hostname.replace(/^www\./, "")
+}
+
 function getSubdomainUrl(subdomain: string): string {
   if (typeof window !== "undefined") {
-    // The site is also reachable on www., where prepending would yield
-    // api.www.puckhub.eu — a host that does not exist.
-    const hostname = window.location.hostname.replace(/^www\./, "")
-    return `${window.location.protocol}//${subdomain}.${hostname}`
+    return `${window.location.protocol}//${subdomain}.${getBaseHostname()}`
   }
   return ""
 }

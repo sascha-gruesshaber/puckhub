@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react"
 import { useState } from "react"
-import { getAdminUrl, getApiUrl } from "@/env"
+import { getAdminUrl, getApiUrl, getBaseHostname } from "@/env"
 import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 
@@ -22,7 +22,7 @@ const DEMO_PREFIXES = ["admin", "editor", "reporter"]
 
 function getDemoDomain(): string {
   if (typeof window !== "undefined") {
-    return `${DEMO_ORG}.${window.location.hostname}`
+    return `${DEMO_ORG}.${getBaseHostname()}`
   }
   return `${DEMO_ORG}.puckhub.localhost`
 }
