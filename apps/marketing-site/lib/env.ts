@@ -7,7 +7,9 @@
 
 function getSubdomainUrl(subdomain: string): string {
   if (typeof window !== "undefined") {
-    const hostname = window.location.hostname
+    // The site is also reachable on www., where prepending would yield
+    // api.www.puckhub.eu — a host that does not exist.
+    const hostname = window.location.hostname.replace(/^www\./, "")
     return `${window.location.protocol}//${subdomain}.${hostname}`
   }
   return ""

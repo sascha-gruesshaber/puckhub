@@ -262,23 +262,55 @@ jobs:
           )
 
           DEPLOYED=0
+          FAILED=0
           for app in $(echo "$APPS_DEPLOYED" | jq -r '.[]'); do
             uuid="${uuids[$app]}"
             if [ -z "$uuid" ]; then continue; fi
             echo "Deploying $app (uuid: $uuid)..."
             response=$(curl -s -w "\n%{http_code}" \
-              -X GET "https://coolify.gruesshaber.eu/api/v1/deploy?uuid=${uuid}&force=false" \
+              -X POST "https://coolify.gruesshaber.eu/api/v1/deploy?uuid=${uuid}&force=false" \
               -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}")
             http_code=$(echo "$response" | tail -1)
             body=$(echo "$response" | head -n -1)
             echo "  Response ($http_code): $body"
             if [ "$http_code" -ge 400 ]; then
-              echo "::warning::Failed to trigger deployment for $app (HTTP $http_code)"
+              echo "::error::Failed to trigger deployment for $app (HTTP $http_code)"
+              FAILED=$((FAILED + 1))
+              continue
             fi
             DEPLOYED=$((DEPLOYED + 1))
           done
 
           echo "Triggered $DEPLOYED deployment(s)."
+          if [ "$FAILED" -gt 0 ]; then
+            echo "::error::$FAILED deployment trigger(s) failed."
+            exit 1
+          fi
+
+      # Coolify deploys asynchronously, so this probes the public entrypoints a
+      # little later — it catches a deployment that takes a service down, not a
+      # subtly broken release.
+      - name: Smoke test public entrypoints
+        run: |
+          sleep 90
+          check() {
+            name="$1"; url="$2"; expect="$3"; body=""
+            for _ in $(seq 1 18); do
+              body=$(curl -sS --max-time 10 "$url" || true)
+              case "$body" in
+                *"$expect"*) echo "  OK    $name — $url"; return 0 ;;
+              esac
+              sleep 10
+            done
+            echo "::error::Smoke test failed for $name ($url). Last response: ${body:0:200}"
+            return 1
+          }
+
+          FAILED=0
+          check "api"            "https://api.puckhub.eu/api/health" '"status":"ok"' || FAILED=1
+          check "marketing-site" "https://puckhub.eu/"               "<!DOCTYPE html" || FAILED=1
+          check "admin"          "https://admin.puckhub.eu/"         "<!DOCTYPE html" || FAILED=1
+          exit $FAILED
 
       - name: Deployment summary
         env:
