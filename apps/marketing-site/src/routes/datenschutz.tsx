@@ -113,7 +113,7 @@ function Datenschutz() {
             <p>
               Telefon: &#91;Telefonnummer der verantwortlichen Stelle&#93;
               <br />
-              E-Mail: info-puckhub@gruesshaber.eu
+              E-Mail: info@puckhub.eu
             </p>
             <p>
               Verantwortliche Stelle ist die nat&uuml;rliche oder juristische Person, die allein oder gemeinsam mit

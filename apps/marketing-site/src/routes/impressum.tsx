@@ -30,7 +30,7 @@ function Impressum() {
             </p>
 
             <h2>Kontakt</h2>
-            <p>E-Mail: info-puckhub@gruesshaber.eu</p>
+            <p>E-Mail: info@puckhub.eu</p>
 
             <p>
               Quelle:{" "}
