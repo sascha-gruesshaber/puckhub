@@ -8,15 +8,18 @@ function createClient() {
   return new PrismaClient({ adapter })
 }
 
-function getOrCreateDb() {
-  if (globalForPrisma.prisma) {
-    return globalForPrisma.prisma
+function getOrCreateDb(): PrismaClient {
+  // The client must be cached in every environment, production included: the
+  // `db` proxy below calls this on every property access, so an uncached
+  // client opens a fresh pg pool per `db.<model>` access and exhausts the
+  // database's connection slots ("too many clients already").
+  const existing = globalForPrisma.prisma
+  if (existing) {
+    return existing
   }
 
   const client = createClient()
-  if (process.env.NODE_ENV !== "production") {
-    globalForPrisma.prisma = client
-  }
+  globalForPrisma.prisma = client
   return client
 }
 
