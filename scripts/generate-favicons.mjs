@@ -35,6 +35,8 @@ const CANVAS = 800
 /** Applied to sizes small enough that the neon lines would otherwise go muddy. */
 const SMALL_BOOST = { brightness: 1.6, saturation: 1.15 }
 const BOOST_UP_TO = 48
+/** Anything this dark is backdrop, not glow, when keying the mark transparent. */
+const BACKGROUND_FLOOR = 16
 
 // ---------------------------------------------------------------------------
 // Minimal PNG read/write — enough for the 8-bit RGB/RGBA files sips emits.
@@ -168,6 +170,37 @@ function boost(file, { brightness, saturation }) {
   fs.writeFileSync(file, encodePng(img))
 }
 
+/**
+ * Turns the near-black backdrop into transparency, for placing the mark on a
+ * coloured surface such as the marketing header.
+ *
+ * The artwork is glow drawn on black, which is exactly what premultiplied
+ * alpha looks like — so recovering the colour is a divide by the brightest
+ * channel, and that channel is the alpha.
+ *
+ * That backdrop is not quite black though (it is #030409 plus JPEG noise), so
+ * without BACKGROUND_FLOOR every pixel keeps a few percent of alpha and the
+ * mark shows up as a faint dark rectangle on a lighter surface.
+ */
+function keyOutBackground(file) {
+  const img = decodePng(fs.readFileSync(file))
+  const pixels = Buffer.alloc(img.width * img.height * 4)
+
+  for (let src = 0, dst = 0; src < img.pixels.length; src += img.channels, dst += 4) {
+    const [r, g, b] = [img.pixels[src], img.pixels[src + 1], img.pixels[src + 2]]
+    const peak = Math.max(r, g, b)
+    const alpha = Math.max(0, Math.round(((peak - BACKGROUND_FLOOR) * 255) / (255 - BACKGROUND_FLOOR)))
+    // Unpremultiply against the original peak, so the floor only clears the
+    // backdrop and does not shift the colour of the glow it keeps.
+    pixels[dst] = alpha === 0 ? 0 : Math.min(255, Math.round((r * 255) / peak))
+    pixels[dst + 1] = alpha === 0 ? 0 : Math.min(255, Math.round((g * 255) / peak))
+    pixels[dst + 2] = alpha === 0 ? 0 : Math.min(255, Math.round((b * 255) / peak))
+    pixels[dst + 3] = alpha
+  }
+
+  fs.writeFileSync(file, encodePng({ ...img, channels: 4, stride: img.width * 4, pixels }))
+}
+
 // ---------------------------------------------------------------------------
 
 /** Pad the source out to a `size`x`size` PNG on the artwork's own background. */
@@ -241,8 +274,14 @@ for (const target of targets) {
   console.log(`${target}: ${files.join(", ")}`)
 }
 
-// The web-ready logo only ships with the public marketing site.
-fs.copyFileSync(logo512, path.join(root, "apps/marketing-site/public/puckhub-logo.png"))
-console.log("apps/marketing-site/public: puckhub-logo.png")
+// The web-ready logo and the transparent header mark only ship with the
+// public marketing site.
+const marketing = path.join(root, "apps/marketing-site/public")
+fs.copyFileSync(logo512, path.join(marketing, "puckhub-logo.png"))
+
+const mark = render(canvas, 96, path.join(work, "puckhub-mark.png"))
+keyOutBackground(mark)
+fs.copyFileSync(mark, path.join(marketing, "puckhub-mark.png"))
+console.log("apps/marketing-site/public: puckhub-logo.png, puckhub-mark.png")
 
 fs.rmSync(work, { recursive: true, force: true })

@@ -21,6 +21,8 @@ export function Header({ onOpenDemo }: { onOpenDemo?: () => void }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <a href="/" className="flex items-center gap-2">
+            {/* alt is empty on purpose: the wordmark beside it already names the brand */}
+            <img src="/puckhub-mark.png" alt="" width={32} height={32} className="h-8 w-8" />
             <span className="text-2xl font-extrabold tracking-tight text-white">
               Puck<span className="text-brand-gold">Hub</span>
             </span>
