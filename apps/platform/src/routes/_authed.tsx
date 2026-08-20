@@ -19,17 +19,7 @@ function AuthedLayout() {
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div
-          className="flex h-11 w-11 items-center justify-center rounded-xl"
-          style={{
-            background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
-            color: "#0C1929",
-            fontWeight: 800,
-            fontSize: 20,
-          }}
-        >
-          P
-        </div>
+        <img src="/puckhub-mark.png" alt="" width={44} height={44} className="h-11 w-11" />
       </div>
     )
   }
@@ -118,19 +108,14 @@ function PlatformSidebarLayout() {
             borderBottom: "1px solid var(--sidebar-border)",
           }}
         >
-          <div
-            className="flex items-center justify-center shrink-0 rounded-lg"
-            style={{
-              width: 34,
-              height: 34,
-              background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
-              color: "#0C1929",
-              fontWeight: 800,
-              fontSize: 15,
-            }}
-          >
-            P
-          </div>
+          <img
+            src="/puckhub-mark.png"
+            alt=""
+            width={34}
+            height={34}
+            className="shrink-0"
+            style={{ width: 34, height: 34 }}
+          />
           <div>
             <div style={{ color: "#E2E8F0", fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em", lineHeight: 1.2 }}>
               PuckHub

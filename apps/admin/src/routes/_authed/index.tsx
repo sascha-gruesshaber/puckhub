@@ -43,19 +43,7 @@ function OrgIndexPage() {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
         <div className="flex flex-col items-center gap-4">
-          <div
-            className="pulse-brand flex items-center justify-center rounded-xl"
-            style={{
-              width: 44,
-              height: 44,
-              background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
-              color: "#0C1929",
-              fontWeight: 800,
-              fontSize: 20,
-            }}
-          >
-            P
-          </div>
+          <img src="/puckhub-mark.png" alt="" width={44} height={44} className="pulse-brand h-11 w-11" />
         </div>
       </div>
     )

@@ -9,6 +9,8 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
+            {/* alt is empty on purpose: the wordmark beside it already names the brand */}
+            <img src="/puckhub-mark.png" alt="" width={28} height={28} className="h-7 w-7" />
             <span className="text-lg font-extrabold tracking-tight text-white">
               Puck<span className="text-brand-gold">Hub</span>
             </span>

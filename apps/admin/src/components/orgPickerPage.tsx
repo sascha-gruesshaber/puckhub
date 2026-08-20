@@ -18,19 +18,7 @@ export function OrgPickerPage() {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
         <div className="flex flex-col items-center gap-4">
-          <div
-            className="pulse-brand flex items-center justify-center rounded-xl"
-            style={{
-              width: 44,
-              height: 44,
-              background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
-              color: "#0C1929",
-              fontWeight: 800,
-              fontSize: 20,
-            }}
-          >
-            P
-          </div>
+          <img src="/puckhub-mark.png" alt="" width={44} height={44} className="pulse-brand h-11 w-11" />
           <span style={{ color: "var(--sidebar-text)", fontSize: 13 }} suppressHydrationWarning>
             {t("loading")}
           </span>
@@ -44,17 +32,7 @@ export function OrgPickerPage() {
       <div className="w-full max-w-md px-6">
         {/* Header */}
         <div className="mb-8 text-center">
-          <div
-            className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl"
-            style={{
-              background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
-              color: "#0C1929",
-              fontWeight: 800,
-              fontSize: 24,
-            }}
-          >
-            P
-          </div>
+          <img src="/puckhub-mark.png" alt="" width={56} height={56} className="mx-auto mb-4 h-14 w-14" />
           <h1 className="text-xl font-bold text-foreground">{t("org.pickerTitle")}</h1>
           <p className="mt-1.5 text-sm text-muted-foreground">{t("org.pickerDescription")}</p>
           {isPlatformAdmin && <p className="mt-2 text-xs text-primary font-medium">{t("org.platformAdminNote")}</p>}

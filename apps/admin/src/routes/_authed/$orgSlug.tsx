@@ -144,19 +144,7 @@ function OrgSlugLayout() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div
-            className="pulse-brand flex items-center justify-center rounded-xl"
-            style={{
-              width: 44,
-              height: 44,
-              background: "linear-gradient(135deg, #F4D35E 0%, #D4A843 100%)",
-              color: "#0C1929",
-              fontWeight: 800,
-              fontSize: 20,
-            }}
-          >
-            P
-          </div>
+          <img src="/puckhub-mark.png" alt="" width={44} height={44} className="pulse-brand h-11 w-11" />
         </div>
       </div>
     )
@@ -528,7 +516,10 @@ function SidebarLayout({ orgSlug }: { orgSlug: string }) {
       </aside>
 
       {/* --- Main content --- */}
-      <main className="flex-1 min-w-0 min-h-screen flex flex-col lg:ml-[260px]" style={{ background: "var(--content-bg)" }}>
+      <main
+        className="flex-1 min-w-0 min-h-screen flex flex-col lg:ml-[260px]"
+        style={{ background: "var(--content-bg)" }}
+      >
         <TopBar />
         <div className="content-enter flex-1 px-4 py-4 sm:px-6 lg:px-11 lg:py-6 min-w-0">
           <Suspense fallback={<PageSkeleton />}>

@@ -26,17 +26,7 @@ export function TopBar() {
           <Menu size={20} />
         </button>
         <div className="topbar-season-trigger" style={{ cursor: "default" }}>
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-md shrink-0"
-            style={{
-              background: "linear-gradient(135deg, #F4D35E, #D4A843)",
-              color: "#0C1929",
-              fontSize: 12,
-              fontWeight: 800,
-            }}
-          >
-            P
-          </div>
+          <img src="/puckhub-mark.png" alt="" width={32} height={32} className="h-8 w-8 shrink-0" />
           <span className="truncate text-sm font-semibold">Platform Administration</span>
         </div>
       </div>

@@ -263,7 +263,12 @@ const ico = buildIco(
 )
 fs.writeFileSync(path.join(work, "favicon.ico"), ico)
 
-const files = ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png"]
+// The header/sidebar mark carries its own transparency so it can sit on a
+// coloured surface. 128px covers the largest place it is used (56px at 2x).
+const mark = render(canvas, 128, path.join(work, "puckhub-mark.png"))
+keyOutBackground(mark)
+
+const files = ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png", "puckhub-mark.png"]
 
 for (const target of targets) {
   const dir = path.join(root, target)
@@ -274,14 +279,8 @@ for (const target of targets) {
   console.log(`${target}: ${files.join(", ")}`)
 }
 
-// The web-ready logo and the transparent header mark only ship with the
-// public marketing site.
-const marketing = path.join(root, "apps/marketing-site/public")
-fs.copyFileSync(logo512, path.join(marketing, "puckhub-logo.png"))
-
-const mark = render(canvas, 96, path.join(work, "puckhub-mark.png"))
-keyOutBackground(mark)
-fs.copyFileSync(mark, path.join(marketing, "puckhub-mark.png"))
-console.log("apps/marketing-site/public: puckhub-logo.png, puckhub-mark.png")
+// The full web-ready logo only ships with the public marketing site.
+fs.copyFileSync(logo512, path.join(root, "apps/marketing-site/public/puckhub-logo.png"))
+console.log("apps/marketing-site/public: puckhub-logo.png")
 
 fs.rmSync(work, { recursive: true, force: true })
