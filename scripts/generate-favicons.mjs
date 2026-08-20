@@ -2,14 +2,16 @@
 /**
  * Generates the PuckHub favicons from the master brand logo.
  *
- * Source: assets/brand/puckhub-logo.jpg (1085x1101)
+ * Source: assets/brand/puckhub-logo.jpg
  * Targets: apps/{admin,platform,marketing-site}/public/
  *
- * Two crops are used on purpose:
- *   - "mark" (620x620 centre crop) for 16/32/48px, where the full hexagon
- *     turns to mush and only the gold puck still reads.
- *   - "full" (1040x1040 centre crop) for 180px and up, where the hexagon,
- *     the node icons and the gradient edge are all legible.
+ * The logo is a neon wireframe puck that fills its frame edge to edge, so it
+ * is padded out to a square on the artwork's own near-black rather than
+ * cropped — cropping would clip the ellipse and read as broken.
+ *
+ * Thin neon lines lose their glow when averaged down to 16-48px, so the small
+ * sizes get a brightness and saturation lift. Sizes from 180px up keep the
+ * artwork untouched.
  *
  * Requires macOS `sips`. Run with: node scripts/generate-favicons.mjs
  */
@@ -18,6 +20,7 @@ import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import zlib from "node:zlib"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const source = path.join(root, "assets/brand/puckhub-logo.jpg")
@@ -25,17 +28,162 @@ const work = fs.mkdtempSync(path.join(process.env.TMPDIR ?? "/tmp", "puckhub-fav
 
 const targets = ["apps/admin/public", "apps/platform/public", "apps/marketing-site/public"]
 
-/** Centre crop `size`x`size` out of the source and write it as PNG. */
-function crop(size, out) {
-  execFileSync("sips", ["-s", "format", "png", "-c", String(size), String(size), source, "--out", out], {
-    stdio: "ignore",
-  })
+/** The artwork's own background, used to pad it out to a square. */
+const PAD_COLOR = "030409"
+/** Working canvas the icons are downscaled from. */
+const CANVAS = 800
+/** Applied to sizes small enough that the neon lines would otherwise go muddy. */
+const SMALL_BOOST = { brightness: 1.6, saturation: 1.15 }
+const BOOST_UP_TO = 48
+
+// ---------------------------------------------------------------------------
+// Minimal PNG read/write — enough for the 8-bit RGB/RGBA files sips emits.
+// ---------------------------------------------------------------------------
+
+const crcTable = Array.from({ length: 256 }, (_, n) => {
+  let c = n
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+  return c >>> 0
+})
+
+function crc32(buf) {
+  let c = 0xffffffff
+  for (const byte of buf) c = crcTable[(c ^ byte) & 0xff] ^ (c >>> 8)
+  return (c ^ 0xffffffff) >>> 0
+}
+
+function paeth(a, b, c) {
+  const p = a + b - c
+  const pa = Math.abs(p - a)
+  const pb = Math.abs(p - b)
+  const pc = Math.abs(p - c)
+  if (pa <= pb && pa <= pc) return a
+  return pb <= pc ? b : c
+}
+
+function decodePng(buf) {
+  let pos = 8 // skip signature
+  let header
+  const idat = []
+
+  while (pos < buf.length) {
+    const length = buf.readUInt32BE(pos)
+    const type = buf.toString("ascii", pos + 4, pos + 8)
+    const data = buf.subarray(pos + 8, pos + 8 + length)
+    if (type === "IHDR") {
+      header = {
+        width: data.readUInt32BE(0),
+        height: data.readUInt32BE(4),
+        depth: data[8],
+        colorType: data[9],
+        interlace: data[12],
+      }
+    } else if (type === "IDAT") {
+      idat.push(data)
+    } else if (type === "IEND") {
+      break
+    }
+    pos += 12 + length
+  }
+
+  if (!header) throw new Error("PNG has no IHDR")
+  if (header.depth !== 8 || header.interlace !== 0 || ![2, 6].includes(header.colorType)) {
+    throw new Error(`Unsupported PNG: depth ${header.depth}, colorType ${header.colorType}`)
+  }
+
+  const channels = header.colorType === 6 ? 4 : 3
+  const stride = header.width * channels
+  const raw = zlib.inflateSync(Buffer.concat(idat))
+  const pixels = Buffer.alloc(header.height * stride)
+
+  for (let y = 0; y < header.height; y++) {
+    const filter = raw[y * (stride + 1)]
+    const line = raw.subarray(y * (stride + 1) + 1, (y + 1) * (stride + 1))
+    const out = pixels.subarray(y * stride, (y + 1) * stride)
+    const prev = y > 0 ? pixels.subarray((y - 1) * stride, y * stride) : null
+
+    for (let x = 0; x < stride; x++) {
+      const a = x >= channels ? out[x - channels] : 0
+      const b = prev ? prev[x] : 0
+      const c = prev && x >= channels ? prev[x - channels] : 0
+      let value = line[x]
+      if (filter === 1) value += a
+      else if (filter === 2) value += b
+      else if (filter === 3) value += (a + b) >> 1
+      else if (filter === 4) value += paeth(a, b, c)
+      out[x] = value & 0xff
+    }
+  }
+
+  return { ...header, channels, stride, pixels }
+}
+
+function encodePng({ width, height, channels, stride, pixels }) {
+  const raw = Buffer.alloc(height * (stride + 1))
+  for (let y = 0; y < height; y++) {
+    raw[y * (stride + 1)] = 0 // filter: none
+    pixels.copy(raw, y * (stride + 1) + 1, y * stride, (y + 1) * stride)
+  }
+
+  const chunk = (type, data) => {
+    const out = Buffer.alloc(12 + data.length)
+    out.writeUInt32BE(data.length, 0)
+    out.write(type, 4, "ascii")
+    data.copy(out, 8)
+    out.writeUInt32BE(crc32(out.subarray(4, 8 + data.length)), 8 + data.length)
+    return out
+  }
+
+  const ihdr = Buffer.alloc(13)
+  ihdr.writeUInt32BE(width, 0)
+  ihdr.writeUInt32BE(height, 4)
+  ihdr[8] = 8
+  ihdr[9] = channels === 4 ? 6 : 2
+
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", zlib.deflateSync(raw, { level: 9 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ])
+}
+
+/** Brightness then saturation, matching the CSS filter functions of the same name. */
+function boost(file, { brightness, saturation }) {
+  const img = decodePng(fs.readFileSync(file))
+  const [lr, lg, lb] = [0.213, 0.715, 0.072]
+
+  for (let i = 0; i < img.pixels.length; i += img.channels) {
+    const r = img.pixels[i] * brightness
+    const g = img.pixels[i + 1] * brightness
+    const b = img.pixels[i + 2] * brightness
+    const values = [
+      (lr + saturation * (1 - lr)) * r + (lg - saturation * lg) * g + (lb - saturation * lb) * b,
+      (lr - saturation * lr) * r + (lg + saturation * (1 - lg)) * g + (lb - saturation * lb) * b,
+      (lr - saturation * lr) * r + (lg - saturation * lg) * g + (lb + saturation * (1 - lb)) * b,
+    ]
+    for (let c = 0; c < 3; c++) img.pixels[i + c] = Math.max(0, Math.min(255, Math.round(values[c])))
+  }
+
+  fs.writeFileSync(file, encodePng(img))
+}
+
+// ---------------------------------------------------------------------------
+
+/** Pad the source out to a `size`x`size` PNG on the artwork's own background. */
+function padToSquare(size, out) {
+  execFileSync(
+    "sips",
+    ["-s", "format", "png", "-p", String(size), String(size), "--padColor", PAD_COLOR, source, "--out", out],
+    { stdio: "ignore" },
+  )
   return out
 }
 
-/** Downscale a PNG to `size`x`size`. */
-function resize(input, size, out) {
+/** Downscale a PNG to `size`x`size`, lifting the neon where the size demands it. */
+function render(input, size, out) {
   execFileSync("sips", ["-z", String(size), String(size), input, "--out", out], { stdio: "ignore" })
+  if (size <= BOOST_UP_TO) boost(out, SMALL_BOOST)
   return out
 }
 
@@ -69,14 +217,13 @@ if (!fs.existsSync(source)) {
   process.exit(1)
 }
 
-const markCrop = crop(620, path.join(work, "mark.png"))
-const fullCrop = crop(1040, path.join(work, "full.png"))
+const canvas = padToSquare(CANVAS, path.join(work, "canvas.png"))
 
-resize(markCrop, 16, path.join(work, "favicon-16x16.png"))
-resize(markCrop, 32, path.join(work, "favicon-32x32.png"))
-resize(markCrop, 48, path.join(work, "favicon-48x48.png"))
-resize(fullCrop, 180, path.join(work, "apple-touch-icon.png"))
-const logo512 = resize(fullCrop, 512, path.join(work, "puckhub-logo.png"))
+for (const size of [16, 32, 48]) {
+  render(canvas, size, path.join(work, `favicon-${size}x${size}.png`))
+}
+render(canvas, 180, path.join(work, "apple-touch-icon.png"))
+const logo512 = render(canvas, 512, path.join(work, "puckhub-logo.png"))
 
 const ico = buildIco(
   [16, 32, 48].map((size) => ({ size, data: fs.readFileSync(path.join(work, `favicon-${size}x${size}.png`)) })),
