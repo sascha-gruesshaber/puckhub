@@ -360,6 +360,7 @@ export const organizationRouter = router({
           to: input.ownerEmail,
           subject: `Welcome to PuckHub — ${input.name}`,
           html: inviteEmail(loginUrl, input.name),
+          mailbox: "auth",
         })
       }
 

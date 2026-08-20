@@ -212,6 +212,7 @@ export const usersRouter = router({
         to: normalizedEmail,
         subject: `You've been invited to ${org?.name ?? "PuckHub"}`,
         html: inviteEmail(loginUrl, org?.name),
+        mailbox: "auth",
       })
 
       return { userId }
@@ -514,6 +515,7 @@ export const usersRouter = router({
           to: input.email,
           subject: "Welcome to PuckHub",
           html: inviteEmail(loginUrl),
+          mailbox: "auth",
         })
       }
 

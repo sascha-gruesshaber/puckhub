@@ -145,6 +145,8 @@ export const contactFormRouter = router({
             type: typeLabels[input.type] ?? input.type,
             message: input.message,
           }),
+          // Sent from no-reply@, so point replies at the person who wrote in
+          replyTo: email,
         })
       } else {
         console.log(`[Contact] No CONTACT_EMAIL set — Name: ${input.name}, Email: ${email}, Type: ${input.type}`)

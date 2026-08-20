@@ -15,7 +15,8 @@
     "lint": "biome check . && tsc --noEmit",
     "format": "biome format --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "email:test": "node --env-file-if-exists=../../.env scripts/emailTest.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1030.0",

@@ -82,6 +82,44 @@ Navigate to `http://localhost:3001` and follow the setup wizard to:
 | `UPLOAD_DIR` | `./uploads` | Upload directory path |
 | `TRUSTED_ORIGINS` | `http://localhost:3000` | CORS allowed origins (comma-separated) |
 
+## ✉️ Email (SMTP)
+
+Outgoing mail is split across two sender identities, each authenticating as its own
+SMTP account, so sign-in mails and everything else are independently traceable:
+
+| Mailbox | Used for | Address |
+|---------|----------|---------|
+| `auth` | Magic-link sign-in, invitations | `login@puckhub.eu` |
+| `noreply` | Contact form, OTP codes, admin notifications | `no-reply@puckhub.eu` |
+
+```bash
+EMAIL_SMTP_HOST=gruesshaber.eu       # must match the mail server's TLS certificate
+EMAIL_SMTP_PORT=465                  # implicit TLS; 587 is filtered on this host
+EMAIL_AUTH_SMTP_USER=login@puckhub.eu
+EMAIL_AUTH_SMTP_PASS=...
+EMAIL_NOREPLY_SMTP_USER=no-reply@puckhub.eu
+EMAIL_NOREPLY_SMTP_PASS=...
+CONTACT_EMAIL=info@puckhub.eu        # where contact form submissions land
+```
+
+Verify credentials before deploying — this connects and logs in without sending:
+
+```bash
+pnpm email:test                       # check both mailboxes
+pnpm email:test --send you@example.com  # also deliver a test message
+```
+
+**Pitfalls**
+
+- `EMAIL_SMTP_HOST` must be a name covered by the mail server's certificate.
+  `mail.gruesshaber.eu` resolves to the right box but is *not* in its SAN list, so TLS
+  verification fails; use `gruesshaber.eu` (or `plesk.onl1.eu`).
+- Leave `EMAIL_RELAY_URL` unset. The deprecated HTTP relay rewrites the envelope sender,
+  which is what produced the "on behalf of" notice in mail clients.
+- DNS for `puckhub.eu` already carries `MX`, SPF (`v=spf1 mx ~all`), DKIM
+  (`default._domainkey`) and DMARC (`p=none`). Because the app submits through the MX
+  host rather than sending directly, the app server's IP does not need an SPF entry.
+
 ## 🏢 Production Deployment Options
 
 ### Option 1: Docker on VPS (Recommended)

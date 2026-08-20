@@ -30,7 +30,8 @@
     "docker:test": "node scripts/docker-test.mjs",
     "docker:test:keep": "node scripts/docker-test.mjs --keep",
     "docker:test:down": "node scripts/docker-test.mjs --down",
-    "docker:push": "node scripts/docker-push.mjs"
+    "docker:push": "node scripts/docker-push.mjs",
+    "email:test": "pnpm --filter @puckhub/api email:test"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

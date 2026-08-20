@@ -63,6 +63,7 @@ export const auth = betterAuth({
           to: email,
           subject: "Sign in to PuckHub",
           html: magicLinkEmail(url),
+          mailbox: "auth",
         })
       },
       disableSignUp: true,

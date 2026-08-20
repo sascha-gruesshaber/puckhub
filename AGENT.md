@@ -78,11 +78,16 @@ Copy `.env.example` to `.env`. Key variables:
 | `TRUSTED_ORIGINS` | `http://admin.puckhub.localhost,...` | Comma-separated trusted origins for CORS/auth |
 | `BETTER_AUTH_BASE_URL` | `http://api.puckhub.localhost` | Better Auth server base URL |
 | `CNAME_TARGET` | `sites.puckhub.localhost` | CNAME target for custom domain verification |
-| `SMTP_HOST` | — | SMTP server host (falls back to console logging if unset) |
-| `SMTP_PORT` | `587` | SMTP server port |
-| `SMTP_USER` | — | SMTP username |
-| `SMTP_PASS` | — | SMTP password |
-| `SMTP_FROM` | `noreply@puckhub.eu` | Sender email address |
+| `EMAIL_SMTP_HOST` | — | Shared SMTP host for both mailboxes (console logging if unset) |
+| `EMAIL_SMTP_PORT` | `587` | Shared SMTP port (`465` = implicit TLS, otherwise STARTTLS is required) |
+| `EMAIL_AUTH_SMTP_USER` | — | SMTP user for the `auth` mailbox — sign-in links and invitations |
+| `EMAIL_AUTH_SMTP_PASS` | — | SMTP password for the `auth` mailbox |
+| `EMAIL_AUTH_FROM` | `PuckHub <login@puckhub.eu>` | From header for the `auth` mailbox (defaults to its SMTP user) |
+| `EMAIL_NOREPLY_SMTP_USER` | — | SMTP user for the `noreply` mailbox — contact form, OTPs, notifications |
+| `EMAIL_NOREPLY_SMTP_PASS` | — | SMTP password for the `noreply` mailbox |
+| `EMAIL_NOREPLY_FROM` | `PuckHub <no-reply@puckhub.eu>` | From header for the `noreply` mailbox (defaults to its SMTP user) |
+| `EMAIL_SMTP_USER` / `EMAIL_SMTP_PASS` / `EMAIL_FROM` | — | Single-account fallback for any mailbox without its own credentials |
+| `EMAIL_RELAY_URL` / `EMAIL_RELAY_SECRET` | — | Deprecated HTTP relay; used only when no SMTP host is configured |
 | `OPENROUTER_API_KEY` | — | OpenRouter API key for AI features (recaps, SEO, widgets) |
 | `OPENROUTER_MODEL` | `google/gemini-3.1-flash-lite-preview` | AI model for recap generation |
 | `AI_WIDGETS_CRON` | `30 5 * * *` | Cron schedule for AI home widget generation |
