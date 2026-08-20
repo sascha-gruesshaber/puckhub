@@ -17,11 +17,12 @@ src/
 │       └── aiHomeWidgetsJob.ts  # Daily cron job for AI home widget generation
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
-│   └── codes.ts       # APP_ERROR_CODES enum (72 error codes)
+│   └── codes.ts       # APP_ERROR_CODES enum (77 error codes)
 ├── routes/
 │   └── upload.ts      # File upload handler (POST /api/upload)
 ├── services/
 │   ├── aiRecapService.ts          # AI game recap generation (OpenRouter + Gemini)
+│   ├── contractHistory.ts          # Season-scoped positions, contract continuations, historic team names
 │   ├── aiSeoService.ts             # AI SEO text generation for news/pages (OpenRouter + Gemini)
 │   ├── aiSeasonDescriptionService.ts  # AI season SEO description generation
 │   ├── aiHomeWidgetService.ts      # AI home page widgets (league pulse digest, headlines ticker)
@@ -112,6 +113,7 @@ export const myRouter = router({
 | AI Home Widgets | `services/aiHomeWidgetService.ts` | Generate daily home page content: "League Pulse Digest" (markdown) and "Headlines Ticker" (JSON). Staleness detection via data hash. Orchestrated by daily cron job. |
 | Scheduler | `lib/jobs/aiHomeWidgetsJob.ts` | Daily cron (05:30 default, `AI_WIDGETS_CRON` env). Generates AI widgets for all enabled orgs. |
 | System Pages | `services/ensureSystemPages.ts` | Auto-provision required league site pages (home, standings, schedule, structure, etc.) on org creation. Locale-aware (DE/EN). Idempotent. |
+| Contract History | `services/contractHistory.ts` | Season-scoped position lookup (a player's position lives on the contract covering that season), contract continuation sets, and the name a team carried in a given season. |
 | Plan Limits | `services/planLimits.ts` | Check and enforce plan limits (maxTeams, maxPlayers, maxAdmins, etc.) |
 | Email | `lib/email.ts` | SMTP via nodemailer. Falls back to console logging in dev when SMTP unconfigured. |
 | Public Report Privacy | `lib/publicReportPrivacy.ts` | Email/IP hashing and masking for GDPR compliance. Pure functions: normalize, mask, hash email/IP. |

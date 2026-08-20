@@ -389,12 +389,18 @@ export const contractRouter = router({
   reopenContract: orgProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     const existing = await ctx.db.contract.findFirst({
       where: { id: input.id, organizationId: ctx.organizationId },
+      include: { nextContract: { select: { id: true } } },
     })
     if (!existing) {
       throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
     }
     if (!existing.endSeasonId) {
       throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_ALREADY_ACTIVE)
+    }
+    // Reopening the earlier half of a split would put the player on two contracts at the
+    // same team at once — the spell continues in the successor contract.
+    if (existing.nextContract) {
+      throw createAppError("CONFLICT", APP_ERROR_CODES.CONTRACT_ALREADY_ACTIVE)
     }
 
     requireRole(ctx, "team_manager", existing.teamId)
@@ -440,6 +446,107 @@ export const contractRouter = router({
       })
 
       return updated
+    }),
+
+  /**
+   * Split a contract at a season boundary.
+   *
+   * Used when something that is stored on the contract changed part-way through a
+   * player's spell at a team — most often the position (a goalie who moved to
+   * forward), or the jersey number. The legacy leagues PuckHub imports from keep no
+   * such history, so migrated players carry one contract with today's values for
+   * their whole career; splitting restores what was actually true per season.
+   *
+   * The original contract is closed at the season before `splitAtSeasonId` and a new
+   * contract takes over from that season, keeping the original end season. The new
+   * contract points back at the old one via `previousContractId`, so roster change
+   * lists show one uninterrupted spell instead of a departure and a re-signing.
+   */
+  splitContract: orgProcedure
+    .input(
+      z.object({
+        contractId: z.string().uuid(),
+        splitAtSeasonId: z.string().uuid(),
+        position: z.enum(["forward", "defense", "goalie"]).optional(),
+        jerseyNumber: z.number().int().positive().nullish(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.contract.findFirst({
+        where: { id: input.contractId, organizationId: ctx.organizationId },
+        include: { startSeason: true, endSeason: true },
+      })
+      if (!existing) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.CONTRACT_NOT_FOUND)
+      }
+
+      requireRole(ctx, "team_manager", existing.teamId)
+
+      const splitSeason = await ctx.db.season.findFirst({
+        where: { id: input.splitAtSeasonId, organizationId: ctx.organizationId },
+      })
+      if (!splitSeason) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
+      }
+
+      // The change has to take effect after the contract started (otherwise there is
+      // nothing to keep) and no later than the season it ended in.
+      const startsAfterContractStart = splitSeason.seasonStart > existing.startSeason.seasonStart
+      const endsWithinContract = !existing.endSeason || splitSeason.seasonStart <= existing.endSeason.seasonStart
+      if (!startsAfterContractStart || !endsWithinContract) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_SPLIT_INVALID_SEASON)
+      }
+
+      const previousSeason = await ctx.db.season.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          seasonEnd: { lt: splitSeason.seasonStart },
+        },
+        orderBy: { seasonEnd: "desc" },
+      })
+      if (!previousSeason) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_SPLIT_INVALID_SEASON)
+      }
+
+      const collision = await ctx.db.contract.findFirst({
+        where: {
+          organizationId: ctx.organizationId,
+          playerId: existing.playerId,
+          teamId: existing.teamId,
+          startSeasonId: splitSeason.id,
+        },
+        select: { id: true },
+      })
+      if (collision) {
+        throw createAppError("CONFLICT", APP_ERROR_CODES.CONTRACT_ALREADY_ACTIVE)
+      }
+
+      // With overlapping season ranges the season before the split can predate the
+      // contract itself; the earlier half then covers its start season alone.
+      const earlierEndSeasonId =
+        previousSeason.seasonEnd >= existing.startSeason.seasonEnd ? previousSeason.id : existing.startSeasonId
+
+      return ctx.db.$transaction(async (tx: any) => {
+        const earlier = await tx.contract.update({
+          where: { id: existing.id },
+          data: { endSeasonId: earlierEndSeasonId, updatedAt: new Date() },
+        })
+
+        const later = await tx.contract.create({
+          data: {
+            organizationId: ctx.organizationId,
+            playerId: existing.playerId,
+            teamId: existing.teamId,
+            startSeasonId: splitSeason.id,
+            endSeasonId: existing.endSeasonId,
+            position: input.position ?? existing.position,
+            jerseyNumber: input.jerseyNumber === undefined ? existing.jerseyNumber : input.jerseyNumber,
+            previousContractId: existing.id,
+          },
+        })
+
+        return { earlier, later }
+      })
     }),
 
   /**

@@ -1,5 +1,6 @@
 import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
+import { resolveSeasonPositions } from "../../services/contractHistory"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
 
@@ -129,17 +130,17 @@ export const statsRouter = router({
         orderBy: [{ totalPoints: "desc" }, { goals: "desc" }, { assists: "desc" }],
       })
 
-      // Filter by position if requested — look up position from contracts matching player+team
+      // Filter by position if requested — a player's position depends on the team AND
+      // the season, since one spell at a team can be split into several contracts.
       if (input.position) {
         const playerIds = [...new Set(stats.map((s: any) => s.playerId))]
         if (playerIds.length === 0) return []
 
-        const contracts = await ctx.db.contract.findMany({
-          where: { playerId: { in: playerIds } },
-          select: { playerId: true, teamId: true, position: true },
+        const positionMap = await resolveSeasonPositions(ctx.db, {
+          organizationId: ctx.organizationId,
+          seasonId: input.seasonId,
+          playerIds,
         })
-        // Key by player+team since a player's position depends on which team they play for
-        const positionMap = new Map(contracts.map((c: any) => [`${c.playerId}:${c.teamId}`, c.position]))
 
         return stats.filter((s: any) => positionMap.get(`${s.playerId}:${s.teamId}`) === input.position)
       }

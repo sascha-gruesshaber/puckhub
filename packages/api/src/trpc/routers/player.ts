@@ -72,12 +72,16 @@ export const playerRouter = router({
       }
 
       const mapped = players.map(({ contracts, ...p }) => {
-        // Find the active contract for the current season
-        const active = contracts.find((c) => {
-          const startsBeforeOrInSeason = c.startSeason.seasonStart <= currentSeason.seasonEnd
-          const endsAfterOrInSeason = c.endSeason == null || c.endSeason.seasonEnd >= currentSeason.seasonStart
-          return startsBeforeOrInSeason && endsAfterOrInSeason
-        })
+        // Find the active contract for the current season. A player can hold more than
+        // one contract covering a season with the same team (a split spell, see
+        // `contract.splitContract`) — the one that started last is the one in force.
+        const active = contracts
+          .filter((c) => {
+            const startsBeforeOrInSeason = c.startSeason.seasonStart <= currentSeason.seasonEnd
+            const endsAfterOrInSeason = c.endSeason == null || c.endSeason.seasonEnd >= currentSeason.seasonStart
+            return startsBeforeOrInSeason && endsAfterOrInSeason
+          })
+          .sort((a, b) => b.startSeason.seasonStart.getTime() - a.startSeason.seasonStart.getTime())[0]
 
         return {
           ...p,

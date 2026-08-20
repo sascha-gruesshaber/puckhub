@@ -826,6 +826,9 @@
         "jersey": "#",
         "status": "Status",
         "noHistory": "Noch keine Teamhistorie."
+      },
+      "splitContract": {
+        "button": "Verlauf teilen"
       }
     },
     "timeline": {
@@ -1111,7 +1114,55 @@
         "losses": "N",
         "gd": "TD",
         "rank": "Platz"
-      }
+      },
+      "mergeTeam": {
+        "button": "Vorgänger-Team einbinden",
+        "title": "Vorgänger-Team einbinden",
+        "description": "Führe ein früheres Team-Objekt in {{team}} zusammen — etwa nach einer Umbenennung des Vereins.",
+        "fields": {
+          "predecessor": "Früheres Team",
+          "predecessorPlaceholder": "Team wählen...",
+          "nameUntilSeason": "Alter Name gilt bis Saison",
+          "nameUntilSeasonHint": "„{{name}}“ wird für alle Saisons bis einschließlich dieser Saison angezeigt."
+        },
+        "loadingPreview": "Vorschau wird geladen...",
+        "movesTitle": "Wird übernommen",
+        "movesEmpty": "Dieses Team hat keine Daten.",
+        "moves": {
+          "contract": "Verträge",
+          "game": "Spiele",
+          "gameEvent": "Spielereignisse",
+          "gameLineup": "Aufstellungen",
+          "gameSuspension": "Sperren",
+          "standing": "Tabellenzeilen",
+          "bonusPoint": "Bonuspunkte",
+          "teamDivision": "Ligazuordnungen",
+          "playerSeasonStat": "Spielerstatistiken",
+          "goalieSeasonStat": "Torwartstatistiken",
+          "goalieGameStat": "Torwart-Spielwerte",
+          "sponsor": "Sponsoren",
+          "teamTrikot": "Trikotzuordnungen",
+          "teamNameHistory": "Frühere Namen",
+          "memberRole": "Benutzerrollen"
+        },
+        "conflicts": {
+          "title": "Zusammenführen nicht möglich",
+          "sharedSeasons": "Beide Teams sind in denselben Saisons aktiv: {{seasons}}",
+          "headToHead": "Die Teams haben {{count}} Spiele gegeneinander bestritten.",
+          "contracts": "Doppelte Verträge: {{players}}"
+        },
+        "warning": "„{{source}}“ wird dauerhaft gelöscht, alle Daten gehören danach zu „{{target}}“. Das lässt sich nicht rückgängig machen — lege vorher ein Backup an.",
+        "actions": {
+          "merge": "Zusammenführen",
+          "merging": "Wird zusammengeführt..."
+        },
+        "toast": {
+          "merged": "Teams zusammengeführt",
+          "mergedDescription": "{{contracts}} Verträge und {{games}} Spiele übernommen",
+          "mergeError": "Teams konnten nicht zusammengeführt werden"
+        }
+      },
+      "playedAs": "als {{name}}"
     },
     "dialogs": {
       "newTitle": "Neues Team erstellen",
@@ -1368,7 +1419,8 @@
       "toast": {
         "updated": "Vertrag aktualisiert",
         "saveError": "Fehler beim Speichern"
-      }
+      },
+      "splitHint": "Änderungen hier gelten für die gesamte Vertragslaufzeit. Hat sich Position oder Nummer erst ab einer bestimmten Saison geändert, teile den Vertrag."
     },
     "transferDialog": {
       "title": "Transfer",
@@ -1408,6 +1460,26 @@
     "toast": {
       "released": "Spieler freigegeben",
       "releaseError": "Fehler beim Freigeben"
+    },
+    "splitDialog": {
+      "title": "Vertrag teilen",
+      "description": "{{player}} bei {{team}} — trage nach, was sich ab einer bestimmten Saison geändert hat.",
+      "notSplittable": "Dieser Vertrag läuft nur über eine Saison und kann nicht geteilt werden.",
+      "fields": {
+        "effectiveSeason": "Änderung ab Saison",
+        "effectiveSeasonPlaceholder": "Saison wählen",
+        "newPosition": "Neue Position",
+        "newJerseyNumber": "Neue Rückennummer"
+      },
+      "hint": "Der bisherige Vertrag endet in der Saison davor. Spiele, Aufstellungen und Statistiken bleiben unverändert.",
+      "actions": {
+        "split": "Vertrag teilen",
+        "splitting": "Wird geteilt..."
+      },
+      "toast": {
+        "split": "Vertrag geteilt",
+        "splitError": "Vertrag konnte nicht geteilt werden"
+      }
     }
   },
   "gamesPage": {

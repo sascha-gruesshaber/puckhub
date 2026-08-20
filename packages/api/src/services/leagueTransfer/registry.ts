@@ -12,6 +12,11 @@ export interface ModelConfig {
   fkFields: Record<string, string>
   globalRefs?: Record<string, GlobalRef>
   selfRef?: boolean
+  /**
+   * Self-referencing fields that are written after the model's rows exist, so a row
+   * may point at another row of the same table regardless of insert order.
+   */
+  deferredSelfRefs?: string[]
   nullifyOnImport?: string[]
 }
 
@@ -25,6 +30,7 @@ export const EXPORT_REGISTRY: Record<string, ModelConfig> = {
   contract: {
     order: 7,
     fkFields: { playerId: "player", teamId: "team", startSeasonId: "season", endSeasonId: "season" },
+    deferredSelfRefs: ["previousContractId"],
   },
   trikot: {
     order: 8,
@@ -68,6 +74,7 @@ export const EXPORT_REGISTRY: Record<string, ModelConfig> = {
   pageAlias: { order: 19, fkFields: { targetPageId: "page" } },
   document: { order: 20, fkFields: {} },
   websiteConfig: { order: 21, fkFields: {}, nullifyOnImport: ["domain"] },
+  teamNameHistory: { order: 22, fkFields: { teamId: "team", untilSeasonId: "season" } },
 } as const
 
 export const EXCLUDED_FROM_EXPORT: Record<string, string> = {

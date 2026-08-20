@@ -63,6 +63,7 @@ export const leagueExportSchema = z
     pageAliases: entityArray,
     documents: entityArray,
     websiteConfigs: entityArray,
+    teamNameHistories: entityArray,
   })
   .passthrough()
 

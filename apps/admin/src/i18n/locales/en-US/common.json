@@ -826,6 +826,9 @@
         "jersey": "#",
         "status": "Status",
         "noHistory": "No team history yet."
+      },
+      "splitContract": {
+        "button": "Split history"
       }
     },
     "timeline": {
@@ -1111,7 +1114,55 @@
         "losses": "L",
         "gd": "GD",
         "rank": "Rank"
-      }
+      },
+      "mergeTeam": {
+        "button": "Merge predecessor team",
+        "title": "Merge predecessor team",
+        "description": "Merge an earlier team record into {{team}} — for example after the club was renamed.",
+        "fields": {
+          "predecessor": "Earlier team",
+          "predecessorPlaceholder": "Select a team...",
+          "nameUntilSeason": "Old name applies until season",
+          "nameUntilSeasonHint": "“{{name}}” is shown for every season up to and including this one."
+        },
+        "loadingPreview": "Loading preview...",
+        "movesTitle": "Will be moved over",
+        "movesEmpty": "This team holds no data.",
+        "moves": {
+          "contract": "Contracts",
+          "game": "Games",
+          "gameEvent": "Game events",
+          "gameLineup": "Lineups",
+          "gameSuspension": "Suspensions",
+          "standing": "Standings rows",
+          "bonusPoint": "Bonus points",
+          "teamDivision": "Division assignments",
+          "playerSeasonStat": "Player statistics",
+          "goalieSeasonStat": "Goalie statistics",
+          "goalieGameStat": "Goalie game values",
+          "sponsor": "Sponsors",
+          "teamTrikot": "Jersey assignments",
+          "teamNameHistory": "Former names",
+          "memberRole": "User roles"
+        },
+        "conflicts": {
+          "title": "Cannot be merged",
+          "sharedSeasons": "Both teams played in the same seasons: {{seasons}}",
+          "headToHead": "The teams played {{count}} games against each other.",
+          "contracts": "Duplicate contracts: {{players}}"
+        },
+        "warning": "“{{source}}” is deleted for good and all of its data becomes part of “{{target}}”. This cannot be undone — take a backup first.",
+        "actions": {
+          "merge": "Merge",
+          "merging": "Merging..."
+        },
+        "toast": {
+          "merged": "Teams merged",
+          "mergedDescription": "{{contracts}} contracts and {{games}} games moved over",
+          "mergeError": "Could not merge the teams"
+        }
+      },
+      "playedAs": "as {{name}}"
     },
     "dialogs": {
       "newTitle": "Create new team",
@@ -1368,7 +1419,8 @@
       "toast": {
         "updated": "Contract updated",
         "saveError": "Could not save contract"
-      }
+      },
+      "splitHint": "Changes here apply to the whole contract. If the position or number only changed from a certain season on, split the contract instead."
     },
     "transferDialog": {
       "title": "Transfer",
@@ -1408,6 +1460,26 @@
     "toast": {
       "released": "Player released",
       "releaseError": "Could not release player"
+    },
+    "splitDialog": {
+      "title": "Split contract",
+      "description": "{{player}} at {{team}} — record what changed from a given season on.",
+      "notSplittable": "This contract covers a single season and cannot be split.",
+      "fields": {
+        "effectiveSeason": "Change applies from season",
+        "effectiveSeasonPlaceholder": "Select a season",
+        "newPosition": "New position",
+        "newJerseyNumber": "New jersey number"
+      },
+      "hint": "The existing contract ends in the season before. Games, lineups and statistics stay untouched.",
+      "actions": {
+        "split": "Split contract",
+        "splitting": "Splitting..."
+      },
+      "toast": {
+        "split": "Contract split",
+        "splitError": "Could not split the contract"
+      }
     }
   },
   "gamesPage": {
