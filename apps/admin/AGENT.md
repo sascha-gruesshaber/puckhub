@@ -103,12 +103,15 @@ src/components/
 │   └── timelineEvent.tsx  # Single event in timeline
 ├── player/                # Player components
 │   └── playerInfoCard.tsx # Player info card for detail page
-├── roster/                # Roster management (5 files)
+├── roster/                # Roster management (6 files)
 │   ├── rosterTable.tsx
 │   ├── signPlayerSheet.tsx
 │   ├── editContractSheet.tsx
 │   ├── releasePlayerSheet.tsx
+│   ├── splitContractSheet.tsx  # Split a contract at a season (position/number changed mid-spell)
 │   └── transferSheet.tsx
+├── team/                  # Team components
+│   └── mergeTeamsSheet.tsx  # Merge a predecessor team record into this team
 ├── security/              # Security settings (2 files)
 │   ├── passkeySection.tsx
 │   └── twoFactorSection.tsx

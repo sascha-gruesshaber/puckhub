@@ -25,6 +25,7 @@ import {
   Globe,
   Mail,
   MapPin,
+  Merge,
   Pencil,
   Phone,
   Plus,
@@ -46,8 +47,10 @@ import { ReleasePlayerSheet } from "~/components/roster/releasePlayerSheet"
 import type { ContractRow } from "~/components/roster/rosterTable"
 import { RosterTable } from "~/components/roster/rosterTable"
 import { SignPlayerSheet } from "~/components/roster/signPlayerSheet"
+import { SplitContractSheet } from "~/components/roster/splitContractSheet"
 import { TransferSheet } from "~/components/roster/transferSheet"
 import { TabNavigation } from "~/components/tabNavigation"
+import { MergeTeamsSheet } from "~/components/team/mergeTeamsSheet"
 import { TrikotPreview } from "~/components/trikotPreview"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
 import { useWorkingSeason } from "~/contexts/seasonContext"
@@ -114,6 +117,11 @@ function TeamDetailPage() {
   // Teams for transfer dialog (need teams in the selected season)
   const { data: seasonTeams } = trpc.team.list.useQuery({ seasonId: activeSeasonId! }, { enabled: !!activeSeasonId })
 
+  // Every team, including ones that no longer play — a predecessor record is by
+  // definition not part of the current season.
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false)
+  const { data: allTeams } = trpc.team.list.useQuery(undefined, { enabled: mergeDialogOpen })
+
   const transferTeams = useMemo(() => {
     if (!seasonTeams) return []
     return seasonTeams.map((t) => ({
@@ -173,6 +181,7 @@ function TeamDetailPage() {
   const [editContract, setEditContract] = useState<ContractRow | null>(null)
   const [transferContract, setTransferContract] = useState<ContractRow | null>(null)
   const [releaseContract, setReleaseContract] = useState<ContractRow | null>(null)
+  const [splitContract, setSplitContract] = useState<ContractRow | null>(null)
   const [activeTab, setActiveTab] = useState<"roster" | "history">("roster")
 
   const utils = trpc.useUtils()
@@ -420,7 +429,14 @@ function TeamDetailPage() {
                                 key={season.id}
                                 className="border-b border-border/40 last:border-0 hover:bg-accent/5 transition-colors"
                               >
-                                <td className="px-4 py-3 font-medium text-foreground">{season.name}</td>
+                                <td className="px-4 py-3 font-medium text-foreground">
+                                  {season.name}
+                                  {team && entry.teamName.name !== team.name && (
+                                    <span className="block text-xs font-normal text-muted-foreground">
+                                      {t("teamsPage.teamDetail.playedAs", { name: entry.teamName.name })}
+                                    </span>
+                                  )}
+                                </td>
                                 <td className="px-4 py-3 text-muted-foreground">
                                   {entry.divisions.length > 0 ? entry.divisions.map((d) => d.name).join(", ") : "–"}
                                 </td>
@@ -466,6 +482,16 @@ function TeamDetailPage() {
 
                 <DangerZone hint={t("teamsPage.teamDetail.deleteTeam.hint")}>
                   <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setMergeDialogOpen(true)}
+                    data-testid="team-merge"
+                  >
+                    <Merge className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                    {t("teamsPage.teamDetail.mergeTeam.button")}
+                  </Button>
+                  <Button
                     variant="destructive"
                     size="sm"
                     className="w-full"
@@ -479,6 +505,27 @@ function TeamDetailPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* ─── Merge a predecessor team into this one ─── */}
+          {team && (
+            <MergeTeamsSheet
+              open={mergeDialogOpen}
+              onOpenChange={setMergeDialogOpen}
+              targetTeam={{ id: teamId, name: team.name, shortName: team.shortName }}
+              teams={(allTeams ?? []).map((candidate) => ({
+                id: candidate.id,
+                name: candidate.name,
+                shortName: candidate.shortName,
+                city: candidate.city,
+                logoUrl: candidate.logoUrl,
+                primaryColor: candidate.primaryColor,
+              }))}
+              onMerged={() => {
+                utils.team.history.invalidate({ teamId })
+                if (activeSeasonId) utils.contract.rosterForSeason.invalidate({ teamId, seasonId: activeSeasonId })
+              }}
+            />
+          )}
 
           {/* ─── Delete Team Confirmation ─── */}
           <ConfirmDialog
@@ -638,6 +685,20 @@ function TeamDetailPage() {
                 onOpenChange={(open) => !open && setEditContract(null)}
                 contract={editContract}
                 seasonId={activeSeasonId}
+                onSplit={(contract) => {
+                  setEditContract(null)
+                  setSplitContract(contract)
+                }}
+              />
+
+              <SplitContractSheet
+                open={!!splitContract}
+                onOpenChange={(open) => !open && setSplitContract(null)}
+                contract={splitContract}
+                onSplit={() => {
+                  utils.contract.rosterForSeason.invalidate({ teamId, seasonId: activeSeasonId })
+                  utils.team.history.invalidate({ teamId })
+                }}
               />
 
               <TransferSheet

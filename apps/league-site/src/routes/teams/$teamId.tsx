@@ -123,6 +123,7 @@ export function TeamDetailPage() {
   const historySeasonsData = historyData?.seasons ?? []
   const historyTopScorers = historyData?.topScorers ?? []
   const historyTopGoalies = historyData?.topGoalies ?? []
+  const formerNames = historyData?.formerNames ?? []
 
   return (
     <div className="animate-fade-in">
@@ -135,6 +136,11 @@ export function TeamDetailPage() {
             <TeamLogo name={team.name} logoUrl={team.logoUrl} size="lg" />
             <div className={cn("text-center sm:text-left")}>
               <h1 className="text-3xl font-extrabold">{team.name}</h1>
+              {formerNames.length > 0 && (
+                <p className="text-league-text/50 text-sm mt-1">
+                  {t.teams.formerlyKnownAs} {formerNames.map((entry) => entry.name).join(" · ")}
+                </p>
+              )}
               {team.city && (
                 <p className="text-league-text/60 mt-1 flex items-center gap-1 justify-center sm:justify-start">
                   <MapPin className="h-4 w-4" />
@@ -269,6 +275,7 @@ export function TeamDetailPage() {
                     seasons={historySeasonsData}
                     topScorers={historyTopScorers}
                     topGoalies={historyTopGoalies}
+                    currentTeamName={team.name}
                   />
                 ) : (
                   <EmptyState

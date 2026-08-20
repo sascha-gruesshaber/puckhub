@@ -10,6 +10,11 @@ import {
   normalizePublicReportEmail,
 } from "../../lib/publicReportPrivacy"
 import { checkAiEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
+import {
+  collectContinuedContractIds,
+  resolveSeasonPositions,
+  resolveTeamNameForSeason,
+} from "../../services/contractHistory"
 import { publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
 
@@ -827,14 +832,16 @@ export const publicSiteRouter = router({
         orderBy: [{ totalPoints: "desc" }, { goals: "desc" }, { assists: "desc" }],
       })
 
+      // A player's position depends on the team AND the season — one spell at a team
+      // can be split into several contracts (e.g. goalie until 2018, forward after).
       if (input.position) {
         const playerIds = [...new Set(stats.map((s: any) => s.playerId))]
         if (playerIds.length === 0) return []
-        const contracts = await ctx.db.contract.findMany({
-          where: { playerId: { in: playerIds } },
-          select: { playerId: true, teamId: true, position: true },
+        const positionMap = await resolveSeasonPositions(ctx.db, {
+          organizationId: input.organizationId,
+          seasonId: input.seasonId,
+          playerIds,
         })
-        const positionMap = new Map(contracts.map((c: any) => [`${c.playerId}:${c.teamId}`, c.position]))
         return stats.filter((s: any) => positionMap.get(`${s.playerId}:${s.teamId}`) === input.position)
       }
 
@@ -1116,7 +1123,7 @@ export const publicSiteRouter = router({
       const { teamId } = input
       const orgId = input.organizationId
 
-      const [team, teamDivisions, allScorers, allGoalies, contracts] = await Promise.all([
+      const [team, teamDivisions, allScorers, allGoalies, contracts, nameHistory] = await Promise.all([
         ctx.db.team.findFirst({
           where: { id: teamId, organizationId: orgId },
         }),
@@ -1147,6 +1154,8 @@ export const publicSiteRouter = router({
         ctx.db.contract.findMany({
           where: { teamId, organizationId: orgId },
           select: {
+            id: true,
+            previousContractId: true,
             startSeasonId: true,
             endSeasonId: true,
             playerId: true,
@@ -1154,6 +1163,10 @@ export const publicSiteRouter = router({
             position: true,
             player: { select: { firstName: true, lastName: true, photoUrl: true } },
           },
+        }),
+        ctx.db.teamNameHistory.findMany({
+          where: { teamId, organizationId: orgId },
+          include: { untilSeason: { select: { seasonStart: true, seasonEnd: true } } },
         }),
       ])
 
@@ -1170,6 +1183,9 @@ export const publicSiteRouter = router({
       }
       const joinedBySeason = new Map<string, RosterChangePlayer[]>()
       const departedBySeason = new Map<string, RosterChangePlayer[]>()
+      // Contracts that only continue an earlier one (position change, merged team) are
+      // not a signing and their predecessor's end is not a departure.
+      const continuedContractIds = collectContinuedContractIds(contracts)
       for (const c of contracts) {
         const p: RosterChangePlayer = {
           playerId: c.playerId,
@@ -1179,10 +1195,12 @@ export const publicSiteRouter = router({
           jerseyNumber: c.jerseyNumber,
           position: c.position,
         }
-        const j = joinedBySeason.get(c.startSeasonId) ?? []
-        j.push(p)
-        joinedBySeason.set(c.startSeasonId, j)
-        if (c.endSeasonId) {
+        if (!c.previousContractId) {
+          const j = joinedBySeason.get(c.startSeasonId) ?? []
+          j.push(p)
+          joinedBySeason.set(c.startSeasonId, j)
+        }
+        if (c.endSeasonId && !continuedContractIds.has(c.id)) {
           const d = departedBySeason.get(c.endSeasonId) ?? []
           d.push(p)
           departedBySeason.set(c.endSeasonId, d)
@@ -1295,6 +1313,9 @@ export const publicSiteRouter = router({
               joined: joinedBySeason.get(entry.season.id) ?? [],
               departed: departedBySeason.get(entry.season.id) ?? [],
             },
+            // The name the team carried back then — a team that was renamed (or merged
+            // out of two legacy records) played earlier seasons under a different name.
+            teamName: resolveTeamNameForSeason(team, nameHistory, entry.season),
           }
         })
         .sort((a, b) => new Date(b.season.seasonStart).getTime() - new Date(a.season.seasonStart).getTime())
@@ -1326,6 +1347,14 @@ export const publicSiteRouter = router({
           homeVenue: team.homeVenue,
           primaryColor: team.primaryColor,
         },
+        formerNames: [...nameHistory]
+          .sort((a, b) => b.untilSeason.seasonEnd.getTime() - a.untilSeason.seasonEnd.getTime())
+          .map((entry) => ({
+            name: entry.name,
+            shortName: entry.shortName,
+            logoUrl: entry.logoUrl,
+            untilSeasonId: entry.untilSeasonId,
+          })),
         seasons,
         topScorers: Array.from(scorersBySeason.values()).flat(),
         topGoalies: Array.from(goaliesBySeason.values()),

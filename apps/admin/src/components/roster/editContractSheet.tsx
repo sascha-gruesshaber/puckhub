@@ -17,6 +17,7 @@ import {
   SheetTitle,
   toast,
 } from "@puckhub/ui"
+import { Scissors } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
@@ -30,9 +31,14 @@ interface EditContractSheetProps {
   onOpenChange: (open: boolean) => void
   contract: ContractRow | null
   seasonId: string
+  /**
+   * Offered when the caller can split the contract: editing rewrites every season of
+   * the spell, so a change that only applies from a certain season needs a split.
+   */
+  onSplit?: (contract: ContractRow) => void
 }
 
-function EditContractSheet({ open, onOpenChange, contract, seasonId }: EditContractSheetProps) {
+function EditContractSheet({ open, onOpenChange, contract, seasonId, onSplit }: EditContractSheetProps) {
   const { t } = useTranslation("common")
   const { t: tErrors } = useTranslation("errors")
   const [position, setPosition] = useState<"forward" | "defense" | "goalie">("forward")
@@ -131,6 +137,18 @@ function EditContractSheet({ open, onOpenChange, contract, seasonId }: EditContr
                   placeholder={t("rosterPage.editDialog.fields.jerseyNumberPlaceholder")}
                 />
               </FormField>
+
+              {onSplit && (
+                <div className="rounded-md border border-border bg-muted/40 p-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {t("rosterPage.editDialog.splitHint")}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => onSplit(contract)}>
+                    <Scissors className="h-3.5 w-3.5 mr-1.5" />
+                    {t("rosterPage.splitDialog.title")}
+                  </Button>
+                </div>
+              )}
             </SheetBody>
 
             <SheetFooter>

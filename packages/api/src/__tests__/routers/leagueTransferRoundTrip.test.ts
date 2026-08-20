@@ -63,7 +63,13 @@ describe("leagueTransfer – full round-trip", () => {
       },
     })
 
-    // --- Season (with AI description) ---
+    // --- Seasons (the main one carries the AI description) ---
+    const previousSeason = (await admin.season.create({
+      name: "Saison 2024/25",
+      seasonStart: "2024-09-01",
+      seasonEnd: "2025-04-30",
+    }))!
+
     const season = (await admin.season.create({
       name: "Saison 2025/26",
       seasonStart: "2025-09-01",
@@ -108,12 +114,18 @@ describe("leagueTransfer – full round-trip", () => {
     const goalieB = (await admin.player.create({ firstName: "Michael", lastName: "Huber" }))!
 
     // --- Contracts ---
-    await admin.contract.signPlayer({
+    // playerA1 changed position part-way through his spell: one contract split in two
+    const playerA1Contract = (await admin.contract.signPlayer({
       playerId: playerA1.id,
       teamId: teamA.id,
-      seasonId: season.id,
-      position: "forward",
+      seasonId: previousSeason.id,
+      position: "defense",
       jerseyNumber: 10,
+    }))!
+    await admin.contract.splitContract({
+      contractId: playerA1Contract.id,
+      splitAtSeasonId: season.id,
+      position: "forward",
     })
     await admin.contract.signPlayer({
       playerId: playerA2.id,
@@ -387,6 +399,17 @@ describe("leagueTransfer – full round-trip", () => {
       },
     })
 
+    // --- TeamNameHistory (teamB played under a different name until last season) ---
+    await db.teamNameHistory.create({
+      data: {
+        organizationId: TEST_ORG_ID,
+        teamId: teamB.id,
+        name: "HC Graz Wolves",
+        shortName: "GRW",
+        untilSeasonId: previousSeason.id,
+      },
+    })
+
     // --- Document ---
     await db.document.create({
       data: {
@@ -472,8 +495,16 @@ describe("leagueTransfer – full round-trip", () => {
     expect(importedSettings!.pointsWin).toBe(3)
 
     // ── Verify season AI description survived ──
-    const importedSeason = await db.season.findFirst({ where: { organizationId: newOrgId } })
+    const importedSeason = await db.season.findFirst({
+      where: { organizationId: newOrgId, name: "Saison 2025/26" },
+    })
     expect(importedSeason!.aiDescriptionShort).toBe("Eine spannende Saison mit vielen Überraschungen.")
+
+    // ── Verify contract continuations were remapped into the new org ──
+    const importedContracts = await db.contract.findMany({ where: { organizationId: newOrgId } })
+    const continuation = importedContracts.find((c) => c.previousContractId !== null)!
+    expect(continuation, "the split contract should survive the import").toBeDefined()
+    expect(importedContracts.map((c) => c.id)).toContain(continuation.previousContractId)
 
     // ── Verify game fields (trikots, recap, scores) ──
     const importedGame = await db.game.findFirst({

@@ -268,6 +268,7 @@ model Organization {
   aiHomeWidgets      AiHomeWidget[]
   publicGameReports  PublicGameReport[]
   backups            Backup[]
+  teamNameHistories  TeamNameHistory[]
 
   @@map("organization")
 }
@@ -338,6 +339,7 @@ model Season {
   goalieSeasonStats GoalieSeasonStat[]
   aiUsageLogs       AiUsageLog[]
   aiHomeWidgets     AiHomeWidget[]
+  teamNameHistories TeamNameHistory[]
 
   @@index([organizationId], map: "seasons_org_id_idx")
   @@map("seasons")
@@ -422,9 +424,32 @@ model Team {
   gameLineups       GameLineup[]
   gameSuspensions   GameSuspension[]
   memberRoles       MemberRole[]
+  nameHistory       TeamNameHistory[]
 
   @@index([organizationId], map: "teams_org_id_idx")
   @@map("teams")
+}
+
+/// A name a team carried in the past — written when two legacy team records are
+/// merged into one franchise, or when a team is renamed. `untilSeason` is the
+/// last season (inclusive) the name was in use; the current name lives on Team.
+model TeamNameHistory {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  organizationId String   @map("organization_id")
+  teamId         String   @map("team_id") @db.Uuid
+  name           String
+  shortName      String   @map("short_name")
+  logoUrl        String?  @map("logo_url")
+  untilSeasonId  String   @map("until_season_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  untilSeason  Season       @relation(fields: [untilSeasonId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, untilSeasonId])
+  @@index([organizationId], map: "team_name_history_org_id_idx")
+  @@map("team_name_history")
 }
 
 model Player {
@@ -465,6 +490,12 @@ model Contract {
   jerseyNumber   Int?     @map("jersey_number")
   startSeasonId  String   @map("start_season_id") @db.Uuid
   endSeasonId    String?  @map("end_season_id") @db.Uuid
+
+  /// Set when this contract continues an earlier one for the same player and team
+  /// (position/jersey change split out of one long contract, or a team merge).
+  /// Continuation contracts are not reported as a transfer in roster change lists.
+  previousContractId String? @unique @map("previous_contract_id") @db.Uuid
+
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -473,6 +504,9 @@ model Contract {
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   startSeason  Season       @relation("contractStartSeason", fields: [startSeasonId], references: [id], onDelete: Cascade)
   endSeason    Season?      @relation("contractEndSeason", fields: [endSeasonId], references: [id], onDelete: SetNull)
+
+  previousContract Contract?  @relation("contractContinuation", fields: [previousContractId], references: [id], onDelete: SetNull)
+  nextContract     Contract?  @relation("contractContinuation")
 
   @@unique([playerId, teamId, startSeasonId])
   @@index([playerId], map: "contracts_player_id_idx")

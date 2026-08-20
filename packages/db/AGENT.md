@@ -14,16 +14,18 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 ## Prisma Schema
 
 - Enums: 11 (`RoundType`, `Position`, `GameStatus`, `GameEventType`, `NewsStatus`, `PageStatus`, `MenuLocation`, `TrikotTemplateType`, `OrgRole`, `PlanInterval`, `AiHomeWidgetType`). Note: `PlanInterval` now only contains `yearly` (monthly removed)
-- Models: 42 (auth, organization, core league, stats, CMS, trikot domain, SaaS/billing, AI, public reports)
+- Models: 43 (auth, organization, core league, stats, CMS, trikot domain, SaaS/billing, AI, public reports)
 - SaaS models: `WebsiteConfig` (per-org website settings + custom domain), `Plan` (subscription tiers with feature flags + limits), `OrgSubscription` (org-to-plan binding with Stripe fields)
 - AI models: `AiUsageLog` (monthly token tracking per org), `AiHomeWidget` (per-org, per-season, per-widget-type cached AI content with staleness detection via data hash)
 - Public reports: `PublicGameReport` (visitor-submitted game scores with hashed email (`submitterEmailHash`), masked email (`submitterEmailMasked`), hashed IP (`submitterIpHash`) — original email/IP never stored. OTP tracking, active/reverted status)
+- Team/player history: `Contract.previousContractId` (self-relation) marks a contract that continues an earlier one for the same player and team — written by `contract.splitContract` and by `team.merge`, and read by roster change lists so a split spell is not reported as a departure plus a re-signing. `TeamNameHistory` holds the former names of a team, each valid up to and including one season (`untilSeasonId`); the current name stays on `Team`
 - Notable additions: `Game.recapTitle/recapContent/recapGeneratedAt/recapGenerating` (AI recap fields), `Organization.aiEnabled` + granular AI toggles (`aiGameRecaps`, `aiNewsSeo`, `aiPageSeo`, `aiWidget*`), `Plan.featureAi/aiMonthlyTokenLimit/featurePublicReports`, `AiHomeWidget` (per-org, per-season, per-widget-type cached AI content)
 - SystemSettings additions: `publicReportsEnabled`, `publicReportsRequireEmail`, `publicReportsBotDetection` (control public report feature per org)
 - Most app tables are organization-scoped via `organizationId`
 - All `id` fields use `@default(uuid(7))` for time-sortable UUIDs
 - Naming convention uses `@@map`/`@map` to keep DB snake_case while code stays camelCase
 - Notable migration: `0002_public_report_anonymization` — replaces raw email/IP storage with hashed/masked fields
+- Notable migration: `0013_contract_split_and_team_lineage` — `contracts.previous_contract_id` + `team_name_history` table
 
 ## Package Scripts
 

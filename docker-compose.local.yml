@@ -43,7 +43,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      - pgdata_local:/var/lib/postgresql/data
+      - pgdata_local:/var/lib/postgresql
     networks:
       - puckhub
 

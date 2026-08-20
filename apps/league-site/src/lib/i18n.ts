@@ -166,6 +166,8 @@ const en = {
     noRoster: "No roster available",
     noSeasons: "No seasons available",
     noSeasonsDesc: "No season data available for this team yet.",
+    formerlyKnownAs: "Formerly",
+    playedAs: "as",
   },
 
   statsOverview: {
@@ -559,6 +561,8 @@ const de: Translations = {
     noRoster: "Kein Kader verfügbar",
     noSeasons: "Keine Saisons vorhanden",
     noSeasonsDesc: "Für dieses Team liegen noch keine Saisondaten vor.",
+    formerlyKnownAs: "Vormals",
+    playedAs: "als",
   },
 
   statsOverview: {

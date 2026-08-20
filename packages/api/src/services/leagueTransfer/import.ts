@@ -189,7 +189,26 @@ export async function importLeagueData(
           return mapped
         })
 
+        // Rows pointing at other rows of the same table (a contract continuing an
+        // earlier one) are linked after the batch, so insert order does not matter.
+        const deferredLinks: Array<{ id: string; data: Record<string, string> }> = []
+        if (config.deferredSelfRefs) {
+          for (const mapped of mappedRecords) {
+            const data: Record<string, string> = {}
+            for (const field of config.deferredSelfRefs) {
+              const target = mapped[field]
+              if (target) data[field] = remapId(target, modelName, modelName)!
+              delete mapped[field]
+            }
+            if (Object.keys(data).length > 0) deferredLinks.push({ id: mapped.id, data })
+          }
+        }
+
         await delegate.createMany({ data: mappedRecords })
+
+        for (const link of deferredLinks) {
+          await delegate.update({ where: { id: link.id }, data: link.data })
+        }
       }
 
       // Create Member + owner role for the calling user

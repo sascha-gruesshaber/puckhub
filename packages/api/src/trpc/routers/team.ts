@@ -1,7 +1,10 @@
+import type { PrismaClient } from "@puckhub/db"
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { collectContinuedContractIds, resolveTeamNameForSeason } from "../../services/contractHistory"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
+import { TEAM_SCOPED_MERGE_MODELS } from "../../services/teamMerge"
 import { orgAdminProcedure, orgProcedure, requireRole, router } from "../init"
 
 export const teamRouter = router({
@@ -121,7 +124,7 @@ export const teamRouter = router({
     const { teamId } = input
     const orgId = ctx.organizationId
 
-    const [team, teamDivisions, contracts, allScorers, allGoalies] = await Promise.all([
+    const [team, teamDivisions, contracts, allScorers, allGoalies, nameHistory] = await Promise.all([
       ctx.db.team.findFirst({
         where: { id: teamId, organizationId: orgId },
       }),
@@ -163,6 +166,10 @@ export const teamRouter = router({
           player: { select: { firstName: true, lastName: true } },
         },
         orderBy: { gaa: "asc" },
+      }),
+      ctx.db.teamNameHistory.findMany({
+        where: { teamId, organizationId: orgId },
+        include: { untilSeason: { select: { seasonStart: true, seasonEnd: true } } },
       }),
     ])
 
@@ -272,6 +279,7 @@ export const teamRouter = router({
           },
           bestRank,
           bestRankRoundType,
+          teamName: resolveTeamNameForSeason(team, nameHistory, entry.season),
         }
       })
       .sort((a, b) => new Date(b.season.seasonStart).getTime() - new Date(a.season.seasonStart).getTime())
@@ -307,10 +315,190 @@ export const teamRouter = router({
       },
       seasons,
       contracts,
+      // Contracts that are continued by a later one — the seam of a split spell, not a
+      // departure from the team.
+      continuedContractIds: Array.from(collectContinuedContractIds(contracts)),
+      formerNames: [...nameHistory]
+        .sort((a, b) => b.untilSeason.seasonEnd.getTime() - a.untilSeason.seasonEnd.getTime())
+        .map((entry) => ({
+          name: entry.name,
+          shortName: entry.shortName,
+          logoUrl: entry.logoUrl,
+          untilSeasonId: entry.untilSeasonId,
+        })),
       topScorers: Array.from(scorersBySeason.values()).flat(),
       topGoalies: Array.from(goaliesBySeason.values()),
     }
   }),
+
+  /**
+   * Everything the merge of `source` into `target` would touch, plus the reasons it
+   * must not happen. Shared by the preview query and the merge itself.
+   */
+  mergePreview: orgAdminProcedure
+    .input(z.object({ sourceTeamId: z.string().uuid(), targetTeamId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      return collectMergeFacts(ctx.db, ctx.organizationId, input.sourceTeamId, input.targetTeamId)
+    }),
+
+  /**
+   * Merge one team record into another — the same club under a new name.
+   *
+   * Legacy systems have no notion of a renamed team: the old club is left behind and a
+   * new one is created, with the players moved over by hand. That splits a single
+   * franchise into two unrelated rows, so all-time tables, player careers and team
+   * history stop at the rename. Merging moves every row that references the source
+   * team onto the target, records the old name in `team_name_history` so past seasons
+   * still render under it, links the handed-over contracts as continuations, and
+   * deletes the now-empty source team.
+   *
+   * Irreversible — take a backup first.
+   */
+  merge: orgAdminProcedure
+    .input(
+      z.object({
+        sourceTeamId: z.string().uuid(),
+        targetTeamId: z.string().uuid(),
+        /** Last season the source name was in use. Defaults to the source team's final season. */
+        nameChangeUntilSeasonId: z.string().uuid().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const orgId = ctx.organizationId
+      const facts = await collectMergeFacts(ctx.db, orgId, input.sourceTeamId, input.targetTeamId)
+      if (!facts.canMerge) {
+        throw createAppError("CONFLICT", APP_ERROR_CODES.TEAM_MERGE_CONFLICT)
+      }
+
+      const untilSeasonId = input.nameChangeUntilSeasonId ?? facts.suggestedNameChangeSeasonId
+      if (input.nameChangeUntilSeasonId) {
+        const season = await ctx.db.season.findFirst({
+          where: { id: input.nameChangeUntilSeasonId, organizationId: orgId },
+          select: { id: true },
+        })
+        if (!season) throw createAppError("NOT_FOUND", APP_ERROR_CODES.SEASON_NOT_FOUND)
+      }
+
+      const { sourceTeamId, targetTeamId } = input
+
+      // Contracts on both sides before anything moves — needed to link the handover.
+      const [sourceContracts, targetContracts, seasons] = await Promise.all([
+        ctx.db.contract.findMany({
+          where: { teamId: sourceTeamId, organizationId: orgId },
+          select: { id: true, playerId: true, startSeasonId: true, endSeasonId: true },
+        }),
+        ctx.db.contract.findMany({
+          where: { teamId: targetTeamId, organizationId: orgId },
+          select: { id: true, playerId: true, startSeasonId: true, previousContractId: true },
+        }),
+        ctx.db.season.findMany({
+          where: { organizationId: orgId },
+          select: { id: true },
+          orderBy: { seasonStart: "asc" },
+        }),
+      ])
+
+      const seasonOrder = new Map(seasons.map((s, index) => [s.id, index]))
+      const handovers = planContractHandovers(sourceContracts, targetContracts, seasonOrder)
+
+      const result = await ctx.db.$transaction(async (tx: any) => {
+        const scope = { teamId: sourceTeamId, organizationId: orgId }
+        const moveTo = { teamId: targetTeamId }
+
+        // Rows the target already owns under a constraint the source would violate.
+        // These are configuration, not history — the target's own row wins.
+        const targetTrikots = await tx.teamTrikot.findMany({
+          where: { teamId: targetTeamId, organizationId: orgId },
+          select: { trikotId: true, name: true },
+        })
+        const takenTrikots = new Set(targetTrikots.map((t: any) => `${t.trikotId}:${t.name}`))
+        const sourceTrikots = await tx.teamTrikot.findMany({
+          where: scope,
+          select: { id: true, trikotId: true, name: true },
+        })
+        const duplicateTrikotIds = sourceTrikots
+          .filter((t: any) => takenTrikots.has(`${t.trikotId}:${t.name}`))
+          .map((t: any) => t.id)
+        if (duplicateTrikotIds.length > 0) {
+          await tx.teamTrikot.deleteMany({ where: { id: { in: duplicateTrikotIds } } })
+        }
+
+        const targetRoles = await tx.memberRole.findMany({
+          where: { teamId: targetTeamId },
+          select: { memberId: true, role: true },
+        })
+        const takenRoles = new Set(targetRoles.map((r: any) => `${r.memberId}:${r.role}`))
+        const sourceRoles = await tx.memberRole.findMany({
+          where: { teamId: sourceTeamId },
+          select: { id: true, memberId: true, role: true },
+        })
+        const duplicateRoleIds = sourceRoles
+          .filter((r: any) => takenRoles.has(`${r.memberId}:${r.role}`))
+          .map((r: any) => r.id)
+        if (duplicateRoleIds.length > 0) {
+          await tx.memberRole.deleteMany({ where: { id: { in: duplicateRoleIds } } })
+        }
+
+        // Move every row that points at the source team. Anything left behind would be
+        // cascade-deleted with the team, so the models come from one registry that a
+        // test keeps in sync with the schema.
+        const moved: Record<string, number> = {}
+        for (const model of TEAM_SCOPED_MERGE_MODELS) {
+          moved[model] = (await tx[model].updateMany({ where: scope, data: moveTo })).count
+        }
+        moved.game = (
+          await tx.game.updateMany({
+            where: { homeTeamId: sourceTeamId, organizationId: orgId },
+            data: { homeTeamId: targetTeamId },
+          })
+        ).count
+        moved.game += (
+          await tx.game.updateMany({
+            where: { awayTeamId: sourceTeamId, organizationId: orgId },
+            data: { awayTeamId: targetTeamId },
+          })
+        ).count
+        moved.memberRole = (await tx.memberRole.updateMany({ where: { teamId: sourceTeamId }, data: moveTo })).count
+
+        // The players who were "moved" by hand in the legacy system are one spell now.
+        for (const handover of handovers) {
+          await tx.contract.update({
+            where: { id: handover.laterContractId },
+            data: { previousContractId: handover.earlierContractId },
+          })
+        }
+
+        // Remember the name the club played under until the rename.
+        if (untilSeasonId && facts.source.name !== facts.target.name) {
+          await tx.teamNameHistory.upsert({
+            where: { teamId_untilSeasonId: { teamId: targetTeamId, untilSeasonId } },
+            create: {
+              organizationId: orgId,
+              teamId: targetTeamId,
+              name: facts.source.name,
+              shortName: facts.source.shortName,
+              logoUrl: facts.source.logoUrl,
+              untilSeasonId,
+            },
+            update: {
+              name: facts.source.name,
+              shortName: facts.source.shortName,
+              logoUrl: facts.source.logoUrl,
+            },
+          })
+        }
+
+        await tx.team.delete({ where: { id: sourceTeamId } })
+
+        return moved
+      })
+
+      return {
+        moved: result,
+        linkedContracts: handovers.length,
+        nameHistoryUntilSeasonId: facts.source.name !== facts.target.name ? (untilSeasonId ?? null) : null,
+      }
+    }),
 
   delete: orgAdminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ ctx, input }) => {
     await ctx.db.team.deleteMany({
@@ -318,3 +506,188 @@ export const teamRouter = router({
     })
   }),
 })
+
+// ─── Team merge helpers ──────────────────────────────────────────────────────
+
+interface MergeContractSource {
+  id: string
+  playerId: string
+  startSeasonId: string
+  endSeasonId: string | null
+}
+
+interface MergeContractTarget {
+  id: string
+  playerId: string
+  startSeasonId: string
+  previousContractId: string | null
+}
+
+/**
+ * Pair up the contracts of a player who was carried over by hand when the club was
+ * re-created under a new name: a contract at the old team that ended, and one at the
+ * new team that picks up in the same or the very next season.
+ */
+function planContractHandovers(
+  sourceContracts: MergeContractSource[],
+  targetContracts: MergeContractTarget[],
+  seasonOrder: Map<string, number>,
+): Array<{ earlierContractId: string; laterContractId: string }> {
+  const handovers: Array<{ earlierContractId: string; laterContractId: string }> = []
+  const claimed = new Set<string>()
+
+  const byPlayer = new Map<string, MergeContractTarget[]>()
+  for (const c of targetContracts) {
+    if (c.previousContractId) continue
+    const list = byPlayer.get(c.playerId) ?? []
+    list.push(c)
+    byPlayer.set(c.playerId, list)
+  }
+
+  const ordered = [...sourceContracts].sort(
+    (a, b) => (seasonOrder.get(a.startSeasonId) ?? 0) - (seasonOrder.get(b.startSeasonId) ?? 0),
+  )
+
+  for (const earlier of ordered) {
+    if (!earlier.endSeasonId) continue
+    const endIndex = seasonOrder.get(earlier.endSeasonId)
+    if (endIndex === undefined) continue
+
+    const candidates = (byPlayer.get(earlier.playerId) ?? [])
+      .filter((c) => !claimed.has(c.id))
+      .map((c) => ({ contract: c, index: seasonOrder.get(c.startSeasonId) }))
+      .filter((c): c is { contract: MergeContractTarget; index: number } => c.index !== undefined)
+      .sort((a, b) => a.index - b.index)
+
+    // Same season (handover mid-season) or the season right after — anything later is a
+    // player who came back on their own, not the club changing its name.
+    const successor = candidates.find(({ index }) => index === endIndex || index === endIndex + 1)
+    if (!successor) continue
+
+    claimed.add(successor.contract.id)
+    handovers.push({ earlierContractId: earlier.id, laterContractId: successor.contract.id })
+  }
+
+  return handovers
+}
+
+/**
+ * Row counts a merge would move and the conditions that block it. Two teams that were
+ * ever in the same season, or that played each other, are two real clubs — merging
+ * them would fabricate a team that faced itself.
+ */
+async function collectMergeFacts(db: PrismaClient, organizationId: string, sourceTeamId: string, targetTeamId: string) {
+  if (sourceTeamId === targetTeamId) {
+    throw createAppError("BAD_REQUEST", APP_ERROR_CODES.TEAM_MERGE_SAME_TEAM)
+  }
+
+  const [source, target] = await Promise.all([
+    db.team.findFirst({ where: { id: sourceTeamId, organizationId } }),
+    db.team.findFirst({ where: { id: targetTeamId, organizationId } }),
+  ])
+  if (!source || !target) throw createAppError("NOT_FOUND", APP_ERROR_CODES.TEAM_NOT_FOUND)
+
+  const scope = { organizationId, teamId: sourceTeamId }
+
+  const moves: Record<string, number> = {}
+  await Promise.all(
+    TEAM_SCOPED_MERGE_MODELS.map(async (model) => {
+      moves[model] = await (db[model] as { count: (args: unknown) => Promise<number> }).count({ where: scope })
+    }),
+  )
+  const [homeGames, awayGames, memberRoles] = await Promise.all([
+    db.game.count({ where: { organizationId, homeTeamId: sourceTeamId } }),
+    db.game.count({ where: { organizationId, awayTeamId: sourceTeamId } }),
+    db.memberRole.count({ where: { teamId: sourceTeamId } }),
+  ])
+  moves.game = homeGames + awayGames
+  moves.memberRole = memberRoles
+
+  // Seasons both teams took part in
+  const [sourceDivisions, targetDivisions] = await Promise.all([
+    db.teamDivision.findMany({
+      where: { organizationId, teamId: sourceTeamId },
+      select: { division: { select: { season: { select: { id: true, name: true, seasonEnd: true } } } } },
+    }),
+    db.teamDivision.findMany({
+      where: { organizationId, teamId: targetTeamId },
+      select: { division: { select: { season: { select: { id: true } } } } },
+    }),
+  ])
+  const targetSeasonIds = new Set(targetDivisions.map((td: any) => td.division.season.id))
+  const sharedSeasons = new Map<string, { id: string; name: string }>()
+  for (const td of sourceDivisions) {
+    const season = td.division.season
+    if (targetSeasonIds.has(season.id)) sharedSeasons.set(season.id, { id: season.id, name: season.name })
+  }
+
+  const headToHeadGames = await db.game.count({
+    where: {
+      organizationId,
+      OR: [
+        { homeTeamId: sourceTeamId, awayTeamId: targetTeamId },
+        { homeTeamId: targetTeamId, awayTeamId: sourceTeamId },
+      ],
+    },
+  })
+
+  // Two contracts for one player at the same team starting in the same season cannot
+  // coexist (unique constraint), so they have to be sorted out before merging.
+  const [sourceContracts, targetContracts] = await Promise.all([
+    db.contract.findMany({
+      where: { organizationId, teamId: sourceTeamId },
+      select: {
+        playerId: true,
+        startSeasonId: true,
+        player: { select: { firstName: true, lastName: true } },
+        startSeason: { select: { name: true } },
+      },
+    }),
+    db.contract.findMany({
+      where: { organizationId, teamId: targetTeamId },
+      select: { playerId: true, startSeasonId: true },
+    }),
+  ])
+  const targetKeys = new Set(targetContracts.map((c: any) => `${c.playerId}:${c.startSeasonId}`))
+  const contractCollisions = sourceContracts
+    .filter((c: any) => targetKeys.has(`${c.playerId}:${c.startSeasonId}`))
+    .map((c: any) => ({
+      playerId: c.playerId,
+      playerName: `${c.player.firstName} ${c.player.lastName}`,
+      seasonName: c.startSeason.name,
+    }))
+
+  // Last season the source team was active — where its name stops applying.
+  const sourceSeasonEnds = sourceDivisions
+    .map((td: any) => td.division.season)
+    .sort((a: any, b: any) => b.seasonEnd.getTime() - a.seasonEnd.getTime())
+  const suggestedNameChangeSeasonId: string | null = sourceSeasonEnds[0]?.id ?? null
+
+  const conflicts = {
+    sharedSeasons: Array.from(sharedSeasons.values()),
+    headToHeadGames,
+    contractCollisions,
+  }
+
+  return {
+    source: {
+      id: source.id,
+      name: source.name,
+      shortName: source.shortName,
+      logoUrl: source.logoUrl,
+    },
+    target: {
+      id: target.id,
+      name: target.name,
+      shortName: target.shortName,
+      logoUrl: target.logoUrl,
+    },
+    moves,
+    conflicts,
+    canMerge:
+      conflicts.sharedSeasons.length === 0 &&
+      conflicts.headToHeadGames === 0 &&
+      conflicts.contractCollisions.length === 0,
+    suggestedNameChangeSeasonId,
+  }
+}

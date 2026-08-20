@@ -58,6 +58,8 @@ interface SeasonEntry {
     joined: RosterPlayer[]
     departed: RosterPlayer[]
   }
+  /** The name the team carried in this season — differs after a rename or a merge. */
+  teamName?: { name: string; shortName: string }
 }
 
 interface ScorerInfo {
@@ -326,10 +328,12 @@ function SeasonCard({
   entry,
   topScorers,
   topGoalies,
+  currentTeamName,
 }: {
   entry: SeasonEntry
   topScorers: ScorerInfo[]
   topGoalies: GoalieInfo[]
+  currentTeamName?: string
 }) {
   const [expanded, setExpanded] = useState(false)
   const t = useT()
@@ -355,6 +359,11 @@ function SeasonCard({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h3 className="font-bold text-[15px] leading-snug">{season.name}</h3>
+              {entry.teamName && currentTeamName && entry.teamName.name !== currentTeamName && (
+                <p className="text-xs text-league-text/50 mt-0.5">
+                  {t.teams.playedAs} {entry.teamName.name}
+                </p>
+              )}
               {divisions.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-1.5">
                   {divisions.map((d) => (
@@ -439,10 +448,13 @@ function SeasonTimeline({
   seasons,
   topScorers,
   topGoalies,
+  currentTeamName,
 }: {
   seasons: SeasonEntry[]
   topScorers: ScorerInfo[]
   topGoalies: GoalieInfo[]
+  /** Used to point out the seasons the club played under a different name. */
+  currentTeamName?: string
 }) {
   const t = useT()
 
@@ -465,7 +477,13 @@ function SeasonTimeline({
 
         <div className="space-y-6">
           {seasons.map((entry) => (
-            <SeasonCard key={entry.season.id} entry={entry} topScorers={topScorers} topGoalies={topGoalies} />
+            <SeasonCard
+              key={entry.season.id}
+              entry={entry}
+              topScorers={topScorers}
+              topGoalies={topGoalies}
+              currentTeamName={currentTeamName}
+            />
           ))}
         </div>
       </div>

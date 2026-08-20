@@ -25,6 +25,7 @@ import {
   History,
   Pencil,
   RotateCcw,
+  Scissors,
   Trash2,
   UserMinus,
   UserPlus,
@@ -39,6 +40,7 @@ import { EditContractSheet } from "~/components/roster/editContractSheet"
 import { ReleasePlayerSheet } from "~/components/roster/releasePlayerSheet"
 import type { ContractRow } from "~/components/roster/rosterTable"
 import { SignPlayerSheet } from "~/components/roster/signPlayerSheet"
+import { SplitContractSheet } from "~/components/roster/splitContractSheet"
 import { TransferSheet } from "~/components/roster/transferSheet"
 import { TabNavigation } from "~/components/tabNavigation"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -148,6 +150,7 @@ function PlayerDetailPage() {
   const [editContract, setEditContract] = useState<ContractRow | null>(null)
   const [transferContract, setTransferContract] = useState<ContractRow | null>(null)
   const [releaseContract, setReleaseContract] = useState<ContractRow | null>(null)
+  const [splitContract, setSplitContract] = useState<ContractRow | null>(null)
   const [signDialogOpen, setSignDialogOpen] = useState(false)
   const [deleteContractId, setDeleteContractId] = useState<string | null>(null)
 
@@ -520,6 +523,17 @@ function PlayerDetailPage() {
                                   {t("playersPage.playerDetail.reopenContract.button")}
                                 </Button>
                               )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setActiveDialogTeamId(c.teamId)
+                                  setSplitContract(toContractRow(c))
+                                }}
+                              >
+                                <Scissors className="h-3.5 w-3.5 mr-1.5" />
+                                {t("playersPage.playerDetail.splitContract.button")}
+                              </Button>
                               <div className="flex-1" />
                               <Button
                                 variant="ghost"
@@ -829,6 +843,21 @@ function PlayerDetailPage() {
               />
             </>
           )}
+
+          {/* ----------------------------------------------------------------- */}
+          {/* Split Contract (correct a position / number that changed mid-spell) */}
+          {/* ----------------------------------------------------------------- */}
+          <SplitContractSheet
+            open={!!splitContract}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSplitContract(null)
+                setActiveDialogTeamId(null)
+              }
+            }}
+            contract={splitContract}
+            onSplit={handleDialogSuccess}
+          />
 
           {/* ----------------------------------------------------------------- */}
           {/* Delete Contract Confirmation Dialog                                */}
