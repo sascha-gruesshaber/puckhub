@@ -202,25 +202,19 @@ Run on your own hardware (home server, NAS, etc.).
 - [ ] Enable HTTPS (use Caddy or Certbot)
 - [ ] Set proper `TRUSTED_ORIGINS`
 - [ ] Configure firewall (allow only 80, 443, SSH)
-- [ ] Set up automated backups (database + uploads)
+- [ ] Confirm the `db-backup` sidecar runs and rehearse a restore (see runbook); back up the `uploads` volume
 - [ ] Configure monitoring (Uptime Kuma, etc.)
 - [ ] Review license compliance
 
 ### Database Backups
 
-```bash
-# Backup
-docker exec puckhub-db pg_dump -U puckhub puckhub > backup_$(date +%Y%m%d).sql
+`docker-compose.prod.yml` includes a `db-backup` sidecar that runs `pg_dump -Fc` on a schedule
+(`BACKUP_SCHEDULE`, default 03:00 daily) into the `postgres_backups` volume and prunes dumps older than
+`BACKUP_RETENTION_DAYS`. Restore with `docker/backup/restore.sh`. The full procedure, including how to
+verify a restore, lives in [`docs/runbooks/database-backup-restore.md`](docs/runbooks/database-backup-restore.md).
 
-# Restore
-cat backup_20250213.sql | docker exec -i puckhub-db psql -U puckhub puckhub
-```
-
-Automate with cron:
-```bash
-# Daily backup at 2 AM
-0 2 * * * /path/to/backup-script.sh
-```
+The per-organization export available in the platform UI is a feature for moving a league between
+installations, not a database backup.
 
 ## 📊 Monitoring
 
