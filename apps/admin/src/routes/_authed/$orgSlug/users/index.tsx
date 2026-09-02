@@ -332,7 +332,6 @@ function UsersPage() {
       updateMutation.mutate({
         id: editingUser.id,
         name: form.name.trim(),
-        email: form.email.trim(),
       })
     } else {
       createMutation.mutate({
@@ -582,6 +581,7 @@ function UsersPage() {
                 <Input
                   data-testid="users-form-email"
                   type="email"
+                  disabled={!isNew}
                   value={form.email}
                   onChange={(e) => setField("email", e.target.value)}
                   placeholder={t("usersPage.fields.emailPlaceholder")}

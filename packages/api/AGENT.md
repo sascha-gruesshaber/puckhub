@@ -13,8 +13,11 @@ src/
 │   ├── ensureDefaultUser.ts  # Creates default admin on first startup (magic link, no password)
 │   ├── email.ts       # SMTP via nodemailer (falls back to console if unconfigured)
 │   ├── emailTemplates.ts  # HTML email templates (magic link, invite, OTP, report reverted, contact OTP, contact notification)
+│   ├── otp.ts         # CSPRNG one-time codes, rate-limit markers, failed-attempt lockout (verification table)
+│   ├── publicCache.ts # TTL cache for publicSite reads (+ ttlCache.ts factory); disabled under Vitest
 │   └── jobs/
-│       └── aiHomeWidgetsJob.ts  # Daily cron job for AI home widget generation
+│       ├── aiHomeWidgetsJob.ts  # Daily cron job for AI home widget generation
+│       └── newsAutoPublishJob.ts # Promotes scheduled news every minute (was an UPDATE on every public read)
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
 │   └── codes.ts       # APP_ERROR_CODES enum (77 error codes)
@@ -55,7 +58,7 @@ src/
 | `GET` | `/api/uploads/*` | Static file serving |
 | `GET` | `/api/domain-check` | Domain validation for Caddy on-demand TLS (checks `WebsiteConfig`) |
 | `POST` | `/api/webhooks/stripe` | Stripe webhook endpoint (stub) |
-| `GET` | `/api/health` | Health check |
+| `GET` | `/api/health` | Health check (runs `SELECT 1`; 503 when the database is unreachable) |
 
 ## Routers (32)
 
@@ -70,7 +73,10 @@ orgProcedure           // Requires session + active org + loads member roles (wi
 orgAdminProcedure      // Requires session + owner/admin role in org (isOrgAdmin middleware)
 adminProcedure         // Alias for orgAdminProcedure (migration convenience)
 platformAdminProcedure // Requires user.role === 'admin' at platform level (isPlatformAdmin middleware)
+cachedPublicProcedure  // publicProcedure + in-process TTL cache per (path, input), scoped by organization; use only for pure (org, season) reads
 ```
+
+Every org-scoped mutation (`orgProcedure`/`orgAdminProcedure`) invalidates that organization's public-site cache on success. Any foreign id a mutation accepts (round, division, season, team, player, trikot, page) must be checked with `assertOrgOwnership`/`assertOrgOwnershipMany` from `routers/_ownership.ts`; foreign ids are reported as NOT_FOUND.
 
 Most mutations use `adminProcedure` (org-scoped). Public queries for standings/stats use `publicProcedure`. `orgProcedure` provides role context (`orgRole`, `memberRoles`, `hasRole()`) without requiring admin.
 

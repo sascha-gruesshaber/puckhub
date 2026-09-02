@@ -2,6 +2,7 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { orgProcedure, requireRole, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 export const contractRouter = router({
   /**
@@ -224,6 +225,8 @@ export const contractRouter = router({
     .mutation(async ({ ctx, input }) => {
       // team_manager can sign players to their team
       requireRole(ctx, "team_manager", input.teamId)
+      await assertOrgOwnership(ctx.db, "player", input.playerId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
 
       const targetSeason = await ctx.db.season.findFirst({
         where: {
@@ -291,6 +294,7 @@ export const contractRouter = router({
     .mutation(async ({ ctx, input }) => {
       // team_manager for the new team
       requireRole(ctx, "team_manager", input.newTeamId)
+      await assertOrgOwnership(ctx.db, "team", input.newTeamId, ctx.organizationId)
 
       return ctx.db.$transaction(async (tx: any) => {
         const existing = await tx.contract.findFirst({
@@ -374,6 +378,7 @@ export const contractRouter = router({
       if (existing.endSeasonId) {
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.CONTRACT_ALREADY_ENDED)
       }
+      await assertOrgOwnership(ctx.db, "season", input.seasonId, ctx.organizationId)
 
       const updated = await ctx.db.contract.update({
         where: { id: input.contractId },

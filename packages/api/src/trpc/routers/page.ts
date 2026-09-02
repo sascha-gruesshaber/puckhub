@@ -5,6 +5,7 @@ import { checkAiEligibility } from "../../services/aiRecapService"
 import { generatePageSeo } from "../../services/aiSeoService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgProcedure, requireRole, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 // ---------------------------------------------------------------------------
 // Slug utility
@@ -505,6 +506,7 @@ export const pageRouter = router({
         throw createAppError("CONFLICT", APP_ERROR_CODES.PAGE_ALIAS_CONFLICT)
       }
 
+      await assertOrgOwnership(ctx.db, "page", input.targetPageId, ctx.organizationId)
       const alias = await ctx.db.pageAlias.create({
         data: {
           organizationId: ctx.organizationId,

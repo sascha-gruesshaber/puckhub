@@ -3,15 +3,18 @@ import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 function triggerSeasonSeo(db: any, seasonId: string, organizationId: string) {
-  checkAiEligibility(db, organizationId).then((e: any) => {
-    if (e.eligible) {
-      generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
-        console.error("[ai-seo] Season SEO generation failed:", err),
-      )
-    }
-  }).catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
+  checkAiEligibility(db, organizationId)
+    .then((e: any) => {
+      if (e.eligible) {
+        generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
+          console.error("[ai-seo] Season SEO generation failed:", err),
+        )
+      }
+    })
+    .catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
 }
 
 export const divisionRouter = router({
@@ -41,6 +44,7 @@ export const divisionRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "season", input.seasonId, ctx.organizationId)
       const plan = await getOrgPlan(ctx.db, ctx.organizationId)
       const count = await ctx.db.division.count({
         where: { seasonId: input.seasonId, organizationId: ctx.organizationId },

@@ -8,7 +8,7 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 - `prisma/migrations/` - committed Prisma migrations + `migration_lock.toml`
 - `src/index.ts` - Prisma client creation (`@prisma/adapter-pg`) and package exports
 - `src/migrate.ts` - `runMigrations()` wrapper (`prisma migrate deploy`)
-- `src/services/` - standings/statistics recalculation logic
+- `src/services/` - standings/statistics recalculation logic. Every recalculation resolves the owning organization from the round/season, scopes all reads to it, and writes atomically (prune + `INSERT … ON CONFLICT DO UPDATE` via `runAtomic`), so readers never see an empty or duplicated table. Services accept a `DbClient` (Prisma client or interactive-transaction client)
 - `src/seed/` - reference/demo seed workflows and reset utilities
 
 ## Prisma Schema
@@ -26,6 +26,7 @@ Prisma ORM package for PostgreSQL. Owns schema, migrations, seeds, and DB-facing
 - Naming convention uses `@@map`/`@map` to keep DB snake_case while code stays camelCase
 - Notable migration: `0002_public_report_anonymization` — replaces raw email/IP storage with hashed/masked fields
 - Notable migration: `0013_contract_split_and_team_lineage` — `contracts.previous_contract_id` + `team_name_history` table
+- Notable migration: `0014_audit_constraints_and_indexes` — natural-key uniques on `standings`, `player_season_stats`, `goalie_season_stats`, `goalie_game_stats`, `member`, `team_divisions`, `page_aliases`; indexes for the hot query paths (Better Auth `userId`/`identifier` columns, `games` by round/status and org/status/date, `game_events` by game/type and player FKs, `news` by org/status/published_at); drops eight prefix-redundant indexes. Hand-written; validated with `prisma migrate diff` in CI
 
 ## Package Scripts
 

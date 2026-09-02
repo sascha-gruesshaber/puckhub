@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 export const sponsorRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -35,6 +36,7 @@ export const sponsorRouter = router({
       checkFeature(plan, "featureSponsorMgmt")
       const count = await ctx.db.sponsor.count({ where: { organizationId: ctx.organizationId } })
       checkLimit(plan, "maxSponsors", count)
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
 
       const sponsor = await ctx.db.sponsor.create({
         data: { ...input, organizationId: ctx.organizationId },
@@ -57,6 +59,7 @@ export const sponsorRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+      await assertOrgOwnership(ctx.db, "team", data.teamId, ctx.organizationId)
       await ctx.db.sponsor.updateMany({
         where: { id, organizationId: ctx.organizationId },
         data: { ...data, updatedAt: new Date() },

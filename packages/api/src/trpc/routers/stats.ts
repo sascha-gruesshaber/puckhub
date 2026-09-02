@@ -3,6 +3,7 @@ import { z } from "zod"
 import { resolveSeasonPositions } from "../../services/contractHistory"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
+import { assertOrgOwnership } from "./_ownership"
 
 /**
  * Backfill goalieGameStats for completed games that are missing them.
@@ -12,8 +13,10 @@ async function backfillGoalieGameStats(db: any, seasonId: string, organizationId
   // Get all completed games for this season (across all rounds)
   const allRounds = await db.round.findMany({
     where: {
+      organizationId,
       division: {
         seasonId,
+        organizationId,
       },
     },
     select: { id: true },
@@ -24,6 +27,7 @@ async function backfillGoalieGameStats(db: any, seasonId: string, organizationId
 
   const completedGames = await db.game.findMany({
     where: {
+      organizationId,
       roundId: { in: roundIds },
       status: "completed",
     },
@@ -376,15 +380,18 @@ export const statsRouter = router({
     }),
 
   recalculate: orgAdminProcedure.input(z.object({ seasonId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
+    await assertOrgOwnership(ctx.db, "season", input.seasonId, ctx.organizationId)
+
     // First, generate missing goalieGameStats for completed games that lack them
     await backfillGoalieGameStats(ctx.db, input.seasonId, ctx.organizationId)
 
-    await recalculatePlayerStats(ctx.db, input.seasonId)
-    await recalculateGoalieStats(ctx.db, input.seasonId)
+    await recalculatePlayerStats(ctx.db, input.seasonId, ctx.organizationId)
+    await recalculateGoalieStats(ctx.db, input.seasonId, ctx.organizationId)
 
     // Recalculate standings for all rounds in this season
     const rounds = await ctx.db.round.findMany({
       where: {
+        organizationId: ctx.organizationId,
         division: {
           seasonId: input.seasonId,
         },
@@ -392,7 +399,7 @@ export const statsRouter = router({
       select: { id: true },
     })
     for (const round of rounds) {
-      await recalculateStandings(ctx.db, round.id)
+      await recalculateStandings(ctx.db, round.id, ctx.organizationId)
     }
 
     return { success: true }

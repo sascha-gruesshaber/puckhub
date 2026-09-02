@@ -683,18 +683,13 @@ describe("publicSite report procedures", () => {
       const db = getTestDb()
       const caller = createTestCaller()
 
-      // Seed 3 existing verification records (within the last hour)
-      const identifier = `public-report:spammer@example.com:${TEST_ORG_ID}`
+      // Three requests are fine; the fourth within the hour is rejected.
+      // Only the most recent code stays valid.
       for (let i = 0; i < 3; i++) {
-        await db.verification.create({
-          data: {
-            id: crypto.randomUUID(),
-            identifier,
-            value: String(100000 + i),
-            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-          },
-        })
+        await caller.publicSite.reportRequestOtp({ organizationId: TEST_ORG_ID, email: "spammer@example.com" })
       }
+      const identifier = `public-report:spammer@example.com:${TEST_ORG_ID}`
+      expect(await db.verification.count({ where: { identifier } })).toBe(1)
 
       await expect(
         caller.publicSite.reportRequestOtp({

@@ -60,11 +60,7 @@ export async function enforceRetention(db: Database, organizationId: string, max
  * Check whether a backup should run based on the frequency setting.
  * Returns true if no previous backup exists or enough time has elapsed.
  */
-export async function shouldRunBackup(
-  db: Database,
-  organizationId: string,
-  frequencyDays: number,
-): Promise<boolean> {
+export async function shouldRunBackup(db: Database, organizationId: string, frequencyDays: number): Promise<boolean> {
   const latest = await db.backup.findFirst({
     where: { organizationId },
     orderBy: { createdAt: "desc" },
@@ -82,11 +78,7 @@ export async function shouldRunBackup(
  * Generate a pre-signed download URL for a backup.
  * Verifies the backup belongs to the given organization.
  */
-export async function getBackupUrl(
-  db: Database,
-  backupId: string,
-  organizationId: string,
-): Promise<string> {
+export async function getBackupUrl(db: Database, backupId: string, organizationId: string): Promise<string> {
   const backup = await db.backup.findFirst({
     where: { id: backupId, organizationId },
   })

@@ -3,6 +3,8 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
+import { consumeOtp, enforceRateLimit, issueOtp } from "../../lib/otp"
+import { invalidatePublicCache } from "../../lib/publicCache"
 import {
   hashPublicReportEmail,
   hashPublicReportIp,
@@ -15,8 +17,36 @@ import {
   resolveSeasonPositions,
   resolveTeamNameForSeason,
 } from "../../services/contractHistory"
-import { publicProcedure, router } from "../init"
+import { cachedPublicProcedure, publicProcedure, router } from "../init"
 import { getEligibleGameIds } from "./_helpers"
+
+const OTP_PER_EMAIL_PER_HOUR = 3
+const OTP_PER_IP_PER_HOUR = 10
+const REPORTS_PER_IP_PER_DAY = 20
+
+/**
+ * Ensures the organization exists and both the plan and the org settings allow
+ * public game reports. Returns the org settings for further checks.
+ */
+async function assertPublicReportsEnabled(db: any, organizationId: string) {
+  const [settings, subscription] = await Promise.all([
+    db.systemSettings.findUnique({ where: { organizationId } }),
+    db.orgSubscription.findUnique({
+      where: { organizationId },
+      include: { plan: { select: { featurePublicReports: true } } },
+    }),
+  ])
+  const planEnabled = subscription?.plan?.featurePublicReports ?? false
+  const settingsEnabled = settings?.publicReportsEnabled ?? false
+  if (!planEnabled || !settingsEnabled) {
+    throw createAppError(
+      "FORBIDDEN",
+      APP_ERROR_CODES.PLAN_FEATURE_UNAVAILABLE,
+      "Public reports are not enabled for this league.",
+    )
+  }
+  return settings
+}
 
 export const publicSiteRouter = router({
   listPlans: publicProcedure.query(async ({ ctx }) => {
@@ -26,7 +56,7 @@ export const publicSiteRouter = router({
     })
   }),
 
-  resolveByDomain: publicProcedure.input(z.object({ domain: z.string() })).query(async ({ ctx, input }) => {
+  resolveByDomain: cachedPublicProcedure.input(z.object({ domain: z.string() })).query(async ({ ctx, input }) => {
     const suffix = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
 
     // Try to match by custom domain on websiteConfig
@@ -93,7 +123,7 @@ export const publicSiteRouter = router({
     return { config: configWithSubdomain, settings, organization: config.organization, features }
   }),
 
-  getConfig: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+  getConfig: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
     const config = await ctx.db.websiteConfig.findUnique({
       where: { organizationId: input.organizationId },
       include: {
@@ -142,34 +172,36 @@ export const publicSiteRouter = router({
     return { config: configWithSubdomain, settings, organization: config.organization, features }
   }),
 
-  getCurrentSeason: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    const now = new Date()
-    // Try to find a season that covers the current date
-    const current = await ctx.db.season.findFirst({
-      where: {
-        organizationId: input.organizationId,
-        seasonStart: { lte: now },
-        seasonEnd: { gte: now },
-      },
-      orderBy: { seasonStart: "desc" },
-    })
-    if (current) return current
+  getCurrentSeason: cachedPublicProcedure
+    .input(z.object({ organizationId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const now = new Date()
+      // Try to find a season that covers the current date
+      const current = await ctx.db.season.findFirst({
+        where: {
+          organizationId: input.organizationId,
+          seasonStart: { lte: now },
+          seasonEnd: { gte: now },
+        },
+        orderBy: { seasonStart: "desc" },
+      })
+      if (current) return current
 
-    // Fallback: latest season
-    return ctx.db.season.findFirst({
-      where: { organizationId: input.organizationId },
-      orderBy: { seasonStart: "desc" },
-    })
-  }),
+      // Fallback: latest season
+      return ctx.db.season.findFirst({
+        where: { organizationId: input.organizationId },
+        orderBy: { seasonStart: "desc" },
+      })
+    }),
 
-  listSeasons: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+  listSeasons: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
     return ctx.db.season.findMany({
       where: { organizationId: input.organizationId },
       orderBy: { seasonStart: "desc" },
     })
   }),
 
-  getSeasonStructure: publicProcedure
+  getSeasonStructure: cachedPublicProcedure
     .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const [divisions, season] = await Promise.all([
@@ -205,7 +237,7 @@ export const publicSiteRouter = router({
       return { divisions, aiDescriptionShort: season?.aiDescriptionShort ?? null }
     }),
 
-  getHomeData: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+  getHomeData: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
     const orgId = input.organizationId
 
     // Resolve current season
@@ -309,7 +341,7 @@ export const publicSiteRouter = router({
     return { currentSeason, latestResults, upcomingGames, standings, sponsors, aiWidgets }
   }),
 
-  getStandings: publicProcedure
+  getStandings: cachedPublicProcedure
     .input(z.object({ organizationId: z.string(), roundId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.standing.findMany({
@@ -405,12 +437,12 @@ export const publicSiteRouter = router({
         if (input.dateFrom) where.scheduledAt.gte = new Date(input.dateFrom)
         if (input.dateTo) where.scheduledAt.lte = new Date(input.dateTo)
       }
-      if (input.cursor) where.id = { lt: input.cursor }
-
       const games = await ctx.db.game.findMany({
         where,
         orderBy: [{ scheduledAt: "desc" }, { id: "desc" }],
         take: input.limit + 1,
+        // Keyset pagination on the sort order itself; `id < cursor` would follow creation order instead.
+        ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
         include: {
           homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
           awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
@@ -540,7 +572,7 @@ export const publicSiteRouter = router({
       })
     }),
 
-  listTeams: publicProcedure
+  listTeams: cachedPublicProcedure
     .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
       if (input.seasonId) {
@@ -643,23 +675,15 @@ export const publicSiteRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      // Auto-publish articles with a scheduled publish date that has passed
-      await ctx.db.news.updateMany({
-        where: {
-          organizationId: input.organizationId,
-          status: "draft",
-          scheduledPublishAt: { lte: new Date() },
-        },
-        data: { status: "published", publishedAt: new Date() },
-      })
-
+      // Scheduled articles are promoted by the news-auto-publish job; this is a pure read.
       const where: any = { organizationId: input.organizationId, status: "published" }
-      if (input.cursor) where.id = { lt: input.cursor }
 
       const items = await ctx.db.news.findMany({
         where,
         orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
         take: input.limit + 1,
+        // Keyset pagination on the sort order itself; `id < cursor` would follow creation order instead.
+        ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
         select: {
           id: true,
           title: true,
@@ -694,7 +718,7 @@ export const publicSiteRouter = router({
       })
     }),
 
-  listSponsors: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
+  listSponsors: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
     return ctx.db.sponsor.findMany({
       where: { organizationId: input.organizationId, isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -702,7 +726,7 @@ export const publicSiteRouter = router({
     })
   }),
 
-  getPageBySlug: publicProcedure
+  getPageBySlug: cachedPublicProcedure
     .input(z.object({ organizationId: z.string(), slug: z.string() }))
     .query(async ({ ctx, input }) => {
       const parts = input.slug.split("/")
@@ -774,7 +798,7 @@ export const publicSiteRouter = router({
       return null
     }),
 
-  getMenuPages: publicProcedure
+  getMenuPages: cachedPublicProcedure
     .input(z.object({ organizationId: z.string(), location: z.enum(["main_nav", "footer"]) }))
     .query(async ({ ctx, input }) => {
       return ctx.db.page.findMany({
@@ -1036,7 +1060,7 @@ export const publicSiteRouter = router({
         .sort((a, b) => b.totalMinutes - a.totalMinutes)
     }),
 
-  getSeasonRoundInfo: publicProcedure
+  getSeasonRoundInfo: cachedPublicProcedure
     .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.division.findMany({
@@ -1371,37 +1395,35 @@ export const publicSiteRouter = router({
       const { organizationId } = input
       const normalizedEmail = normalizePublicReportEmail(input.email)
       const identifier = `public-report:${normalizedEmail}:${organizationId}`
+      const hour = 60 * 60 * 1000
 
-      // Rate limit: max 3 OTP requests per email per hour
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-      const recentCount = await ctx.db.verification.count({
-        where: {
-          identifier,
-          createdAt: { gte: oneHourAgo },
-        },
-      })
-      if (recentCount >= 3) {
-        throw createAppError(
-          "TOO_MANY_REQUESTS",
+      // The organization must exist and have public reports enabled before any mail goes out;
+      // otherwise arbitrary organization ids would each get their own rate-limit bucket.
+      await assertPublicReportsEnabled(ctx.db, organizationId)
+
+      // Rate limits: per address (across all organizations) and per client IP
+      await enforceRateLimit(
+        ctx.db,
+        `public-report-req:${normalizedEmail}`,
+        OTP_PER_EMAIL_PER_HOUR,
+        hour,
+        APP_ERROR_CODES.PUBLIC_REPORT_RATE_LIMITED,
+        "Too many OTP requests. Please try again later.",
+      )
+      if (ctx.ip) {
+        await enforceRateLimit(
+          ctx.db,
+          `public-report-ip:${hashPublicReportIp(ctx.ip, organizationId)}`,
+          OTP_PER_IP_PER_HOUR,
+          hour,
           APP_ERROR_CODES.PUBLIC_REPORT_RATE_LIMITED,
           "Too many OTP requests. Please try again later.",
         )
       }
 
-      // Generate 6-digit code
-      const code = String(Math.floor(100000 + Math.random() * 900000))
+      // One valid CSPRNG code per (address, organization); replaces any earlier code
+      const code = await issueOtp(ctx.db, identifier)
 
-      // Store in verification table (10 min TTL)
-      await ctx.db.verification.create({
-        data: {
-          id: crypto.randomUUID(),
-          identifier,
-          value: code,
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        },
-      })
-
-      // Send email with code
       const { otpEmail } = await import("../../lib/emailTemplates")
       await sendEmail({
         to: normalizedEmail,
@@ -1434,22 +1456,7 @@ export const publicSiteRouter = router({
       const submitterEmailMasked = maskPublicReportEmail(normalizedEmail)
 
       // Validate feature is enabled + load settings
-      const [settings, subscription] = await Promise.all([
-        ctx.db.systemSettings.findUnique({ where: { organizationId } }),
-        ctx.db.orgSubscription.findUnique({
-          where: { organizationId },
-          include: { plan: { select: { featurePublicReports: true } } },
-        }),
-      ])
-      const planEnabled = subscription?.plan?.featurePublicReports ?? false
-      const settingsEnabled = settings?.publicReportsEnabled ?? false
-      if (!planEnabled || !settingsEnabled) {
-        throw createAppError(
-          "FORBIDDEN",
-          APP_ERROR_CODES.PLAN_FEATURE_UNAVAILABLE,
-          "Public reports are not enabled for this league.",
-        )
-      }
+      const settings = await assertPublicReportsEnabled(ctx.db, organizationId)
 
       const requireEmail = settings?.publicReportsRequireEmail ?? true
       const botDetection = settings?.publicReportsBotDetection ?? true
@@ -1461,14 +1468,14 @@ export const publicSiteRouter = router({
           // Silently reject — don't reveal detection to bots
           return { success: true }
         }
-        // Timing: form must be open for at least 3 seconds
-        if (input._ts && Date.now() - input._ts < 3000) {
+        // Timing: form must be open for at least 3 seconds; a missing timestamp is a bot
+        if (!input._ts || Date.now() - input._ts < 3000) {
           return { success: true }
         }
       }
 
       // ── OTP validation (when email verification is required) ──
-      let verification: any = null
+      // The code is consumed here; repeated wrong guesses lock the address for a while.
       if (requireEmail) {
         if (!otpCode) {
           throw createAppError(
@@ -1478,14 +1485,12 @@ export const publicSiteRouter = router({
           )
         }
         const identifier = `public-report:${normalizedEmail}:${organizationId}`
-        verification = await ctx.db.verification.findFirst({
-          where: {
-            identifier,
-            value: otpCode,
-            expiresAt: { gte: new Date() },
-          },
+        const valid = await consumeOtp(ctx.db, {
+          identifier,
+          code: otpCode,
+          lockedCode: APP_ERROR_CODES.PUBLIC_REPORT_RATE_LIMITED,
         })
-        if (!verification) {
+        if (!valid) {
           throw createAppError(
             "BAD_REQUEST",
             APP_ERROR_CODES.PUBLIC_REPORT_INVALID_OTP,
@@ -1535,8 +1540,20 @@ export const publicSiteRouter = router({
         )
       }
 
-      // Get submitter IP from request headers
-      const submitterIpHash = hashPublicReportIp((ctx as any).ip ?? null, organizationId)
+      // Submitter IP (hashed; the raw address is never stored) + per-IP daily limit
+      const submitterIpHash = hashPublicReportIp(ctx.ip, organizationId)
+      if (submitterIpHash) {
+        const ipDailyCount = await ctx.db.publicGameReport.count({
+          where: { organizationId, submitterIpHash, createdAt: { gte: oneDayAgo } },
+        })
+        if (ipDailyCount >= REPORTS_PER_IP_PER_DAY) {
+          throw createAppError(
+            "TOO_MANY_REQUESTS",
+            APP_ERROR_CODES.PUBLIC_REPORT_RATE_LIMITED,
+            "Daily submission limit reached.",
+          )
+        }
+      }
 
       // Transaction: create report + update game + recalculate + delete OTP
       await ctx.db.$transaction(async (tx: any) => {
@@ -1567,13 +1584,9 @@ export const publicSiteRouter = router({
         })
 
         // Recalculate standings
-        await recalculateStandings(tx, game.roundId)
-
-        // Delete used OTP (only if email verification was used)
-        if (verification) {
-          await tx.verification.delete({ where: { id: verification.id } })
-        }
+        await recalculateStandings(tx, game.roundId, organizationId)
       })
+      invalidatePublicCache(organizationId)
 
       // Recalculate player/goalie stats (outside transaction, fire-and-forget)
       const round = await ctx.db.round.findUnique({
@@ -1581,8 +1594,8 @@ export const publicSiteRouter = router({
         select: { division: { select: { seasonId: true } } },
       })
       if (round?.division?.seasonId) {
-        recalculatePlayerStats(ctx.db, round.division.seasonId).catch(() => {})
-        recalculateGoalieStats(ctx.db, round.division.seasonId).catch(() => {})
+        recalculatePlayerStats(ctx.db, round.division.seasonId, organizationId).catch(() => {})
+        recalculateGoalieStats(ctx.db, round.division.seasonId, organizationId).catch(() => {})
       }
 
       // Send notification to org admins (fire-and-forget)
@@ -1679,7 +1692,13 @@ export const publicSiteRouter = router({
     // Aggregate per team per season across all divisions/rounds
     const tsMap = new Map<string, (typeof teamSeasons)[0]>()
 
+    // Several teams share one division: walk each division's standings exactly once,
+    // otherwise every standing row is summed once per team assigned to that division.
+    const seenDivisions = new Set<string>()
     for (const td of teamDivisions) {
+      if (seenDivisions.has(td.divisionId)) continue
+      seenDivisions.add(td.divisionId)
+
       const s = td.division.season
       if (!seasonMap.has(s.id)) {
         seasonMap.set(s.id, { id: s.id, name: s.name, seasonStart: s.seasonStart })

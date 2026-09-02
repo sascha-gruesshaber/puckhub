@@ -26,6 +26,17 @@ app.use(
   }),
 )
 
+// Public site reads are pure functions of (organization, season): let Caddy and
+// browsers cache successful GET responses briefly. Mutations are POST and unaffected.
+const PUBLIC_CACHE_CONTROL =
+  process.env.PUBLIC_CACHE_CONTROL ?? "public, max-age=0, s-maxage=60, stale-while-revalidate=300"
+app.use("/api/trpc/publicSite.*", async (c, next) => {
+  await next()
+  if (c.req.method === "GET" && c.res.status === 200 && !c.res.headers.has("Cache-Control")) {
+    c.res.headers.set("Cache-Control", PUBLIC_CACHE_CONTROL)
+  }
+})
+
 // Contact form tRPC routes — allow any origin (public, no auth)
 app.use(
   "/api/trpc/contactForm.*",
@@ -71,9 +82,7 @@ app.on(["POST", "GET"], "/api/auth/**", async (c) => {
   const isMagicLinkVerify = url.pathname.endsWith("/magic-link/verify")
 
   if (isMagicLinkVerify) {
-    console.log(
-      `[Auth] Magic link verify — token=${url.searchParams.get("token")?.slice(0, 8)}… callbackURL=${url.searchParams.get("callbackURL")}`,
-    )
+    console.log(`[Auth] Magic link verify — callbackURL=${url.searchParams.get("callbackURL")}`)
   }
 
   const res = await auth.handler(req)

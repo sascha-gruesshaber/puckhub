@@ -33,12 +33,14 @@ try {
   const { createAiHomeWidgetsJob } = await import("./lib/jobs/aiHomeWidgetsJob")
   const { createStatsRecalcJob } = await import("./lib/jobs/statsRecalcJob")
   const { createBackupJob } = await import("./lib/jobs/backupJob")
+  const { createNewsAutoPublishJob } = await import("./lib/jobs/newsAutoPublishJob")
 
   const scheduler = new Scheduler()
   scheduler.register(createDemoResetJob())
   scheduler.register(createAiHomeWidgetsJob())
   scheduler.register(createStatsRecalcJob())
   scheduler.register(createBackupJob())
+  scheduler.register(createNewsAutoPublishJob())
   scheduler.start()
   setSchedulerInstance(scheduler)
 
