@@ -209,9 +209,16 @@ if (process.env.DEMO_MODE === "true") {
   })
 }
 
-// Health check
-app.get("/api/health", (c) => {
-  return c.json({ status: "ok", timestamp: new Date().toISOString() })
+// Health check — 503 when the database cannot be reached
+app.get("/api/health", async (c) => {
+  const timestamp = new Date().toISOString()
+  try {
+    await db.$queryRaw`SELECT 1`
+    return c.json({ status: "ok", db: "ok", timestamp })
+  } catch (err) {
+    console.error("[health] Database check failed:", err)
+    return c.json({ status: "error", db: "unreachable", timestamp }, 503)
+  }
 })
 
 // Version info

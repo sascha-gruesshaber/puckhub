@@ -57,6 +57,9 @@ Copy `.env.example` to `.env`. Key variables:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DATABASE_URL` | `postgresql://puckhub:puckhub_dev@localhost:5432/puckhub` | PostgreSQL connection |
+| `DB_POOL_MAX` | `10` | Max pg pool connections per API process |
+| `DB_STATEMENT_TIMEOUT_MS` | `30000` | Server-side `statement_timeout` per query |
+| `DB_APPLICATION_NAME` | `puckhub-api` | `application_name` shown in `pg_stat_activity` |
 | `AUTH_SECRET` | — | Better Auth secret (change in prod) |
 | `AUTH_URL` | `http://api.puckhub.localhost` | Auth base URL |
 | `VITE_API_URL` | `http://api.puckhub.localhost` | API URL for frontend apps |
