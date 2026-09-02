@@ -1,8 +1,6 @@
 # PuckHub Production Docker Compose
 # Copyright (c) 2025 Sascha Grüßhaber
 
-version: '3.9'
-
 services:
   caddy:
     image: caddy:2-alpine
@@ -40,7 +38,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-puckhub}
       POSTGRES_USER: ${POSTGRES_USER:-puckhub}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -48,6 +46,36 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - puckhub
+
+  # Scheduled pg_dump backups of the database (see docs/runbooks/database-backup-restore.md)
+  db-backup:
+    image: postgres:16-alpine
+    container_name: puckhub-db-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/backup/entrypoint.sh"]
+    environment:
+      PGHOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-puckhub}
+      POSTGRES_USER: ${POSTGRES_USER:-puckhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      BACKUP_DIR: /backups
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 3 * * *}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      # Optional offsite copy — only used when the image also has the aws CLI
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-postgres}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-eu-central-1}
+      AWS_ENDPOINT_URL: ${AWS_ENDPOINT_URL:-}
+    volumes:
+      - ./docker/backup:/backup:ro
+      - postgres_backups:/backups
     networks:
       - puckhub
 
@@ -61,7 +89,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-puckhub}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-puckhub}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-puckhub}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-puckhub}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_URL: ${AUTH_URL:-http://localhost}
       API_PORT: 3000
@@ -173,6 +201,8 @@ services:
 
 volumes:
   postgres_data:
+    driver: local
+  postgres_backups:
     driver: local
   uploads:
     driver: local
