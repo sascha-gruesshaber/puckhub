@@ -57,6 +57,9 @@ Copy `.env.example` to `.env`. Key variables:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DATABASE_URL` | `postgresql://puckhub:puckhub_dev@localhost:5432/puckhub` | PostgreSQL connection |
+| `DB_POOL_MAX` | `10` | Max pg pool connections per API process |
+| `DB_STATEMENT_TIMEOUT_MS` | `30000` | Server-side `statement_timeout` per query |
+| `DB_APPLICATION_NAME` | `puckhub-api` | `application_name` shown in `pg_stat_activity` |
 | `AUTH_SECRET` | — | Better Auth secret (change in prod) |
 | `AUTH_URL` | `http://api.puckhub.localhost` | Auth base URL |
 | `VITE_API_URL` | `http://api.puckhub.localhost` | API URL for frontend apps |
@@ -93,6 +96,9 @@ Copy `.env.example` to `.env`. Key variables:
 | `AI_WIDGETS_CRON` | `30 5 * * *` | Cron schedule for AI home widget generation |
 | `CONTACT_EMAIL` | — | Recipient for contact form submissions (console fallback if unset) |
 | `PUBLIC_REPORT_HASH_SECRET` | — | Secret for hashing public report email/IP (falls back to AUTH_SECRET) |
+| `BACKUP_SCHEDULE` | `0 3 * * *` | Cron schedule of the prod `db-backup` sidecar (`pg_dump`) |
+| `BACKUP_RETENTION_DAYS` | `14` | Days to keep `pg_dump` files in the `postgres_backups` volume |
+| `BACKUP_S3_BUCKET` / `BACKUP_S3_PREFIX` | — / `postgres` | Optional S3 offload of `pg_dump` files (needs `aws` CLI in the sidecar image) |
 
 ## Docker
 
@@ -101,6 +107,7 @@ Copy `.env.example` to `.env`. Key variables:
 - **Local testing**: `docker-compose.local.yml` — same topology as production but with locally-built images (`*:local` tags), HTTP-only Caddy, used by `scripts/docker-test.mjs`
 - **Local Caddy**: `docker/Caddyfile.local` — HTTP-only reverse proxy matching production routing (bare domain → marketing-site, `admin.` → admin, `api.` → api, `platform.` → platform, `*.` → league-site)
 - **Production**: `docker-compose.prod.yml` — Caddy (subdomain-based reverse proxy + on-demand TLS) + PostgreSQL 16 + API + Admin + Platform + League-site + Marketing-site containers
+- **Prod DB backups**: `db-backup` sidecar runs `docker/backup/backup.sh` (`pg_dump -Fc`) on `BACKUP_SCHEDULE` into the `postgres_backups` volume; restore with `docker/backup/restore.sh` — see [`docs/runbooks/database-backup-restore.md`](docs/runbooks/database-backup-restore.md)
 - **Prod Caddy**: `docker/Caddyfile` — subdomain routing (`api.`, `admin.`, `platform.`, `*.` wildcard for league sites), bare domain → marketing-site
 
 ## Conventions

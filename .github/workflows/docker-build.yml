@@ -23,6 +23,66 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # Validate Prisma migrations: they must apply cleanly to an empty database
+  # and the result must match prisma/schema.prisma (no drift)
+  # ---------------------------------------------------------------------------
+  db-migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: puckhub
+          POSTGRES_USER: puckhub
+          POSTGRES_PASSWORD: puckhub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U puckhub"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://puckhub:puckhub@localhost:5432/puckhub
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations to an empty database
+        working-directory: packages/db
+        run: pnpm exec prisma migrate deploy
+
+      # Compares the freshly migrated database with schema.prisma. A non-empty
+      # diff means a schema change was committed without a migration (or a
+      # migration does not do what the schema says).
+      - name: Check migrations match schema.prisma
+        working-directory: packages/db
+        run: |
+          if ! pnpm exec prisma migrate diff \
+            --from-config-datasource \
+            --to-schema prisma/schema.prisma \
+            --exit-code; then
+            echo "::error::prisma/schema.prisma does not match prisma/migrations. Create a migration with 'pnpm --filter @puckhub/db db:migrate'. SQL that would be needed:"
+            pnpm exec prisma migrate diff \
+              --from-config-datasource \
+              --to-schema prisma/schema.prisma \
+              --script || true
+            exit 1
+          fi
+
+  # ---------------------------------------------------------------------------
   # Run API tests (Vitest + Testcontainers)
   # Skip via: workflow_dispatch checkbox, PR label "skip-tests", or [skip tests] in commit message
   # ---------------------------------------------------------------------------
@@ -166,9 +226,10 @@ jobs:
   # Build & push only the images that changed
   # ---------------------------------------------------------------------------
   build-images:
-    needs: [test, detect-changes]
+    needs: [db-migrations, test, detect-changes]
     if: |
       always() &&
+      needs.db-migrations.result == 'success' &&
       (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       needs.detect-changes.outputs.has_builds == 'true'
     runs-on: ubuntu-latest
