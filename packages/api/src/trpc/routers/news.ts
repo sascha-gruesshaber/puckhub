@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { sanitizeRichText, sanitizeText } from "../../lib/sanitizeHtml"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateNewsSeo } from "../../services/aiSeoService"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
@@ -80,8 +81,8 @@ export const newsRouter = router({
         data: {
           organizationId: ctx.organizationId,
           title: input.title,
-          shortText: input.shortText || null,
-          content: input.content,
+          shortText: input.shortText ? sanitizeText(input.shortText) : null,
+          content: sanitizeRichText(input.content),
           status: input.status,
           authorId: ctx.user.id,
           publishedAt: input.status === "published" ? new Date() : null,
@@ -118,6 +119,8 @@ export const newsRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx, "editor")
       const { id, ...data } = input
+      if (data.content !== undefined) data.content = sanitizeRichText(data.content)
+      if (data.shortText) data.shortText = sanitizeText(data.shortText)
 
       // Fetch existing to manage publishedAt
       const existing = await ctx.db.news.findFirst({

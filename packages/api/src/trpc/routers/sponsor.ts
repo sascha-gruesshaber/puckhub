@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { safeUrlNullish, safeUrlOptional } from "../../lib/validation"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
@@ -22,8 +23,8 @@ export const sponsorRouter = router({
     .input(
       z.object({
         name: z.string().min(1),
-        logoUrl: z.string().optional(),
-        websiteUrl: z.string().url().optional(),
+        logoUrl: safeUrlOptional,
+        websiteUrl: safeUrlOptional,
         hoverText: z.string().optional(),
         teamId: z.string().uuid().optional(),
         sortOrder: z.number().int().optional(),
@@ -47,8 +48,8 @@ export const sponsorRouter = router({
       z.object({
         id: z.string().uuid(),
         name: z.string().min(1).optional(),
-        logoUrl: z.string().nullish(),
-        websiteUrl: z.string().url().nullish(),
+        logoUrl: safeUrlNullish,
+        websiteUrl: safeUrlNullish,
         hoverText: z.string().nullish(),
         teamId: z.string().uuid().nullish(),
         sortOrder: z.number().int().optional(),

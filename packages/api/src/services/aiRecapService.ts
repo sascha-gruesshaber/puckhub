@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@puckhub/db"
 import OpenAI from "openai"
+import { sanitizeRichText } from "../lib/sanitizeHtml"
 import { getOrgPlan } from "./planLimits"
 
 // ─── OpenRouter Client ──────────────────────────────────────────────────────
@@ -360,7 +361,7 @@ export async function generateAndPersistRecap(db: PrismaClient, gameId: string, 
       where: { id: gameId },
       data: {
         recapTitle: parsed.title,
-        recapContent: parsed.content,
+        recapContent: sanitizeRichText(parsed.content),
         recapGeneratedAt: new Date(),
         recapGenerating: false,
       },

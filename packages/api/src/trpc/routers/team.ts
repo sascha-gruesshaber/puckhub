@@ -2,6 +2,7 @@ import type { PrismaClient } from "@puckhub/db"
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { safeUrlNullish, safeUrlOptional } from "../../lib/validation"
 import { collectContinuedContractIds, resolveTeamNameForSeason } from "../../services/contractHistory"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { TEAM_SCOPED_MERGE_MODELS } from "../../services/teamMerge"
@@ -39,13 +40,13 @@ export const teamRouter = router({
         name: z.string().min(1),
         shortName: z.string().min(1),
         city: z.string().optional(),
-        logoUrl: z.string().optional(),
-        teamPhotoUrl: z.string().optional(),
+        logoUrl: safeUrlOptional,
+        teamPhotoUrl: safeUrlOptional,
         primaryColor: z.string().optional(),
         contactName: z.string().optional(),
         contactEmail: z.string().email().optional(),
         contactPhone: z.string().optional(),
-        website: z.string().url().optional(),
+        website: safeUrlOptional,
         homeVenue: z.string().optional(),
       }),
     )
@@ -67,13 +68,13 @@ export const teamRouter = router({
         name: z.string().min(1).optional(),
         shortName: z.string().min(1).optional(),
         city: z.string().nullish(),
-        logoUrl: z.string().nullish(),
-        teamPhotoUrl: z.string().nullish(),
+        logoUrl: safeUrlNullish,
+        teamPhotoUrl: safeUrlNullish,
         primaryColor: z.string().nullish(),
         contactName: z.string().nullish(),
         contactEmail: z.string().email().nullish(),
         contactPhone: z.string().nullish(),
-        website: z.string().url().nullish(),
+        website: safeUrlNullish,
         homeVenue: z.string().nullish(),
       }),
     )
