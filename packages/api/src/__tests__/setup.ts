@@ -1,6 +1,6 @@
+import { resetDbClient } from "@puckhub/db"
 import postgres from "postgres"
 import { afterAll, afterEach, beforeEach } from "vitest"
-import { resetDbClient } from "@puckhub/db"
 
 const baseUrl = process.env.TEST_DB_BASE_URL
 const template = process.env.TEST_DB_TEMPLATE

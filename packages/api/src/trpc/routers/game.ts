@@ -5,6 +5,7 @@ import { APP_ERROR_CODES } from "../../errors/codes"
 import { checkAiEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { generateRoundRobin } from "../../services/schedulerService"
 import { orgProcedure, requireRole, router } from "../init"
+import { assertOrgOwnership, assertOrgOwnershipMany } from "./_ownership"
 
 const gameStatusValues = ["scheduled", "completed", "cancelled"] as const
 
@@ -22,21 +23,29 @@ async function getSeasonIdFromRound(db: any, roundId: string): Promise<string | 
   return division?.seasonId ?? null
 }
 
-async function assertTeamsAllowedForRound(ctx: { db: any }, roundId: string, homeTeamId: string, awayTeamId: string) {
+async function assertTeamsAllowedForRound(
+  ctx: { db: any; organizationId: string },
+  roundId: string,
+  homeTeamId: string,
+  awayTeamId: string,
+) {
   if (homeTeamId === awayTeamId) {
     throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_TEAMS_IDENTICAL)
   }
 
-  const round = await ctx.db.round.findUnique({
-    where: { id: roundId },
+  // Round and both teams must belong to the caller's organization
+  const round = await ctx.db.round.findFirst({
+    where: { id: roundId, organizationId: ctx.organizationId },
   })
 
   if (!round) {
     throw createAppError("NOT_FOUND", APP_ERROR_CODES.ROUND_NOT_FOUND)
   }
+  await assertOrgOwnershipMany(ctx.db, "team", [homeTeamId, awayTeamId], ctx.organizationId)
 
   const rows = await ctx.db.teamDivision.findMany({
     where: {
+      organizationId: ctx.organizationId,
       divisionId: round.divisionId,
       teamId: { in: [homeTeamId, awayTeamId] },
     },
@@ -180,6 +189,7 @@ export const gameRouter = router({
       // game_manager: check for both teams
       requireRole(ctx, "game_manager", input.homeTeamId)
       await assertTeamsAllowedForRound(ctx, input.roundId, input.homeTeamId, input.awayTeamId)
+      await assertOrgOwnershipMany(ctx.db, "trikot", [input.homeTrikotId, input.awayTrikotId], ctx.organizationId)
       const homeTeam = await ctx.db.team.findUnique({
         where: { id: input.homeTeamId },
         select: { homeVenue: true },
@@ -265,6 +275,7 @@ export const gameRouter = router({
       const nextHomeTeamId = data.homeTeamId ?? existing.homeTeamId
       const nextAwayTeamId = data.awayTeamId ?? existing.awayTeamId
       await assertTeamsAllowedForRound(ctx, nextRoundId, nextHomeTeamId, nextAwayTeamId)
+      await assertOrgOwnershipMany(ctx.db, "trikot", [data.homeTrikotId, data.awayTrikotId], ctx.organizationId)
 
       const game = await ctx.db.game.update({
         where: { id },
@@ -332,66 +343,75 @@ export const gameRouter = router({
       throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_LINEUPS_MISSING)
     }
 
-    const updated = await ctx.db.game.update({
-      where: { id: input.id },
-      data: {
-        status: "completed",
-        finalizedAt: new Date(),
-        updatedAt: new Date(),
-      },
-    })
-
-    // Increment servedGames for active suspensions
-    // Exclude suspensions from THIS game (they count starting from the next game)
-    await ctx.db.$executeRaw`
-      UPDATE game_suspensions
-      SET served_games = served_games + 1
-      WHERE game_id != ${input.id}
-        AND served_games < suspended_games
-        AND (team_id = ${game.homeTeamId} OR team_id = ${game.awayTeamId})
-    `
-
-    // Generate goalie game stats from lineups + goals
-    const goalieLineups = lineups.filter((l: any) => l.isStartingGoalie)
-    if (goalieLineups.length > 0) {
-      // Count goals per team from game events
-      const goalEvents = await ctx.db.gameEvent.findMany({
-        where: { gameId: input.id, eventType: "goal" },
-        select: { teamId: true },
-      })
-      const goalsByTeam = new Map<string, number>()
-      for (const e of goalEvents) {
-        if (e.teamId) goalsByTeam.set(e.teamId, (goalsByTeam.get(e.teamId) ?? 0) + 1)
-      }
-
-      // Delete existing goalie stats for this game (in case of re-complete after reopen)
-      await ctx.db.goalieGameStat.deleteMany({ where: { gameId: input.id } })
-
-      const goalieStatsValues = goalieLineups.map((gl: any) => {
-        // Goals against = goals scored by the OTHER team
-        const opponentTeamId = gl.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
-        return {
-          organizationId: ctx.organizationId,
-          gameId: input.id,
-          playerId: gl.playerId,
-          teamId: gl.teamId,
-          goalsAgainst: goalsByTeam.get(opponentTeamId) ?? 0,
-        }
-      })
-      if (goalieStatsValues.length > 0) {
-        await ctx.db.goalieGameStat.createMany({ data: goalieStatsValues })
-      }
-    }
-
-    // Recalculate standings for the round
-    await recalculateStandings(ctx.db, game.roundId)
-
-    // Recalculate player and goalie stats for the season
+    // Game update, suspension counters, goalie stats and all recalculations are one
+    // atomic unit: a failure half-way must not leave a completed game with stale tables.
     const seasonId = await getSeasonIdFromRound(ctx.db, game.roundId)
-    if (seasonId) {
-      await recalculatePlayerStats(ctx.db, seasonId)
-      await recalculateGoalieStats(ctx.db, seasonId)
-    }
+    const updated = await ctx.db.$transaction(
+      async (tx) => {
+        const completed = await tx.game.update({
+          where: { id: input.id },
+          data: {
+            status: "completed",
+            finalizedAt: new Date(),
+            updatedAt: new Date(),
+          },
+        })
+
+        // Increment servedGames for active suspensions
+        // Exclude suspensions from THIS game (they count starting from the next game)
+        await tx.$executeRaw`
+          UPDATE game_suspensions
+          SET served_games = served_games + 1
+          WHERE game_id != ${input.id}
+            AND served_games < suspended_games
+            AND (team_id = ${game.homeTeamId} OR team_id = ${game.awayTeamId})
+        `
+
+        // Generate goalie game stats from lineups + goals
+        const goalieLineups = lineups.filter((l: any) => l.isStartingGoalie)
+        if (goalieLineups.length > 0) {
+          // Count goals per team from game events
+          const goalEvents = await tx.gameEvent.findMany({
+            where: { gameId: input.id, eventType: "goal" },
+            select: { teamId: true },
+          })
+          const goalsByTeam = new Map<string, number>()
+          for (const e of goalEvents) {
+            if (e.teamId) goalsByTeam.set(e.teamId, (goalsByTeam.get(e.teamId) ?? 0) + 1)
+          }
+
+          // Delete existing goalie stats for this game (in case of re-complete after reopen)
+          await tx.goalieGameStat.deleteMany({ where: { gameId: input.id } })
+
+          const goalieStatsValues = goalieLineups.map((gl: any) => {
+            // Goals against = goals scored by the OTHER team
+            const opponentTeamId = gl.teamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId
+            return {
+              organizationId: ctx.organizationId,
+              gameId: input.id,
+              playerId: gl.playerId,
+              teamId: gl.teamId,
+              goalsAgainst: goalsByTeam.get(opponentTeamId) ?? 0,
+            }
+          })
+          if (goalieStatsValues.length > 0) {
+            await tx.goalieGameStat.createMany({ data: goalieStatsValues })
+          }
+        }
+
+        // Recalculate standings for the round
+        await recalculateStandings(tx, game.roundId, ctx.organizationId)
+
+        // Recalculate player and goalie stats for the season
+        if (seasonId) {
+          await recalculatePlayerStats(tx, seasonId, ctx.organizationId)
+          await recalculateGoalieStats(tx, seasonId, ctx.organizationId)
+        }
+
+        return completed
+      },
+      { timeout: 60_000 },
+    )
 
     // Auto-generate AI recap (fire-and-forget, respects granular toggle)
     ctx.db.organization
@@ -466,39 +486,46 @@ export const gameRouter = router({
 
     const wasCompleted = game.status === "completed"
 
-    // Only decrement suspensions if we're reopening a completed game
-    if (wasCompleted) {
-      await ctx.db.$executeRaw`
-        UPDATE game_suspensions
-        SET served_games = GREATEST(served_games - 1, 0)
-        WHERE game_id != ${input.id}
-          AND served_games > 0
-          AND (team_id = ${game.homeTeamId} OR team_id = ${game.awayTeamId})
-      `
-    }
+    const seasonId = wasCompleted ? await getSeasonIdFromRound(ctx.db, game.roundId) : null
+    const updated = await ctx.db.$transaction(
+      async (tx) => {
+        // Only decrement suspensions if we're reopening a completed game
+        if (wasCompleted) {
+          await tx.$executeRaw`
+            UPDATE game_suspensions
+            SET served_games = GREATEST(served_games - 1, 0)
+            WHERE game_id != ${input.id}
+              AND served_games > 0
+              AND (team_id = ${game.homeTeamId} OR team_id = ${game.awayTeamId})
+          `
+        }
 
-    const updated = await ctx.db.game.update({
-      where: { id: input.id },
-      data: {
-        status: "scheduled",
-        finalizedAt: null,
-        recapTitle: null,
-        recapContent: null,
-        recapGeneratedAt: null,
-        recapGenerating: false,
-        updatedAt: new Date(),
+        const reopened = await tx.game.update({
+          where: { id: input.id },
+          data: {
+            status: "scheduled",
+            finalizedAt: null,
+            recapTitle: null,
+            recapContent: null,
+            recapGeneratedAt: null,
+            recapGenerating: false,
+            updatedAt: new Date(),
+          },
+        })
+
+        // Recalculate standings and stats if reopening from completed
+        if (wasCompleted) {
+          await recalculateStandings(tx, game.roundId, ctx.organizationId)
+          if (seasonId) {
+            await recalculatePlayerStats(tx, seasonId, ctx.organizationId)
+            await recalculateGoalieStats(tx, seasonId, ctx.organizationId)
+          }
+        }
+
+        return reopened
       },
-    })
-
-    // Recalculate standings and stats if reopening from completed
-    if (wasCompleted) {
-      await recalculateStandings(ctx.db, game.roundId)
-      const seasonId = await getSeasonIdFromRound(ctx.db, game.roundId)
-      if (seasonId) {
-        await recalculatePlayerStats(ctx.db, seasonId)
-        await recalculateGoalieStats(ctx.db, seasonId)
-      }
-    }
+      { timeout: 60_000 },
+    )
 
     return updated
   }),
@@ -520,23 +547,24 @@ export const gameRouter = router({
     .mutation(async ({ ctx, input }) => {
       requireRole(ctx, "game_manager")
 
-      const division = await ctx.db.division.findUnique({
-        where: { id: input.divisionId },
+      await assertOrgOwnership(ctx.db, "season", input.seasonId, ctx.organizationId)
+      const division = await ctx.db.division.findFirst({
+        where: { id: input.divisionId, organizationId: ctx.organizationId },
       })
 
       if (!division || division.seasonId !== input.seasonId) {
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_DIVISION_SEASON_MISMATCH)
       }
 
-      const round = await ctx.db.round.findUnique({
-        where: { id: input.roundId },
+      const round = await ctx.db.round.findFirst({
+        where: { id: input.roundId, organizationId: ctx.organizationId },
       })
       if (!round || round.divisionId !== input.divisionId) {
         throw createAppError("BAD_REQUEST", APP_ERROR_CODES.GAME_ROUND_DIVISION_MISMATCH)
       }
 
       const assignments = await ctx.db.teamDivision.findMany({
-        where: { divisionId: input.divisionId },
+        where: { divisionId: input.divisionId, organizationId: ctx.organizationId },
         select: { teamId: true },
       })
 

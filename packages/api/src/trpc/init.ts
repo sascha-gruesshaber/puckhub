@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server"
 import superjson from "superjson"
 import { createAppError, inferAppErrorCode } from "../errors/appError"
 import { APP_ERROR_CODES } from "../errors/codes"
+import { invalidatePublicCache, PUBLIC_CACHE_TTL_MS, publicCache } from "../lib/publicCache"
 import type { Context } from "./context"
 
 const t = initTRPC.context<Context>().create({
@@ -21,6 +22,37 @@ const t = initTRPC.context<Context>().create({
 export const router = t.router
 export const publicProcedure = t.procedure
 export const middleware = t.middleware
+
+// --- cachedPublicProcedure: memoises successful public reads per (path, input) ---
+// Entries are scoped by organization so any org mutation (see the org middlewares
+// below) or the public report flow can drop them. Only pure reads of
+// (organization, season) data should use this.
+const withPublicCache = middleware(async ({ path, type, input, next }) => {
+  if (type !== "query") return next()
+  const key = `${path}:${JSON.stringify(input ?? null)}`
+  const hit = publicCache.get<Awaited<ReturnType<typeof next>>>(key)
+  if (hit) return hit
+  const result = await next()
+  if (result.ok) {
+    const data = result.data as { organization?: { id?: string } } | null
+    const scope = (input as { organizationId?: string } | undefined)?.organizationId ?? data?.organization?.id ?? null
+    publicCache.set(key, result, PUBLIC_CACHE_TTL_MS, scope)
+  }
+  return result
+})
+
+export const cachedPublicProcedure = t.procedure.use(withPublicCache)
+
+/** Drops the organization's public-site cache after a successful mutation. */
+async function invalidateAfterMutation<T extends { ok: boolean }>(
+  type: string,
+  organizationId: string,
+  run: () => Promise<T>,
+): Promise<T> {
+  const result = await run()
+  if (type === "mutation" && result.ok) invalidatePublicCache(organizationId)
+  return result
+}
 
 // --- Types ---
 export interface MemberRoleEntry {
@@ -58,10 +90,12 @@ const isAuthed = middleware(({ ctx, next }) => {
 export const protectedProcedure = t.procedure.use(isAuthed)
 
 // --- withOrgRoles: requires active org + loads member roles ---
-const withOrgRoles = middleware(async ({ ctx, next }) => {
+const withOrgRoles = middleware(async ({ ctx, type, next }) => {
   if (!ctx.user) {
     throw createAppError("UNAUTHORIZED", APP_ERROR_CODES.AUTH_NOT_AUTHENTICATED, "Not authenticated")
   }
+  // Captured so the narrowing survives the invalidation closure below
+  const user = ctx.user
 
   const organizationId = ctx.activeOrganizationId
   if (!organizationId) {
@@ -69,23 +103,25 @@ const withOrgRoles = middleware(async ({ ctx, next }) => {
   }
 
   // Platform admins bypass membership check
-  const isPlatformAdmin = (ctx.user as any).role === "admin"
+  const isPlatformAdmin = (user as any).role === "admin"
   if (isPlatformAdmin) {
-    return next({
-      ctx: {
-        ...ctx,
-        user: ctx.user,
-        session: ctx.session!,
-        organizationId,
-        orgRole: "owner" as const,
-        memberRoles: [] as MemberRoleEntry[],
-        hasRole: (_role?: OrgRole, _teamId?: string) => true,
-      },
-    })
+    return invalidateAfterMutation(type, organizationId, () =>
+      next({
+        ctx: {
+          ...ctx,
+          user,
+          session: ctx.session!,
+          organizationId,
+          orgRole: "owner" as const,
+          memberRoles: [] as MemberRoleEntry[],
+          hasRole: (_role?: OrgRole, _teamId?: string) => true,
+        },
+      }),
+    )
   }
 
   const membership = await ctx.db.member.findFirst({
-    where: { userId: ctx.user.id, organizationId },
+    where: { userId: user.id, organizationId },
     select: {
       id: true,
       role: true,
@@ -119,26 +155,30 @@ const withOrgRoles = middleware(async ({ ctx, next }) => {
     })
   }
 
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user,
-      session: ctx.session!,
-      organizationId,
-      orgRole: membership.role,
-      memberRoles,
-      hasRole,
-    },
-  })
+  return invalidateAfterMutation(type, organizationId, () =>
+    next({
+      ctx: {
+        ...ctx,
+        user,
+        session: ctx.session!,
+        organizationId,
+        orgRole: membership.role,
+        memberRoles,
+        hasRole,
+      },
+    }),
+  )
 })
 
 export const orgProcedure = t.procedure.use(withOrgRoles)
 
 // --- isOrgAdmin: requires owner or admin role ---
-const isOrgAdmin = middleware(async ({ ctx, next }) => {
+const isOrgAdmin = middleware(async ({ ctx, type, next }) => {
   if (!ctx.user) {
     throw createAppError("UNAUTHORIZED", APP_ERROR_CODES.AUTH_NOT_AUTHENTICATED, "Not authenticated")
   }
+  // Captured so the narrowing survives the invalidation closure below
+  const user = ctx.user
 
   const organizationId = ctx.activeOrganizationId
   if (!organizationId) {
@@ -146,23 +186,25 @@ const isOrgAdmin = middleware(async ({ ctx, next }) => {
   }
 
   // Platform admins bypass org role check
-  const isPlatformAdmin = (ctx.user as any).role === "admin"
+  const isPlatformAdmin = (user as any).role === "admin"
   if (isPlatformAdmin) {
-    return next({
-      ctx: {
-        ...ctx,
-        user: ctx.user,
-        session: ctx.session!,
-        organizationId,
-        orgRole: "owner" as const,
-        memberRoles: [] as MemberRoleEntry[],
-        hasRole: (_role?: OrgRole, _teamId?: string) => true,
-      },
-    })
+    return invalidateAfterMutation(type, organizationId, () =>
+      next({
+        ctx: {
+          ...ctx,
+          user,
+          session: ctx.session!,
+          organizationId,
+          orgRole: "owner" as const,
+          memberRoles: [] as MemberRoleEntry[],
+          hasRole: (_role?: OrgRole, _teamId?: string) => true,
+        },
+      }),
+    )
   }
 
   const membership = await ctx.db.member.findFirst({
-    where: { userId: ctx.user.id, organizationId },
+    where: { userId: user.id, organizationId },
     select: {
       id: true,
       role: true,
@@ -183,17 +225,19 @@ const isOrgAdmin = middleware(async ({ ctx, next }) => {
     throw createAppError("FORBIDDEN", APP_ERROR_CODES.AUTH_NOT_ADMIN, "Keine Administratorrechte")
   }
 
-  return next({
-    ctx: {
-      ...ctx,
-      user: ctx.user,
-      session: ctx.session!,
-      organizationId,
-      orgRole: membership.role,
-      memberRoles,
-      hasRole: (_role?: OrgRole, _teamId?: string) => true,
-    },
-  })
+  return invalidateAfterMutation(type, organizationId, () =>
+    next({
+      ctx: {
+        ...ctx,
+        user,
+        session: ctx.session!,
+        organizationId,
+        orgRole: membership.role,
+        memberRoles,
+        hasRole: (_role?: OrgRole, _teamId?: string) => true,
+      },
+    }),
+  )
 })
 
 export const orgAdminProcedure = t.procedure.use(isOrgAdmin)

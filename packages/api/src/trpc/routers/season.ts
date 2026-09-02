@@ -3,6 +3,7 @@ import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 const dateInputRegex = /^\d{4}-\d{2}-\d{2}$/
 const seasonDateSchema = z.string().regex(dateInputRegex)
@@ -171,6 +172,8 @@ export const seasonRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "season", input.seasonId, ctx.organizationId)
+
       if (input.template === "standard") {
         // Create one division "Hauptrunde" with one regular round, assign all teams
         const division = await ctx.db.division.create({

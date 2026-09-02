@@ -3,6 +3,7 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 export const bonusPointsRouter = router({
   listByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -26,10 +27,12 @@ export const bonusPointsRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "round", input.roundId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
       const bp = await ctx.db.bonusPoint.create({
         data: { ...input, organizationId: ctx.organizationId },
       })
-      await recalculateStandings(ctx.db, input.roundId)
+      await recalculateStandings(ctx.db, input.roundId, ctx.organizationId)
       return bp
     }),
 
@@ -55,7 +58,7 @@ export const bonusPointsRouter = router({
         data,
       })
       if (bp) {
-        await recalculateStandings(ctx.db, bp.roundId)
+        await recalculateStandings(ctx.db, bp.roundId, ctx.organizationId)
       }
       return bp
     }),
@@ -73,7 +76,7 @@ export const bonusPointsRouter = router({
       where: { id: input.id },
     })
     if (bp) {
-      await recalculateStandings(ctx.db, bp.roundId)
+      await recalculateStandings(ctx.db, bp.roundId, ctx.organizationId)
     }
   }),
 })

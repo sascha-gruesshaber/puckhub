@@ -1,20 +1,32 @@
-import type { Database } from "../index"
+import { Prisma } from "../generated/prisma/client"
+import { type DbClient, runAtomic } from "./atomic"
+import { uuidv7 } from "./uuid"
 
 /**
- * Recalculates standings for a given round after a game result changes.
- * Sort order: totalPoints DESC, gamesPlayed ASC, goalDifference DESC, goalsFor DESC
+ * Recalculates standings for a round after a game result or bonus point
+ * changes. Sort order: totalPoints DESC, gamesPlayed ASC, goalDifference DESC,
+ * goalsFor DESC.
+ *
+ * All reads are scoped to the round's organization and the write is a single
+ * atomic upsert + prune, so concurrent readers never see an empty or
+ * duplicated table. When `organizationId` is given the round must belong to
+ * it; otherwise nothing happens.
  */
-export async function recalculateStandings(db: Database, roundId: string, organizationId?: string): Promise<void> {
-  // 1. Fetch the round to get point rules
-  const round = await db.round.findUnique({ where: { id: roundId } })
+export async function recalculateStandings(db: DbClient, roundId: string, organizationId?: string): Promise<void> {
+  // 1. Fetch the round to get point rules (and the owning organization)
+  const round = await db.round.findFirst({
+    where: { id: roundId, ...(organizationId ? { organizationId } : {}) },
+    select: { organizationId: true, pointsWin: true, pointsDraw: true, pointsLoss: true },
+  })
   if (!round) return
 
+  const orgId = round.organizationId
   const { pointsWin, pointsDraw, pointsLoss } = round
 
   // 2. Fetch all completed games for the round
   const completedGames = await db.game.findMany({
-    where: { roundId, status: "completed" },
-    select: { id: true, homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
+    where: { roundId, organizationId: orgId, status: "completed" },
+    select: { homeTeamId: true, awayTeamId: true, homeScore: true, awayScore: true },
   })
 
   // 3. Aggregate per team
@@ -67,28 +79,14 @@ export async function recalculateStandings(db: Database, roundId: string, organi
   // 4. Add bonus points
   const bonusPointRows = await db.bonusPoint.groupBy({
     by: ["teamId"],
-    where: { roundId },
+    where: { roundId, organizationId: orgId },
     _sum: { points: true },
   })
 
   const bonusMap = new Map(bonusPointRows.map((r) => [r.teamId, r._sum.points ?? 0]))
 
   // 5. Build standings entries and sort
-  type StandingEntry = {
-    teamId: string
-    gamesPlayed: number
-    wins: number
-    draws: number
-    losses: number
-    goalsFor: number
-    goalsAgainst: number
-    goalDifference: number
-    points: number
-    bonusPoints: number
-    totalPoints: number
-  }
-
-  const entries: StandingEntry[] = Array.from(teamMap.entries()).map(([teamId, stats]) => {
+  const entries = Array.from(teamMap.entries()).map(([teamId, stats]) => {
     const pts = stats.wins * pointsWin + stats.draws * pointsDraw + stats.losses * pointsLoss
     const bp = bonusMap.get(teamId) ?? 0
     return {
@@ -106,7 +104,6 @@ export async function recalculateStandings(db: Database, roundId: string, organi
     }
   })
 
-  // Sort: totalPoints DESC, gamesPlayed ASC, goalDifference DESC, goalsFor DESC
   entries.sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints
     if (a.gamesPlayed !== b.gamesPlayed) return a.gamesPlayed - b.gamesPlayed
@@ -114,37 +111,54 @@ export async function recalculateStandings(db: Database, roundId: string, organi
     return b.goalsFor - a.goalsFor
   })
 
-  // 6. Read current ranks before deleting (for previousRank tracking)
-  const existing = await db.standing.findMany({
-    where: { roundId },
-    select: { teamId: true, rank: true },
-  })
-  const previousRankMap = new Map(existing.map((s) => [s.teamId, s.rank]))
+  // 6. Atomic write: prune teams no longer in the round, upsert the rest.
+  //    `previous_rank` keeps the rank the row had before this recalculation.
+  const ops: Prisma.PrismaPromise<unknown>[] = []
 
-  // 7. Delete existing standings and insert fresh with ranks
-  await db.standing.deleteMany({ where: { roundId } })
+  if (entries.length === 0) {
+    ops.push(db.standing.deleteMany({ where: { roundId, organizationId: orgId } }))
+  } else {
+    ops.push(
+      db.standing.deleteMany({
+        where: { roundId, organizationId: orgId, teamId: { notIn: entries.map((e) => e.teamId) } },
+      }),
+    )
 
-  if (entries.length > 0) {
-    const orgId = organizationId ?? round.organizationId
-    await db.standing.createMany({
-      data: entries.map((e, idx) => ({
-        organizationId: orgId,
-        teamId: e.teamId,
-        roundId,
-        gamesPlayed: e.gamesPlayed,
-        wins: e.wins,
-        draws: e.draws,
-        losses: e.losses,
-        goalsFor: e.goalsFor,
-        goalsAgainst: e.goalsAgainst,
-        goalDifference: e.goalDifference,
-        points: e.points,
-        bonusPoints: e.bonusPoints,
-        totalPoints: e.totalPoints,
-        rank: idx + 1,
-        previousRank: previousRankMap.get(e.teamId) ?? null,
-        updatedAt: new Date(),
-      })),
-    })
+    const rows = entries.map(
+      (e, idx) => Prisma.sql`(
+        ${uuidv7()}::uuid, ${orgId}, ${e.teamId}::uuid, ${roundId}::uuid,
+        ${e.gamesPlayed}, ${e.wins}, ${e.draws}, ${e.losses},
+        ${e.goalsFor}, ${e.goalsAgainst}, ${e.goalDifference},
+        ${e.points}, ${e.bonusPoints}, ${e.totalPoints}, ${idx + 1}, NOW()
+      )`,
+    )
+
+    ops.push(
+      db.$executeRaw`
+        INSERT INTO standings (
+          id, organization_id, team_id, round_id,
+          games_played, wins, draws, losses,
+          goals_for, goals_against, goal_difference,
+          points, bonus_points, total_points, rank, updated_at
+        )
+        VALUES ${Prisma.join(rows)}
+        ON CONFLICT (round_id, team_id) DO UPDATE SET
+          games_played = EXCLUDED.games_played,
+          wins = EXCLUDED.wins,
+          draws = EXCLUDED.draws,
+          losses = EXCLUDED.losses,
+          goals_for = EXCLUDED.goals_for,
+          goals_against = EXCLUDED.goals_against,
+          goal_difference = EXCLUDED.goal_difference,
+          points = EXCLUDED.points,
+          bonus_points = EXCLUDED.bonus_points,
+          total_points = EXCLUDED.total_points,
+          previous_rank = standings.rank,
+          rank = EXCLUDED.rank,
+          updated_at = EXCLUDED.updated_at
+      `,
+    )
   }
+
+  await runAtomic(db, ops)
 }

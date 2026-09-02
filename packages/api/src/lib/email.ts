@@ -120,12 +120,6 @@ export async function sendEmail({
   mailbox?: Mailbox
   replyTo?: string
 }) {
-  // Always log the link for debugging
-  const linkMatch = html.match(/href="([^"]+)"/)
-  if (linkMatch) {
-    console.log(`[Email] Link: ${linkMatch[1]}`)
-  }
-
   const config = resolveMailboxConfig(mailbox)
   const relayUrl = process.env.EMAIL_RELAY_URL
 

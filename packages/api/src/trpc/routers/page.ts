@@ -1,10 +1,12 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { sanitizeRichText } from "../../lib/sanitizeHtml"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generatePageSeo } from "../../services/aiSeoService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgProcedure, requireRole, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 // ---------------------------------------------------------------------------
 // Slug utility
@@ -283,7 +285,7 @@ export const pageRouter = router({
           organizationId: ctx.organizationId,
           title: input.title,
           slug,
-          content: input.content,
+          content: sanitizeRichText(input.content),
           status: input.status,
           parentId,
           menuLocations: input.menuLocations,
@@ -379,7 +381,7 @@ export const pageRouter = router({
         updatedAt: new Date(),
       }
       if (data.title) updateData.title = data.title
-      if (!isSystemRoute && data.content !== undefined) updateData.content = data.content
+      if (!isSystemRoute && data.content !== undefined) updateData.content = sanitizeRichText(data.content)
       if (data.status) updateData.status = data.status
       if (!isSystemRoute && data.parentId !== undefined) updateData.parentId = parentId
       if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder
@@ -505,6 +507,7 @@ export const pageRouter = router({
         throw createAppError("CONFLICT", APP_ERROR_CODES.PAGE_ALIAS_CONFLICT)
       }
 
+      await assertOrgOwnership(ctx.db, "page", input.targetPageId, ctx.organizationId)
       const alias = await ctx.db.pageAlias.create({
         data: {
           organizationId: ctx.organizationId,

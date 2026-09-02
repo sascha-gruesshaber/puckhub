@@ -2,7 +2,12 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
+import { consumeOtp, enforceRateLimit, issueOtp } from "../../lib/otp"
+import { hashPublicReportIp } from "../../lib/publicReportPrivacy"
 import { publicProcedure, router } from "../init"
+
+const OTP_PER_EMAIL_PER_HOUR = 3
+const OTP_PER_IP_PER_HOUR = 10
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase()
@@ -13,32 +18,30 @@ export const contactFormRouter = router({
   requestOtp: publicProcedure.input(z.object({ email: z.string().email() })).mutation(async ({ ctx, input }) => {
     const email = normalizeEmail(input.email)
     const identifier = `contact-form:${email}`
+    const hour = 60 * 60 * 1000
 
-    // Rate limit: max 3 OTP requests per email per hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-    const recentCount = await ctx.db.verification.count({
-      where: { identifier, createdAt: { gte: oneHourAgo } },
-    })
-    if (recentCount >= 3) {
-      throw createAppError(
-        "TOO_MANY_REQUESTS",
+    // Rate limits: per recipient address and per client IP
+    await enforceRateLimit(
+      ctx.db,
+      `contact-form-req:${email}`,
+      OTP_PER_EMAIL_PER_HOUR,
+      hour,
+      APP_ERROR_CODES.CONTACT_RATE_LIMITED,
+      "Too many OTP requests. Please try again later.",
+    )
+    if (ctx.ip) {
+      await enforceRateLimit(
+        ctx.db,
+        `contact-form-ip:${hashPublicReportIp(ctx.ip, "contact-form")}`,
+        OTP_PER_IP_PER_HOUR,
+        hour,
         APP_ERROR_CODES.CONTACT_RATE_LIMITED,
         "Too many OTP requests. Please try again later.",
       )
     }
 
-    // Generate 6-digit code
-    const code = String(Math.floor(100000 + Math.random() * 900000))
-
-    // Store in verification table (10 min TTL)
-    await ctx.db.verification.create({
-      data: {
-        id: crypto.randomUUID(),
-        identifier,
-        value: code,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      },
-    })
+    // One valid CSPRNG code per address (10 min TTL); replaces any earlier code
+    const code = await issueOtp(ctx.db, identifier)
 
     // Send email with code
     const { contactOtpEmail } = await import("../../lib/emailTemplates")
@@ -71,33 +74,27 @@ export const contactFormRouter = router({
         return { success: true }
       }
 
-      // Timing check: form must be open >= 3 seconds
-      if (input._ts && Date.now() - input._ts < 3000) {
+      // Timing check: form must be open >= 3 seconds; a missing timestamp is a bot
+      if (!input._ts || Date.now() - input._ts < 3000) {
         return { success: true }
       }
 
       const email = normalizeEmail(input.email)
       const identifier = `contact-form:${email}`
 
-      // Validate OTP
-      const verification = await ctx.db.verification.findFirst({
-        where: {
-          identifier,
-          value: input.otpCode,
-          expiresAt: { gte: new Date() },
-        },
+      // Validate and consume the OTP (locks the address after repeated failures)
+      const valid = await consumeOtp(ctx.db, {
+        identifier,
+        code: input.otpCode,
+        lockedCode: APP_ERROR_CODES.CONTACT_RATE_LIMITED,
       })
-
-      if (!verification) {
+      if (!valid) {
         throw createAppError(
           "BAD_REQUEST",
           APP_ERROR_CODES.CONTACT_INVALID_OTP,
           "Invalid or expired verification code.",
         )
       }
-
-      // Delete used OTP
-      await ctx.db.verification.delete({ where: { id: verification.id } })
 
       // Rate limit: max 5 submissions per email per 24h
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)

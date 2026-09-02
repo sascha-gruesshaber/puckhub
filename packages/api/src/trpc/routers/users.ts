@@ -218,12 +218,16 @@ export const usersRouter = router({
       return { userId }
     }),
 
+  /**
+   * Org admins may edit a member's display name only. The email is the login
+   * credential (magic link) and is shared across organizations, so changing it
+   * is reserved for platform admins (`updateEmail`).
+   */
   update: orgAdminProcedure
     .input(
       z.object({
         id: z.string(),
         name: z.string().min(1).optional(),
-        email: z.string().email().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -244,23 +248,6 @@ export const usersRouter = router({
       })
       if (!memberRecord) {
         throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
-      }
-
-      // Better Auth stores and looks up emails in lowercase
-      if (data.email) {
-        data.email = data.email.toLowerCase()
-
-        const existing = await ctx.db.user.findFirst({
-          where: {
-            email: data.email,
-            id: { not: id },
-          },
-          select: { id: true },
-        })
-
-        if (existing) {
-          throw createAppError("CONFLICT", APP_ERROR_CODES.USER_EMAIL_CONFLICT)
-        }
       }
 
       const updated = await ctx.db.user.update({

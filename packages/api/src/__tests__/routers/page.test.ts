@@ -57,6 +57,18 @@ describe("page router", () => {
       await expect(admin.page.create({ title: "Mannschaften" })).rejects.toThrow("PAGE_SLUG_RESERVED")
     })
 
+    it("stores sanitized content (scripts and event handlers removed)", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const page = await admin.page.create({
+        title: "Unsafe",
+        content: '<p onclick="alert(1)">Hallo</p><script>alert("xss")</script><a href="javascript:alert(1)">x</a>',
+      })
+      expect(page?.content).toBe("<p>Hallo</p><a>x</a>")
+
+      const updated = await admin.page.update({ id: page!.id, content: '<img src="x" onerror="alert(1)"><b>ok</b>' })
+      expect(updated?.content).toBe('<img src="x" /><b>ok</b>')
+    })
+
     it("rejects duplicate slugs", async () => {
       const admin = createTestCaller({ asAdmin: true })
       await admin.page.create({ title: "Test Seite" })

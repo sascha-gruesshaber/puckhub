@@ -9,6 +9,8 @@
   "MEMBER_CANNOT_REMOVE_SELF": "You cannot remove yourself",
   "MEMBER_ROLE_NOT_FOUND": "Role not found",
   "TEAM_NOT_FOUND": "Team not found",
+  "DIVISION_NOT_FOUND": "Division not found",
+  "TRIKOT_NOT_FOUND": "Jersey not found",
   "TEAM_MERGE_SAME_TEAM": "A team cannot be merged into itself",
   "TEAM_MERGE_CONFLICT": "The teams overlap and cannot be merged",
   "USER_NOT_FOUND": "User not found",

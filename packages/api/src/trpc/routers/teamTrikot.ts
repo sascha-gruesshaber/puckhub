@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 const assignmentTypeValues = ["home", "away", "alternate", "custom"] as const
 
@@ -36,6 +37,8 @@ export const teamTrikotRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "trikot", input.trikotId, ctx.organizationId)
       const name = input.assignmentType !== "custom" ? input.assignmentType : input.name?.trim() || "custom"
       const assignment = await ctx.db.teamTrikot.create({
         data: {

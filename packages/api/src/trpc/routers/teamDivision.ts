@@ -2,15 +2,18 @@ import { z } from "zod"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 function triggerSeasonSeo(db: any, seasonId: string, organizationId: string) {
-  checkAiEligibility(db, organizationId).then((e: any) => {
-    if (e.eligible) {
-      generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
-        console.error("[ai-seo] Season SEO generation failed:", err),
-      )
-    }
-  }).catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
+  checkAiEligibility(db, organizationId)
+    .then((e: any) => {
+      if (e.eligible) {
+        generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
+          console.error("[ai-seo] Season SEO generation failed:", err),
+        )
+      }
+    })
+    .catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
 }
 
 export const teamDivisionRouter = router({
@@ -46,6 +49,8 @@ export const teamDivisionRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "division", input.divisionId, ctx.organizationId)
       const existing = await ctx.db.teamDivision.findFirst({
         where: {
           teamId: input.teamId,
@@ -59,7 +64,7 @@ export const teamDivisionRouter = router({
         data: { ...input, organizationId: ctx.organizationId },
       })
       const division = await ctx.db.division.findFirst({
-        where: { id: input.divisionId },
+        where: { id: input.divisionId, organizationId: ctx.organizationId },
         select: { seasonId: true },
       })
       if (division) {

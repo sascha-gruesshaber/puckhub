@@ -1,6 +1,7 @@
 import { recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 export const standingsRouter = router({
   getByRound: orgProcedure.input(z.object({ roundId: z.string().uuid() })).query(async ({ ctx, input }) => {
@@ -14,20 +15,22 @@ export const standingsRouter = router({
   }),
 
   recalculate: orgAdminProcedure.input(z.object({ roundId: z.string().uuid() })).mutation(async ({ ctx, input }) => {
-    await recalculateStandings(ctx.db, input.roundId)
+    await assertOrgOwnership(ctx.db, "round", input.roundId, ctx.organizationId)
+    await recalculateStandings(ctx.db, input.roundId, ctx.organizationId)
     return { success: true }
   }),
 
   recalculateAll: orgAdminProcedure
     .input(z.object({ divisionId: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "division", input.divisionId, ctx.organizationId)
       const rounds = await ctx.db.round.findMany({
-        where: { divisionId: input.divisionId },
+        where: { divisionId: input.divisionId, organizationId: ctx.organizationId },
         select: { id: true },
         orderBy: { sortOrder: "asc" },
       })
       for (const round of rounds) {
-        await recalculateStandings(ctx.db, round.id)
+        await recalculateStandings(ctx.db, round.id, ctx.organizationId)
       }
       return { roundsRecalculated: rounds.length }
     }),

@@ -3,6 +3,7 @@ import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
 import { inviteEmail } from "../../lib/emailTemplates"
+import { safeUrlNullish } from "../../lib/validation"
 import { ensureSystemPages } from "../../services/ensureSystemPages"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
@@ -128,7 +129,7 @@ export const organizationRouter = router({
           .min(1)
           .regex(/^[a-z0-9-]+$/)
           .optional(),
-        logo: z.string().nullish(),
+        logo: safeUrlNullish,
         ownerEmail: z.string().email().optional(),
         ownerName: z.string().min(1).optional(),
         planId: z.string().uuid().optional(),
@@ -371,7 +372,7 @@ export const organizationRouter = router({
     .input(
       z.object({
         name: z.string().min(1).optional(),
-        logo: z.string().nullish(),
+        logo: safeUrlNullish,
       }),
     )
     .mutation(async ({ ctx, input }) => {

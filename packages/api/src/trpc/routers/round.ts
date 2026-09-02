@@ -3,6 +3,7 @@ import { z } from "zod"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 const roundTypeValues = [
   "regular",
@@ -16,13 +17,15 @@ const roundTypeValues = [
 ] as const
 
 function triggerSeasonSeo(db: any, seasonId: string, organizationId: string) {
-  checkAiEligibility(db, organizationId).then((e: any) => {
-    if (e.eligible) {
-      generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
-        console.error("[ai-seo] Season SEO generation failed:", err),
-      )
-    }
-  }).catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
+  checkAiEligibility(db, organizationId)
+    .then((e: any) => {
+      if (e.eligible) {
+        generateSeasonSeo(db, seasonId, organizationId).catch((err: any) =>
+          console.error("[ai-seo] Season SEO generation failed:", err),
+        )
+      }
+    })
+    .catch((err: any) => console.error("[ai-seo] Eligibility check failed:", err))
 }
 
 export const roundRouter = router({
@@ -57,11 +60,12 @@ export const roundRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      await assertOrgOwnership(ctx.db, "division", input.divisionId, ctx.organizationId)
       const round = await ctx.db.round.create({
         data: { ...input, organizationId: ctx.organizationId },
       })
       const division = await ctx.db.division.findFirst({
-        where: { id: input.divisionId },
+        where: { id: input.divisionId, organizationId: ctx.organizationId },
         select: { seasonId: true },
       })
       if (division) {
@@ -110,10 +114,10 @@ export const roundRouter = router({
           // Recalculate stats when counting flags change
           if (statsToggleChanged) {
             if (input.countsForPlayerStats !== undefined) {
-              await recalculatePlayerStats(ctx.db, division.seasonId)
+              await recalculatePlayerStats(ctx.db, division.seasonId, ctx.organizationId)
             }
             if (input.countsForGoalieStats !== undefined) {
-              await recalculateGoalieStats(ctx.db, division.seasonId)
+              await recalculateGoalieStats(ctx.db, division.seasonId, ctx.organizationId)
             }
           }
           triggerSeasonSeo(ctx.db, division.seasonId, ctx.organizationId)

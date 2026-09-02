@@ -2,6 +2,7 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { type OrgContext, orgProcedure, requireRole, router } from "../init"
+import { assertOrgOwnership, assertOrgOwnershipMany } from "./_ownership"
 
 /** Verify the game is not completed or cancelled before allowing report modifications */
 async function assertGameEditable(db: any, gameId: string, organizationId: string) {
@@ -286,6 +287,18 @@ export const gameReportRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertGameReporter(ctx, input.gameId)
       await assertGameEditable(ctx.db, input.gameId, ctx.organizationId)
+      await assertOrgOwnershipMany(
+        ctx.db,
+        "player",
+        input.players.map((p) => p.playerId),
+        ctx.organizationId,
+      )
+      await assertOrgOwnershipMany(
+        ctx.db,
+        "team",
+        input.players.map((p) => p.teamId),
+        ctx.organizationId,
+      )
       await ctx.db.$transaction(async (tx: any) => {
         await tx.gameLineup.deleteMany({ where: { gameId: input.gameId } })
 
@@ -371,6 +384,13 @@ export const gameReportRouter = router({
       await assertGameReporter(ctx, input.gameId)
       await assertGameEditable(ctx.db, input.gameId, ctx.organizationId)
       const { suspension, ...eventData } = input
+      await assertOrgOwnership(ctx.db, "team", eventData.teamId, ctx.organizationId)
+      await assertOrgOwnershipMany(
+        ctx.db,
+        "player",
+        [eventData.scorerId, eventData.assist1Id, eventData.assist2Id, eventData.goalieId, eventData.penaltyPlayerId],
+        ctx.organizationId,
+      )
 
       const event = await ctx.db.gameEvent.create({
         data: {
@@ -449,6 +469,13 @@ export const gameReportRouter = router({
       }
       await assertGameReporter(ctx, existing.gameId)
       await assertGameEditable(ctx.db, existing.gameId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "team", data.teamId, ctx.organizationId)
+      await assertOrgOwnershipMany(
+        ctx.db,
+        "player",
+        [data.scorerId, data.assist1Id, data.assist2Id, data.goalieId, data.penaltyPlayerId],
+        ctx.organizationId,
+      )
 
       const updated = await ctx.db.gameEvent.update({
         where: { id },
@@ -498,6 +525,8 @@ export const gameReportRouter = router({
     .mutation(async ({ ctx, input }) => {
       await assertGameReporter(ctx, input.gameId)
       await assertGameEditable(ctx.db, input.gameId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "player", input.playerId, ctx.organizationId)
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
       const suspension = await ctx.db.gameSuspension.create({
         data: {
           organizationId: ctx.organizationId,

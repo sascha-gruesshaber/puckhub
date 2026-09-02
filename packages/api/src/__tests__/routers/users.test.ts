@@ -110,7 +110,7 @@ describe("users router", () => {
       expect(updated?.name).toBe("New Name")
     })
 
-    it("updates user email", async () => {
+    it("does not let org admins change a user email", async () => {
       const admin = createTestCaller({ asAdmin: true })
       const db = getTestDb()
 
@@ -132,8 +132,10 @@ describe("users router", () => {
         },
       })
 
-      const updated = await admin.users.update({ id: userId, email: "new@test.local" })
-      expect(updated?.email).toBe("new@test.local")
+      // Email is the login credential and shared across orgs: org admins cannot change it
+      const updated = await admin.users.update({ id: userId, email: "new@test.local", name: "Renamed" } as any)
+      expect(updated?.name).toBe("Renamed")
+      expect(updated?.email).toBe("old@test.local")
     })
 
     it("throws for non-existent user", async () => {

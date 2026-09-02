@@ -1,6 +1,8 @@
 import { z } from "zod"
+import { safeUrlNullish, safeUrlOptional } from "../../lib/validation"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
+import { assertOrgOwnership } from "./_ownership"
 
 export const sponsorRouter = router({
   list: orgProcedure.query(async ({ ctx }) => {
@@ -22,8 +24,8 @@ export const sponsorRouter = router({
     .input(
       z.object({
         name: z.string().min(1),
-        logoUrl: z.string().optional(),
-        websiteUrl: z.string().url().optional(),
+        logoUrl: safeUrlOptional,
+        websiteUrl: safeUrlOptional,
         hoverText: z.string().optional(),
         teamId: z.string().uuid().optional(),
         sortOrder: z.number().int().optional(),
@@ -35,6 +37,7 @@ export const sponsorRouter = router({
       checkFeature(plan, "featureSponsorMgmt")
       const count = await ctx.db.sponsor.count({ where: { organizationId: ctx.organizationId } })
       checkLimit(plan, "maxSponsors", count)
+      await assertOrgOwnership(ctx.db, "team", input.teamId, ctx.organizationId)
 
       const sponsor = await ctx.db.sponsor.create({
         data: { ...input, organizationId: ctx.organizationId },
@@ -47,8 +50,8 @@ export const sponsorRouter = router({
       z.object({
         id: z.string().uuid(),
         name: z.string().min(1).optional(),
-        logoUrl: z.string().nullish(),
-        websiteUrl: z.string().url().nullish(),
+        logoUrl: safeUrlNullish,
+        websiteUrl: safeUrlNullish,
         hoverText: z.string().nullish(),
         teamId: z.string().uuid().nullish(),
         sortOrder: z.number().int().optional(),
@@ -57,6 +60,7 @@ export const sponsorRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
+      await assertOrgOwnership(ctx.db, "team", data.teamId, ctx.organizationId)
       await ctx.db.sponsor.updateMany({
         where: { id, organizationId: ctx.organizationId },
         data: { ...data, updatedAt: new Date() },

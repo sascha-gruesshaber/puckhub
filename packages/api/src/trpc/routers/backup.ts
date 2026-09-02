@@ -2,12 +2,7 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { isS3Configured } from "../../lib/s3"
-import {
-  createBackup,
-  enforceRetention,
-  getBackupUrl,
-  listBackups,
-} from "../../services/backupService"
+import { createBackup, enforceRetention, getBackupUrl, listBackups } from "../../services/backupService"
 import { getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, router } from "../init"
 
@@ -16,24 +11,22 @@ export const backupRouter = router({
     return listBackups(ctx.db, ctx.organizationId)
   }),
 
-  downloadUrl: orgAdminProcedure
-    .input(z.object({ backupId: z.string().uuid() }))
-    .query(async ({ ctx, input }) => {
-      if (!isS3Configured()) {
-        throw createAppError(
-          "PRECONDITION_FAILED",
-          APP_ERROR_CODES.BACKUP_S3_NOT_CONFIGURED,
-          "Backup storage is not configured",
-        )
-      }
+  downloadUrl: orgAdminProcedure.input(z.object({ backupId: z.string().uuid() })).query(async ({ ctx, input }) => {
+    if (!isS3Configured()) {
+      throw createAppError(
+        "PRECONDITION_FAILED",
+        APP_ERROR_CODES.BACKUP_S3_NOT_CONFIGURED,
+        "Backup storage is not configured",
+      )
+    }
 
-      try {
-        const url = await getBackupUrl(ctx.db, input.backupId, ctx.organizationId)
-        return { url }
-      } catch {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.BACKUP_NOT_FOUND, "Backup not found")
-      }
-    }),
+    try {
+      const url = await getBackupUrl(ctx.db, input.backupId, ctx.organizationId)
+      return { url }
+    } catch {
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.BACKUP_NOT_FOUND, "Backup not found")
+    }
+  }),
 
   trigger: orgAdminProcedure.mutation(async ({ ctx }) => {
     if (!isS3Configured()) {

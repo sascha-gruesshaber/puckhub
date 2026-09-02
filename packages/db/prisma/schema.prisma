@@ -152,6 +152,7 @@ model Session {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("session")
 }
 
@@ -172,6 +173,7 @@ model Account {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("account")
 }
 
@@ -183,6 +185,7 @@ model Verification {
   createdAt  DateTime? @default(now())
   updatedAt  DateTime? @default(now())
 
+  @@index([identifier])
   @@map("verification")
 }
 
@@ -196,6 +199,7 @@ model TwoFactor {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("twoFactor")
 }
 
@@ -214,6 +218,7 @@ model Passkey {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("passkey")
 }
 
@@ -284,6 +289,7 @@ model Member {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   memberRoles  MemberRole[]
 
+  @@unique([userId, organizationId])
   @@map("member")
 }
 
@@ -298,7 +304,6 @@ model MemberRole {
   team   Team?  @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
   @@unique([memberId, role, teamId])
-  @@index([memberId])
   @@map("member_role")
 }
 
@@ -315,6 +320,7 @@ model Invitation {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   inviter      User         @relation(fields: [inviterId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId, email, status])
   @@map("invitation")
 }
 
@@ -509,9 +515,9 @@ model Contract {
   nextContract     Contract?  @relation("contractContinuation")
 
   @@unique([playerId, teamId, startSeasonId])
-  @@index([playerId], map: "contracts_player_id_idx")
   @@index([teamId], map: "contracts_team_id_idx")
   @@index([startSeasonId], map: "contracts_start_season_id_idx")
+  @@index([endSeasonId])
   @@index([organizationId], map: "contracts_org_id_idx")
   @@map("contracts")
 }
@@ -559,6 +565,9 @@ model Game {
   @@index([organizationId], map: "games_org_id_idx")
   @@index([homeTrikotId], map: "games_home_trikot_id_idx")
   @@index([awayTrikotId], map: "games_away_trikot_id_idx")
+  @@index([roundId, status])
+  @@index([organizationId, status, finalizedAt])
+  @@index([organizationId, status, scheduledAt])
   @@map("games")
 }
 
@@ -585,7 +594,7 @@ model GameEvent {
 
   organization  Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   game          Game            @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  team          Team?           @relation(fields: [teamId], references: [id])
+  team          Team?           @relation(fields: [teamId], references: [id], onDelete: Restrict)
   scorer        Player?         @relation("eventScorer", fields: [scorerId], references: [id], onDelete: SetNull)
   assist1       Player?         @relation("eventAssist1", fields: [assist1Id], references: [id], onDelete: SetNull)
   assist2       Player?         @relation("eventAssist2", fields: [assist2Id], references: [id], onDelete: SetNull)
@@ -596,6 +605,10 @@ model GameEvent {
 
   @@index([gameId], map: "game_events_game_id_idx")
   @@index([organizationId], map: "game_events_org_id_idx")
+  @@index([gameId, eventType])
+  @@index([teamId])
+  @@index([scorerId])
+  @@index([penaltyPlayerId])
   @@map("game_events")
 }
 
@@ -616,7 +629,6 @@ model GameLineup {
   team         Team         @relation(fields: [teamId], references: [id])
 
   @@unique([gameId, playerId])
-  @@index([gameId], map: "game_lineups_game_id_idx")
   @@index([organizationId], map: "game_lineups_org_id_idx")
   @@map("game_lineups")
 }
@@ -682,7 +694,9 @@ model Standing {
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   round        Round        @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
+  @@unique([roundId, teamId])
   @@index([roundId], map: "standings_round_id_idx")
+  @@index([teamId])
   @@index([organizationId], map: "standings_org_id_idx")
   @@map("standings")
 }
@@ -715,6 +729,7 @@ model TeamDivision {
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
   division     Division     @relation(fields: [divisionId], references: [id], onDelete: Cascade)
 
+  @@unique([teamId, divisionId])
   @@index([teamId], map: "team_divisions_team_id_idx")
   @@index([divisionId], map: "team_divisions_division_id_idx")
   @@index([organizationId], map: "team_divisions_org_id_idx")
@@ -739,6 +754,9 @@ model PlayerSeasonStat {
   season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
+  @@unique([playerId, seasonId, teamId])
+  @@index([seasonId, teamId])
+  @@index([teamId])
   @@index([organizationId], map: "player_season_stats_org_id_idx")
   @@map("player_season_stats")
 }
@@ -759,6 +777,9 @@ model GoalieSeasonStat {
   season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   team         Team         @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
+  @@unique([playerId, seasonId, teamId])
+  @@index([seasonId, teamId])
+  @@index([teamId])
   @@index([organizationId], map: "goalie_season_stats_org_id_idx")
   @@map("goalie_season_stats")
 }
@@ -777,6 +798,8 @@ model GoalieGameStat {
   player       Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
   team         Team         @relation(fields: [teamId], references: [id])
 
+  @@unique([gameId, playerId])
+  @@index([playerId])
   @@index([organizationId], map: "goalie_game_stats_org_id_idx")
   @@map("goalie_game_stats")
 }
@@ -824,6 +847,7 @@ model News {
   aiUsageLogs  AiUsageLog[]
 
   @@index([organizationId], map: "news_org_id_idx")
+  @@index([organizationId, status, publishedAt(sort: Desc)])
   @@map("news")
 }
 
@@ -866,6 +890,7 @@ model PageAlias {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   targetPage   Page         @relation(fields: [targetPageId], references: [id], onDelete: Cascade)
 
+  @@unique([organizationId, slug])
   @@index([organizationId], map: "page_aliases_org_id_idx")
   @@map("page_aliases")
 }
@@ -903,7 +928,6 @@ model SystemSettings {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([organizationId], map: "system_settings_org_id_idx")
   @@map("system_settings")
 }
 
@@ -1005,7 +1029,6 @@ model WebsiteConfig {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@index([domain], map: "website_config_domain_idx")
   @@map("website_config")
 }
 
@@ -1085,7 +1108,6 @@ model OrgSubscription {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   plan         Plan         @relation(fields: [planId], references: [id], onDelete: Restrict)
 
-  @@index([organizationId], map: "org_subscriptions_org_id_idx")
   @@index([planId], map: "org_subscriptions_plan_id_idx")
   @@map("org_subscriptions")
 }
@@ -1128,7 +1150,6 @@ model PublicGameReport {
   game         Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
   reverter     User?        @relation(fields: [revertedBy], references: [id], onDelete: SetNull)
 
-  @@index([organizationId])
   @@index([gameId])
   @@index([organizationId, submitterEmailHash])
   @@index([organizationId, submitterIpHash])
@@ -1151,7 +1172,6 @@ model AiHomeWidget {
   season       Season       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, seasonId, widgetType])
-  @@index([organizationId], map: "ai_home_widgets_org_id_idx")
   @@map("ai_home_widgets")
 }
 
