@@ -1,5 +1,6 @@
 import dns from "node:dns/promises"
 import { z } from "zod"
+import { safeUrlNullable } from "../../lib/validation"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const CNAME_TARGET = process.env.CNAME_TARGET || "sites.puckhub.eu"
@@ -52,9 +53,9 @@ export const websiteConfigRouter = router({
         colorHeaderText: z.string().nullable().optional(),
         colorFooterBg: z.string().nullable().optional(),
         colorFooterText: z.string().nullable().optional(),
-        logoUrl: z.string().nullable().optional(),
-        faviconUrl: z.string().nullable().optional(),
-        ogImageUrl: z.string().nullable().optional(),
+        logoUrl: safeUrlNullable.optional(),
+        faviconUrl: safeUrlNullable.optional(),
+        ogImageUrl: safeUrlNullable.optional(),
         seoTitle: z.string().nullable().optional(),
         seoDescription: z.string().nullable().optional(),
       }),

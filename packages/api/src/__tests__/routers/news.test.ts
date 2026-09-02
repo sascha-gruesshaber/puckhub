@@ -76,6 +76,25 @@ describe("news router", () => {
       expect(news?.scheduledPublishAt).toBeDefined()
     })
 
+    it("sanitizes content and strips markup from shortText", async () => {
+      const admin = createTestCaller({ asAdmin: true })
+      const news = await admin.news.create({
+        title: "Unsafe",
+        shortText: "Teaser <script>alert(1)</script><b>fett</b>",
+        content: '<p>Text</p><script>alert("xss")</script><iframe src="https://evil.example"></iframe>',
+      })
+      expect(news?.shortText).toBe("Teaser fett")
+      expect(news?.content).toBe("<p>Text</p>")
+
+      const updated = await admin.news.update({
+        id: news!.id,
+        shortText: "<i>neu</i>",
+        content: '<p onmouseover="alert(1)">neu</p>',
+      })
+      expect(updated?.shortText).toBe("neu")
+      expect(updated?.content).toBe("<p>neu</p>")
+    })
+
     it("rejects unauthenticated calls", async () => {
       const caller = createTestCaller()
       await expect(caller.news.create({ title: "Hacked", content: "<p>Nein</p>" })).rejects.toThrow("Not authenticated")

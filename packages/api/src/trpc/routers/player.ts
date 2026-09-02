@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { safeUrlOptional } from "../../lib/validation"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
@@ -137,7 +138,7 @@ export const playerRouter = router({
         dateOfBirth: z.string().optional(),
         nationality: z.string().optional(),
         status: z.enum(["hobby", "licensed", "tryout", "inactive"]).optional(),
-        photoUrl: z.string().optional(),
+        photoUrl: safeUrlOptional,
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -165,7 +166,7 @@ export const playerRouter = router({
         dateOfBirth: z.string().optional(),
         nationality: z.string().optional(),
         status: z.enum(["hobby", "licensed", "tryout", "inactive"]).optional(),
-        photoUrl: z.string().optional(),
+        photoUrl: safeUrlOptional,
       }),
     )
     .mutation(async ({ ctx, input }) => {
