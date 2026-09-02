@@ -55,9 +55,9 @@ export default async function globalSetup() {
     // Create template DB
     await maintenanceSql.unsafe(`CREATE DATABASE ${TEMPLATE_DB}`)
 
-    // Push schema to template DB using prisma db push
+    // Build the template DB from the committed migrations, exactly as production does
     const dbPkgDir = resolve(monorepoRoot, "packages/db")
-    execSync("npx prisma db push --accept-data-loss", {
+    execSync("npx prisma migrate deploy", {
       cwd: dbPkgDir,
       env: { ...process.env, DATABASE_URL: templateUrl },
       stdio: "pipe",
