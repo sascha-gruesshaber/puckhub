@@ -22,16 +22,13 @@
     "db:push": "echo '⚠️  db push is disabled — use pnpm db:migrate to create a proper migration' && exit 1",
     "db:seed": "tsx src/seed/run.ts",
     "db:reset": "tsx src/seed/reset.ts",
-    "db:studio": "prisma studio",
-    "db:migrate:eal": "tsx src/eal-migration/run.ts",
-    "db:migrate:eal:analyze": "tsx src/eal-migration/run.ts --analyze-only"
+    "db:studio": "prisma studio"
   },
   "devDependencies": {
     "@types/node": "^25.8.0",
     "@types/pg": "^8.20.0",
     "better-auth": "^1.6.29",
     "dotenv": "^17.4.2",
-    "mysql2": "^3.22.5",
     "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

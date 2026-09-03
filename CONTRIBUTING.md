@@ -99,13 +99,18 @@ Before contributing, please read our [Contributor License Agreement (CLA)](CLA.m
 ```
 packages/
 ├── api/         # Hono + tRPC API server
-├── db/          # Drizzle ORM + PostgreSQL schema
+├── db/          # Prisma ORM + PostgreSQL schema
 ├── ui/          # Shared UI components
 └── config/      # Shared configuration
 
 apps/
-├── admin/       # TanStack Start admin UI
-└── web/         # Public website (placeholder)
+├── admin/           # TanStack Start admin UI
+├── platform/        # Platform admin dashboard
+├── league-site/     # Public league website
+└── marketing-site/  # Marketing landing page
+
+tools/
+└── eal-migration/   # One-off legacy MariaDB importer (not shipped)
 ```
 
 ## 🔄 Pull Request Process

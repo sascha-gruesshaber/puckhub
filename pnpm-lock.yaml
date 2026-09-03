@@ -471,9 +471,6 @@ importers:
       '@hono/trpc-server':
         specifier: ^0.4.2
         version: 0.4.2(@trpc/server@11.17.0(typescript@5.9.3))(hono@4.13.5)
-      '@prisma/client':
-        specifier: ^7.7.0
-        version: 7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3)
       '@puckhub/db':
         specifier: workspace:*
         version: link:../db
@@ -523,12 +520,15 @@ importers:
       '@types/nodemailer':
         specifier: ^7.0.11
         version: 7.0.11
+      '@types/pg':
+        specifier: ^8.20.0
+        version: 8.20.0
       '@types/sanitize-html':
         specifier: ^2.16.1
         version: 2.16.1
-      postgres:
-        specifier: ^3.4.9
-        version: 3.4.9
+      pg:
+        specifier: ^8.20.0
+        version: 8.21.0
       testcontainers:
         specifier: ^11.14.0
         version: 11.14.0
@@ -572,9 +572,6 @@ importers:
       dotenv:
         specifier: ^17.4.2
         version: 17.4.2
-      mysql2:
-        specifier: ^3.22.5
-        version: 3.22.5(@types/node@25.9.1)
       sharp:
         specifier: ^0.34.5
         version: 0.34.5
@@ -660,6 +657,28 @@ importers:
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
+  tools/eal-migration:
+    dependencies:
+      '@puckhub/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
+      mysql2:
+        specifier: ^3.22.5
+        version: 3.22.5(@types/node@25.9.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^25.8.0
+        version: 25.9.1
+      tsx:
+        specifier: ^4.21.0
+        version: 4.22.3
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

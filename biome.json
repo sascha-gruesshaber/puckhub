@@ -14,7 +14,6 @@
       "!**/build",
       "!**/.output",
       "!**/.vinxi",
-      "!**/drizzle",
       "!**/uploads",
       "!**/*.gen.ts",
       "!**/routeTree.gen.ts",

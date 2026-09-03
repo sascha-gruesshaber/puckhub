@@ -9,10 +9,9 @@ import { randomUUID } from "node:crypto"
 import { copyFile, mkdir, stat } from "node:fs/promises"
 import { basename, dirname, extname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import type { Database } from "@puckhub/db"
+import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } from "@puckhub/db/services"
 import * as mysql from "mysql2/promise"
-import type { Database } from "../index"
-import { recalculateStandings } from "../services/standingsService"
-import { recalculateGoalieStats, recalculatePlayerStats } from "../services/statsService"
 import type {
   LegacyBonusPoint,
   LegacyGame,
@@ -50,9 +49,8 @@ const MYSQL_CONFIG = {
 const SEASON_ORDER = [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 17, 16, 18, 19, 20, 21]
 
 const BATCH_SIZE = 500
-
-// packages/db/src/eal-migration/ → 4 levels up to monorepo root
-const MONOREPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..")
+// tools/eal-migration/src/ → 3 levels up to monorepo root
+const MONOREPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..")
 const LEGACY_IMAGES_DIR = join(MONOREPO_ROOT, "_legacy", "src", "frontend", "imgs", "teams")
 const UPLOAD_BASE = resolve(process.env.UPLOAD_DIR || join(MONOREPO_ROOT, "uploads"))
 

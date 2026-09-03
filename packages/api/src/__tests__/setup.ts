@@ -1,5 +1,5 @@
 import { resetDbClient } from "@puckhub/db"
-import postgres from "postgres"
+import pg from "pg"
 import { afterAll, afterEach, beforeEach } from "vitest"
 
 const baseUrl = process.env.TEST_DB_BASE_URL
@@ -13,7 +13,7 @@ const poolId = process.env.VITEST_POOL_ID ?? String(process.pid)
 let counter = 0
 
 // Maintenance connection to the postgres DB (reused across all tests in this worker)
-const maintenance = postgres(baseUrl, { max: 1 })
+const maintenance = new pg.Pool({ connectionString: baseUrl, max: 1 })
 
 function replaceDbName(url: string, dbName: string): string {
   const parsed = new URL(url)
@@ -32,7 +32,7 @@ beforeEach(async () => {
   currentDbName = dbName
 
   // Create a fresh DB from the pre-seeded template
-  await maintenance.unsafe(`CREATE DATABASE ${dbName} TEMPLATE ${template}`)
+  await maintenance.query(`CREATE DATABASE ${dbName} TEMPLATE ${template}`)
 
   const dbUrl = replaceDbName(baseUrl, dbName)
   process.env.DATABASE_URL = dbUrl
@@ -47,7 +47,7 @@ afterEach(async () => {
 
   // Drop per-test DB
   if (currentDbName) {
-    await maintenance.unsafe(`DROP DATABASE IF EXISTS ${currentDbName} WITH (FORCE)`)
+    await maintenance.query(`DROP DATABASE IF EXISTS ${currentDbName} WITH (FORCE)`)
     currentDbName = null
   }
 })
