@@ -2,6 +2,7 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sanitizeRichText } from "../../lib/sanitizeHtml"
+import { MAX_ID_LENGTH, MAX_NAME_LENGTH, MAX_RICH_TEXT_LENGTH } from "../../lib/validation"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generatePageSeo } from "../../services/aiSeoService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
@@ -148,84 +149,86 @@ export const pageRouter = router({
     return page
   }),
 
-  getBySlug: orgProcedure.input(z.object({ slug: z.string().min(1) })).query(async ({ ctx, input }) => {
-    const parts = input.slug.split("/")
+  getBySlug: orgProcedure
+    .input(z.object({ slug: z.string().max(MAX_ID_LENGTH).min(1) }))
+    .query(async ({ ctx, input }) => {
+      const parts = input.slug.split("/")
 
-    if (parts.length === 1) {
-      // Check for alias first
-      const alias = await ctx.db.pageAlias.findFirst({
-        where: {
-          organizationId: ctx.organizationId,
-          slug: parts[0]!,
-        },
-        include: { targetPage: true },
-      })
+      if (parts.length === 1) {
+        // Check for alias first
+        const alias = await ctx.db.pageAlias.findFirst({
+          where: {
+            organizationId: ctx.organizationId,
+            slug: parts[0]!,
+          },
+          include: { targetPage: true },
+        })
 
-      if (alias) {
-        // Build target slug (could be a sub-page)
-        let targetSlug = alias.targetPage.slug
-        if (alias.targetPage.parentId) {
-          const parent = await ctx.db.page.findFirst({
-            where: {
-              id: alias.targetPage.parentId,
-              organizationId: ctx.organizationId,
-            },
-          })
-          if (parent) {
-            targetSlug = `${parent.slug}/${alias.targetPage.slug}`
+        if (alias) {
+          // Build target slug (could be a sub-page)
+          let targetSlug = alias.targetPage.slug
+          if (alias.targetPage.parentId) {
+            const parent = await ctx.db.page.findFirst({
+              where: {
+                id: alias.targetPage.parentId,
+                organizationId: ctx.organizationId,
+              },
+            })
+            if (parent) {
+              targetSlug = `${parent.slug}/${alias.targetPage.slug}`
+            }
           }
+          return { redirect: true as const, targetSlug }
         }
-        return { redirect: true as const, targetSlug }
+
+        // Look up top-level published page
+        const page = await ctx.db.page.findFirst({
+          where: {
+            organizationId: ctx.organizationId,
+            slug: parts[0]!,
+            status: "published",
+            parentId: null,
+          },
+        })
+
+        if (!page) {
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
+        }
+        return page
       }
 
-      // Look up top-level published page
-      const page = await ctx.db.page.findFirst({
-        where: {
-          organizationId: ctx.organizationId,
-          slug: parts[0]!,
-          status: "published",
-          parentId: null,
-        },
-      })
+      if (parts.length === 2) {
+        // Nested: parent-slug/child-slug
+        const parent = await ctx.db.page.findFirst({
+          where: {
+            organizationId: ctx.organizationId,
+            slug: parts[0]!,
+            status: "published",
+            parentId: null,
+          },
+        })
 
-      if (!page) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
+        if (!parent) {
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
+        }
+
+        const child = await ctx.db.page.findFirst({
+          where: {
+            organizationId: ctx.organizationId,
+            slug: parts[1]!,
+            status: "published",
+            parentId: parent.id,
+          },
+        })
+
+        if (!child) {
+          throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
+        }
+        return child
       }
-      return page
-    }
 
-    if (parts.length === 2) {
-      // Nested: parent-slug/child-slug
-      const parent = await ctx.db.page.findFirst({
-        where: {
-          organizationId: ctx.organizationId,
-          slug: parts[0]!,
-          status: "published",
-          parentId: null,
-        },
-      })
-
-      if (!parent) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
-      }
-
-      const child = await ctx.db.page.findFirst({
-        where: {
-          organizationId: ctx.organizationId,
-          slug: parts[1]!,
-          status: "published",
-          parentId: parent.id,
-        },
-      })
-
-      if (!child) {
-        throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
-      }
-      return child
-    }
-
-    throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
-  }),
+      throw createAppError("NOT_FOUND", APP_ERROR_CODES.PAGE_NOT_FOUND)
+    }),
 
   listByMenuLocation: orgProcedure
     .input(z.object({ location: z.enum(["main_nav", "footer"]) }))
@@ -244,8 +247,8 @@ export const pageRouter = router({
   create: orgProcedure
     .input(
       z.object({
-        title: z.string().min(1),
-        content: z.string().default(""),
+        title: z.string().max(MAX_NAME_LENGTH).min(1),
+        content: z.string().max(MAX_RICH_TEXT_LENGTH).default(""),
         status: z.enum(["draft", "published"]).default("draft"),
         parentId: z.string().uuid().nullish(),
         menuLocations: z.array(z.enum(["main_nav", "footer"])).default([]),
@@ -317,8 +320,8 @@ export const pageRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        title: z.string().min(1).optional(),
-        content: z.string().optional(),
+        title: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        content: z.string().max(MAX_RICH_TEXT_LENGTH).optional(),
         status: z.enum(["draft", "published"]).optional(),
         parentId: z.string().uuid().nullish(),
         menuLocations: z.array(z.enum(["main_nav", "footer"])).optional(),
@@ -467,7 +470,7 @@ export const pageRouter = router({
   createAlias: orgProcedure
     .input(
       z.object({
-        title: z.string().min(1),
+        title: z.string().max(MAX_NAME_LENGTH).min(1),
         targetPageId: z.string().uuid(),
       }),
     )

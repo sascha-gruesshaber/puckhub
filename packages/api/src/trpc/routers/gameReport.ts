@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_TEXT_LENGTH } from "../../lib/validation"
 import { type OrgContext, orgProcedure, requireRole, router } from "../init"
 import { assertOrgOwnership, assertOrgOwnershipMany } from "./_ownership"
 
@@ -339,16 +340,16 @@ export const gameReportRouter = router({
           penaltyPlayerId: z.string().uuid().optional(),
           penaltyTypeId: z.string().uuid().optional(),
           penaltyMinutes: z.number().int().optional(),
-          penaltyDescription: z.string().optional(),
+          penaltyDescription: z.string().max(MAX_TEXT_LENGTH).optional(),
           // Note fields
-          noteText: z.string().min(1).optional(),
+          noteText: z.string().max(MAX_TEXT_LENGTH).min(1).optional(),
           notePublic: z.boolean().default(true).optional(),
           // Suspension (optional, for penalties)
           suspension: z
             .object({
               suspensionType: z.enum(["match_penalty", "game_misconduct"]),
               suspendedGames: z.number().int().min(1).default(1),
-              reason: z.string().optional(),
+              reason: z.string().max(MAX_TEXT_LENGTH).optional(),
             })
             .optional(),
         })
@@ -453,8 +454,8 @@ export const gameReportRouter = router({
         penaltyPlayerId: z.string().uuid().nullable().optional(),
         penaltyTypeId: z.string().uuid().nullable().optional(),
         penaltyMinutes: z.number().int().nullable().optional(),
-        penaltyDescription: z.string().nullable().optional(),
-        noteText: z.string().min(1).nullable().optional(),
+        penaltyDescription: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
+        noteText: z.string().max(MAX_TEXT_LENGTH).min(1).nullable().optional(),
         notePublic: z.boolean().optional(),
       }),
     )
@@ -519,7 +520,7 @@ export const gameReportRouter = router({
         teamId: z.string().uuid(),
         suspensionType: z.enum(["match_penalty", "game_misconduct"]),
         suspendedGames: z.number().int().min(1).default(1),
-        reason: z.string().optional(),
+        reason: z.string().max(MAX_TEXT_LENGTH).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -548,7 +549,7 @@ export const gameReportRouter = router({
         id: z.string().uuid(),
         suspensionType: z.enum(["match_penalty", "game_misconduct"]).optional(),
         suspendedGames: z.number().int().min(1).optional(),
-        reason: z.string().nullable().optional(),
+        reason: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

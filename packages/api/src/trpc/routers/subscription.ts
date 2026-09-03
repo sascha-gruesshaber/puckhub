@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_ID_LENGTH } from "../../lib/validation"
 import { getMonthlyTokenUsage } from "../../services/aiRecapService"
 import { orgProcedure, platformAdminProcedure, router } from "../init"
 
@@ -9,7 +10,7 @@ export const subscriptionRouter = router({
   assignPlan: platformAdminProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         planId: z.string().uuid(),
       }),
     )
@@ -56,12 +57,14 @@ export const subscriptionRouter = router({
     }),
 
   /** Platform admin: get subscription details for an org */
-  getByOrg: platformAdminProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    return ctx.db.orgSubscription.findUnique({
-      where: { organizationId: input.organizationId },
-      include: { plan: true },
-    })
-  }),
+  getByOrg: platformAdminProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.orgSubscription.findUnique({
+        where: { organizationId: input.organizationId },
+        include: { plan: true },
+      })
+    }),
 
   /** Platform admin: list all subscriptions with org and plan info */
   listAll: platformAdminProcedure.query(async ({ ctx }) => {

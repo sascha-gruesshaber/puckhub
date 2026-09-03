@@ -2,6 +2,7 @@ import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sanitizeRichText, sanitizeText } from "../../lib/sanitizeHtml"
+import { MAX_NAME_LENGTH, MAX_RICH_TEXT_LENGTH, MAX_TEXT_LENGTH } from "../../lib/validation"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateNewsSeo } from "../../services/aiSeoService"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
@@ -58,9 +59,9 @@ export const newsRouter = router({
   create: orgProcedure
     .input(
       z.object({
-        title: z.string().min(1),
-        shortText: z.string().optional(),
-        content: z.string().min(1),
+        title: z.string().max(MAX_NAME_LENGTH).min(1),
+        shortText: z.string().max(MAX_TEXT_LENGTH).optional(),
+        content: z.string().max(MAX_RICH_TEXT_LENGTH).min(1),
         status: z.enum(["draft", "published"]).default("draft"),
         scheduledPublishAt: z.string().datetime().nullable().optional(),
       }),
@@ -112,9 +113,9 @@ export const newsRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        title: z.string().min(1).optional(),
-        shortText: z.string().nullish(),
-        content: z.string().min(1).optional(),
+        title: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        shortText: z.string().max(MAX_TEXT_LENGTH).nullish(),
+        content: z.string().max(MAX_RICH_TEXT_LENGTH).min(1).optional(),
         status: z.enum(["draft", "published"]).optional(),
         scheduledPublishAt: z.string().datetime().nullable().optional(),
       }),

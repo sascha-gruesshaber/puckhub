@@ -2,6 +2,7 @@ import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } 
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "../../lib/validation"
 import { checkAiEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import { generateRoundRobin } from "../../services/schedulerService"
 import { orgProcedure, requireRole, router } from "../init"
@@ -177,10 +178,10 @@ export const gameRouter = router({
         roundId: z.string().uuid(),
         homeTeamId: z.string().uuid(),
         awayTeamId: z.string().uuid(),
-        location: z.string().optional(),
+        location: z.string().max(MAX_NAME_LENGTH).optional(),
         scheduledAt: z.string().datetime().optional(),
         gameNumber: z.number().int().optional(),
-        notes: z.string().optional(),
+        notes: z.string().max(MAX_TEXT_LENGTH).optional(),
         homeTrikotId: z.string().uuid().optional(),
         awayTrikotId: z.string().uuid().optional(),
       }),
@@ -242,10 +243,10 @@ export const gameRouter = router({
         roundId: z.string().uuid().optional(),
         homeTeamId: z.string().uuid().optional(),
         awayTeamId: z.string().uuid().optional(),
-        location: z.string().nullable().optional(),
+        location: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
         scheduledAt: z.string().datetime().nullable().optional(),
         gameNumber: z.number().int().nullable().optional(),
-        notes: z.string().nullable().optional(),
+        notes: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
         homeTrikotId: z.string().uuid().nullable().optional(),
         awayTrikotId: z.string().uuid().nullable().optional(),
       }),

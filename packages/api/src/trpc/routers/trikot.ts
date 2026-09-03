@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { checkFeature, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
@@ -24,10 +25,10 @@ export const trikotRouter = router({
   create: orgAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         templateId: z.string().uuid(),
-        primaryColor: z.string().min(1),
-        secondaryColor: z.string().nullish(),
+        primaryColor: z.string().max(MAX_NAME_LENGTH).min(1),
+        secondaryColor: z.string().max(MAX_NAME_LENGTH).nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -50,10 +51,10 @@ export const trikotRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        name: z.string().min(1).optional(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         templateId: z.string().uuid().optional(),
-        primaryColor: z.string().min(1).optional(),
-        secondaryColor: z.string().nullish(),
+        primaryColor: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        secondaryColor: z.string().max(MAX_NAME_LENGTH).nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

@@ -28,6 +28,35 @@ export function isAllowedUploadMimeType(mimeType: string): mimeType is AllowedUp
   return ALLOWED_IMAGE_TYPE_SET.has(mimeType)
 }
 
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+
+/**
+ * Identifies the format from the file's own leading bytes. `File.type` is set by the
+ * client and is not evidence of anything: an HTML document announced as `image/png`
+ * would otherwise be stored under a `.png` name and served back from our own origin.
+ * Returns null for anything that is not one of the three accepted bitmap formats.
+ */
+export function sniffImageMimeType(bytes: Uint8Array): AllowedUploadMimeType | null {
+  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+
+  // JPEG: SOI marker FF D8 FF
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return "image/jpeg"
+  }
+
+  // PNG: 8-byte signature
+  if (buf.length >= 8 && buf.subarray(0, 8).equals(PNG_MAGIC)) {
+    return "image/png"
+  }
+
+  // WebP: RIFF container ("RIFF" ....size.... "WEBP")
+  if (buf.length >= 12 && buf.toString("ascii", 0, 4) === "RIFF" && buf.toString("ascii", 8, 12) === "WEBP") {
+    return "image/webp"
+  }
+
+  return null
+}
+
 export async function canUserUploadToOrganization(userId: string, organizationId: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
@@ -105,12 +134,22 @@ export async function handleUpload(c: Context) {
     return c.json({ error: "File too large. Max 5MB" }, 400)
   }
 
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  // The stored extension follows the sniffed format, never the declared one.
+  const sniffedType = sniffImageMimeType(buffer)
+  if (!sniffedType) {
+    return c.json({ error: "Invalid file type. Allowed: jpeg, png, webp" }, 400)
+  }
+  if (sniffedType !== file.type) {
+    return c.json({ error: "File content does not match the declared type" }, 400)
+  }
+
   const folder = type === "logo" ? "logos" : "photos"
-  const filename = `${randomUUID()}.${getExtensionForMimeType(file.type)}`
+  const filename = `${randomUUID()}.${getExtensionForMimeType(sniffedType)}`
   const dir = join(UPLOAD_BASE, orgId, folder)
 
   await mkdir(dir, { recursive: true })
-  const buffer = Buffer.from(await file.arrayBuffer())
   await writeFile(join(dir, filename), buffer)
 
   const url = `/api/uploads/${orgId}/${folder}/${filename}`

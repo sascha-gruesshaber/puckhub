@@ -17,7 +17,7 @@ src/
 │   ├── publicCache.ts # TTL cache for publicSite reads (+ ttlCache.ts factory); disabled under Vitest
 │   ├── s3.ts          # S3-compatible client for API-driven backups (S3_* env)
 │   ├── sanitizeHtml.ts # HTML sanitization for user-supplied rich text
-│   ├── validation.ts  # Shared Zod refinements / input validators
+│   ├── validation.ts  # Shared Zod refinements / input validators + string length bounds
 │   └── jobs/
 │       ├── aiHomeWidgetsJob.ts   # Daily cron for AI home widget generation (AI_WIDGETS_CRON)
 │       ├── backupJob.ts          # Daily cron for API-driven backups (BACKUP_CRON)
@@ -28,8 +28,10 @@ src/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
 │   └── codes.ts       # APP_ERROR_CODES enum (80 error codes)
 ├── routes/
-│   ├── stripe-webhook.ts # Stripe webhook handler (POST /api/webhooks/stripe)
-│   └── upload.ts      # File upload handler (POST /api/upload)
+│   ├── stripe-webhook.ts # Stripe webhook handler (POST /api/webhooks/stripe) — verifies the
+│   │                     # Stripe signature before any handler runs; 503 without STRIPE_WEBHOOK_SECRET
+│   └── upload.ts      # File upload handler (POST /api/upload) — the stored type comes from the
+│                      # file's magic bytes, never from the client-declared MIME type
 ├── services/
 │   ├── aiRecapService.ts          # AI game recap generation (OpenRouter + Gemini)
 │   ├── contractHistory.ts          # Season-scoped positions, contract continuations, historic team names

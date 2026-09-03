@@ -2,6 +2,7 @@ import { recalculateStandings } from "@puckhub/db/services"
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_TEXT_LENGTH } from "../../lib/validation"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 import { assertOrgOwnership } from "./_ownership"
 
@@ -23,7 +24,7 @@ export const bonusPointsRouter = router({
         teamId: z.string().uuid(),
         roundId: z.string().uuid(),
         points: z.number().int(),
-        reason: z.string().optional(),
+        reason: z.string().max(MAX_TEXT_LENGTH).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -41,7 +42,7 @@ export const bonusPointsRouter = router({
       z.object({
         id: z.string().uuid(),
         points: z.number().int().optional(),
-        reason: z.string().optional(),
+        reason: z.string().max(MAX_TEXT_LENGTH).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

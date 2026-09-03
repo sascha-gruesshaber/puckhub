@@ -36,3 +36,22 @@ export const safeUrl = z
 export const safeUrlOptional = safeUrl.optional()
 export const safeUrlNullable = safeUrl.nullable()
 export const safeUrlNullish = safeUrl.nullish()
+
+/**
+ * Length bounds for user-supplied strings.
+ *
+ * Zod stops at the first failing check, so an oversized value is rejected before it
+ * reaches Prisma. Without a bound, a single request can carry an arbitrary number of
+ * megabytes into a query parameter or a text column.
+ */
+
+/** Identifiers: uuids, Better Auth ids, slugs, cron job names. */
+export const MAX_ID_LENGTH = 128
+/** A fully qualified domain name is 253 characters at most. */
+export const MAX_DOMAIN_LENGTH = 253
+/** Short single-line values: names, cities, colours, locales, venues. */
+export const MAX_NAME_LENGTH = 200
+/** Free-text values: notes, reasons, teasers, meta descriptions. */
+export const MAX_TEXT_LENGTH = 5_000
+/** Editor-produced HTML for pages, news articles and recaps. */
+export const MAX_RICH_TEXT_LENGTH = 200_000

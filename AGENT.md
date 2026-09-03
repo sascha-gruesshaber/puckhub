@@ -50,6 +50,8 @@ pnpm dev:services       # Start all dev servers via Turborepo (alias for dev:ser
 - `db:migrate:prod` — run migrations (prod, uses `prisma migrate deploy`)
 - `db:studio` — Prisma Studio visual editor
 - `db:seed` — seed reference data only (penalty types, trikot templates, plans)
+- `sanitize:backfill` (`@puckhub/api`) — one-off pass of stored page, news and recap HTML through the server-side
+  sanitizer, for rows written before sanitisation shipped. Reports by default; `--apply` writes.
 
 **Legacy importer** (`tools/eal-migration`, dev-only):
 - `pnpm --filter @puckhub/eal-migration migrate:eal:analyze` — read-only analysis of the legacy MariaDB database
@@ -99,7 +101,9 @@ Copy `.env.example` to `.env`. Key variables:
 | `OPENROUTER_API_KEY` | — | OpenRouter API key for AI features (recaps, SEO, widgets) |
 | `OPENROUTER_MODEL` | `google/gemini-3.1-flash-lite-preview` | AI model for recap generation |
 | `AI_WIDGETS_CRON` | `30 5 * * *` | Cron schedule for AI home widget generation |
-| `CONTACT_EMAIL` | — | Recipient for contact form submissions (console fallback if unset) |
+| `CONTACT_EMAIL` | — | Recipient for contact form submissions (submissions are dropped if unset) |
+| `STRIPE_WEBHOOK_SECRET` | — | Signing secret for `/api/webhooks/stripe`; the endpoint returns 503 until it is set |
+| `EXPOSE_BUILD_DETAILS` | `false` | Include `commit` and `branch` in the `/version` responses of every app |
 | `PUBLIC_REPORT_HASH_SECRET` | — | Secret for hashing public report email/IP (falls back to AUTH_SECRET) |
 | `PUBLIC_CACHE_TTL_MS` | `60000` | TTL of the in-process `cachedPublicProcedure` cache |
 | `PUBLIC_CACHE_CONTROL` | `public, max-age=0, s-maxage=60, stale-while-revalidate=300` | `Cache-Control` header on public API responses |

@@ -2,7 +2,7 @@ import type { PrismaClient } from "@puckhub/db"
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
-import { safeUrlNullish, safeUrlOptional } from "../../lib/validation"
+import { MAX_NAME_LENGTH, safeUrlNullish, safeUrlOptional } from "../../lib/validation"
 import { collectContinuedContractIds, resolveTeamNameForSeason } from "../../services/contractHistory"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { TEAM_SCOPED_MERGE_MODELS } from "../../services/teamMerge"
@@ -37,17 +37,17 @@ export const teamRouter = router({
   create: orgAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1),
-        shortName: z.string().min(1),
-        city: z.string().optional(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
+        shortName: z.string().max(MAX_NAME_LENGTH).min(1),
+        city: z.string().max(MAX_NAME_LENGTH).optional(),
         logoUrl: safeUrlOptional,
         teamPhotoUrl: safeUrlOptional,
-        primaryColor: z.string().optional(),
-        contactName: z.string().optional(),
+        primaryColor: z.string().max(MAX_NAME_LENGTH).optional(),
+        contactName: z.string().max(MAX_NAME_LENGTH).optional(),
         contactEmail: z.string().email().optional(),
-        contactPhone: z.string().optional(),
+        contactPhone: z.string().max(MAX_NAME_LENGTH).optional(),
         website: safeUrlOptional,
-        homeVenue: z.string().optional(),
+        homeVenue: z.string().max(MAX_NAME_LENGTH).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -65,17 +65,17 @@ export const teamRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        name: z.string().min(1).optional(),
-        shortName: z.string().min(1).optional(),
-        city: z.string().nullish(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        shortName: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        city: z.string().max(MAX_NAME_LENGTH).nullish(),
         logoUrl: safeUrlNullish,
         teamPhotoUrl: safeUrlNullish,
-        primaryColor: z.string().nullish(),
-        contactName: z.string().nullish(),
+        primaryColor: z.string().max(MAX_NAME_LENGTH).nullish(),
+        contactName: z.string().max(MAX_NAME_LENGTH).nullish(),
         contactEmail: z.string().email().nullish(),
-        contactPhone: z.string().nullish(),
+        contactPhone: z.string().max(MAX_NAME_LENGTH).nullish(),
         website: safeUrlNullish,
-        homeVenue: z.string().nullish(),
+        homeVenue: z.string().max(MAX_NAME_LENGTH).nullish(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

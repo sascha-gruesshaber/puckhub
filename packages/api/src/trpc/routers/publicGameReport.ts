@@ -2,6 +2,7 @@ import { recalculateGoalieStats, recalculatePlayerStats, recalculateStandings } 
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_TEXT_LENGTH } from "../../lib/validation"
 import { orgProcedure, requireRole, router } from "../init"
 
 /** Resolve the seasonId from a roundId (round -> division -> season). */
@@ -66,7 +67,7 @@ export const publicGameReportRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        revertNote: z.string().optional(),
+        revertNote: z.string().max(MAX_TEXT_LENGTH).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {

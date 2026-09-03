@@ -4,6 +4,7 @@ import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
 import { consumeOtp, enforceRateLimit, issueOtp } from "../../lib/otp"
 import { hashPublicReportIp } from "../../lib/publicReportPrivacy"
+import { MAX_TEXT_LENGTH } from "../../lib/validation"
 import { publicProcedure, router } from "../init"
 
 const OTP_PER_EMAIL_PER_HOUR = 3
@@ -64,7 +65,7 @@ export const contactFormRouter = router({
         message: z.string().min(10).max(5000),
         otpCode: z.string().length(6),
         // Bot detection
-        _hp: z.string().optional(),
+        _hp: z.string().max(MAX_TEXT_LENGTH).optional(),
         _ts: z.number().optional(),
       }),
     )
@@ -146,8 +147,10 @@ export const contactFormRouter = router({
           replyTo: email,
         })
       } else {
-        console.log(`[Contact] No CONTACT_EMAIL set — Name: ${input.name}, Email: ${email}, Type: ${input.type}`)
-        console.log(`[Contact] Message: ${input.message}`)
+        // No inbox configured. The submission is dropped rather than written to the
+        // log: the name, address and message body are the sender's personal data and
+        // logs are the wrong retention boundary for it.
+        console.warn(`[Contact] No CONTACT_EMAIL set — dropping a "${input.type}" submission`)
       }
 
       return { success: true }

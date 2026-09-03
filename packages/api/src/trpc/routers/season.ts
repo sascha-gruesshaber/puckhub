@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 import { assertOrgOwnership } from "./_ownership"
@@ -70,7 +71,7 @@ export const seasonRouter = router({
     .input(
       z
         .object({
-          name: z.string().min(1),
+          name: z.string().max(MAX_NAME_LENGTH).min(1),
           seasonStart: seasonDateSchema,
           seasonEnd: seasonDateSchema,
         })
@@ -100,7 +101,7 @@ export const seasonRouter = router({
       z
         .object({
           id: z.string().uuid(),
-          name: z.string().min(1).optional(),
+          name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
           seasonStart: seasonDateSchema.optional(),
           seasonEnd: seasonDateSchema.optional(),
         })

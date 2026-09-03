@@ -27,6 +27,18 @@ const FALLBACK_FROM: Record<Mailbox, string> = {
 
 const transporters = new Map<Mailbox, Transporter>()
 
+/**
+ * `a***@example.com` — enough to correlate a delivery failure with a support
+ * request, without keeping a list of every address the platform mails in the logs.
+ */
+export function maskEmail(address: string): string {
+  const at = address.lastIndexOf("@")
+  if (at <= 0) return "***"
+  const local = address.slice(0, at)
+  const domain = address.slice(at + 1)
+  return `${local[0]}***@${domain}`
+}
+
 function env(name: string): string | undefined {
   const value = process.env[name]?.trim()
   return value ? value : undefined
@@ -124,7 +136,7 @@ export async function sendEmail({
   const relayUrl = process.env.EMAIL_RELAY_URL
 
   if (!config && !relayUrl) {
-    console.log(`[Email] No transport configured for "${mailbox}" — To: ${to} | Subject: ${subject}`)
+    console.log(`[Email] No transport configured for "${mailbox}" — dropping | Subject: ${subject}`)
     return
   }
 
@@ -137,10 +149,13 @@ export async function sendEmail({
     } else {
       await sendViaRelay(from, to, subject, html, replyTo)
     }
-    console.log(`[Email] Sent to ${to} as ${from} via ${config ? "SMTP" : "relay"}`)
+    console.log(`[Email] Sent as ${from} via ${config ? "SMTP" : "relay"} (${maskEmail(to)})`)
   } catch (err) {
     transporters.delete(mailbox)
-    console.error(`[Email] Failed to send to ${to} via "${mailbox}":`, err instanceof Error ? err.message : err)
+    console.error(
+      `[Email] Failed to send to ${maskEmail(to)} via "${mailbox}":`,
+      err instanceof Error ? err.message : err,
+    )
     throw new Error("EMAIL_SEND_FAILED")
   }
 }

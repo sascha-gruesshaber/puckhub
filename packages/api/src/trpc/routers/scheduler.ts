@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import { getSchedulerInstance } from "../../lib/scheduler"
+import { MAX_ID_LENGTH } from "../../lib/validation"
 import { platformAdminProcedure, router } from "../init"
 
 export const schedulerRouter = router({
@@ -10,19 +11,21 @@ export const schedulerRouter = router({
     return scheduler.getJobStatuses()
   }),
 
-  trigger: platformAdminProcedure.input(z.object({ jobName: z.string() })).mutation(async ({ input }) => {
-    const scheduler = getSchedulerInstance()
-    if (!scheduler) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Scheduler not initialized" })
-    }
-    try {
-      await scheduler.triggerJob(input.jobName)
-      return { success: true }
-    } catch (err) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: err instanceof Error ? err.message : "Failed to trigger job",
-      })
-    }
-  }),
+  trigger: platformAdminProcedure
+    .input(z.object({ jobName: z.string().max(MAX_ID_LENGTH) }))
+    .mutation(async ({ input }) => {
+      const scheduler = getSchedulerInstance()
+      if (!scheduler) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Scheduler not initialized" })
+      }
+      try {
+        await scheduler.triggerJob(input.jobName)
+        return { success: true }
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: err instanceof Error ? err.message : "Failed to trigger job",
+        })
+      }
+    }),
 })

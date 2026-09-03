@@ -1,6 +1,6 @@
 import dns from "node:dns/promises"
 import { z } from "zod"
-import { safeUrlNullable } from "../../lib/validation"
+import { MAX_DOMAIN_LENGTH, MAX_NAME_LENGTH, MAX_TEXT_LENGTH, safeUrlNullable } from "../../lib/validation"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 const CNAME_TARGET = process.env.CNAME_TARGET || "sites.puckhub.eu"
@@ -43,21 +43,21 @@ export const websiteConfigRouter = router({
           .nullable()
           .optional(),
         isActive: z.boolean().optional(),
-        templatePreset: z.string().optional(),
-        colorPrimary: z.string().nullable().optional(),
-        colorSecondary: z.string().nullable().optional(),
-        colorAccent: z.string().nullable().optional(),
-        colorBackground: z.string().nullable().optional(),
-        colorText: z.string().nullable().optional(),
-        colorHeaderBg: z.string().nullable().optional(),
-        colorHeaderText: z.string().nullable().optional(),
-        colorFooterBg: z.string().nullable().optional(),
-        colorFooterText: z.string().nullable().optional(),
+        templatePreset: z.string().max(MAX_NAME_LENGTH).optional(),
+        colorPrimary: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorSecondary: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorAccent: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorBackground: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorText: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorHeaderBg: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorHeaderText: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorFooterBg: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        colorFooterText: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
         logoUrl: safeUrlNullable.optional(),
         faviconUrl: safeUrlNullable.optional(),
         ogImageUrl: safeUrlNullable.optional(),
-        seoTitle: z.string().nullable().optional(),
-        seoDescription: z.string().nullable().optional(),
+        seoTitle: z.string().max(MAX_NAME_LENGTH).nullable().optional(),
+        seoDescription: z.string().max(MAX_TEXT_LENGTH).nullable().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -89,73 +89,75 @@ export const websiteConfigRouter = router({
       return { success: true }
     }),
 
-  verifyDns: orgAdminProcedure.input(z.object({ domain: z.string().min(1) })).mutation(async ({ ctx, input }) => {
-    const domain = cleanDomain(input.domain)
-    if (!domain) {
-      return { status: "error" as const, recordType: null, recordValue: null, message: "Invalid domain" }
-    }
+  verifyDns: orgAdminProcedure
+    .input(z.object({ domain: z.string().max(MAX_DOMAIN_LENGTH).min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const domain = cleanDomain(input.domain)
+      if (!domain) {
+        return { status: "error" as const, recordType: null, recordValue: null, message: "Invalid domain" }
+      }
 
-    try {
-      // Try CNAME first
       try {
-        const cnames = await dns.resolveCname(domain)
-        if (cnames.length > 0) {
-          const value = cnames[0]!
-          const isValid = value.replace(/\.$/, "").toLowerCase() === CNAME_TARGET
-          if (isValid) {
-            // Mark as verified
-            await ctx.db.websiteConfig.updateMany({
-              where: { organizationId: ctx.organizationId },
-              data: { domainVerifiedAt: new Date() },
-            })
+        // Try CNAME first
+        try {
+          const cnames = await dns.resolveCname(domain)
+          if (cnames.length > 0) {
+            const value = cnames[0]!
+            const isValid = value.replace(/\.$/, "").toLowerCase() === CNAME_TARGET
+            if (isValid) {
+              // Mark as verified
+              await ctx.db.websiteConfig.updateMany({
+                where: { organizationId: ctx.organizationId },
+                data: { domainVerifiedAt: new Date() },
+              })
+              return {
+                status: "valid" as const,
+                recordType: "CNAME",
+                recordValue: value,
+                message: "DNS correctly configured",
+              }
+            }
             return {
-              status: "valid" as const,
+              status: "invalid" as const,
               recordType: "CNAME",
               recordValue: value,
-              message: "DNS correctly configured",
+              message: `CNAME points to ${value} instead of ${CNAME_TARGET}`,
             }
           }
-          return {
-            status: "invalid" as const,
-            recordType: "CNAME",
-            recordValue: value,
-            message: `CNAME points to ${value} instead of ${CNAME_TARGET}`,
+        } catch (e: any) {
+          // ENODATA / ENOTFOUND for CNAME is expected — fall through to A record
+          if (e.code !== "ENODATA" && e.code !== "ENOTFOUND") throw e
+        }
+
+        // Try A record
+        try {
+          const addresses = await dns.resolve4(domain)
+          if (addresses.length > 0) {
+            return {
+              status: "invalid" as const,
+              recordType: "A",
+              recordValue: addresses.join(", "),
+              message: `A record found (${addresses.join(", ")}). Please use a CNAME record pointing to ${CNAME_TARGET} instead.`,
+            }
           }
+        } catch (e: any) {
+          if (e.code !== "ENODATA" && e.code !== "ENOTFOUND") throw e
+        }
+
+        return {
+          status: "invalid" as const,
+          recordType: null,
+          recordValue: null,
+          message: "No DNS records found for this domain",
         }
       } catch (e: any) {
-        // ENODATA / ENOTFOUND for CNAME is expected — fall through to A record
-        if (e.code !== "ENODATA" && e.code !== "ENOTFOUND") throw e
-      }
-
-      // Try A record
-      try {
-        const addresses = await dns.resolve4(domain)
-        if (addresses.length > 0) {
-          return {
-            status: "invalid" as const,
-            recordType: "A",
-            recordValue: addresses.join(", "),
-            message: `A record found (${addresses.join(", ")}). Please use a CNAME record pointing to ${CNAME_TARGET} instead.`,
-          }
+        if (e.code === "ENOTFOUND") {
+          return { status: "error" as const, recordType: null, recordValue: null, message: "Domain not found" }
         }
-      } catch (e: any) {
-        if (e.code !== "ENODATA" && e.code !== "ENOTFOUND") throw e
+        if (e.code === "ETIMEOUT") {
+          return { status: "error" as const, recordType: null, recordValue: null, message: "DNS query timed out" }
+        }
+        return { status: "error" as const, recordType: null, recordValue: null, message: "DNS query failed" }
       }
-
-      return {
-        status: "invalid" as const,
-        recordType: null,
-        recordValue: null,
-        message: "No DNS records found for this domain",
-      }
-    } catch (e: any) {
-      if (e.code === "ENOTFOUND") {
-        return { status: "error" as const, recordType: null, recordValue: null, message: "Domain not found" }
-      }
-      if (e.code === "ETIMEOUT") {
-        return { status: "error" as const, recordType: null, recordValue: null, message: "DNS query timed out" }
-      }
-      return { status: "error" as const, recordType: null, recordValue: null, message: "DNS query failed" }
-    }
-  }),
+    }),
 })

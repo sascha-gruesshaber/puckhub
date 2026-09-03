@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { canUserUploadToOrganization, isAllowedUploadMimeType } from "../../routes/upload"
+import { canUserUploadToOrganization, isAllowedUploadMimeType, sniffImageMimeType } from "../../routes/upload"
 import { createPlatformAdminCaller, getTestDb, OTHER_ORG_ID, seedSecondOrg, TEST_ORG_ID } from "../testUtils"
+
+const JPEG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10])
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00])
+const WEBP = Buffer.concat([Buffer.from("RIFF"), Buffer.from([0x1a, 0x00, 0x00, 0x00]), Buffer.from("WEBPVP8 ")])
 
 describe("upload access", () => {
   describe("isAllowedUploadMimeType", () => {
@@ -12,6 +16,32 @@ describe("upload access", () => {
 
     it("rejects svg uploads", () => {
       expect(isAllowedUploadMimeType("image/svg+xml")).toBe(false)
+    })
+  })
+
+  describe("sniffImageMimeType", () => {
+    it("identifies the accepted formats from their leading bytes", () => {
+      expect(sniffImageMimeType(JPEG)).toBe("image/jpeg")
+      expect(sniffImageMimeType(PNG)).toBe("image/png")
+      expect(sniffImageMimeType(WEBP)).toBe("image/webp")
+    })
+
+    it("rejects content that only claims to be an image", () => {
+      expect(sniffImageMimeType(Buffer.from("<script>alert(1)</script>"))).toBeNull()
+      expect(sniffImageMimeType(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" />'))).toBeNull()
+      expect(sniffImageMimeType(Buffer.from("%PDF-1.7"))).toBeNull()
+    })
+
+    it("rejects a RIFF container that is not WebP", () => {
+      const wav = Buffer.concat([Buffer.from("RIFF"), Buffer.from([0x1a, 0, 0, 0]), Buffer.from("WAVEfmt ")])
+      expect(sniffImageMimeType(wav)).toBeNull()
+    })
+
+    it("does not read past the end of a truncated file", () => {
+      expect(sniffImageMimeType(Buffer.from([]))).toBeNull()
+      expect(sniffImageMimeType(Buffer.from([0xff, 0xd8]))).toBeNull()
+      expect(sniffImageMimeType(PNG.subarray(0, 4))).toBeNull()
+      expect(sniffImageMimeType(Buffer.from("RIFF"))).toBeNull()
     })
   })
 

@@ -3,6 +3,7 @@ import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
 import { inviteEmail } from "../../lib/emailTemplates"
+import { MAX_ID_LENGTH, MAX_NAME_LENGTH } from "../../lib/validation"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
 
 const ORG_ROLE_VALUES = ["owner", "admin", "game_manager", "game_reporter", "team_manager", "editor"] as const
@@ -95,7 +96,7 @@ export const usersRouter = router({
     }))
   }),
 
-  getById: orgAdminProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
+  getById: orgAdminProcedure.input(z.object({ id: z.string().max(MAX_ID_LENGTH) })).query(async ({ ctx, input }) => {
     const memberRecord = await ctx.db.member.findFirst({
       where: {
         userId: input.id,
@@ -134,7 +135,7 @@ export const usersRouter = router({
   create: orgAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         email: z.string().email(),
         role: z.enum(ORG_ROLE_VALUES).default("admin"),
       }),
@@ -177,7 +178,10 @@ export const usersRouter = router({
             id: userId,
             email: normalizedEmail,
             name: input.name,
-            emailVerified: true,
+            // Nobody has proven this address belongs to anyone. It is verified when
+            // the invitee follows the magic link below, not because an org admin
+            // typed it into a form.
+            emailVerified: false,
           },
         })
       }
@@ -226,8 +230,8 @@ export const usersRouter = router({
   update: orgAdminProcedure
     .input(
       z.object({
-        id: z.string(),
-        name: z.string().min(1).optional(),
+        id: z.string().max(MAX_ID_LENGTH),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -262,7 +266,7 @@ export const usersRouter = router({
       return updated
     }),
 
-  delete: orgAdminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
+  delete: orgAdminProcedure.input(z.object({ id: z.string().max(MAX_ID_LENGTH) })).mutation(async ({ ctx, input }) => {
     if (ctx.organizationId === "demo-league") {
       throw createAppError(
         "FORBIDDEN",
@@ -291,7 +295,7 @@ export const usersRouter = router({
   updateRole: orgAdminProcedure
     .input(
       z.object({
-        userId: z.string(),
+        userId: z.string().max(MAX_ID_LENGTH),
         role: z.enum(["owner", "admin", "member"]),
       }),
     )
@@ -320,27 +324,29 @@ export const usersRouter = router({
       return updated
     }),
 
-  deleteGlobal: platformAdminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    if (ctx.user.id === input.id) {
-      throw createAppError("BAD_REQUEST", APP_ERROR_CODES.USER_CANNOT_DELETE_SELF)
-    }
+  deleteGlobal: platformAdminProcedure
+    .input(z.object({ id: z.string().max(MAX_ID_LENGTH) }))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.user.id === input.id) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.USER_CANNOT_DELETE_SELF)
+      }
 
-    const user = await ctx.db.user.findFirst({ where: { id: input.id } })
-    if (!user) {
-      throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
-    }
+      const user = await ctx.db.user.findFirst({ where: { id: input.id } })
+      if (!user) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.USER_NOT_FOUND)
+      }
 
-    // Prisma cascades handle sessions, accounts, members
-    await ctx.db.user.delete({ where: { id: input.id } })
+      // Prisma cascades handle sessions, accounts, members
+      await ctx.db.user.delete({ where: { id: input.id } })
 
-    return { id: input.id }
-  }),
+      return { id: input.id }
+    }),
 
   addToOrganization: platformAdminProcedure
     .input(
       z.object({
-        userId: z.string(),
-        organizationId: z.string(),
+        userId: z.string().max(MAX_ID_LENGTH),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         role: z.enum(ORG_ROLE_VALUES).default("admin"),
       }),
     )
@@ -375,8 +381,8 @@ export const usersRouter = router({
   removeFromOrganization: platformAdminProcedure
     .input(
       z.object({
-        userId: z.string(),
-        organizationId: z.string(),
+        userId: z.string().max(MAX_ID_LENGTH),
+        organizationId: z.string().max(MAX_ID_LENGTH),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -401,8 +407,8 @@ export const usersRouter = router({
   changeOrganizationRole: platformAdminProcedure
     .input(
       z.object({
-        userId: z.string(),
-        organizationId: z.string(),
+        userId: z.string().max(MAX_ID_LENGTH),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         role: z.enum(ORG_ROLE_VALUES),
       }),
     )
@@ -429,7 +435,7 @@ export const usersRouter = router({
   updateEmail: platformAdminProcedure
     .input(
       z.object({
-        id: z.string(),
+        id: z.string().max(MAX_ID_LENGTH),
         email: z.string().email(),
       }),
     )
@@ -469,7 +475,7 @@ export const usersRouter = router({
   createPlatformUser: platformAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         email: z.string().email(),
         role: z.enum(["admin"]).nullish(),
         sendInvite: z.boolean().default(true),
@@ -490,7 +496,8 @@ export const usersRouter = router({
           id: userId,
           email: input.email,
           name: input.name,
-          emailVerified: true,
+          // Verified by the magic link on first sign-in, not by whoever typed it in.
+          emailVerified: false,
           role: input.role ?? null,
         },
       })
