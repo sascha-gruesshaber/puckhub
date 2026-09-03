@@ -3,9 +3,9 @@ import { fileURLToPath } from "node:url"
 import { config } from "dotenv"
 
 const migrationDir = dirname(fileURLToPath(import.meta.url))
-config({ path: resolve(migrationDir, "../../../../.env") })
+config({ path: resolve(migrationDir, "../../../.env") })
 
-import { createPrismaClientWithUrl } from "../index"
+import { createPrismaClientWithUrl } from "@puckhub/db"
 import { analyzeLegacy, connectLegacyMySQL, migrateLegacy } from "./legacyMigrate"
 
 const analyzeOnly = process.argv.includes("--analyze-only")

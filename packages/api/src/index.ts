@@ -7,7 +7,7 @@ try {
   const autoMigrate = process.env.AUTO_MIGRATE
   if (autoMigrate !== "false" && autoMigrate !== "0") {
     const { db, runMigrations, runSeed } = await import("@puckhub/db")
-    await runMigrations(db)
+    await runMigrations()
     await runSeed(db)
   }
 

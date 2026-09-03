@@ -14,10 +14,11 @@ Turborepo + pnpm monorepo · Hono + tRPC API · TanStack Start (React 19) fronte
 | `apps/platform` | `@puckhub/platform` | TanStack Start platform admin dashboard (`platform.` subdomain, port 3002) |
 | `apps/league-site` | `@puckhub/league-site` | Public league website (`*.` wildcard subdomain, port 3003) — standings, schedules, stats, news, localized DE/EN routes |
 | `apps/marketing-site` | `@puckhub/marketing-site` | Marketing landing page (bare domain, port 3004) — features, pricing, demo CTA |
-| `packages/api` | `@puckhub/api` | Hono server + tRPC (32 routers) + Better Auth + AI services (recaps, SEO, home widgets) (`api.` subdomain, port 3001) |
+| `packages/api` | `@puckhub/api` | Hono server + tRPC (33 routers) + Better Auth + AI services (recaps, SEO, home widgets) (`api.` subdomain, port 3001) |
 | `packages/db` | `@puckhub/db` | Prisma schema (`prisma/schema.prisma`), migrations, seeds |
 | `packages/ui` | `@puckhub/ui` | Shared UI components (Button, Card, Dialog, Badge, etc.) |
 | `packages/config` | `@puckhub/config` | Minimal — runtime config lives in DB `system_settings` table |
+| `tools/eal-migration` | `@puckhub/eal-migration` | One-off legacy MariaDB importer — dev-only, not part of the production image |
 
 ## Commands
 
@@ -48,7 +49,11 @@ pnpm dev:services       # Start all dev servers via Turborepo (alias for dev:ser
 - `db:migrate` — create + apply a migration locally (uses `prisma migrate dev`)
 - `db:migrate:prod` — run migrations (prod, uses `prisma migrate deploy`)
 - `db:studio` — Prisma Studio visual editor
-- `db:seed` — seed reference data only (penalty types, trikot templates, static pages)
+- `db:seed` — seed reference data only (penalty types, trikot templates, plans)
+
+**Legacy importer** (`tools/eal-migration`, dev-only):
+- `pnpm --filter @puckhub/eal-migration migrate:eal:analyze` — read-only analysis of the legacy MariaDB database
+- `pnpm --filter @puckhub/eal-migration migrate:eal` — run the import
 
 ## Environment
 
@@ -67,7 +72,7 @@ Copy `.env.example` to `.env`. Key variables:
 | `API_PORT` | `3001` | API server port |
 | `ADMIN_PORT` | `3000` | Admin dev server port |
 | `AUTO_MIGRATE` | `true` | Auto-run migrations on API startup |
-| `UPLOAD_DIR` | `./uploads` | File upload directory |
+| `UPLOAD_DIR` | `../../uploads` | File upload directory (resolved relative to the API process cwd) |
 | `DEFAULT_USER_EMAIL` | `admin@puckhub.local` | Default admin user email (magic link login) |
 | `DEMO_MODE` | `false` | Enable demo mode with periodic resets |
 | `DEMO_RESET_CRON` | `0 4 * * *` | Cron schedule for demo data reset (daily at 04:00) |
@@ -96,15 +101,24 @@ Copy `.env.example` to `.env`. Key variables:
 | `AI_WIDGETS_CRON` | `30 5 * * *` | Cron schedule for AI home widget generation |
 | `CONTACT_EMAIL` | — | Recipient for contact form submissions (console fallback if unset) |
 | `PUBLIC_REPORT_HASH_SECRET` | — | Secret for hashing public report email/IP (falls back to AUTH_SECRET) |
-| `BACKUP_SCHEDULE` | `0 3 * * *` | Cron schedule of the prod `db-backup` sidecar (`pg_dump`) |
+| `PUBLIC_CACHE_TTL_MS` | `60000` | TTL of the in-process `cachedPublicProcedure` cache |
+| `PUBLIC_CACHE_CONTROL` | `public, max-age=0, s-maxage=60, stale-while-revalidate=300` | `Cache-Control` header on public API responses |
+| `STATS_RECALC_CRON` | `0 3 * * *` | Cron schedule for the nightly standings/stats recalculation job |
+| `NEWS_AUTO_PUBLISH_CRON` | `* * * * *` | Cron schedule for promoting scheduled news to published |
+| `BACKUP_CRON` | `0 2 * * *` | Cron schedule of the in-API backup job (distinct from the `db-backup` sidecar below) |
+| `S3_ENDPOINT` / `S3_REGION` | — / `eu-central-1` | S3-compatible endpoint for API-driven backups |
+| `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | — | Credentials for API-driven backups (all three S3 vars required to enable) |
+| `S3_BACKUP_BUCKET` | `puckhub-backups` | Bucket for API-driven backups |
+| `BACKUP_SCHEDULE` | `0 3 * * *` | Cron schedule of the prod `db-backup` sidecar (`pg_dump`) — read by `docker/backup/backup.sh`, not by the API |
 | `BACKUP_RETENTION_DAYS` | `14` | Days to keep `pg_dump` files in the `postgres_backups` volume |
 | `BACKUP_S3_BUCKET` / `BACKUP_S3_PREFIX` | — / `postgres` | Optional S3 offload of `pg_dump` files (needs `aws` CLI in the sidecar image) |
+| `LEGACY_MYSQL_*` | — | Legacy MariaDB connection for `tools/eal-migration` only — never set in production |
 
 ## Docker
 
-- **Development**: `docker/docker-compose.yml` — PostgreSQL 16 + pgAdmin (port 5050) + Caddy dev proxy (port 80) for subdomain routing (`*.puckhub.localhost`)
+- **Development**: `docker/docker-compose.yml` — PostgreSQL 18 + pgAdmin (port 5050) + Caddy dev proxy (port 80) for subdomain routing (`*.puckhub.localhost`)
 - **Dev Caddy**: `docker/Caddyfile.dev` — HTTP-only reverse proxy mapping `admin.puckhub.localhost` → `:3000`, `api.puckhub.localhost` → `:3001`, `platform.puckhub.localhost` → `:3002`, `puckhub.localhost` → `:3004` (marketing-site), `*.puckhub.localhost` → `:3003` (league-site)
-- **Local testing**: `docker-compose.local.yml` — same topology as production but with locally-built images (`*:local` tags), HTTP-only Caddy, used by `scripts/docker-test.mjs`
+- **Local testing**: `docker-compose.local.yml` — PostgreSQL 18, same topology as production but with locally-built images (`*:local` tags), HTTP-only Caddy, used by `scripts/docker-test.mjs`
 - **Local Caddy**: `docker/Caddyfile.local` — HTTP-only reverse proxy matching production routing (bare domain → marketing-site, `admin.` → admin, `api.` → api, `platform.` → platform, `*.` → league-site)
 - **Production**: `docker-compose.prod.yml` — Caddy (subdomain-based reverse proxy + on-demand TLS) + PostgreSQL 16 + API + Admin + Platform + League-site + Marketing-site containers
 - **Prod DB backups**: `db-backup` sidecar runs `docker/backup/backup.sh` (`pg_dump -Fc`) on `BACKUP_SCHEDULE` into the `postgres_backups` volume; restore with `docker/backup/restore.sh` — see [`docs/runbooks/database-backup-restore.md`](docs/runbooks/database-backup-restore.md)
@@ -116,10 +130,10 @@ Copy `.env.example` to `.env`. Key variables:
 - **No `.js` extensions** in imports — use extensionless paths everywhere
 - **Language**: UI text and error messages are in **German** (with English translations available)
 - **i18n**: Two locales (`de-DE`, `en-US`), two namespaces (`common`, `errors`). JSON locale files with React Context and `useTranslation()` hook
-- **Package manager**: pnpm 10.28.2 — always use `pnpm`, never npm/yarn
+- **Package manager**: pnpm 10.32.1 (pinned by `packageManager` in the root `package.json`) — always use `pnpm`, never npm/yarn
 - **TypeScript**: Strict mode, `noUncheckedIndexedAccess`, ES2022 target
 - **Path aliases**: `~/` = `src/`, `@/` = `lib/` (admin + platform apps)
-- **Formatter/Linter**: Biome (2-space indent, 120-char line width, single quotes JS, double quotes JSX)
+- **Formatter/Linter**: Biome (2-space indent, 120-char line width, double quotes in JS and JSX, semicolons as needed)
 
 ## Package-Level Docs
 
@@ -132,3 +146,4 @@ Each package has its own `AGENT.md` with detailed context:
 - [`packages/db/AGENT.md`](packages/db/AGENT.md) — schema, migrations, seeds, patterns
 - [`packages/ui/AGENT.md`](packages/ui/AGENT.md) — components, design patterns
 - [`packages/config/AGENT.md`](packages/config/AGENT.md) — current minimal state
+- [`tools/eal-migration/README.md`](tools/eal-migration/README.md) — legacy MariaDB importer

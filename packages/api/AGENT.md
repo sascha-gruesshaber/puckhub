@@ -15,13 +15,20 @@ src/
 │   ├── emailTemplates.ts  # HTML email templates (magic link, invite, OTP, report reverted, contact OTP, contact notification)
 │   ├── otp.ts         # CSPRNG one-time codes, rate-limit markers, failed-attempt lockout (verification table)
 │   ├── publicCache.ts # TTL cache for publicSite reads (+ ttlCache.ts factory); disabled under Vitest
+│   ├── s3.ts          # S3-compatible client for API-driven backups (S3_* env)
+│   ├── sanitizeHtml.ts # HTML sanitization for user-supplied rich text
+│   ├── validation.ts  # Shared Zod refinements / input validators
 │   └── jobs/
-│       ├── aiHomeWidgetsJob.ts  # Daily cron job for AI home widget generation
-│       └── newsAutoPublishJob.ts # Promotes scheduled news every minute (was an UPDATE on every public read)
+│       ├── aiHomeWidgetsJob.ts   # Daily cron for AI home widget generation (AI_WIDGETS_CRON)
+│       ├── backupJob.ts          # Daily cron for API-driven backups (BACKUP_CRON)
+│       ├── demoResetJob.ts       # Periodic demo data reset (DEMO_RESET_CRON)
+│       ├── newsAutoPublishJob.ts # Promotes scheduled news every minute (NEWS_AUTO_PUBLISH_CRON)
+│       └── statsRecalcJob.ts     # Nightly standings/stats recalculation (STATS_RECALC_CRON)
 ├── errors/
 │   ├── appError.ts    # createAppError, inferAppErrorCode functions
-│   └── codes.ts       # APP_ERROR_CODES enum (77 error codes)
+│   └── codes.ts       # APP_ERROR_CODES enum (80 error codes)
 ├── routes/
+│   ├── stripe-webhook.ts # Stripe webhook handler (POST /api/webhooks/stripe)
 │   └── upload.ts      # File upload handler (POST /api/upload)
 ├── services/
 │   ├── aiRecapService.ts          # AI game recap generation (OpenRouter + Gemini)
@@ -29,9 +36,11 @@ src/
 │   ├── aiSeoService.ts             # AI SEO text generation for news/pages (OpenRouter + Gemini)
 │   ├── aiSeasonDescriptionService.ts  # AI season SEO description generation
 │   ├── aiHomeWidgetService.ts      # AI home page widgets (league pulse digest, headlines ticker)
+│   ├── backupService.ts           # Org backup create/restore/download
 │   ├── ensureSystemPages.ts       # Auto-provision system pages for organizations
 │   ├── planLimits.ts              # Plan limit checking and enforcement
 │   ├── schedulerService.ts        # Round-robin game scheduling logic
+│   ├── teamMerge.ts               # Merge two teams, preserving contracts and name history
 │   └── leagueTransfer/            # League data export/import
 │       ├── index.ts               # Service entry point
 │       ├── schema.ts              # Transfer data schema
@@ -45,7 +54,7 @@ src/
     ├── context.ts     # Request context (db, session, user)
     ├── client.ts      # AppRouter type export
     ├── index.ts       # Root router composition (appRouter)
-    └── routers/       # 32 feature routers
+    └── routers/       # 33 feature routers
 ```
 
 ## HTTP Routes
@@ -60,9 +69,11 @@ src/
 | `POST` | `/api/webhooks/stripe` | Stripe webhook endpoint (stub) |
 | `GET` | `/api/health` | Health check (runs `SELECT 1`; 503 when the database is unreachable) |
 
-## Routers (32)
+## Routers (33)
 
-`aiRecap` · `bonusPoints` · `contactForm` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicGameReport` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
+`aiRecap` · `backup` · `bonusPoints` · `contactForm` · `contract` · `dashboard` · `division` · `game` · `gameReport` · `leagueTransfer` · `news` · `organization` · `page` · `plan` · `player` · `publicGameReport` · `publicSite` · `round` · `scheduler` · `season` · `settings` · `sponsor` · `standings` · `stats` · `subscription` · `team` · `teamDivision` · `teamTrikot` · `trikot` · `trikotTemplate` · `userPreferences` · `users` · `websiteConfig`
+
+`routers/_helpers.ts` and `routers/_ownership.ts` are shared helpers, not routers.
 
 ## Procedure Types
 
@@ -79,6 +90,12 @@ cachedPublicProcedure  // publicProcedure + in-process TTL cache per (path, inpu
 Every org-scoped mutation (`orgProcedure`/`orgAdminProcedure`) invalidates that organization's public-site cache on success. Any foreign id a mutation accepts (round, division, season, team, player, trikot, page) must be checked with `assertOrgOwnership`/`assertOrgOwnershipMany` from `routers/_ownership.ts`; foreign ids are reported as NOT_FOUND.
 
 Most mutations use `adminProcedure` (org-scoped). Public queries for standings/stats use `publicProcedure`. `orgProcedure` provides role context (`orgRole`, `memberRoles`, `hasRole()`) without requiring admin.
+
+## Dependencies
+
+Prisma is reached only through `@puckhub/db`, which owns the generated client. This package
+has no direct `@prisma/client` dependency — importing it here would risk a version skew
+against the client `packages/db` generates.
 
 ## Error Handling
 
@@ -117,10 +134,12 @@ export const myRouter = router({
 | AI SEO | `services/aiSeoService.ts` | Generate SEO titles/descriptions for news and pages via OpenRouter (Gemini). Respects granular org toggles (`aiNewsSeo`, `aiPageSeo`). Fire-and-forget on create/update. |
 | AI Season SEO | `services/aiSeasonDescriptionService.ts` | Generate season meta descriptions based on structure (divisions, teams, rounds). |
 | AI Home Widgets | `services/aiHomeWidgetService.ts` | Generate daily home page content: "League Pulse Digest" (markdown) and "Headlines Ticker" (JSON). Staleness detection via data hash. Orchestrated by daily cron job. |
-| Scheduler | `lib/jobs/aiHomeWidgetsJob.ts` | Daily cron (05:30 default, `AI_WIDGETS_CRON` env). Generates AI widgets for all enabled orgs. |
+| Cron jobs | `lib/jobs/` | `aiHomeWidgetsJob` (05:30, `AI_WIDGETS_CRON`), `statsRecalcJob` (03:00, `STATS_RECALC_CRON`), `backupJob` (02:00, `BACKUP_CRON`), `newsAutoPublishJob` (every minute, `NEWS_AUTO_PUBLISH_CRON`), `demoResetJob` (`DEMO_RESET_CRON`). Registered in `src/index.ts`. |
 | System Pages | `services/ensureSystemPages.ts` | Auto-provision required league site pages (home, standings, schedule, structure, etc.) on org creation. Locale-aware (DE/EN). Idempotent. |
 | Contract History | `services/contractHistory.ts` | Season-scoped position lookup (a player's position lives on the contract covering that season), contract continuation sets, and the name a team carried in a given season. |
 | Plan Limits | `services/planLimits.ts` | Check and enforce plan limits (maxTeams, maxPlayers, maxAdmins, etc.) |
+| Backups | `services/backupService.ts` | Per-org backup create/restore/download, offloaded to S3 when `S3_*` is configured. Driven by `lib/jobs/backupJob.ts` (`BACKUP_CRON`, default 02:00). |
+| Team Merge | `services/teamMerge.ts` | Merge two teams, moving contracts and recording the absorbed team's former names in `TeamNameHistory`. |
 | Email | `lib/email.ts` | SMTP via nodemailer. Falls back to console logging in dev when SMTP unconfigured. |
 | Public Report Privacy | `lib/publicReportPrivacy.ts` | Email/IP hashing and masking for GDPR compliance. Pure functions: normalize, mask, hash email/IP. |
 | Scheduler | `lib/scheduler.ts` | Cron-based job scheduling and management. |
@@ -132,9 +151,11 @@ export const myRouter = router({
 - **Per-test DB isolation**: Each test gets a fresh PostgreSQL database (cloned from template via testcontainers)
 - **Test caller**: `createTestCaller({ asAdmin: true })` for admin context
 - **Location**: `src/__tests__/routers/*.test.ts`, `src/__tests__/services/*.test.ts`
-- **Router tests** (32): authorization, bonusPoints, contract, dashboard, division, game, gameReport, leagueTransfer, news, organization, page, plan, player, publicGameReport, round, scheduler, season, security, settings, sponsor, standings, standings-extended, stats, subscription, team, teamDivision, teamTrikot, trikot, trikotTemplate, userPreferences, users, websiteConfig
-- **Service tests** (3): ensureSystemPages, planLimits, scheduler
+- **Router tests** (37): authorization, bonusPoints, contract, contractSplit, crossOrgWrites, dashboard, division, game, gameReport, leagueTransfer, leagueTransferRoundTrip, news, organization, orgIsolation, page, plan, player, publicGameReport, round, scheduler, season, security, settings, sponsor, standings, standings-extended, stats, subscription, team, teamDivision, teamMerge, teamTrikot, trikot, trikotTemplate, userPreferences, users, websiteConfig
+- **Service tests** (6): ensureSystemPages, planLimits, sanitizeHtml, scheduler, uploadAccess, validation
+- **Lib tests** (1): email
 - **Utils**: `src/__tests__/testUtils.ts`, `src/__tests__/globalSetup.ts`, `src/__tests__/setup.ts`
+- **DB driver in tests**: `pg` (`pg.Pool`) for the maintenance/template connections — the API package does not depend on the `postgres` (porsager) client
 
 ## Auth Details
 

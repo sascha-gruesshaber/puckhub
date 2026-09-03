@@ -45,15 +45,15 @@ export default async function globalSetup() {
   const templateUrl = replaceDbName(baseUrl, TEMPLATE_DB)
 
   // Connect to maintenance DB to manage template
-  const postgres = (await import("postgres")).default
-  const maintenanceSql = postgres(maintenanceUrl, { max: 1 })
+  const { Pool } = (await import("pg")).default
+  const maintenanceSql = new Pool({ connectionString: maintenanceUrl, max: 1 })
 
   try {
     // Drop stale template if it exists
-    await maintenanceSql.unsafe(`DROP DATABASE IF EXISTS ${TEMPLATE_DB} WITH (FORCE)`)
+    await maintenanceSql.query(`DROP DATABASE IF EXISTS ${TEMPLATE_DB} WITH (FORCE)`)
 
     // Create template DB
-    await maintenanceSql.unsafe(`CREATE DATABASE ${TEMPLATE_DB}`)
+    await maintenanceSql.query(`CREATE DATABASE ${TEMPLATE_DB}`)
 
     // Build the template DB from the committed migrations, exactly as production does
     const dbPkgDir = resolve(monorepoRoot, "packages/db")
@@ -157,14 +157,13 @@ export default async function globalSetup() {
 
   return async () => {
     // Cleanup: drop all puckhub_test_* databases
-    const cleanupSql = postgres(maintenanceUrl, { max: 1 })
+    const cleanupSql = new Pool({ connectionString: maintenanceUrl, max: 1 })
     try {
-      const dbs = await cleanupSql`
-        SELECT datname FROM pg_database
-        WHERE datname LIKE 'puckhub_test_%'
-      `
-      for (const row of dbs) {
-        await cleanupSql.unsafe(`DROP DATABASE IF EXISTS ${row.datname} WITH (FORCE)`)
+      const { rows } = await cleanupSql.query<{ datname: string }>(
+        "SELECT datname FROM pg_database WHERE datname LIKE 'puckhub_test_%'",
+      )
+      for (const row of rows) {
+        await cleanupSql.query(`DROP DATABASE IF EXISTS ${row.datname} WITH (FORCE)`)
       }
     } finally {
       await cleanupSql.end()

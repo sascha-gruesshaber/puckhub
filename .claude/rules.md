@@ -7,10 +7,10 @@
 | Indent | 2 spaces |
 | Line width | 120 chars |
 | Line endings | LF |
-| Quotes (JS) | Single |
+| Quotes (JS) | Double |
 | Quotes (JSX) | Double |
 | Semicolons | As needed (omit unnecessary) |
-| Trailing commas | ES5 style |
+| Trailing commas | All |
 | Arrow parens | Always |
 | Bracket spacing | `true` |
 | Bracket same line | `false` |
@@ -34,7 +34,7 @@
 - **Variables / functions**: camelCase
 - **Types / interfaces / enums**: PascalCase (no `I` prefix on interfaces)
 - **React components**: PascalCase exports, camelCase file names
-- **DB columns**: snake_case in SQL schema, camelCase in TypeScript via Drizzle
+- **DB columns**: snake_case in SQL, camelCase in TypeScript — mapped with Prisma `@map`/`@@map`
 - **CSS**: Tailwind utility classes, merged with `cn()`
 
 ## 4. Import Rules
@@ -56,20 +56,30 @@
 
 ## 6. tRPC / API Patterns
 
-- Three procedure levels: `publicProcedure`, `protectedProcedure`, `adminProcedure`
+- Seven procedure levels, defined in `packages/api/src/trpc/init.ts`:
+  - `publicProcedure` — no auth, read-only public data
+  - `cachedPublicProcedure` — `publicProcedure` + in-process TTL cache per (path, input), scoped by organization; only for pure (org, season) reads
+  - `protectedProcedure` — requires an authenticated session
+  - `orgProcedure` — session + active org, loads member roles
+  - `orgAdminProcedure` — owner/admin role within the org
+  - `adminProcedure` — alias for `orgAdminProcedure`
+  - `platformAdminProcedure` — platform-level `user.role === "admin"`
+- Foreign ids accepted by a mutation must be checked with `assertOrgOwnership`/`assertOrgOwnershipMany` from `routers/_ownership.ts`
 - Zod input validation on all mutations
 - `superjson` transformer for Date/Map/Set serialization
 - Errors via `createAppError()` with i18n error codes
-- Router structure: one file per domain entity in `packages/api/src/trpc/routers/`
+- Router structure: one file per domain entity in `packages/api/src/trpc/routers/`, composed into `appRouter` in `packages/api/src/trpc/index.ts`
 
-## 7. Database / Drizzle Patterns
+## 7. Database / Prisma Patterns
 
-- UUID primary keys with `defaultRandom()`
-- Timestamps: `withTimezone: true`, `defaultNow()`
-- Foreign keys: `cascade` for dependent records, `set null` for optional references
-- **Self-joins**: Use `aliasedTable()` from `drizzle-orm/alias` — never `sql` template literals as join targets
-- Relations defined in `packages/db/src/schema/relations.ts` (required for `with:` in relational queries)
-- Schema files: one per table/enum in `packages/db/src/schema/`
+- Single schema file: `packages/db/prisma/schema.prisma` — enums, models and relations all live there
+- Primary keys: `@default(uuid(7)) @db.Uuid` for time-sortable ids on application tables. The Better Auth tables (`User`, `Session`, `Account`, `Verification`, `Member`, `Invitation`, …) keep plain `String @id` because Better Auth generates those ids itself
+- Timestamps: `@db.Timestamptz` with `@default(now())`
+- Foreign keys: `onDelete: Cascade` for dependent records, `onDelete: SetNull` for optional references
+- Naming: `@map`/`@@map` keep the database snake_case while TypeScript stays camelCase
+- Relational reads use Prisma `include`/`select`; there is no separate relations file
+- Most application tables are organization-scoped via `organizationId`
+- **Every schema change needs a committed migration** — see [`packages/db/AGENT.md`](../packages/db/AGENT.md)
 
 ## 8. i18n Rules
 
@@ -97,8 +107,9 @@
 
 ## 10. Testing
 
-- **Unit tests**: Vitest — `*.test.ts` / `*.spec.ts`
-- **E2E tests**: Playwright — `apps/admin/tests/`
+- **Unit tests**: Vitest — `packages/api/src/__tests__/routers/` and `__tests__/services/`
+- **E2E tests**: Playwright — `apps/<app>/e2e/`, with the shared harness in `e2e/` at the repo root
 - **DB isolation**: Each test gets a fresh database created from a template
-- **Test utils**: `packages/api/src/__tests__/testUtils.ts`
-- Run all: `pnpm test` · Run E2E: `pnpm --filter @puckhub/admin test:e2e`
+- **Test utils**: `packages/api/src/__tests__/testUtils.ts`, `globalSetup.ts`, `setup.ts`
+- Run unit tests: `pnpm test` (or `pnpm test:api`)
+- Run E2E: `pnpm test:e2e` (admin) · `pnpm test:e2e:all` (every app). Each app's own script is `test`, e.g. `pnpm --filter @puckhub/admin test`

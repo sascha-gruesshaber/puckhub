@@ -8,7 +8,7 @@
 // This module defines the mapping logic used during migration.
 // ---------------------------------------------------------------------------
 
-import type { RoundType } from "../generated/prisma/enums"
+import type { RoundType } from "@puckhub/db"
 import type { LegacyGroup, LegacySeason } from "./legacyTypes"
 
 // ---------------------------------------------------------------------------
