@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
+import { PeriodClockIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { useWorkingSeason } from "~/contexts/seasonContext"
 import { useTranslation } from "~/i18n/use-translation"
@@ -787,11 +788,7 @@ function GameCenterPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">{t("dashboard.title")}</h1>
-        <EmptyState
-          icon={<Calendar size={28} className="text-muted-foreground" />}
-          title={t("dashboard.title")}
-          description={t("dashboard.noSeason")}
-        />
+        <EmptyState icon={<PeriodClockIcon />} title={t("dashboard.title")} description={t("dashboard.noSeason")} />
       </div>
     )
   }

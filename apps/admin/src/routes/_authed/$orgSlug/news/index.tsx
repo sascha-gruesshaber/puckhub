@@ -1,9 +1,10 @@
 import { Badge, Button } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
-import { Clock, Newspaper, Plus } from "lucide-react"
+import { Clock, Plus } from "lucide-react"
 import { useCallback, useMemo } from "react"
 import { trpc } from "@/trpc"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { GoalHornIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
@@ -136,7 +137,7 @@ function NewsPage() {
         <DataListSkeleton rows={5} showIcon={false} />
       ) : filtered.length === 0 && !search && yearFilter.length === 0 ? (
         <EmptyState
-          icon={<Newspaper className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+          icon={<GoalHornIcon />}
           title={t("newsPage.empty.title")}
           description={t("newsPage.empty.description")}
           action={

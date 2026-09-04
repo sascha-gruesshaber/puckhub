@@ -15,11 +15,12 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { ExternalLink, Handshake, Plus, Trash2 } from "lucide-react"
+import { ExternalLink, Plus, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { RinkBoardIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FeatureGate } from "~/components/featureGate"
 import { FilterBar } from "~/components/filterBar"
@@ -404,7 +405,7 @@ function SponsorsPage() {
           <DataListSkeleton rows={5} />
         ) : filtered.length === 0 && !search && teamFilter.length === 0 ? (
           <EmptyState
-            icon={<Handshake className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<RinkBoardIcon />}
             title={t("sponsorsPage.empty.title")}
             description={t("sponsorsPage.empty.description")}
             action={

@@ -1,3 +1,4 @@
+import { PuckLoader } from "@puckhub/ui"
 import { useNavigate } from "@tanstack/react-router"
 import { Building2, LogOut } from "lucide-react"
 import { signOut } from "@/auth-client"
@@ -18,7 +19,7 @@ export function OrgPickerPage() {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
         <div className="flex flex-col items-center gap-4">
-          <img src="/puckhub-mark.png" alt="" width={44} height={44} className="pulse-brand h-11 w-11" />
+          <PuckLoader size={44} label={t("loading")} />
           <span style={{ color: "var(--sidebar-text)", fontSize: 13 }} suppressHydrationWarning>
             {t("loading")}
           </span>

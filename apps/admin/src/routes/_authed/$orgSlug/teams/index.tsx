@@ -15,11 +15,12 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
-import { Plus, Shield } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { FaceoffIcon, PeriodClockIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
@@ -286,7 +287,7 @@ function TeamsPage() {
           <DataListSkeleton rows={5} />
         ) : (allTeams?.length ?? 0) === 0 ? (
           <EmptyState
-            icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<FaceoffIcon />}
             title={t("teamsPage.empty.title")}
             description={t("teamsPage.empty.description")}
             action={
@@ -298,13 +299,13 @@ function TeamsPage() {
           />
         ) : !season ? (
           <EmptyState
-            icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<PeriodClockIcon />}
             title={t("teamsPage.empty.noSeasonTitle")}
             description={t("teamsPage.empty.noSeasonDescription")}
           />
         ) : filtered.length === 0 && !search && divisionFilter.length === 0 && seasonTeamIds.size === 0 ? (
           <EmptyState
-            icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<FaceoffIcon />}
             title={t("teamsPage.empty.noAssignmentsTitle")}
             description={t("teamsPage.empty.noAssignmentsDescription")}
           />

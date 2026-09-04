@@ -1,15 +1,5 @@
-import {
-  ArrowRight,
-  ClipboardList,
-  ExternalLink,
-  Globe,
-  Loader2,
-  LogIn,
-  MessageSquare,
-  Pencil,
-  Shield,
-  X,
-} from "lucide-react"
+import { PuckLoader } from "@puckhub/ui"
+import { ArrowRight, ClipboardList, ExternalLink, Globe, LogIn, MessageSquare, Pencil, Shield, X } from "lucide-react"
 import { useState } from "react"
 import { getAdminUrl, getApiUrl, getBaseHostname } from "@/env"
 import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
@@ -168,7 +158,7 @@ export function DemoDialog({ onClose }: { onClose: () => void }) {
                     <span className="block text-xs text-brand-slate">{user.description}</span>
                   </div>
                   {loading === prefix ? (
-                    <Loader2 className="h-4 w-4 shrink-0 text-brand-gold animate-spin" />
+                    <PuckLoader size={16} label="" />
                   ) : (
                     <LogIn className="h-4 w-4 shrink-0 text-brand-slate/40 group-hover:text-brand-gold transition-colors" />
                   )}

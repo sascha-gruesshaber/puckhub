@@ -1,0 +1,228 @@
+/* Empty-state icons: one moving part each, slow loops, small amplitude.
+   Colours: accent via currentColor, secondary cyan via --ice. */
+
+.empty-icon {
+  width: 32px;
+  height: 32px;
+  display: block;
+  overflow: visible;
+  color: hsl(var(--accent));
+}
+.empty-icon .ice {
+  stroke: hsl(var(--ice, 193 100% 75%));
+}
+.empty-icon .ice-fill {
+  fill: hsl(var(--ice, 193 100% 75%));
+}
+
+.empty-icon-jersey .dash {
+  animation: empty-icon-dash 7s linear infinite;
+}
+@keyframes empty-icon-dash {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+.empty-icon-faceoff .ping {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: empty-icon-ping 3.2s ease-out infinite;
+}
+.empty-icon-faceoff .dot {
+  animation: empty-icon-dot 3.2s ease-in-out infinite;
+}
+@keyframes empty-icon-ping {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  70%,
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+@keyframes empty-icon-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.empty-icon-clock .hand {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: empty-icon-tick 12s steps(12, end) infinite;
+}
+@keyframes empty-icon-tick {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-icon-hanger .swing {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: empty-icon-swing 4.2s ease-in-out infinite;
+}
+@keyframes empty-icon-swing {
+  0%,
+  100% {
+    transform: rotate(-3.5deg);
+  }
+  50% {
+    transform: rotate(3.5deg);
+  }
+}
+
+.empty-icon-board .sheen {
+  animation: empty-icon-sheen 4s ease-in-out infinite;
+}
+@keyframes empty-icon-sheen {
+  0%,
+  25% {
+    transform: translateX(-36px);
+  }
+  70%,
+  100% {
+    transform: translateX(36px);
+  }
+}
+
+.empty-icon-horn .w1 {
+  animation: empty-icon-wave 2.6s ease-in-out infinite;
+}
+.empty-icon-horn .w2 {
+  animation: empty-icon-wave 2.6s ease-in-out 0.35s infinite;
+}
+@keyframes empty-icon-wave {
+  0%,
+  20% {
+    opacity: 0.2;
+  }
+  45% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.empty-icon-page .ln {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: empty-icon-write 6s ease-out infinite;
+}
+.empty-icon-page .ln:nth-child(2) {
+  animation-delay: 0.5s;
+}
+.empty-icon-page .ln:nth-child(3) {
+  animation-delay: 1s;
+}
+@keyframes empty-icon-write {
+  0% {
+    stroke-dashoffset: 24;
+    opacity: 1;
+  }
+  30% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  80% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  90%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+
+.empty-icon-trophy .glint {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: empty-icon-glint 4.5s ease-in-out infinite;
+}
+@keyframes empty-icon-glint {
+  0%,
+  70%,
+  100% {
+    transform: scale(0) rotate(0);
+  }
+  80% {
+    transform: scale(1) rotate(20deg);
+  }
+  90% {
+    transform: scale(0) rotate(45deg);
+  }
+}
+
+.empty-icon-whistle .tk {
+  animation: empty-icon-tweet 3s ease-in-out infinite;
+}
+.empty-icon-whistle .tk:nth-child(2) {
+  animation-delay: 0.15s;
+}
+@keyframes empty-icon-tweet {
+  0%,
+  55%,
+  100% {
+    opacity: 0.15;
+  }
+  62%,
+  72% {
+    opacity: 1;
+  }
+}
+
+.empty-icon-lens .drift {
+  animation: empty-icon-drift 5s ease-in-out infinite;
+}
+@keyframes empty-icon-drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(2px, -1.5px);
+  }
+  66% {
+    transform: translate(-1.5px, 1.5px);
+  }
+}
+
+.empty-icon-bench .flick {
+  animation: empty-icon-flick 6s linear infinite;
+}
+@keyframes empty-icon-flick {
+  0%,
+  88%,
+  100% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.35;
+  }
+  92% {
+    opacity: 1;
+  }
+  94% {
+    opacity: 0.5;
+  }
+  96% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Same specificity as the rules above; wins by coming last. */
+  .empty-icon[class] * {
+    animation: none;
+  }
+}

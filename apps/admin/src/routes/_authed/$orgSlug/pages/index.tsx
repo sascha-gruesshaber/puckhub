@@ -32,11 +32,12 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
-import { ChevronRight, FileText, GripVertical, Link2, PanelTop, Plus, X } from "lucide-react"
+import { ChevronRight, GripVertical, Link2, PanelTop, Plus, X } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { PageSheetIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import { FilterDropdown } from "~/components/filterDropdown"
@@ -535,7 +536,7 @@ function PagesPage() {
           <DataListSkeleton rows={5} showIcon={false} />
         ) : filtered.length === 0 && !search && statusFilter.length === 0 && !pages?.length ? (
           <EmptyState
-            icon={<FileText className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<PageSheetIcon />}
             title={t("pagesPage.empty.title")}
             description={t("pagesPage.empty.description")}
             action={

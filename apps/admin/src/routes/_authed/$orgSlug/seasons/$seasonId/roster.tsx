@@ -1,9 +1,10 @@
 import { Button, Skeleton } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
-import { Plus, Users } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { BenchIcon, FaceoffIcon, LensIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
@@ -170,7 +171,7 @@ function RosterPage() {
             }
           >
             <EmptyState
-              icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+              icon={<FaceoffIcon />}
               title={t("rosterPage.noTeams.title")}
               description={t("rosterPage.noTeams.description")}
               action={
@@ -222,7 +223,7 @@ function RosterPage() {
             </div>
           ) : !filteredRoster || filteredRoster.length === 0 ? (
             <EmptyState
-              icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+              icon={search ? <LensIcon /> : <BenchIcon />}
               title={search ? t("rosterPage.empty.noResultsTitle") : t("rosterPage.empty.teamEmptyTitle")}
               description={
                 search

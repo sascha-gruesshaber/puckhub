@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@puckhub/api": "workspace:*",
+    "@puckhub/ui": "workspace:*",
     "@tanstack/react-query": "^5.99.0",
     "@tanstack/react-router": "^1.168.19",
     "@tanstack/react-start": "^1.167.34",

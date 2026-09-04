@@ -1,5 +1,5 @@
-import { cn } from "@puckhub/ui"
-import { Image, Loader2, X } from "lucide-react"
+import { cn, PuckLoader } from "@puckhub/ui"
+import { Image, X } from "lucide-react"
 import { useCallback, useRef, useState } from "react"
 import { getApiUrl } from "@/env"
 
@@ -113,7 +113,7 @@ export function ImageUpload({ value, onChange, type, label, className }: ImageUp
       >
         {uploading ? (
           <div className="flex flex-col items-center gap-2">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <PuckLoader size={28} label="" />
             <span className="text-xs text-muted-foreground">Hochladen...</span>
           </div>
         ) : (
