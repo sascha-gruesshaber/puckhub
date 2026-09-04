@@ -1,4 +1,4 @@
-import { cn } from "@puckhub/ui"
+import { cn, PuckLoader } from "@puckhub/ui"
 import CharacterCount from "@tiptap/extension-character-count"
 import Color from "@tiptap/extension-color"
 import Highlight from "@tiptap/extension-highlight"
@@ -849,7 +849,7 @@ function DropOverlay() {
 function UploadingOverlay() {
   return (
     <div className="absolute top-2 right-2 z-10 flex items-center gap-2 bg-popover border border-border rounded-lg shadow-lg px-3 py-2">
-      <Loader2 className="h-4 w-4 animate-spin text-accent-foreground" />
+      <PuckLoader size={16} label="" />
       <span className="text-xs font-medium text-muted-foreground">Wird hochgeladen…</span>
     </div>
   )

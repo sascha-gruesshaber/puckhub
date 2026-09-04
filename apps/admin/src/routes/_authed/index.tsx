@@ -1,3 +1,4 @@
+import { PuckLoader } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 import { OrgPickerPage } from "~/components/orgPickerPage"
@@ -43,7 +44,7 @@ function OrgIndexPage() {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: "var(--content-bg)" }}>
         <div className="flex flex-col items-center gap-4">
-          <img src="/puckhub-mark.png" alt="" width={44} height={44} className="pulse-brand h-11 w-11" />
+          <PuckLoader size={44} />
         </div>
       </div>
     )

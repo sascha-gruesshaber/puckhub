@@ -20,6 +20,7 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { JerseyIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
@@ -519,7 +520,7 @@ function PlayersPage() {
           positionFilter.length === 0 &&
           statusFilter.length === 0 ? (
           <EmptyState
-            icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<JerseyIcon />}
             title={t("playersPage.empty.noPlayersTitle")}
             description={t("playersPage.empty.noPlayersDescription")}
             action={

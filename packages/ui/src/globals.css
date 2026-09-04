@@ -121,6 +121,8 @@
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --content-bg: #0e1729;
     --brand-logo-size: 34px;
+    /* Secondary cyan from the puck mark; used by empty-state icons */
+    --ice: 193 100% 75%;
   }
 }
 
@@ -358,23 +360,6 @@
 
 .content-enter {
   animation: content-enter 0.2s ease-out;
-}
-
-/* Loading pulse */
-@keyframes pulse-brand {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.6;
-    transform: scale(0.95);
-  }
-}
-
-.pulse-brand {
-  animation: pulse-brand 1.8s ease-in-out infinite;
 }
 
 /* Skeleton pulse */

@@ -1,9 +1,10 @@
 import { Badge, Button, Card, CardContent, toast } from "@puckhub/ui"
 import { createFileRoute } from "@tanstack/react-router"
-import { AlertTriangle, FileText, Loader2, RotateCcw } from "lucide-react"
+import { AlertTriangle, Loader2, RotateCcw } from "lucide-react"
 import { useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
+import { PageSheetIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { PageHeader } from "~/components/pageHeader"
 import { usePermissionGuard } from "~/contexts/permissionsContext"
@@ -80,7 +81,7 @@ function PublicReportsPage() {
         </Card>
       ) : reports.length === 0 ? (
         <EmptyState
-          icon={<FileText className="w-7 h-7 text-muted-foreground" />}
+          icon={<PageSheetIcon />}
           title={t("publicReports.empty")}
           description={t("publicReports.emptyDesc")}
         />

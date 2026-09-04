@@ -20,7 +20,6 @@ import {
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router"
 import {
   Building2,
-  Calendar,
   ExternalLink,
   Globe,
   Mail,
@@ -29,7 +28,6 @@ import {
   Pencil,
   Phone,
   Plus,
-  Shield,
   Trash2,
   Trophy,
   User,
@@ -40,6 +38,7 @@ import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DangerZone } from "~/components/dangerZone"
 import { DetailPageLayout } from "~/components/detailPageLayout"
+import { BenchIcon, LensIcon, PeriodClockIcon, TrophyIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { ImageUpload } from "~/components/imageUpload"
 import { EditContractSheet } from "~/components/roster/editContractSheet"
@@ -307,13 +306,7 @@ function TeamDetailPage() {
       isLoading={historyLoading}
       loadingSkeleton={teamLoadingSkeleton}
       notFound={!historyLoading && (!historyData || !team)}
-      notFoundContent={
-        <EmptyState
-          icon={<Shield className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-          title={t("teamsPage.teamDetail.notFound")}
-          description=""
-        />
-      }
+      notFoundContent={<EmptyState icon={<LensIcon />} title={t("teamsPage.teamDetail.notFound")} description="" />}
     >
       {team && (
         <>
@@ -357,11 +350,7 @@ function TeamDetailPage() {
                 {/* Roster tab */}
                 {activeTab === "roster" &&
                   (!activeSeasonId ? (
-                    <EmptyState
-                      icon={<Calendar className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-                      title={t("teamsPage.teamDetail.noRoster")}
-                      description=""
-                    />
+                    <EmptyState icon={<PeriodClockIcon />} title={t("teamsPage.teamDetail.noRoster")} description="" />
                   ) : rosterLoading ? (
                     <div className="space-y-4">
                       {Array.from({ length: 3 }).map((_, i) => (
@@ -375,7 +364,7 @@ function TeamDetailPage() {
                     </div>
                   ) : !roster || roster.length === 0 ? (
                     <EmptyState
-                      icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+                      icon={<BenchIcon />}
                       title={t("teamsPage.teamDetail.noRoster")}
                       description=""
                       action={
@@ -399,11 +388,7 @@ function TeamDetailPage() {
                 {/* Season History tab */}
                 {activeTab === "history" &&
                   (historyData!.seasons.length === 0 ? (
-                    <EmptyState
-                      icon={<Trophy className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
-                      title={t("teamsPage.teamDetail.noHistory")}
-                      description=""
-                    />
+                    <EmptyState icon={<TrophyIcon />} title={t("teamsPage.teamDetail.noHistory")} description="" />
                   ) : (
                     <div className="bg-card rounded-xl shadow-sm border border-border/50 overflow-hidden">
                       <table className="w-full text-sm">

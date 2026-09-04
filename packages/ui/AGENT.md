@@ -2,7 +2,7 @@
 
 Shared UI component library — shadcn/ui-style components with Tailwind CSS, CVA variants, and React 19.
 
-## Components (25 files)
+## Components (26 files)
 
 | Component | File | Pattern | Notes |
 |-----------|------|---------|-------|
@@ -21,6 +21,7 @@ Shared UI component library — shadcn/ui-style components with Tailwind CSS, CV
 | `Input` | `input.tsx` | forwardRef | Handles file inputs, focus rings |
 | `Label` | `label.tsx` | Radix UI | Accessible label |
 | `Popover` (+ Trigger, Content, Anchor) | `popover.tsx` | Radix UI | Floating popover panels |
+| `PuckLoader` | `puckLoader.tsx` | forwardRef, inline SVG | Animated brand puck loader. `size` (px, <28 renders a flat coin), `variant` (`orbit` default, `spin`, `drop`, `breathe`), `label` (a11y; `""` hides it). Carries its own CSS, honours reduced motion, fixed brand colours |
 | `RadioGroup` (+ Item) | `radio-group.tsx` | Radix UI | Accessible radio button group |
 | `ScrollArea` (+ ScrollBar) | `scroll-area.tsx` | Radix UI | Custom scrollbar styling |
 | `Select` (+ Trigger, Content, Item, Value, Group, Label, Separator) | `select.tsx` | Radix UI | Accessible select dropdown |
@@ -54,7 +55,7 @@ import { cn } from '@puckhub/ui'  // clsx + tailwind-merge
 
 ## Theme (CSS Variables in `globals.css`)
 
-Colors use HSL format: `--primary: 215 55% 23%` (dark blue), `--secondary: 354 85% 42%` (red), `--accent: 44 87% 65%` (gold). Sidebar has separate dark theme variables (`--sidebar-bg: #0C1929`).
+Colors use HSL format: `--primary: 215 55% 23%` (dark blue), `--secondary: 354 85% 42%` (red), `--accent: 44 87% 65%` (gold). `--ice: 193 100% 75%` is the secondary cyan from the puck mark, used by the admin's empty-state icons. Sidebar has separate dark theme variables (`--sidebar-bg: #0C1929`).
 
 ## Exports
 

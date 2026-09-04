@@ -21,11 +21,12 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { Pencil, Plus, Shirt, Trash2, X } from "lucide-react"
+import { Pencil, Plus, Trash2, X } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { HangerJerseyIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FeatureGate } from "~/components/featureGate"
 import { FilterBar } from "~/components/filterBar"
@@ -396,7 +397,7 @@ function TrikotsPage() {
           <DataListSkeleton rows={5} />
         ) : filtered.length === 0 && !search && templateFilter.length === 0 ? (
           <EmptyState
-            icon={<Shirt className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<HangerJerseyIcon />}
             title={t("trikotsPage.empty.title")}
             description={t("trikotsPage.empty.description")}
             action={

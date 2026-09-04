@@ -130,6 +130,7 @@ src/components/
 ├── dangerZone.tsx         # Danger zone section for destructive actions
 ├── dataPageLayout.tsx     # Standard data page layout wrapper
 ├── detailPageLayout.tsx   # Detail page layout with back navigation
+├── emptyIcons/            # Animated hockey-themed icons for EmptyState (index.tsx + emptyIcons.css)
 ├── emptyState.tsx         # Empty state placeholder
 ├── featureGate.tsx        # Plan-based feature gating
 ├── filterBar.tsx          # Filter bar wrapper

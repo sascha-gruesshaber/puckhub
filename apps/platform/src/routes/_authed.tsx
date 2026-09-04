@@ -1,4 +1,4 @@
-import { Button } from "@puckhub/ui"
+import { Button, PuckLoader } from "@puckhub/ui"
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router"
 import { Building2, Clock, CreditCard, LogOut, Users } from "lucide-react"
 import { Suspense, useEffect } from "react"
@@ -19,7 +19,7 @@ function AuthedLayout() {
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <img src="/puckhub-mark.png" alt="" width={44} height={44} className="h-11 w-11" />
+        <PuckLoader size={44} />
       </div>
     )
   }

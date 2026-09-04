@@ -1,3 +1,4 @@
+import { PuckLoader } from "@puckhub/ui"
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router"
 import {
   FileText,
@@ -144,7 +145,7 @@ function OrgSlugLayout() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <img src="/puckhub-mark.png" alt="" width={44} height={44} className="pulse-brand h-11 w-11" />
+          <PuckLoader size={44} />
         </div>
       </div>
     )

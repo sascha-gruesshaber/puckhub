@@ -14,11 +14,12 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { AlertTriangle, Calendar, Plus, Trash2 } from "lucide-react"
+import { AlertTriangle, Plus, Trash2 } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { TrophyIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import { NoResults } from "~/components/noResults"
@@ -263,7 +264,7 @@ function SeasonsPage() {
           <DataListSkeleton rows={3} />
         ) : filtered.length === 0 && !search ? (
           <EmptyState
-            icon={<Calendar className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<TrophyIcon />}
             title={t("seasonsPage.empty.title")}
             description={t("seasonsPage.empty.description")}
             action={

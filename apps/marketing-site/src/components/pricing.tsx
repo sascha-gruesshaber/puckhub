@@ -1,4 +1,5 @@
-import { Check, Loader2, MessageSquare, X } from "lucide-react"
+import { PuckLoader } from "@puckhub/ui"
+import { Check, MessageSquare, X } from "lucide-react"
 import { revealClasses, useScrollReveal } from "~/hooks/useScrollEffects"
 import { useT } from "~/i18n"
 import { trpc } from "../../lib/trpc"
@@ -37,7 +38,7 @@ export function Pricing() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-gold" />
+            <PuckLoader size={44} />
           </div>
         ) : !plans || plans.length === 0 ? (
           <p className="text-center text-brand-slate">{t.pricing.noPlans}</p>

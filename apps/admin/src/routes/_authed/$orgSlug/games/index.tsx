@@ -14,11 +14,12 @@ import {
   toast,
 } from "@puckhub/ui"
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router"
-import { CalendarDays, FileText, Plus, Sparkles } from "lucide-react"
+import { FileText, Plus, Sparkles } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { PeriodClockIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar, FilterBarDivider } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
@@ -287,7 +288,7 @@ function GamesPage() {
   if (!season) {
     return (
       <EmptyState
-        icon={<CalendarDays className="h-8 w-8" />}
+        icon={<PeriodClockIcon />}
         title={t("gamesPage.noSeason.title")}
         description={t("gamesPage.noSeason.description")}
       />

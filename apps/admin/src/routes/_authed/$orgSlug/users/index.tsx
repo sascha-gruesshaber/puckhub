@@ -26,6 +26,7 @@ import { useSession } from "@/auth-client"
 import { trpc } from "@/trpc"
 import { ConfirmDialog } from "~/components/confirmDialog"
 import { DataPageLayout } from "~/components/dataPageLayout"
+import { WhistleIcon } from "~/components/emptyIcons"
 import { EmptyState } from "~/components/emptyState"
 import { FilterBar } from "~/components/filterBar"
 import type { FilterDropdownOption } from "~/components/filterDropdown"
@@ -436,7 +437,7 @@ function UsersPage() {
           <DataListSkeleton rows={5} />
         ) : filtered.length === 0 && !search && roleFilter.length === 0 ? (
           <EmptyState
-            icon={<Users className="h-8 w-8" style={{ color: "hsl(var(--accent))" }} strokeWidth={1.5} />}
+            icon={<WhistleIcon />}
             title={t("usersPage.empty.title")}
             description={t("usersPage.empty.description")}
             action={

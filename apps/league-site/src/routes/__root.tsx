@@ -1,3 +1,4 @@
+import { PuckLoader } from "@puckhub/ui"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
@@ -122,7 +123,7 @@ function SiteDataProvider({ children }: { children: React.ReactNode }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 border-4 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        <PuckLoader size={44} />
       </div>
     )
   }

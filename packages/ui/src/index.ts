@@ -55,6 +55,7 @@ export { HoverCard, HoverCardContent, HoverCardTrigger } from "./components/hove
 export { Input } from "./components/input"
 export { Label } from "./components/label"
 export { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "./components/popover"
+export { PuckLoader, type PuckLoaderProps, type PuckLoaderVariant } from "./components/puckLoader"
 export { RadioGroup, RadioGroupItem } from "./components/radio-group"
 export { ScrollArea, ScrollBar } from "./components/scroll-area"
 export {
