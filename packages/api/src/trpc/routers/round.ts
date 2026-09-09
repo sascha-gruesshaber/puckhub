@@ -1,5 +1,6 @@
 import { recalculateGoalieStats, recalculatePlayerStats } from "@puckhub/db/services"
 import { z } from "zod"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
@@ -49,7 +50,7 @@ export const roundRouter = router({
     .input(
       z.object({
         divisionId: z.string().uuid(),
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         roundType: z.enum(roundTypeValues).default("regular"),
         sortOrder: z.number().int().default(0),
         pointsWin: z.number().int().default(2),
@@ -78,7 +79,7 @@ export const roundRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        name: z.string().min(1).optional(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         roundType: z.enum(roundTypeValues).optional(),
         sortOrder: z.number().int().optional(),
         pointsWin: z.number().int().optional(),

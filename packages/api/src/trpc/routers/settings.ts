@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
 export const settingsRouter = router({
@@ -12,10 +13,10 @@ export const settingsRouter = router({
   update: orgAdminProcedure
     .input(
       z.object({
-        leagueName: z.string().min(1, "Liga-Name ist erforderlich"),
-        leagueShortName: z.string().min(1, "Kurzname ist erforderlich"),
-        locale: z.string().min(1),
-        timezone: z.string().min(1),
+        leagueName: z.string().max(MAX_NAME_LENGTH).min(1, "Liga-Name ist erforderlich"),
+        leagueShortName: z.string().max(MAX_NAME_LENGTH).min(1, "Kurzname ist erforderlich"),
+        locale: z.string().max(MAX_NAME_LENGTH).min(1),
+        timezone: z.string().max(MAX_NAME_LENGTH).min(1),
         pointsWin: z.number().int().min(0),
         pointsDraw: z.number().int().min(0),
         pointsLoss: z.number().int().min(0),

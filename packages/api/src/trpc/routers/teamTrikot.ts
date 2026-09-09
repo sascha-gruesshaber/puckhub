@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 import { assertOrgOwnership } from "./_ownership"
 
@@ -32,7 +33,7 @@ export const teamTrikotRouter = router({
       z.object({
         teamId: z.string().uuid(),
         trikotId: z.string().uuid(),
-        name: z.string().optional(),
+        name: z.string().max(MAX_NAME_LENGTH).optional(),
         assignmentType: z.enum(assignmentTypeValues).default("custom"),
       }),
     )
@@ -56,7 +57,7 @@ export const teamTrikotRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        name: z.string().optional(),
+        name: z.string().max(MAX_NAME_LENGTH).optional(),
         assignmentType: z.enum(assignmentTypeValues).optional(),
       }),
     )

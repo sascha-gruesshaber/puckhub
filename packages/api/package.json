@@ -16,7 +16,8 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "email:test": "node --env-file-if-exists=../../.env scripts/emailTest.mjs"
+    "email:test": "node --env-file-if-exists=../../.env scripts/emailTest.mjs",
+    "sanitize:backfill": "node --env-file-if-exists=../../.env --import tsx scripts/sanitizeExistingContent.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1030.0",

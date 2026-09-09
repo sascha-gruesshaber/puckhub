@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { checkAiEligibility } from "../../services/aiRecapService"
 import { generateSeasonSeo } from "../../services/aiSeasonDescriptionService"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
@@ -38,7 +39,7 @@ export const divisionRouter = router({
     .input(
       z.object({
         seasonId: z.string().uuid(),
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         sortOrder: z.number().int().default(0),
         goalieMinGames: z.number().int().min(0).default(7),
       }),
@@ -62,7 +63,7 @@ export const divisionRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        name: z.string().min(1).optional(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         sortOrder: z.number().int().optional(),
         goalieMinGames: z.number().int().min(0).optional(),
       }),

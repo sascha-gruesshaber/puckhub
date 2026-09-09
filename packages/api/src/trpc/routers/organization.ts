@@ -3,7 +3,7 @@ import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
 import { sendEmail } from "../../lib/email"
 import { inviteEmail } from "../../lib/emailTemplates"
-import { safeUrlNullish } from "../../lib/validation"
+import { MAX_ID_LENGTH, MAX_NAME_LENGTH, safeUrlNullish } from "../../lib/validation"
 import { ensureSystemPages } from "../../services/ensureSystemPages"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, platformAdminProcedure, protectedProcedure, router } from "../init"
@@ -76,21 +76,23 @@ export const organizationRouter = router({
     return { ok: true }
   }),
 
-  setActive: protectedProcedure.input(z.object({ organizationId: z.string() })).mutation(async ({ ctx, input }) => {
-    const membership = await ctx.db.member.findFirst({
-      where: { userId: ctx.user.id, organizationId: input.organizationId },
-    })
-    if (!membership) {
-      throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_MEMBER)
-    }
+  setActive: protectedProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .mutation(async ({ ctx, input }) => {
+      const membership = await ctx.db.member.findFirst({
+        where: { userId: ctx.user.id, organizationId: input.organizationId },
+      })
+      if (!membership) {
+        throw createAppError("FORBIDDEN", APP_ERROR_CODES.ORG_NOT_MEMBER)
+      }
 
-    await ctx.db.session.updateMany({
-      where: { userId: ctx.user.id },
-      data: { activeOrganizationId: input.organizationId },
-    })
+      await ctx.db.session.updateMany({
+        where: { userId: ctx.user.id },
+        data: { activeOrganizationId: input.organizationId },
+      })
 
-    return { organizationId: input.organizationId }
-  }),
+      return { organizationId: input.organizationId }
+    }),
 
   listAll: platformAdminProcedure.query(async ({ ctx }) => {
     const orgs = await ctx.db.organization.findMany({
@@ -123,7 +125,7 @@ export const organizationRouter = router({
   create: platformAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         slug: z
           .string()
           .min(1)
@@ -131,13 +133,13 @@ export const organizationRouter = router({
           .optional(),
         logo: safeUrlNullish,
         ownerEmail: z.string().email().optional(),
-        ownerName: z.string().min(1).optional(),
+        ownerName: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         planId: z.string().uuid().optional(),
         leagueSettings: z.object({
-          leagueName: z.string().min(1),
-          leagueShortName: z.string().min(1),
-          locale: z.string().default("de-DE"),
-          timezone: z.string().default("Europe/Berlin"),
+          leagueName: z.string().max(MAX_NAME_LENGTH).min(1),
+          leagueShortName: z.string().max(MAX_NAME_LENGTH).min(1),
+          locale: z.string().max(MAX_NAME_LENGTH).default("de-DE"),
+          timezone: z.string().max(MAX_NAME_LENGTH).default("Europe/Berlin"),
           pointsWin: z.number().int().default(2),
           pointsDraw: z.number().int().default(1),
           pointsLoss: z.number().int().default(0),
@@ -188,7 +190,8 @@ export const organizationRouter = router({
               id: ownerUserId,
               email: input.ownerEmail!,
               name: input.ownerName || input.ownerEmail!.split("@")[0],
-              emailVerified: true,
+              // Verified by the magic link on first sign-in, not by whoever typed it in.
+              emailVerified: false,
             },
           })
         }
@@ -371,7 +374,7 @@ export const organizationRouter = router({
   update: orgAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1).optional(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         logo: safeUrlNullish,
       }),
     )
@@ -391,8 +394,8 @@ export const organizationRouter = router({
   platformUpdate: platformAdminProcedure
     .input(
       z.object({
-        id: z.string(),
-        name: z.string().min(1).optional(),
+        id: z.string().max(MAX_ID_LENGTH),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         slug: z
           .string()
           .min(1)
@@ -491,85 +494,89 @@ export const organizationRouter = router({
       return inv
     }),
 
-  removeMember: orgAdminProcedure.input(z.object({ memberId: z.string() })).mutation(async ({ ctx, input }) => {
-    const memberRecord = await ctx.db.member.findFirst({
-      where: { id: input.memberId, organizationId: ctx.organizationId },
-    })
-    if (!memberRecord) {
-      throw createAppError("NOT_FOUND", APP_ERROR_CODES.MEMBER_NOT_FOUND)
-    }
-    if (memberRecord.userId === ctx.user.id) {
-      throw createAppError("BAD_REQUEST", APP_ERROR_CODES.MEMBER_CANNOT_REMOVE_SELF)
-    }
+  removeMember: orgAdminProcedure
+    .input(z.object({ memberId: z.string().max(MAX_ID_LENGTH) }))
+    .mutation(async ({ ctx, input }) => {
+      const memberRecord = await ctx.db.member.findFirst({
+        where: { id: input.memberId, organizationId: ctx.organizationId },
+      })
+      if (!memberRecord) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.MEMBER_NOT_FOUND)
+      }
+      if (memberRecord.userId === ctx.user.id) {
+        throw createAppError("BAD_REQUEST", APP_ERROR_CODES.MEMBER_CANNOT_REMOVE_SELF)
+      }
 
-    await ctx.db.member.delete({ where: { id: input.memberId } })
-    await ctx.db.session.updateMany({
-      where: {
-        userId: memberRecord.userId,
-        activeOrganizationId: ctx.organizationId,
-      },
-      data: { activeOrganizationId: null },
-    })
-  }),
-
-  delete: platformAdminProcedure.input(z.object({ id: z.string() })).mutation(async ({ ctx, input }) => {
-    const org = await ctx.db.organization.findFirst({
-      where: { id: input.id },
-    })
-    if (!org) {
-      throw createAppError("NOT_FOUND", APP_ERROR_CODES.ORG_NOT_FOUND)
-    }
-
-    // Get members before deleting (to find orphaned users afterwards)
-    const members = await ctx.db.member.findMany({
-      where: { organizationId: input.id },
-      select: { userId: true },
-    })
-    const memberUserIds = members.map((m) => m.userId)
-
-    if (memberUserIds.length > 0) {
+      await ctx.db.member.delete({ where: { id: input.memberId } })
       await ctx.db.session.updateMany({
         where: {
-          userId: { in: memberUserIds },
-          activeOrganizationId: input.id,
+          userId: memberRecord.userId,
+          activeOrganizationId: ctx.organizationId,
         },
         data: { activeOrganizationId: null },
       })
-    }
+    }),
 
-    // Delete the organization (cascades member records)
-    await ctx.db.organization.delete({ where: { id: input.id } })
+  delete: platformAdminProcedure
+    .input(z.object({ id: z.string().max(MAX_ID_LENGTH) }))
+    .mutation(async ({ ctx, input }) => {
+      const org = await ctx.db.organization.findFirst({
+        where: { id: input.id },
+      })
+      if (!org) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.ORG_NOT_FOUND)
+      }
 
-    // Clean up orphaned users: users who now have zero memberships and are not platform admins
-    if (memberUserIds.length > 0) {
-      const remainingMemberships = await ctx.db.member.findMany({
-        where: { userId: { in: memberUserIds } },
+      // Get members before deleting (to find orphaned users afterwards)
+      const members = await ctx.db.member.findMany({
+        where: { organizationId: input.id },
         select: { userId: true },
       })
-      const usersWithMemberships = new Set(remainingMemberships.map((m) => m.userId))
+      const memberUserIds = members.map((m) => m.userId)
 
-      const orphanedUserIds = memberUserIds.filter((id) => !usersWithMemberships.has(id))
-
-      if (orphanedUserIds.length > 0) {
-        // Don't delete platform admins
-        const platformAdmins = await ctx.db.user.findMany({
-          where: { id: { in: orphanedUserIds }, role: "admin" },
-          select: { id: true },
+      if (memberUserIds.length > 0) {
+        await ctx.db.session.updateMany({
+          where: {
+            userId: { in: memberUserIds },
+            activeOrganizationId: input.id,
+          },
+          data: { activeOrganizationId: null },
         })
-        const platformAdminIds = new Set(platformAdmins.map((u) => u.id))
+      }
 
-        const toDelete = orphanedUserIds.filter((id) => !platformAdminIds.has(id))
-        if (toDelete.length > 0) {
-          await ctx.db.user.deleteMany({ where: { id: { in: toDelete } } })
+      // Delete the organization (cascades member records)
+      await ctx.db.organization.delete({ where: { id: input.id } })
+
+      // Clean up orphaned users: users who now have zero memberships and are not platform admins
+      if (memberUserIds.length > 0) {
+        const remainingMemberships = await ctx.db.member.findMany({
+          where: { userId: { in: memberUserIds } },
+          select: { userId: true },
+        })
+        const usersWithMemberships = new Set(remainingMemberships.map((m) => m.userId))
+
+        const orphanedUserIds = memberUserIds.filter((id) => !usersWithMemberships.has(id))
+
+        if (orphanedUserIds.length > 0) {
+          // Don't delete platform admins
+          const platformAdmins = await ctx.db.user.findMany({
+            where: { id: { in: orphanedUserIds }, role: "admin" },
+            select: { id: true },
+          })
+          const platformAdminIds = new Set(platformAdmins.map((u) => u.id))
+
+          const toDelete = orphanedUserIds.filter((id) => !platformAdminIds.has(id))
+          if (toDelete.length > 0) {
+            await ctx.db.user.deleteMany({ where: { id: { in: toDelete } } })
+          }
         }
       }
-    }
 
-    return { id: input.id }
-  }),
+      return { id: input.id }
+    }),
 
   setActiveForAdmin: platformAdminProcedure
-    .input(z.object({ organizationId: z.string() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
     .mutation(async ({ ctx, input }) => {
       const org = await ctx.db.organization.findFirst({
         where: { id: input.organizationId },
@@ -590,7 +597,7 @@ export const organizationRouter = router({
   updateMemberRole: orgAdminProcedure
     .input(
       z.object({
-        memberId: z.string(),
+        memberId: z.string().max(MAX_ID_LENGTH),
         role: z.enum(["owner", "admin", "member"]),
       }),
     )
@@ -633,27 +640,29 @@ export const organizationRouter = router({
     return membership.memberRoles
   }),
 
-  getMemberRoles: orgAdminProcedure.input(z.object({ memberId: z.string() })).query(async ({ ctx, input }) => {
-    const memberRecord = await ctx.db.member.findFirst({
-      where: { id: input.memberId, organizationId: ctx.organizationId },
-    })
-    if (!memberRecord) {
-      throw createAppError("NOT_FOUND", APP_ERROR_CODES.MEMBER_NOT_FOUND)
-    }
+  getMemberRoles: orgAdminProcedure
+    .input(z.object({ memberId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      const memberRecord = await ctx.db.member.findFirst({
+        where: { id: input.memberId, organizationId: ctx.organizationId },
+      })
+      if (!memberRecord) {
+        throw createAppError("NOT_FOUND", APP_ERROR_CODES.MEMBER_NOT_FOUND)
+      }
 
-    return ctx.db.memberRole.findMany({
-      where: { memberId: input.memberId },
-      include: {
-        team: { select: { id: true, name: true, shortName: true } },
-      },
-      orderBy: { createdAt: "asc" },
-    })
-  }),
+      return ctx.db.memberRole.findMany({
+        where: { memberId: input.memberId },
+        include: {
+          team: { select: { id: true, name: true, shortName: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      })
+    }),
 
   addMemberRole: orgAdminProcedure
     .input(
       z.object({
-        memberId: z.string(),
+        memberId: z.string().max(MAX_ID_LENGTH),
         role: z.enum(ORG_ROLE_VALUES),
         teamId: z.string().uuid().nullable().optional(),
       }),

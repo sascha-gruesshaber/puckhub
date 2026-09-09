@@ -114,7 +114,13 @@ app.use(
 // File upload
 app.post("/api/upload", handleUpload)
 
-// Serve uploaded files
+// Serve uploaded files. Uploads are user-supplied bytes served from our own origin,
+// so the browser must never be allowed to re-interpret one as HTML or script.
+app.use("/api/uploads/*", async (c, next) => {
+  await next()
+  c.res.headers.set("X-Content-Type-Options", "nosniff")
+  c.res.headers.set("Content-Disposition", "inline")
+})
 app.use(
   "/api/uploads/*",
   serveStatic({
@@ -230,14 +236,22 @@ app.get("/api/health", async (c) => {
   }
 })
 
-// Version info
+// Version info. Commit hash and branch name describe our internal development, not
+// the running product, so they are only returned when a deployment explicitly asks
+// for them (EXPOSE_BUILD_DETAILS=true).
 app.get("/api/version", (c) => {
+  const exposeBuildDetails = process.env.EXPOSE_BUILD_DETAILS === "true"
+
   return c.json({
     app: "api",
     version: process.env.APP_VERSION ?? "dev",
-    commit: process.env.APP_COMMIT ?? "unknown",
-    branch: process.env.APP_BRANCH ?? "unknown",
     buildDate: process.env.APP_BUILD_DATE ?? "unknown",
+    ...(exposeBuildDetails
+      ? {
+          commit: process.env.APP_COMMIT ?? "unknown",
+          branch: process.env.APP_BRANCH ?? "unknown",
+        }
+      : {}),
   })
 })
 

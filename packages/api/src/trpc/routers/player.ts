@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
-import { safeUrlOptional } from "../../lib/validation"
+import { MAX_NAME_LENGTH, safeUrlOptional } from "../../lib/validation"
 import { checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 
@@ -133,10 +133,10 @@ export const playerRouter = router({
   create: orgAdminProcedure
     .input(
       z.object({
-        firstName: z.string().min(1),
-        lastName: z.string().min(1),
-        dateOfBirth: z.string().optional(),
-        nationality: z.string().optional(),
+        firstName: z.string().max(MAX_NAME_LENGTH).min(1),
+        lastName: z.string().max(MAX_NAME_LENGTH).min(1),
+        dateOfBirth: z.string().max(MAX_NAME_LENGTH).optional(),
+        nationality: z.string().max(MAX_NAME_LENGTH).optional(),
         status: z.enum(["hobby", "licensed", "tryout", "inactive"]).optional(),
         photoUrl: safeUrlOptional,
       }),
@@ -161,10 +161,10 @@ export const playerRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        firstName: z.string().min(1).optional(),
-        lastName: z.string().min(1).optional(),
-        dateOfBirth: z.string().optional(),
-        nationality: z.string().optional(),
+        firstName: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        lastName: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
+        dateOfBirth: z.string().max(MAX_NAME_LENGTH).optional(),
+        nationality: z.string().max(MAX_NAME_LENGTH).optional(),
         status: z.enum(["hobby", "licensed", "tryout", "inactive"]).optional(),
         photoUrl: safeUrlOptional,
       }),

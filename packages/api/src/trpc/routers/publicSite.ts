@@ -11,6 +11,7 @@ import {
   maskPublicReportEmail,
   normalizePublicReportEmail,
 } from "../../lib/publicReportPrivacy"
+import { MAX_DOMAIN_LENGTH, MAX_ID_LENGTH, MAX_NAME_LENGTH, MAX_TEXT_LENGTH } from "../../lib/validation"
 import { checkAiEligibility, generateAndPersistRecap } from "../../services/aiRecapService"
 import {
   collectContinuedContractIds,
@@ -23,6 +24,36 @@ import { getEligibleGameIds } from "./_helpers"
 const OTP_PER_EMAIL_PER_HOUR = 3
 const OTP_PER_IP_PER_HOUR = 10
 const REPORTS_PER_IP_PER_DAY = 20
+
+/**
+ * Column allow-lists for the public league site. Public procedures must never
+ * hand out whole rows: a table gaining a private column later would leak it
+ * silently. Everything a league site actually renders is listed here.
+ */
+
+/** Player fields shown in lists (stats tables, leaderboards, rosters). */
+const PUBLIC_PLAYER_LIST_SELECT = {
+  id: true,
+  firstName: true,
+  lastName: true,
+  status: true,
+  photoUrl: true,
+} as const
+
+/** Player fields on the public player profile page; adds the published bio data. */
+const PUBLIC_PLAYER_DETAIL_SELECT = {
+  ...PUBLIC_PLAYER_LIST_SELECT,
+  dateOfBirth: true,
+  nationality: true,
+} as const
+
+/** Team fields for public lists and crests. Contact data is deliberately absent. */
+const PUBLIC_TEAM_SELECT = {
+  id: true,
+  name: true,
+  shortName: true,
+  logoUrl: true,
+} as const
 
 /**
  * Ensures the organization exists and both the plan and the org settings allow
@@ -56,124 +87,128 @@ export const publicSiteRouter = router({
     })
   }),
 
-  resolveByDomain: cachedPublicProcedure.input(z.object({ domain: z.string() })).query(async ({ ctx, input }) => {
-    const suffix = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
+  resolveByDomain: cachedPublicProcedure
+    .input(z.object({ domain: z.string().max(MAX_DOMAIN_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      const suffix = process.env.SUBDOMAIN_SUFFIX || ".puckhub.eu"
 
-    // Try to match by custom domain on websiteConfig
-    let config = await ctx.db.websiteConfig.findFirst({
-      where: { isActive: true, domain: input.domain },
-      include: { organization: { select: { id: true, name: true, slug: true, logo: true } } },
-    })
+      // Try to match by custom domain on websiteConfig
+      let config = await ctx.db.websiteConfig.findFirst({
+        where: { isActive: true, domain: input.domain },
+        include: { organization: { select: { id: true, name: true, slug: true, logo: true } } },
+      })
 
-    // Try to match by organization slug (subdomain prefix)
-    if (!config) {
-      // Extract slug from subdomain: "demo-league.puckhub.gruesshaber.eu" → "demo-league"
-      let slug: string | null = null
-      if (input.domain.endsWith(suffix)) {
-        slug = input.domain.slice(0, -suffix.length) || null
+      // Try to match by organization slug (subdomain prefix)
+      if (!config) {
+        // Extract slug from subdomain: "demo-league.puckhub.gruesshaber.eu" → "demo-league"
+        let slug: string | null = null
+        if (input.domain.endsWith(suffix)) {
+          slug = input.domain.slice(0, -suffix.length) || null
+        }
+        if (slug) {
+          config = await ctx.db.websiteConfig.findFirst({
+            where: { isActive: true, organization: { slug } },
+            include: { organization: { select: { id: true, name: true, slug: true, logo: true } } },
+          })
+        }
       }
-      if (slug) {
-        config = await ctx.db.websiteConfig.findFirst({
-          where: { isActive: true, organization: { slug } },
-          include: { organization: { select: { id: true, name: true, slug: true, logo: true } } },
-        })
-      }
-    }
 
-    if (!config) return null
+      if (!config) return null
 
-    const [settings, subscription, org] = await Promise.all([
-      ctx.db.systemSettings.findUnique({
-        where: { organizationId: config.organizationId },
-      }),
-      ctx.db.orgSubscription
-        .findUnique({
+      const [settings, subscription, org] = await Promise.all([
+        ctx.db.systemSettings.findUnique({
           where: { organizationId: config.organizationId },
-          include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
-        })
-        .catch(() => null),
-      ctx.db.organization
-        .findUnique({
-          where: { id: config.organizationId },
-          select: {
-            aiEnabled: true,
-            aiWidgetLeaguePulse: true,
-            aiWidgetHeadlinesTicker: true,
-          },
-        })
-        .catch(() => null),
-    ])
+        }),
+        ctx.db.orgSubscription
+          .findUnique({
+            where: { organizationId: config.organizationId },
+            include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
+          })
+          .catch(() => null),
+        ctx.db.organization
+          .findUnique({
+            where: { id: config.organizationId },
+            select: {
+              aiEnabled: true,
+              aiWidgetLeaguePulse: true,
+              aiWidgetHeadlinesTicker: true,
+            },
+          })
+          .catch(() => null),
+      ])
 
-    const planPublicReports = subscription?.plan?.featurePublicReports ?? false
-    const settingsPublicReports = settings?.publicReportsEnabled ?? false
-    const planAi = (subscription?.plan as any)?.featureAi ?? false
-    const aiMaster = org?.aiEnabled ?? false
+      const planPublicReports = subscription?.plan?.featurePublicReports ?? false
+      const settingsPublicReports = settings?.publicReportsEnabled ?? false
+      const planAi = (subscription?.plan as any)?.featureAi ?? false
+      const aiMaster = org?.aiEnabled ?? false
 
-    const features = {
-      advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
-      publicReports: planPublicReports && settingsPublicReports,
-      publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
-      publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
-      aiWidgetLeaguePulse: aiMaster && planAi && ((org as any)?.aiWidgetLeaguePulse ?? false),
-      aiWidgetHeadlinesTicker: aiMaster && planAi && ((org as any)?.aiWidgetHeadlinesTicker ?? false),
-    }
+      const features = {
+        advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
+        publicReports: planPublicReports && settingsPublicReports,
+        publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
+        publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
+        aiWidgetLeaguePulse: aiMaster && planAi && ((org as any)?.aiWidgetLeaguePulse ?? false),
+        aiWidgetHeadlinesTicker: aiMaster && planAi && ((org as any)?.aiWidgetHeadlinesTicker ?? false),
+      }
 
-    // Expose org slug as subdomain on config for backward compat
-    const configWithSubdomain = { ...config, subdomain: config.organization.slug }
-    return { config: configWithSubdomain, settings, organization: config.organization, features }
-  }),
+      // Expose org slug as subdomain on config for backward compat
+      const configWithSubdomain = { ...config, subdomain: config.organization.slug }
+      return { config: configWithSubdomain, settings, organization: config.organization, features }
+    }),
 
-  getConfig: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    const config = await ctx.db.websiteConfig.findUnique({
-      where: { organizationId: input.organizationId },
-      include: {
-        organization: { select: { id: true, name: true, slug: true, logo: true } },
-      },
-    })
-    if (!config) return null
-
-    const [settings, subscription, org] = await Promise.all([
-      ctx.db.systemSettings.findUnique({
+  getConfig: cachedPublicProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      const config = await ctx.db.websiteConfig.findUnique({
         where: { organizationId: input.organizationId },
-      }),
-      ctx.db.orgSubscription
-        .findUnique({
+        include: {
+          organization: { select: { id: true, name: true, slug: true, logo: true } },
+        },
+      })
+      if (!config) return null
+
+      const [settings, subscription, org] = await Promise.all([
+        ctx.db.systemSettings.findUnique({
           where: { organizationId: input.organizationId },
-          include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
-        })
-        .catch(() => null),
-      ctx.db.organization
-        .findUnique({
-          where: { id: input.organizationId },
-          select: {
-            aiEnabled: true,
-            aiWidgetLeaguePulse: true,
-            aiWidgetHeadlinesTicker: true,
-          },
-        })
-        .catch(() => null),
-    ])
+        }),
+        ctx.db.orgSubscription
+          .findUnique({
+            where: { organizationId: input.organizationId },
+            include: { plan: { select: { featureAdvancedStats: true, featurePublicReports: true, featureAi: true } } },
+          })
+          .catch(() => null),
+        ctx.db.organization
+          .findUnique({
+            where: { id: input.organizationId },
+            select: {
+              aiEnabled: true,
+              aiWidgetLeaguePulse: true,
+              aiWidgetHeadlinesTicker: true,
+            },
+          })
+          .catch(() => null),
+      ])
 
-    const planPublicReports = subscription?.plan?.featurePublicReports ?? false
-    const settingsPublicReports = settings?.publicReportsEnabled ?? false
-    const planAi = (subscription?.plan as any)?.featureAi ?? false
-    const aiMaster = org?.aiEnabled ?? false
+      const planPublicReports = subscription?.plan?.featurePublicReports ?? false
+      const settingsPublicReports = settings?.publicReportsEnabled ?? false
+      const planAi = (subscription?.plan as any)?.featureAi ?? false
+      const aiMaster = org?.aiEnabled ?? false
 
-    const features = {
-      advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
-      publicReports: planPublicReports && settingsPublicReports,
-      publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
-      publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
-      aiWidgetLeaguePulse: aiMaster && planAi && ((org as any)?.aiWidgetLeaguePulse ?? false),
-      aiWidgetHeadlinesTicker: aiMaster && planAi && ((org as any)?.aiWidgetHeadlinesTicker ?? false),
-    }
+      const features = {
+        advancedStats: subscription?.plan?.featureAdvancedStats ?? false,
+        publicReports: planPublicReports && settingsPublicReports,
+        publicReportsRequireEmail: settings?.publicReportsRequireEmail ?? true,
+        publicReportsBotDetection: settings?.publicReportsBotDetection ?? true,
+        aiWidgetLeaguePulse: aiMaster && planAi && ((org as any)?.aiWidgetLeaguePulse ?? false),
+        aiWidgetHeadlinesTicker: aiMaster && planAi && ((org as any)?.aiWidgetHeadlinesTicker ?? false),
+      }
 
-    const configWithSubdomain = { ...config, subdomain: config.organization.slug }
-    return { config: configWithSubdomain, settings, organization: config.organization, features }
-  }),
+      const configWithSubdomain = { ...config, subdomain: config.organization.slug }
+      return { config: configWithSubdomain, settings, organization: config.organization, features }
+    }),
 
   getCurrentSeason: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
     .query(async ({ ctx, input }) => {
       const now = new Date()
       // Try to find a season that covers the current date
@@ -194,15 +229,17 @@ export const publicSiteRouter = router({
       })
     }),
 
-  listSeasons: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    return ctx.db.season.findMany({
-      where: { organizationId: input.organizationId },
-      orderBy: { seasonStart: "desc" },
-    })
-  }),
+  listSeasons: cachedPublicProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.season.findMany({
+        where: { organizationId: input.organizationId },
+        orderBy: { seasonStart: "desc" },
+      })
+    }),
 
   getSeasonStructure: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const [divisions, season] = await Promise.all([
         ctx.db.division.findMany({
@@ -237,112 +274,114 @@ export const publicSiteRouter = router({
       return { divisions, aiDescriptionShort: season?.aiDescriptionShort ?? null }
     }),
 
-  getHomeData: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    const orgId = input.organizationId
+  getHomeData: cachedPublicProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      const orgId = input.organizationId
 
-    // Resolve current season
-    const now = new Date()
-    const currentSeason =
-      (await ctx.db.season.findFirst({
-        where: { organizationId: orgId, seasonStart: { lte: now }, seasonEnd: { gte: now } },
-        orderBy: { seasonStart: "desc" },
-      })) ??
-      (await ctx.db.season.findFirst({
-        where: { organizationId: orgId },
-        orderBy: { seasonStart: "desc" },
-      }))
+      // Resolve current season
+      const now = new Date()
+      const currentSeason =
+        (await ctx.db.season.findFirst({
+          where: { organizationId: orgId, seasonStart: { lte: now }, seasonEnd: { gte: now } },
+          orderBy: { seasonStart: "desc" },
+        })) ??
+        (await ctx.db.season.findFirst({
+          where: { organizationId: orgId },
+          orderBy: { seasonStart: "desc" },
+        }))
 
-    const seasonId = currentSeason?.id
+      const seasonId = currentSeason?.id
 
-    // Run all queries in parallel
-    const [latestResults, upcomingGames, standings, sponsors, aiWidgets] = await Promise.all([
-      // Latest 5 completed games
-      seasonId
-        ? ctx.db.game.findMany({
-            where: {
-              organizationId: orgId,
-              status: "completed",
-              round: { division: { seasonId } },
-            },
-            orderBy: { finalizedAt: "desc" },
-            take: 5,
-            include: {
-              homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-              awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-              round: { select: { name: true, division: { select: { name: true } } } },
-            },
-          })
-        : [],
-
-      // Next 5 upcoming games
-      seasonId
-        ? ctx.db.game.findMany({
-            where: {
-              organizationId: orgId,
-              status: "scheduled",
-              scheduledAt: { gte: now },
-              round: { division: { seasonId } },
-            },
-            orderBy: { scheduledAt: "asc" },
-            take: 5,
-            include: {
-              homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-              awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
-              round: { select: { name: true, division: { select: { name: true } } } },
-            },
-          })
-        : [],
-
-      // Standings from the first regular round of the first division
-      seasonId
-        ? (async () => {
-            const firstDiv = await ctx.db.division.findFirst({
-              where: { seasonId, organizationId: orgId },
-              orderBy: { sortOrder: "asc" },
-            })
-            if (!firstDiv) return []
-            const firstRound = await ctx.db.round.findFirst({
-              where: { divisionId: firstDiv.id, roundType: "regular" },
-              orderBy: { sortOrder: "asc" },
-            })
-            if (!firstRound) return []
-            return ctx.db.standing.findMany({
-              where: { roundId: firstRound.id, organizationId: orgId },
-              orderBy: [{ totalPoints: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
-              take: 8,
-              include: { team: { select: { id: true, name: true, shortName: true, logoUrl: true } } },
-            })
-          })()
-        : [],
-
-      // Active sponsors
-      ctx.db.sponsor.findMany({
-        where: { organizationId: orgId, isActive: true },
-        orderBy: { sortOrder: "asc" },
-        select: { id: true, name: true, logoUrl: true, websiteUrl: true, hoverText: true },
-      }),
-
-      // AI home widgets (graceful fallback if table doesn't exist yet)
-      seasonId
-        ? ctx.db.aiHomeWidget
-            .findMany({
+      // Run all queries in parallel
+      const [latestResults, upcomingGames, standings, sponsors, aiWidgets] = await Promise.all([
+        // Latest 5 completed games
+        seasonId
+          ? ctx.db.game.findMany({
               where: {
                 organizationId: orgId,
-                seasonId,
-                generating: false,
-                widgetType: { in: ["league_pulse_digest", "headlines_ticker"] },
+                status: "completed",
+                round: { division: { seasonId } },
               },
-              select: { widgetType: true, content: true, generatedAt: true },
+              orderBy: { finalizedAt: "desc" },
+              take: 5,
+              include: {
+                homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+                awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+                round: { select: { name: true, division: { select: { name: true } } } },
+              },
             })
-            .catch(() => [])
-        : [],
-    ])
+          : [],
 
-    return { currentSeason, latestResults, upcomingGames, standings, sponsors, aiWidgets }
-  }),
+        // Next 5 upcoming games
+        seasonId
+          ? ctx.db.game.findMany({
+              where: {
+                organizationId: orgId,
+                status: "scheduled",
+                scheduledAt: { gte: now },
+                round: { division: { seasonId } },
+              },
+              orderBy: { scheduledAt: "asc" },
+              take: 5,
+              include: {
+                homeTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+                awayTeam: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+                round: { select: { name: true, division: { select: { name: true } } } },
+              },
+            })
+          : [],
+
+        // Standings from the first regular round of the first division
+        seasonId
+          ? (async () => {
+              const firstDiv = await ctx.db.division.findFirst({
+                where: { seasonId, organizationId: orgId },
+                orderBy: { sortOrder: "asc" },
+              })
+              if (!firstDiv) return []
+              const firstRound = await ctx.db.round.findFirst({
+                where: { divisionId: firstDiv.id, roundType: "regular" },
+                orderBy: { sortOrder: "asc" },
+              })
+              if (!firstRound) return []
+              return ctx.db.standing.findMany({
+                where: { roundId: firstRound.id, organizationId: orgId },
+                orderBy: [{ totalPoints: "desc" }, { goalDifference: "desc" }, { goalsFor: "desc" }],
+                take: 8,
+                include: { team: { select: { id: true, name: true, shortName: true, logoUrl: true } } },
+              })
+            })()
+          : [],
+
+        // Active sponsors
+        ctx.db.sponsor.findMany({
+          where: { organizationId: orgId, isActive: true },
+          orderBy: { sortOrder: "asc" },
+          select: { id: true, name: true, logoUrl: true, websiteUrl: true, hoverText: true },
+        }),
+
+        // AI home widgets (graceful fallback if table doesn't exist yet)
+        seasonId
+          ? ctx.db.aiHomeWidget
+              .findMany({
+                where: {
+                  organizationId: orgId,
+                  seasonId,
+                  generating: false,
+                  widgetType: { in: ["league_pulse_digest", "headlines_ticker"] },
+                },
+                select: { widgetType: true, content: true, generatedAt: true },
+              })
+              .catch(() => [])
+          : [],
+      ])
+
+      return { currentSeason, latestResults, upcomingGames, standings, sponsors, aiWidgets }
+    }),
 
   getStandings: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string(), roundId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), roundId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.standing.findMany({
         where: { roundId: input.roundId, organizationId: input.organizationId },
@@ -367,7 +406,7 @@ export const publicSiteRouter = router({
   getTeamForm: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         roundId: z.string().uuid(),
         limit: z.number().int().min(1).max(20).default(5),
       }),
@@ -405,14 +444,14 @@ export const publicSiteRouter = router({
   listGames: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         seasonId: z.string().uuid().optional(),
         divisionId: z.string().uuid().optional(),
         roundId: z.string().uuid().optional(),
         teamId: z.string().uuid().optional(),
         status: z.enum(["scheduled", "live", "completed", "cancelled"]).optional(),
-        dateFrom: z.string().optional(),
-        dateTo: z.string().optional(),
+        dateFrom: z.string().max(MAX_NAME_LENGTH).optional(),
+        dateTo: z.string().max(MAX_NAME_LENGTH).optional(),
         cursor: z.string().uuid().optional(),
         limit: z.number().int().min(1).max(100).default(20),
       }),
@@ -457,7 +496,7 @@ export const publicSiteRouter = router({
     }),
 
   getGameDetail: publicProcedure
-    .input(z.object({ organizationId: z.string(), gameId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), gameId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const game = await ctx.db.game.findFirst({
         where: { id: input.gameId, organizationId: input.organizationId },
@@ -524,7 +563,7 @@ export const publicSiteRouter = router({
   getLatestResults: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         seasonId: z.string().uuid().optional(),
         limit: z.number().int().min(1).max(20).default(5),
       }),
@@ -549,7 +588,7 @@ export const publicSiteRouter = router({
   getUpcomingGames: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         seasonId: z.string().uuid().optional(),
         limit: z.number().int().min(1).max(20).default(5),
       }),
@@ -573,7 +612,7 @@ export const publicSiteRouter = router({
     }),
 
   listTeams: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid().optional() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), seasonId: z.string().uuid().optional() }))
     .query(async ({ ctx, input }) => {
       if (input.seasonId) {
         // Return teams in this season via teamDivisions
@@ -614,7 +653,13 @@ export const publicSiteRouter = router({
     }),
 
   getTeamDetail: publicProcedure
-    .input(z.object({ organizationId: z.string(), teamId: z.string().uuid(), seasonId: z.string().uuid().optional() }))
+    .input(
+      z.object({
+        organizationId: z.string().max(MAX_ID_LENGTH),
+        teamId: z.string().uuid(),
+        seasonId: z.string().uuid().optional(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
       const team = await ctx.db.team.findFirst({
         where: { id: input.teamId, organizationId: input.organizationId },
@@ -626,7 +671,8 @@ export const publicSiteRouter = router({
           logoUrl: true,
           teamPhotoUrl: true,
           primaryColor: true,
-          contactName: true,
+          // contactEmail backs the public "contact this team" mailto link; contactName
+          // is admin-only and is deliberately not published.
           contactEmail: true,
           website: true,
           homeVenue: true,
@@ -669,9 +715,11 @@ export const publicSiteRouter = router({
   listNews: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         cursor: z.string().uuid().optional(),
-        limit: z.number().int().min(1).max(200).default(20),
+        // A public news feed is paged; 200 full articles per request is a free
+        // amplification factor against an unauthenticated endpoint.
+        limit: z.number().int().min(1).max(50).default(20),
       }),
     )
     .query(async ({ ctx, input }) => {
@@ -701,7 +749,7 @@ export const publicSiteRouter = router({
     }),
 
   getNewsDetail: publicProcedure
-    .input(z.object({ organizationId: z.string(), newsId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), newsId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.news.findFirst({
         where: { id: input.newsId, organizationId: input.organizationId, status: "published" },
@@ -718,16 +766,18 @@ export const publicSiteRouter = router({
       })
     }),
 
-  listSponsors: cachedPublicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    return ctx.db.sponsor.findMany({
-      where: { organizationId: input.organizationId, isActive: true },
-      orderBy: { sortOrder: "asc" },
-      select: { id: true, name: true, logoUrl: true, websiteUrl: true, hoverText: true },
-    })
-  }),
+  listSponsors: cachedPublicProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db.sponsor.findMany({
+        where: { organizationId: input.organizationId, isActive: true },
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, name: true, logoUrl: true, websiteUrl: true, hoverText: true },
+      })
+    }),
 
   getPageBySlug: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string(), slug: z.string() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), slug: z.string().max(MAX_ID_LENGTH) }))
     .query(async ({ ctx, input }) => {
       const parts = input.slug.split("/")
 
@@ -799,7 +849,7 @@ export const publicSiteRouter = router({
     }),
 
   getMenuPages: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string(), location: z.enum(["main_nav", "footer"]) }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), location: z.enum(["main_nav", "footer"]) }))
     .query(async ({ ctx, input }) => {
       return ctx.db.page.findMany({
         where: {
@@ -834,7 +884,7 @@ export const publicSiteRouter = router({
   getPlayerStats: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         seasonId: z.string().uuid(),
         teamId: z.string().uuid().optional(),
         position: z.enum(["forward", "defense"]).optional(),
@@ -850,8 +900,8 @@ export const publicSiteRouter = router({
       const stats = await ctx.db.playerSeasonStat.findMany({
         where,
         include: {
-          player: true,
-          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+          player: { select: PUBLIC_PLAYER_LIST_SELECT },
+          team: { select: PUBLIC_TEAM_SELECT },
         },
         orderBy: [{ totalPoints: "desc" }, { goals: "desc" }, { assists: "desc" }],
       })
@@ -875,7 +925,7 @@ export const publicSiteRouter = router({
   getGoalieStats: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         seasonId: z.string().uuid(),
         teamId: z.string().uuid().optional(),
       }),
@@ -890,8 +940,8 @@ export const publicSiteRouter = router({
       const stats = await ctx.db.goalieSeasonStat.findMany({
         where,
         include: {
-          player: true,
-          team: { select: { id: true, name: true, shortName: true, logoUrl: true } },
+          player: { select: PUBLIC_PLAYER_LIST_SELECT },
+          team: { select: PUBLIC_TEAM_SELECT },
         },
         orderBy: [{ gaa: "asc" }, { gamesPlayed: "desc" }],
       })
@@ -914,7 +964,7 @@ export const publicSiteRouter = router({
   getPenaltyStats: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         seasonId: z.string().uuid(),
         teamId: z.string().uuid().optional(),
       }),
@@ -967,15 +1017,21 @@ export const publicSiteRouter = router({
       }
 
       const playerIds = [...new Set(Array.from(playerMap.values()).map((p) => p.playerId))]
-      const players = playerIds.length > 0 ? await ctx.db.player.findMany({ where: { id: { in: playerIds } } }) : []
+      const players =
+        playerIds.length > 0
+          ? await ctx.db.player.findMany({
+              where: { id: { in: playerIds }, organizationId: input.organizationId },
+              select: PUBLIC_PLAYER_LIST_SELECT,
+            })
+          : []
       const playerLookup = new Map(players.map((p: any) => [p.id, p]))
 
       const teamIds = [...new Set(Array.from(playerMap.values()).map((p) => p.teamId))]
       const teams =
         teamIds.length > 0
           ? await ctx.db.team.findMany({
-              where: { id: { in: teamIds } },
-              select: { id: true, name: true, shortName: true, logoUrl: true },
+              where: { id: { in: teamIds }, organizationId: input.organizationId },
+              select: PUBLIC_TEAM_SELECT,
             })
           : []
       const teamLookup = new Map(teams.map((t: any) => [t.id, t]))
@@ -991,7 +1047,7 @@ export const publicSiteRouter = router({
     }),
 
   getTeamPenaltyStats: publicProcedure
-    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const gameIds = await getEligibleGameIds(ctx.db, input.seasonId, input.organizationId, "countsForPlayerStats")
       if (gameIds.length === 0) return []
@@ -1040,8 +1096,8 @@ export const publicSiteRouter = router({
       const teams =
         teamIds.length > 0
           ? await ctx.db.team.findMany({
-              where: { id: { in: teamIds } },
-              select: { id: true, name: true, shortName: true, logoUrl: true },
+              where: { id: { in: teamIds }, organizationId: input.organizationId },
+              select: PUBLIC_TEAM_SELECT,
             })
           : []
       const teamLookup = new Map(teams.map((t: any) => [t.id, t]))
@@ -1061,7 +1117,7 @@ export const publicSiteRouter = router({
     }),
 
   getSeasonRoundInfo: cachedPublicProcedure
-    .input(z.object({ organizationId: z.string(), seasonId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), seasonId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.division.findMany({
         where: { seasonId: input.seasonId, organizationId: input.organizationId },
@@ -1071,7 +1127,7 @@ export const publicSiteRouter = router({
     }),
 
   getPlayerCareerStats: publicProcedure
-    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), playerId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.playerSeasonStat.findMany({
         where: { playerId: input.playerId, organizationId: input.organizationId },
@@ -1084,7 +1140,7 @@ export const publicSiteRouter = router({
     }),
 
   getGoalieCareerStats: publicProcedure
-    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), playerId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.goalieSeasonStat.findMany({
         where: { playerId: input.playerId, organizationId: input.organizationId },
@@ -1097,7 +1153,7 @@ export const publicSiteRouter = router({
     }),
 
   getPlayerSuspensions: publicProcedure
-    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), playerId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.gameSuspension.findMany({
         where: { playerId: input.playerId, organizationId: input.organizationId },
@@ -1124,25 +1180,36 @@ export const publicSiteRouter = router({
     }),
 
   getPlayerContracts: publicProcedure
-    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), playerId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.contract.findMany({
         where: { playerId: input.playerId, organizationId: input.organizationId },
-        include: { team: true, startSeason: true, endSeason: true },
+        select: {
+          id: true,
+          playerId: true,
+          teamId: true,
+          position: true,
+          jerseyNumber: true,
+          createdAt: true,
+          team: { select: PUBLIC_TEAM_SELECT },
+          startSeason: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+          endSeason: { select: { id: true, name: true, seasonStart: true, seasonEnd: true } },
+        },
         orderBy: { createdAt: "desc" },
       })
     }),
 
   getPlayerById: publicProcedure
-    .input(z.object({ organizationId: z.string(), playerId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), playerId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       return ctx.db.player.findFirst({
         where: { id: input.playerId, organizationId: input.organizationId },
+        select: PUBLIC_PLAYER_DETAIL_SELECT,
       })
     }),
 
   getTeamHistory: publicProcedure
-    .input(z.object({ organizationId: z.string(), teamId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), teamId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const { teamId } = input
       const orgId = input.organizationId
@@ -1150,6 +1217,13 @@ export const publicSiteRouter = router({
       const [team, teamDivisions, allScorers, allGoalies, contracts, nameHistory] = await Promise.all([
         ctx.db.team.findFirst({
           where: { id: teamId, organizationId: orgId },
+          select: {
+            ...PUBLIC_TEAM_SELECT,
+            city: true,
+            teamPhotoUrl: true,
+            homeVenue: true,
+            primaryColor: true,
+          },
         }),
         ctx.db.teamDivision.findMany({
           where: { teamId, organizationId: orgId },
@@ -1390,7 +1464,7 @@ export const publicSiteRouter = router({
   // ---------------------------------------------------------------------------
 
   reportRequestOtp: publicProcedure
-    .input(z.object({ organizationId: z.string(), email: z.string().email() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), email: z.string().email() }))
     .mutation(async ({ ctx, input }) => {
       const { organizationId } = input
       const normalizedEmail = normalizePublicReportEmail(input.email)
@@ -1437,7 +1511,7 @@ export const publicSiteRouter = router({
   reportSubmit: publicProcedure
     .input(
       z.object({
-        organizationId: z.string(),
+        organizationId: z.string().max(MAX_ID_LENGTH),
         gameId: z.string().uuid(),
         homeScore: z.number().int().min(0),
         awayScore: z.number().int().min(0),
@@ -1445,7 +1519,7 @@ export const publicSiteRouter = router({
         email: z.string().email(),
         otpCode: z.string().length(6).optional(),
         // Bot detection fields
-        _hp: z.string().optional(), // honeypot — must be empty
+        _hp: z.string().max(MAX_TEXT_LENGTH).optional(), // honeypot — must be empty
         _ts: z.number().optional(), // form open timestamp
       }),
     )
@@ -1636,119 +1710,121 @@ export const publicSiteRouter = router({
       return { success: true }
     }),
 
-  getAllTeamsHistory: publicProcedure.input(z.object({ organizationId: z.string() })).query(async ({ ctx, input }) => {
-    const orgId = input.organizationId
+  getAllTeamsHistory: publicProcedure
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH) }))
+    .query(async ({ ctx, input }) => {
+      const orgId = input.organizationId
 
-    const [allTeams, teamDivisions, pimAgg] = await Promise.all([
-      ctx.db.team.findMany({
-        where: { organizationId: orgId },
-        select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true },
-        orderBy: { name: "asc" },
-      }),
-      ctx.db.teamDivision.findMany({
-        where: { organizationId: orgId },
-        include: {
-          division: {
-            include: {
-              season: { select: { id: true, name: true, seasonStart: true } },
-              rounds: {
-                include: { standings: true },
-                orderBy: { sortOrder: "asc" },
+      const [allTeams, teamDivisions, pimAgg] = await Promise.all([
+        ctx.db.team.findMany({
+          where: { organizationId: orgId },
+          select: { id: true, name: true, shortName: true, logoUrl: true, primaryColor: true },
+          orderBy: { name: "asc" },
+        }),
+        ctx.db.teamDivision.findMany({
+          where: { organizationId: orgId },
+          include: {
+            division: {
+              include: {
+                season: { select: { id: true, name: true, seasonStart: true } },
+                rounds: {
+                  include: { standings: true },
+                  orderBy: { sortOrder: "asc" },
+                },
               },
             },
           },
-        },
-      }),
-      ctx.db.playerSeasonStat.groupBy({
-        by: ["teamId", "seasonId"],
-        where: { organizationId: orgId },
-        _sum: { penaltyMinutes: true },
-      }),
-    ])
+        }),
+        ctx.db.playerSeasonStat.groupBy({
+          by: ["teamId", "seasonId"],
+          where: { organizationId: orgId },
+          _sum: { penaltyMinutes: true },
+        }),
+      ])
 
-    // Build PIM lookup
-    const pimMap = new Map<string, number>()
-    for (const row of pimAgg) {
-      pimMap.set(`${row.teamId}:${row.seasonId}`, row._sum.penaltyMinutes ?? 0)
-    }
-
-    // Collect unique seasons
-    const seasonMap = new Map<string, { id: string; name: string; seasonStart: Date }>()
-    // Build teamSeasons from standings
-    const teamSeasons: Array<{
-      teamId: string
-      seasonId: string
-      gamesPlayed: number
-      wins: number
-      draws: number
-      losses: number
-      goalsFor: number
-      goalsAgainst: number
-      goalDifference: number
-      bestRank: number | null
-      pim: number
-    }> = []
-
-    // Aggregate per team per season across all divisions/rounds
-    const tsMap = new Map<string, (typeof teamSeasons)[0]>()
-
-    // Several teams share one division: walk each division's standings exactly once,
-    // otherwise every standing row is summed once per team assigned to that division.
-    const seenDivisions = new Set<string>()
-    for (const td of teamDivisions) {
-      if (seenDivisions.has(td.divisionId)) continue
-      seenDivisions.add(td.divisionId)
-
-      const s = td.division.season
-      if (!seasonMap.has(s.id)) {
-        seasonMap.set(s.id, { id: s.id, name: s.name, seasonStart: s.seasonStart })
+      // Build PIM lookup
+      const pimMap = new Map<string, number>()
+      for (const row of pimAgg) {
+        pimMap.set(`${row.teamId}:${row.seasonId}`, row._sum.penaltyMinutes ?? 0)
       }
 
-      for (const round of td.division.rounds) {
-        for (const st of round.standings) {
-          const key = `${st.teamId}:${s.id}`
-          let entry = tsMap.get(key)
-          if (!entry) {
-            entry = {
-              teamId: st.teamId,
-              seasonId: s.id,
-              gamesPlayed: 0,
-              wins: 0,
-              draws: 0,
-              losses: 0,
-              goalsFor: 0,
-              goalsAgainst: 0,
-              goalDifference: 0,
-              bestRank: null,
-              pim: pimMap.get(key) ?? 0,
+      // Collect unique seasons
+      const seasonMap = new Map<string, { id: string; name: string; seasonStart: Date }>()
+      // Build teamSeasons from standings
+      const teamSeasons: Array<{
+        teamId: string
+        seasonId: string
+        gamesPlayed: number
+        wins: number
+        draws: number
+        losses: number
+        goalsFor: number
+        goalsAgainst: number
+        goalDifference: number
+        bestRank: number | null
+        pim: number
+      }> = []
+
+      // Aggregate per team per season across all divisions/rounds
+      const tsMap = new Map<string, (typeof teamSeasons)[0]>()
+
+      // Several teams share one division: walk each division's standings exactly once,
+      // otherwise every standing row is summed once per team assigned to that division.
+      const seenDivisions = new Set<string>()
+      for (const td of teamDivisions) {
+        if (seenDivisions.has(td.divisionId)) continue
+        seenDivisions.add(td.divisionId)
+
+        const s = td.division.season
+        if (!seasonMap.has(s.id)) {
+          seasonMap.set(s.id, { id: s.id, name: s.name, seasonStart: s.seasonStart })
+        }
+
+        for (const round of td.division.rounds) {
+          for (const st of round.standings) {
+            const key = `${st.teamId}:${s.id}`
+            let entry = tsMap.get(key)
+            if (!entry) {
+              entry = {
+                teamId: st.teamId,
+                seasonId: s.id,
+                gamesPlayed: 0,
+                wins: 0,
+                draws: 0,
+                losses: 0,
+                goalsFor: 0,
+                goalsAgainst: 0,
+                goalDifference: 0,
+                bestRank: null,
+                pim: pimMap.get(key) ?? 0,
+              }
+              tsMap.set(key, entry)
             }
-            tsMap.set(key, entry)
-          }
-          entry.gamesPlayed += st.gamesPlayed
-          entry.wins += st.wins
-          entry.draws += st.draws
-          entry.losses += st.losses
-          entry.goalsFor += st.goalsFor
-          entry.goalsAgainst += st.goalsAgainst
-          entry.goalDifference += st.goalsFor - st.goalsAgainst
-          if (st.rank != null && (entry.bestRank === null || st.rank < entry.bestRank)) {
-            entry.bestRank = st.rank
+            entry.gamesPlayed += st.gamesPlayed
+            entry.wins += st.wins
+            entry.draws += st.draws
+            entry.losses += st.losses
+            entry.goalsFor += st.goalsFor
+            entry.goalsAgainst += st.goalsAgainst
+            entry.goalDifference += st.goalsFor - st.goalsAgainst
+            if (st.rank != null && (entry.bestRank === null || st.rank < entry.bestRank)) {
+              entry.bestRank = st.rank
+            }
           }
         }
       }
-    }
 
-    teamSeasons.push(...tsMap.values())
+      teamSeasons.push(...tsMap.values())
 
-    const seasons = Array.from(seasonMap.values()).sort(
-      (a, b) => new Date(a.seasonStart).getTime() - new Date(b.seasonStart).getTime(),
-    )
+      const seasons = Array.from(seasonMap.values()).sort(
+        (a, b) => new Date(a.seasonStart).getTime() - new Date(b.seasonStart).getTime(),
+      )
 
-    return { teams: allTeams, seasons, teamSeasons }
-  }),
+      return { teams: allTeams, seasons, teamSeasons }
+    }),
 
   reportHasReport: publicProcedure
-    .input(z.object({ organizationId: z.string(), gameId: z.string().uuid() }))
+    .input(z.object({ organizationId: z.string().max(MAX_ID_LENGTH), gameId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
       const report = await ctx.db.publicGameReport.findFirst({
         where: {

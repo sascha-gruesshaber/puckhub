@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { createAppError } from "../../errors/appError"
 import { APP_ERROR_CODES } from "../../errors/codes"
+import { MAX_NAME_LENGTH } from "../../lib/validation"
 import { platformAdminProcedure, router } from "../init"
 
 const planUpdateSchema = z.object({
@@ -10,7 +11,7 @@ const planUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 
   priceYearly: z.number().int().min(0).optional(),
-  currency: z.string().optional(),
+  currency: z.string().max(MAX_NAME_LENGTH).optional(),
 
   maxTeams: z.number().int().min(0).nullable().optional(),
   maxPlayers: z.number().int().min(0).nullable().optional(),

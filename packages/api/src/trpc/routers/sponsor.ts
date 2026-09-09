@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { safeUrlNullish, safeUrlOptional } from "../../lib/validation"
+import { MAX_NAME_LENGTH, MAX_TEXT_LENGTH, safeUrlNullish, safeUrlOptional } from "../../lib/validation"
 import { checkFeature, checkLimit, getOrgPlan } from "../../services/planLimits"
 import { orgAdminProcedure, orgProcedure, router } from "../init"
 import { assertOrgOwnership } from "./_ownership"
@@ -23,10 +23,10 @@ export const sponsorRouter = router({
   create: orgAdminProcedure
     .input(
       z.object({
-        name: z.string().min(1),
+        name: z.string().max(MAX_NAME_LENGTH).min(1),
         logoUrl: safeUrlOptional,
         websiteUrl: safeUrlOptional,
-        hoverText: z.string().optional(),
+        hoverText: z.string().max(MAX_TEXT_LENGTH).optional(),
         teamId: z.string().uuid().optional(),
         sortOrder: z.number().int().optional(),
         isActive: z.boolean().optional(),
@@ -49,10 +49,10 @@ export const sponsorRouter = router({
     .input(
       z.object({
         id: z.string().uuid(),
-        name: z.string().min(1).optional(),
+        name: z.string().max(MAX_NAME_LENGTH).min(1).optional(),
         logoUrl: safeUrlNullish,
         websiteUrl: safeUrlNullish,
-        hoverText: z.string().nullish(),
+        hoverText: z.string().max(MAX_TEXT_LENGTH).nullish(),
         teamId: z.string().uuid().nullish(),
         sortOrder: z.number().int().optional(),
         isActive: z.boolean().optional(),

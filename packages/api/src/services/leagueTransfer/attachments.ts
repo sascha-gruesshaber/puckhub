@@ -6,7 +6,14 @@ export interface Attachment {
   mimeType: string
 }
 
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "../../uploads")
+/**
+ * Resolved per call rather than at import time: the process reads its configuration
+ * after modules are loaded, and a module-level constant would freeze whatever
+ * UPLOAD_DIR happened to hold at import.
+ */
+function uploadRoot(): string {
+  return path.resolve(process.env.UPLOAD_DIR || path.resolve(process.cwd(), "../../uploads"))
+}
 
 const MIME_MAP: Record<string, string> = {
   ".webp": "image/webp",
@@ -34,10 +41,24 @@ export const IMAGE_FIELDS: Record<string, string[]> = {
 
 // Resolve a URL like /api/uploads/orgId/logo/abc.webp to a filesystem path.
 // Handles both relative (/api/uploads/...) and absolute (http://host/api/uploads/...) URLs.
+//
+// The key comes out of an uploaded export file, so it is attacker-controlled input:
+// a key such as `../../etc/cron.d/x` would otherwise resolve outside the upload
+// directory and let an import read or overwrite an arbitrary file. Anything that does
+// not resolve to a path under the upload root is rejected.
 function urlToFilePath(url: string): string | null {
   const match = url.match(/\/api\/uploads\/(.+)$/)
   if (!match) return null
-  return path.join(UPLOAD_DIR, match[1]!)
+
+  const key = match[1]!
+  // Reject NUL bytes outright — path.resolve keeps them and they truncate C-level paths.
+  if (key.includes("\0")) return null
+
+  const root = uploadRoot()
+  const resolved = path.resolve(root, key)
+  if (resolved !== root && !resolved.startsWith(root + path.sep)) return null
+
+  return resolved
 }
 
 // Collect all image URLs from exported records + org
@@ -110,7 +131,10 @@ export async function writeAttachments(
   for (const [url, attachment] of Object.entries(attachments)) {
     const newUrl = url.replace(oldOrgId, newOrgId)
     const filePath = urlToFilePath(newUrl)
-    if (!filePath) continue
+    if (!filePath) {
+      console.warn(`[leagueTransfer] Rejected attachment path outside the upload directory: ${url}`)
+      continue
+    }
 
     const dir = path.dirname(filePath)
     await fs.promises.mkdir(dir, { recursive: true })
