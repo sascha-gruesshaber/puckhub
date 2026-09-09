@@ -39,7 +39,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@simplewebauthn/server": "^13.3.2",
+    "@simplewebauthn/server": "^13.3.3",
     "@testcontainers/postgresql": "^11.14.0",
     "@types/node": "^25.8.0",
     "@types/nodemailer": "^7.0.11",
