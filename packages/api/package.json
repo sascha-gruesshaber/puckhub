@@ -22,7 +22,7 @@
     "@aws-sdk/client-s3": "^3.1030.0",
     "@aws-sdk/s3-request-presigner": "^3.1030.0",
     "@better-auth/passkey": "^1.6.29",
-    "@hono/node-server": "^1.19.14",
+    "@hono/node-server": "^1.19.17",
     "@hono/trpc-server": "^0.4.2",
     "@puckhub/db": "workspace:*",
     "@trpc/server": "^11.16.0",
